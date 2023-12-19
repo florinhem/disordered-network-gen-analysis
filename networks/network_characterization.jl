@@ -9,7 +9,7 @@ Measure the standard deviation of bond lengths
 function get_bond_length_std(graph_dict::Dict)
     
     #get nr of bonds
-    nr_bonds = Int(graph_dict["nr_atoms"] 
+    nr_bonds = Int(graph_dict["nr_vertices"] 
                     * graph_dict["coordination_nr"] /2)
 
     #get vector of bond lengths
@@ -44,7 +44,7 @@ Measure the standard deviation of bond angles
 function get_bond_angle_std(graph_dict::Dict)
     
     #get nr of angles
-    nr_angles = (graph_dict["nr_atoms"] 
+    nr_angles = (graph_dict["nr_vertices"] 
                     * sum(1:graph_dict["coordination_nr"]-1))
 
     #initialize vector of bond angles
@@ -110,36 +110,36 @@ function get_dihedral_angle_std(graph_dict::Dict)
         #get vector along bond
         bond_vec = graph_dict["spatial_network"][bond...]["vector"]
 
-        #loop through all neighbors of one atom 
+        #loop through all neighbors of one vertex 
         for first_neighbor in setdiff( MetaGraphsNext.neighbor_labels(
                             graph_dict["spatial_network"], bond[1]), bond[2])
 
             #get vector from first neighbor to first bond vertex
-            first_neighbor_to_bond_atom_vec = ( sign(bond[1] - first_neighbor)
+            first_neighbor_to_bond_vertex_vec = ( sign(bond[1] - first_neighbor)
                 *graph_dict["spatial_network"][first_neighbor, bond[1]]["vector"]
             )
 
-            #loop through all neighbors of other atom
+            #loop through all neighbors of other vertex
             for second_neighbor in setdiff( MetaGraphsNext.neighbor_labels(
                 graph_dict["spatial_network"], bond[2]), bond[1])
 
                 #get vector from second bond vertex to second neighbor
-                bond_atom_to_second_neighbor_vec = ( sign(second_neighbor - bond[2])
+                bond_vertex_to_second_neighbor_vec = ( sign(second_neighbor - bond[2])
                     *graph_dict["spatial_network"][bond[2], second_neighbor]["vector"]
                 )
 
                 #calculate dihedral angle according to the equation given in
                 #https://en.wikipedia.org/wiki/Dihedral_angle#In_polymer_physics
                 dihedral_angle = atan( LinearAlgebra.norm(bond_vec)
-                        *LinearAlgebra.dot(first_neighbor_to_bond_atom_vec,
+                        *LinearAlgebra.dot(first_neighbor_to_bond_vertex_vec,
                             LinearAlgebra.cross(bond_vec,
-                                        bond_atom_to_second_neighbor_vec )
+                                        bond_vertex_to_second_neighbor_vec )
                     ),
                     LinearAlgebra.dot(
-                        LinearAlgebra.cross(first_neighbor_to_bond_atom_vec,
+                        LinearAlgebra.cross(first_neighbor_to_bond_vertex_vec,
                             bond_vec ),
                         LinearAlgebra.cross(bond_vec,
-                              bond_atom_to_second_neighbor_vec )
+                              bond_vertex_to_second_neighbor_vec )
                     ))
 
                 #save dihedral angle
@@ -164,12 +164,12 @@ end
 
 """
 Get Steinhardt order parameters / local bond order parameter, for a 
-single atom and for all parameters l up to l_max where l is the index of 
+single vertex and for all parameters l up to l_max where l is the index of 
 the spherical harmonic Y_{lm}. The equations are taken from references
 10.1103/PhysRevB.28.784 and 10.1063/1.2977970
 """
-function get_steinhardt_order_parameter_single_atom_vec(graph_dict::Dict,
-    cental_atom::Int64,
+function get_steinhardt_order_parameter_single_vertex_vec(graph_dict::Dict,
+    cental_vertex::Int64,
     l_max::Int64)
 
     #initialize vector for spherical harmonics of all neighbors
@@ -184,14 +184,14 @@ function get_steinhardt_order_parameter_single_atom_vec(graph_dict::Dict,
 
     #loop through neighbors
     for neighbor in MetaGraphsNext.neighbor_labels(
-                        graph_dict["spatial_network"], cental_atom)
+                        graph_dict["spatial_network"], cental_vertex)
 
-        #get vector from atom to neighbor
-        atom_to_neighbor_vec = (sign(neighbor - cental_atom) 
-                * graph_dict["spatial_network"][cental_atom, neighbor]["vector"] )
+        #get vector from vertex to neighbor
+        vertex_to_neighbor_vec = (sign(neighbor - cental_vertex) 
+                * graph_dict["spatial_network"][cental_vertex, neighbor]["vector"] )
 
         #get vector's spherical coordinates
-        r_length, theta, phi = convert_cartesian_to_spherical(atom_to_neighbor_vec)
+        r_length, theta, phi = convert_cartesian_to_spherical(vertex_to_neighbor_vec)
 
         #get array of spherical harmonics
         y_spherical_harmonic_arr_vec[neighbor_count] = SphericalHarmonics.computeYlm(
@@ -253,14 +253,14 @@ function get_steinhardt_order_parameter_dict(graph_dict::Dict,
     for vertex in MetaGraphsNext.labels(graph_dict["spatial_network"])
 
         #get vector of steinhardt order parameters for current vertex
-        steinhardt_order_parameter_single_atom_vec = (
-            get_steinhardt_order_parameter_single_atom_vec(
+        steinhardt_order_parameter_single_vertex_vec = (
+            get_steinhardt_order_parameter_single_vertex_vec(
                 graph_dict,
                 vertex,
                 l_max))
 
         #add current vertex' contribution to sum of all vertices
-        steinhardt_order_parameter_sum_vec .+= steinhardt_order_parameter_single_atom_vec
+        steinhardt_order_parameter_sum_vec .+= steinhardt_order_parameter_single_vertex_vec
 
     end
 
@@ -268,7 +268,7 @@ function get_steinhardt_order_parameter_dict(graph_dict::Dict,
     steinhardt_order_parameter_dict = Dict()
 
     for l in 0:l_max
-        steinhardt_order_parameter_dict[l] = (1/graph_dict["nr_atoms"] 
+        steinhardt_order_parameter_dict[l] = (1/graph_dict["nr_vertices"] 
                                     * steinhardt_order_parameter_sum_vec[l+1])
 
     end

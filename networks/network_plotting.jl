@@ -13,7 +13,7 @@ function cut_bonds_out_of_supercell!(plot_dict::Dict)
     bond_vec = collect(MetaGraphsNext.edge_labels(plot_dict["spatial_network"]))
 
     #count current vortex
-    vortex_count = copy(plot_dict["nr_atoms"])
+    vortex_count = copy(plot_dict["nr_vertices"])
 
     #loop through all bonds
     for bond in bond_vec
@@ -49,30 +49,30 @@ function cut_bonds_out_of_supercell!(plot_dict::Dict)
         end
     end
 
-    plot_dict["nr_atoms"] = vortex_count
+    plot_dict["nr_vertices"] = vortex_count
 
     return plot_dict
 end
 
 
 """
-get all atom positions in a vector of tuples
+get all vertex positions in a vector of tuples
 """
-function get_atom_position_vec(plot_dict::Dict)
+function get_vertex_position_vec(plot_dict::Dict)
 
-    #initialize vector of atomic positions
-    atom_position_vec = Vector{Tuple}(undef, plot_dict["nr_atoms"])
+    #initialize vector of vertex positions
+    vertex_position_vec = Vector{Tuple}(undef, plot_dict["nr_vertices"])
 
-    #loop through all atoms
-    for atom in MetaGraphsNext.labels(plot_dict["spatial_network"])
+    #loop through all vertices
+    for vertex in MetaGraphsNext.labels(plot_dict["spatial_network"])
 
-        #save atomic position as a tuple
-        atom_position_vec[atom] = Tuple(
-                    plot_dict["spatial_network"][atom]["position"])
+        #save vertex position as a tuple
+        vertex_position_vec[vertex] = Tuple(
+                    plot_dict["spatial_network"][vertex]["position"])
 
     end
 
-    return atom_position_vec
+    return vertex_position_vec
 end
 
 
@@ -84,7 +84,7 @@ function get_node_edge_color_vecs(plot_dict::Dict,
     highlight_edges::Vector = [] )
 
     #get node color vector
-    node_color_vec = [GLMakie.Colors.colorant"black" for i in 1:plot_dict["nr_atoms"]]
+    node_color_vec = [GLMakie.Colors.colorant"black" for i in 1:plot_dict["nr_vertices"]]
 
     for highlight_node in highlight_nodes
         node_color_vec[highlight_node] = GLMakie.Colors.colorant"red"
@@ -125,8 +125,8 @@ function plot_network(graph_dict::Dict;
     highlight_nodes::Tuple = (),
     highlight_edges::Vector = [])
 
-    #get original nr of atoms
-    nr_atoms = graph_dict["nr_atoms"]
+    #get original nr of vertices
+    nr_vertices = graph_dict["nr_vertices"]
 
     #create graph dict to plot
     plot_dict = deepcopy(graph_dict)
@@ -136,10 +136,10 @@ function plot_network(graph_dict::Dict;
     plot_dict = cut_bonds_out_of_supercell!(plot_dict)
 
     #get nr of new virtual vertices
-    nr_virtual_vertices = plot_dict["nr_atoms"] - nr_atoms
+    nr_virtual_vertices = plot_dict["nr_vertices"] - nr_vertices
 
     #set node size to zero for all virtual vertices
-    node_size_vec = vcat(10 .* ones(Int64, nr_atoms), 
+    node_size_vec = vcat(10 .* ones(Int64, nr_vertices), 
                         zeros(Int64, nr_virtual_vertices)) 
 
     #Get color vectors for nodes and edges
@@ -148,18 +148,18 @@ function plot_network(graph_dict::Dict;
                                     highlight_nodes,
                                     highlight_edges )
 
-    #get all atom positions in a vector of tuples
-    atom_position_vec = get_atom_position_vec(plot_dict)
+    #get all vertex positions in a vector of tuples
+    vertex_position_vec = get_vertex_position_vec(plot_dict)
 
     #generate plot
     f, ax, p = GraphMakie.graphplot(plot_dict["spatial_network"],
     layout=GraphMakie.NetworkLayout.Spring(dim=3),
     node_size = node_size_vec,
     node_color = node_color_vec,
-    edge_color = edge_color_vec)     #ilabels=repr.(1:graph_dict["nr_atoms"]),
+    edge_color = edge_color_vec)     #ilabels=repr.(1:graph_dict["nr_vertices"]),
     
-    #adjust atomic positions
-    fixed_layout(_) = atom_position_vec
+    #adjust vertex positions
+    fixed_layout(_) = vertex_position_vec
     p.layout = fixed_layout
 
     #hide axes and grid
@@ -173,7 +173,7 @@ end
 function get_rainbow_color_vecs(plot_dict )
 
     #get node color vector
-    node_color_vec = [GLMakie.Colors.HSV(rand(1:360), rand(1:360), rand(1:360)) for i in 1:plot_dict["nr_atoms"]]
+    node_color_vec = [GLMakie.Colors.HSV(rand(1:360), rand(1:360), rand(1:360)) for i in 1:plot_dict["nr_vertices"]]
 
 
     #get edge color vector
@@ -204,8 +204,8 @@ Plot a network in 2d or 3d
 """
 function plot_network_rainbow(graph_dict::Dict)
 
-    #get original nr of atoms
-    nr_atoms = graph_dict["nr_atoms"]
+    #get original nr of vertices
+    nr_vertices = graph_dict["nr_vertices"]
 
     #create graph dict to plot
     plot_dict = deepcopy(graph_dict)
@@ -215,21 +215,21 @@ function plot_network_rainbow(graph_dict::Dict)
     plot_dict = cut_bonds_out_of_supercell!(plot_dict)
 
     #get nr of new virtual vertices
-    nr_virtual_vertices = plot_dict["nr_atoms"] - nr_atoms
+    nr_virtual_vertices = plot_dict["nr_vertices"] - nr_vertices
 
     #set node size to zero for all virtual vertices
-    node_size_vec = vcat(10 .* ones(Int64, nr_atoms), 
+    node_size_vec = vcat(10 .* ones(Int64, nr_vertices), 
                         zeros(Int64, nr_virtual_vertices)) 
 
-    #get all atom positions in a vector of tuples
-    atom_position_vec = get_atom_position_vec(plot_dict)
+    #get all vertex positions in a vector of tuples
+    vertex_position_vec = get_vertex_position_vec(plot_dict)
 
     #Get color vectors for nodes and edges
     node_color_vec, edge_color_vec = get_rainbow_color_vecs(
                                     plot_dict )
 
-    #get all atom positions in a vector of tuples
-    atom_position_vec = get_atom_position_vec(plot_dict)
+    #get all vertex positions in a vector of tuples
+    vertex_position_vec = get_vertex_position_vec(plot_dict)
 
     GLMakie.set_theme!(GLMakie.theme_black())
 
@@ -241,8 +241,8 @@ function plot_network_rainbow(graph_dict::Dict)
     node_color = node_color_vec,
     edge_color = edge_color_vec)  
 
-    #adjust atomic positions
-    fixed_layout(_) = atom_position_vec
+    #adjust vertex positions
+    fixed_layout(_) = vertex_position_vec
     p.layout = fixed_layout
 
     #hide axes and grid

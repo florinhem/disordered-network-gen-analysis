@@ -1815,7 +1815,7 @@ import .NetworkGeneration as NG
 import MetaGraphsNext as MGN
 
 
-network_dict = NG.get_periodic_network( ; nr_atoms = 150 , 
+network_dict = NG.get_periodic_network( ; nr_vertices = 150 , 
                             nr_dimensions = 3, 
                             network_type = "diamond")
 
@@ -1827,21 +1827,21 @@ edges_vec = collect(MGN.edge_labels(network_dict["network_graph"]))
 #break a random bond
 network_dict = NG.switch_bond!(network_dict, edges_vec[4] )
 
-atom = 1
+vertex = 1
 
-neighbor_positions_mat = NG.get_neighbor_positions_mat(network_dict, atom)
+neighbor_positions_mat = NG.get_neighbor_positions_mat(network_dict, vertex)
 
-local_energy = NG.local_energy_keating(network_dict["network_graph"][atom], 
+local_energy = NG.local_energy_keating(network_dict["network_graph"][vertex], 
         network_dict, neighbor_positions_mat)
 
 gradient = zeros(3)
 
-NG.gradient_keating!(gradient, network_dict["network_graph"][atom], 
+NG.gradient_keating!(gradient, network_dict["network_graph"][vertex], 
         network_dict, neighbor_positions_mat)
 
 hessian = zeros(3, 3)
 
-NG.hessian_keating!(hessian, network_dict["network_graph"][atom], 
+NG.hessian_keating!(hessian, network_dict["network_graph"][vertex], 
         network_dict, neighbor_positions_mat)
 
 
@@ -1852,185 +1852,185 @@ println(hessian)
 
 
 
-graph_dict = NG.get_periodic_network( ; nr_atoms = 150 ,
+graph_dict = NG.get_periodic_network( ; nr_vertices = 150 ,
                             network_type = "diamond")
 
                             
-atom = 5
+vertex = 5
 
 #get and print neighbors
-atom_neighbors = collect(MetaGraphsNext.neighbor_labels(graph_dict["spatial_network"], atom))
+vertex_neighbors = collect(MetaGraphsNext.neighbor_labels(graph_dict["spatial_network"], vertex))
 
-println(atom_neighbors)
+println(vertex_neighbors)
 
-#get position of some atom
-println(graph_dict["spatial_network"][atom]["position"] )
-println(graph_dict["spatial_network"][atom]["local_energy"] )
+#get position of some vertex
+println(graph_dict["spatial_network"][vertex]["position"] )
+println(graph_dict["spatial_network"][vertex]["local_energy"] )
 
-#move atom
-graph_dict = NG.move_atom!(graph_dict, 
-atom, 
+#move vertex
+graph_dict = NG.move_vertex!(graph_dict, 
+vertex, 
 [1,-0.5,0.3] )
 
-println(graph_dict["spatial_network"][atom]["position"] )
-println(graph_dict["spatial_network"][atom]["local_energy"] )
+println(graph_dict["spatial_network"][vertex]["position"] )
+println(graph_dict["spatial_network"][vertex]["local_energy"] )
 
 
-#relax atom
-graph_dict = NG.relax_single_atom_keating!(graph_dict, atom)
+#relax vertex
+graph_dict = NG.relax_single_vertex_keating!(graph_dict, vertex)
 
-println(graph_dict["spatial_network"][atom]["position"] )
-println(graph_dict["spatial_network"][atom]["local_energy"] )
+println(graph_dict["spatial_network"][vertex]["position"] )
+println(graph_dict["spatial_network"][vertex]["local_energy"] )
 
-graph_dict = NG.get_periodic_network( ; nr_atoms = 1500 ,
+graph_dict = NG.get_periodic_network( ; nr_vertices = 1500 ,
                             network_type = "diamond")
 
                             
-atom_vec = [5,12]
+vertex_vec = [5,12]
 
 #get and print neighbors
-neighbors_in_shells_dict, all_atoms_vec = NG.get_neighbors_in_shells_dict(graph_dict, 
-                                    atom_vec; 
+neighbors_in_shells_dict, all_vertices_vec = NG.get_neighbors_in_shells_dict(graph_dict, 
+                                    vertex_vec; 
                                     shell_nr = 4)
 
 
-atom_vec = [5,12]
+vertex_vec = [5,12]
 
 
-#get position of some atom
+#get position of some vertex
 println(graph_dict["total_energy"] )
-println(graph_dict["spatial_network"][atom_vec[1]]["position"] )
-println(graph_dict["spatial_network"][atom_vec[1]]["local_energy"] )
+println(graph_dict["spatial_network"][vertex_vec[1]]["position"] )
+println(graph_dict["spatial_network"][vertex_vec[1]]["local_energy"] )
 
-#move atom
-graph_dict = NG.move_atom!(graph_dict, 
-atom_vec[1], 
+#move vertex
+graph_dict = NG.move_vertex!(graph_dict, 
+vertex_vec[1], 
 [1,-0.5,0.3] )
 
-#move atom
-graph_dict = NG.move_atom!(graph_dict, 
-atom_vec[2], 
+#move vertex
+graph_dict = NG.move_vertex!(graph_dict, 
+vertex_vec[2], 
 [-0.1,0.5,1.5] )
 
 println("___")
 println(graph_dict["total_energy"] )
-println(graph_dict["spatial_network"][atom_vec[1]]["position"] )
-println(graph_dict["spatial_network"][atom_vec[1]]["local_energy"] )
+println(graph_dict["spatial_network"][vertex_vec[1]]["position"] )
+println(graph_dict["spatial_network"][vertex_vec[1]]["local_energy"] )
 
 graph_dict = NG.relax_cluster_one_cycle_keating!(graph_dict, 
-atom_vec; 
+vertex_vec; 
 shell_nr = 4 )
 
 println("___")
 println(graph_dict["total_energy"] )
-println(graph_dict["spatial_network"][atom_vec[1]]["position"] )
-println(graph_dict["spatial_network"][atom_vec[1]]["local_energy"] )
+println(graph_dict["spatial_network"][vertex_vec[1]]["position"] )
+println(graph_dict["spatial_network"][vertex_vec[1]]["local_energy"] )
 
 graph_dict = NG.relax_cluster_one_cycle_keating!(graph_dict, 
-atom_vec; 
+vertex_vec; 
 shell_nr = 4 )
 
 println("___")
 println(graph_dict["total_energy"] )
-println(graph_dict["spatial_network"][atom_vec[1]]["position"] )
-println(graph_dict["spatial_network"][atom_vec[1]]["local_energy"] )
+println(graph_dict["spatial_network"][vertex_vec[1]]["position"] )
+println(graph_dict["spatial_network"][vertex_vec[1]]["local_energy"] )
 
 
 
 
-graph_dict = NG.get_periodic_network( ; nr_atoms = 1500 ,
+graph_dict = NG.get_periodic_network( ; nr_vertices = 1500 ,
                             network_type = "diamond")
 
                             
-atom_vec = [5,12]
+vertex_vec = [5,12]
 
 
-#get position of some atom
+#get position of some vertex
 println(graph_dict["total_energy"] )
-println(graph_dict["spatial_network"][atom_vec[1]]["position"] )
-println(graph_dict["spatial_network"][atom_vec[1]]["local_energy"] )
+println(graph_dict["spatial_network"][vertex_vec[1]]["position"] )
+println(graph_dict["spatial_network"][vertex_vec[1]]["local_energy"] )
 
-#move atom
-graph_dict = NG.move_atom!(graph_dict, 
-atom_vec[1], 
+#move vertex
+graph_dict = NG.move_vertex!(graph_dict, 
+vertex_vec[1], 
 [1,-0.5,0.3] )
 
-#move atom
-graph_dict = NG.move_atom!(graph_dict, 
-atom_vec[2], 
+#move vertex
+graph_dict = NG.move_vertex!(graph_dict, 
+vertex_vec[2], 
 [-0.1,0.5,1.5] )
 
 println("___")
 println(graph_dict["total_energy"] )
-println(graph_dict["spatial_network"][atom_vec[1]]["position"] )
-println(graph_dict["spatial_network"][atom_vec[1]]["local_energy"] )
+println(graph_dict["spatial_network"][vertex_vec[1]]["position"] )
+println(graph_dict["spatial_network"][vertex_vec[1]]["local_energy"] )
 
-@time graph_dict = NG.relax_cluster_keating!(graph_dict, atom_vec; 
+@time graph_dict = NG.relax_cluster_keating!(graph_dict, vertex_vec; 
 nr_cycles = 10,
 reject_during_relaxation_cycle_threshold = 5,
 shell_nr = 4)
 
 println("___")
 println(graph_dict["total_energy"] )
-println(graph_dict["spatial_network"][atom_vec[1]]["position"] )
-println(graph_dict["spatial_network"][atom_vec[1]]["local_energy"] )
+println(graph_dict["spatial_network"][vertex_vec[1]]["position"] )
+println(graph_dict["spatial_network"][vertex_vec[1]]["local_energy"] )
 
 
                         
-atom_vec = [5,12]
+vertex_vec = [5,12]
 
 
-#get position of some atom
+#get position of some vertex
 println(graph_dict["total_energy"] )
-println(graph_dict["spatial_network"][atom_vec[1]]["position"] )
+println(graph_dict["spatial_network"][vertex_vec[1]]["position"] )
 
-#move atom
-graph_dict = NG.move_atom!(graph_dict, 
-atom_vec[1], 
+#move vertex
+graph_dict = NG.move_vertex!(graph_dict, 
+vertex_vec[1], 
 [1,-0.5,0.3] )
 
-#move atom
-graph_dict = NG.move_atom!(graph_dict, 
-atom_vec[2], 
+#move vertex
+graph_dict = NG.move_vertex!(graph_dict, 
+vertex_vec[2], 
 [-0.1,0.5,1.5] )
 
 println("___")
 println(graph_dict["total_energy"] )
-println(graph_dict["spatial_network"][atom_vec[1]]["position"] )
+println(graph_dict["spatial_network"][vertex_vec[1]]["position"] )
 
 graph_dict = NG.relax_cluster_one_cycle_keating!(graph_dict, 
-atom_vec; 
+vertex_vec; 
 shell_nr = 4 )
 
 println("___")
 println(graph_dict["total_energy"] )
-println(graph_dict["spatial_network"][atom_vec[1]]["position"] )
+println(graph_dict["spatial_network"][vertex_vec[1]]["position"] )
 
 graph_dict = NG.relax_cluster_one_cycle_keating!(graph_dict, 
-atom_vec; 
+vertex_vec; 
 shell_nr = 4 )
 
 println("___")
 println(graph_dict["total_energy"] )
-println(graph_dict["spatial_network"][atom_vec[1]]["position"] )
+println(graph_dict["spatial_network"][vertex_vec[1]]["position"] )
 
 
 
-atom_to_relax = 5
+vertex_to_relax = 5
 
-#move atom
-graph_dict = NG.move_atom!(graph_dict, 
-atom_to_relax, 
+#move vertex
+graph_dict = NG.move_vertex!(graph_dict, 
+vertex_to_relax, 
 [0.2,0.5,-0.9] )
 
-#get initial position of atom to relax 
-initial_position = graph_dict["spatial_network"][atom_to_relax]["position"]
+#get initial position of vertex to relax 
+initial_position = graph_dict["spatial_network"][vertex_to_relax]["position"]
 
-#get matrix of the atom's neighbors' positions 
-neighbor_positions_mat = NG.get_neighbor_positions_mat(graph_dict, atom_to_relax)
+#get matrix of the vertex's neighbors' positions 
+neighbor_positions_mat = NG.get_neighbor_positions_mat(graph_dict, vertex_to_relax)
 
 #get next to nearest neighbors' positions
-next_neighbor_positions_arr = NG.get_next_neighbor_positions_arr(graph_dict, atom_to_relax)
+next_neighbor_positions_arr = NG.get_next_neighbor_positions_arr(graph_dict, vertex_to_relax)
 
 #set energy, gradient and hessian for energy minimization
 energy(x) = NG.energy_from_position_keating(x, graph_dict,
@@ -2061,14 +2061,14 @@ println(hessian_num)
 
 
 
-println(graph_dict["spatial_network"][atom]["position"])
+println(graph_dict["spatial_network"][vertex]["position"])
 
-neighbor_positions_mat = NG.get_neighbor_positions_mat(graph_dict, atom;
-                                    exclude_atoms = [])
+neighbor_positions_mat = NG.get_neighbor_positions_mat(graph_dict, vertex;
+                                    exclude_vertices = [])
 
-next_neighbor_positions_arr = NG.get_next_neighbor_positions_arr(graph_dict, atom)
+next_neighbor_positions_arr = NG.get_next_neighbor_positions_arr(graph_dict, vertex)
 
-neighbors_vec = collect(MetaGraphsNext.neighbor_labels(graph_dict["spatial_network"], atom))
+neighbors_vec = collect(MetaGraphsNext.neighbor_labels(graph_dict["spatial_network"], vertex))
 println(neighbors_vec)
 
 neighbor_nr = 1
@@ -2091,63 +2091,63 @@ end
 
 println("_______")
 
-atom = 2
+vertex = 2
 
 println(graph_dict["total_energy"] )
-println(graph_dict["spatial_network"][atom]["position"] )
+println(graph_dict["spatial_network"][vertex]["position"] )
 
-#move atom
-graph_dict = NG.move_atom!(graph_dict, 
-atom, 
+#move vertex
+graph_dict = NG.move_vertex!(graph_dict, 
+vertex, 
 [1,-0.5,0.3]; update_total_energy=true)
 
 println(graph_dict["total_energy"] )
-println(graph_dict["spatial_network"][atom]["position"] )
+println(graph_dict["spatial_network"][vertex]["position"] )
 
 
-#relax atom
-graph_dict = NG.relax_single_atom_keating!(graph_dict, atom; update_total_energy=true)
+#relax vertex
+graph_dict = NG.relax_single_vertex_keating!(graph_dict, vertex; update_total_energy=true)
 
 println(graph_dict["total_energy"] )
-println(graph_dict["spatial_network"][atom]["position"] )
+println(graph_dict["spatial_network"][vertex]["position"] )
 
 println("_______")
 
-atom = 3
+vertex = 3
 
 println(graph_dict["total_energy"] )
-println(graph_dict["spatial_network"][atom]["position"] )
+println(graph_dict["spatial_network"][vertex]["position"] )
 
-#move atom
-graph_dict = NG.move_atom!(graph_dict, 
-atom, 
+#move vertex
+graph_dict = NG.move_vertex!(graph_dict, 
+vertex, 
 [1,-0.5,0.3]; update_total_energy=true)
 
 println(graph_dict["total_energy"] )
-println(graph_dict["spatial_network"][atom]["position"] )
+println(graph_dict["spatial_network"][vertex]["position"] )
 
 
-#relax atom
-graph_dict = NG.relax_single_atom_keating!(graph_dict, atom; update_total_energy=true)
+#relax vertex
+graph_dict = NG.relax_single_vertex_keating!(graph_dict, vertex; update_total_energy=true)
 
 println(graph_dict["total_energy"] )
-println(graph_dict["spatial_network"][atom]["position"] )
+println(graph_dict["spatial_network"][vertex]["position"] )
 
 
 
 neighbors_vec = collect(MetaGraphsNext.neighbor_labels(
-                                        graph_dict["spatial_network"], atom))
+                                        graph_dict["spatial_network"], vertex))
 
 for neighbor in neighbors_vec
     display(graph_dict["spatial_network"][neighbor]["position"])
 end
 println("_______")
 
-neighbor_positions_mat = NG.get_neighbor_positions_mat(graph_dict, atom)
+neighbor_positions_mat = NG.get_neighbor_positions_mat(graph_dict, vertex)
 
 display(neighbor_positions_mat)
 
-next_neighbor_positions_arr = NG.get_next_neighbor_positions_arr(graph_dict, atom)
+next_neighbor_positions_arr = NG.get_next_neighbor_positions_arr(graph_dict, vertex)
 
 display(next_neighbor_positions_arr[1,:,:])
 
@@ -2168,13 +2168,13 @@ println(graph_dict["total_energy"] )
 println(graph_dict["spatial_network"][random_bond[1]]["position"] )
 
 
-central_atom = 100
+central_vertex = 100
 
-central_atom_position = graph_dict["spatial_network"][central_atom]["position"]
+central_vertex_position = graph_dict["spatial_network"][central_vertex]["position"]
 
-    #get central atoms neighbors 
+    #get central vertices neighbors 
     neighbor_vec = collect(MetaGraphsNext.neighbor_labels(
-                                graph_dict["spatial_network"], central_atom))
+                                graph_dict["spatial_network"], central_vertex))
 #create array to store next to nearest neighbors coordinates
 #The first array index labels the number of the direct neighbor
 next_neighbor_positions_arr = Array{Float64}(undef, 
@@ -2182,17 +2182,17 @@ next_neighbor_positions_arr = Array{Float64}(undef,
                                             graph_dict["nr_dimensions"],
                                             graph_dict["coordination_nr"]-1)
 
-#loop through central atoms neighbors
+#loop through central vertices neighbors
 for i in 1:graph_dict["coordination_nr"]
     current_next_neighbor = 1
     #loop through the current neighbor's neighbors
     for next_neighbor in MetaGraphsNext.neighbor_labels(
                                     graph_dict["spatial_network"], neighbor_vec[i])
-        if next_neighbor !== central_atom
+        if next_neighbor !== central_vertex
             #get next neighbor's virtual coordinates which might be outside of the 
             #supercell if periodic boundary conditions play a role
             next_neighbor_positions_arr[i,:,current_next_neighbor] = NG.get_virtual_position(
-                        central_atom_position,
+                        central_vertex_position,
                         graph_dict["spatial_network"][next_neighbor]["position"],
                         graph_dict["supercell_edge_length"] )
             current_next_neighbor += 1
@@ -2253,7 +2253,7 @@ println(graph_dict["total_energy"] )
 println(graph_dict["spatial_network"][random_bond[1]]["position"] )
 
 
-graph_dict = NG.get_periodic_network( ; nr_atoms = 40 , 
+graph_dict = NG.get_periodic_network( ; nr_vertices = 40 , 
 nr_dimensions = 3, 
 network_type = "diamond",
 bond_bending_const = 0.285)
@@ -2293,21 +2293,21 @@ Plots.plot(collect(1:26), cluster_energy_vec)
 
 
 #compare the gradient in the inefficient and efficient calculation
-atom_to_relax = random_bond[2]
+vertex_to_relax = random_bond[2]
 
 #efficient calculation
-gradient_eff = NG.gradient_keating_efficient(graph_dict, atom_to_relax)
+gradient_eff = NG.gradient_keating_efficient(graph_dict, vertex_to_relax)
 
 #inefficient calculation
 
-#get initial position of atom to relax 
-initial_position = graph_dict["spatial_network"][atom_to_relax]["position"]
+#get initial position of vertex to relax 
+initial_position = graph_dict["spatial_network"][vertex_to_relax]["position"]
 
-#get matrix of the atom's neighbors' positions 
-neighbor_positions_mat = NG.get_neighbor_positions_mat(graph_dict, atom_to_relax)
+#get matrix of the vertex's neighbors' positions 
+neighbor_positions_mat = NG.get_neighbor_positions_mat(graph_dict, vertex_to_relax)
 
 #get next to nearest neighbors' positions
-next_neighbor_positions_arr = NG.get_next_neighbor_positions_arr(graph_dict, atom_to_relax)
+next_neighbor_positions_arr = NG.get_next_neighbor_positions_arr(graph_dict, vertex_to_relax)
 
 #set energy, gradient and hessian for energy minimization
 
@@ -2327,10 +2327,10 @@ graph_dict, new_bond_vec = NG.switch_bond!(graph_dict, random_bond )
 
 
 #compare the gradient in the inefficient and efficient calculation
-atom_to_relax = random_bond[2]
+vertex_to_relax = random_bond[2]
 
 #efficient calculation
-gradient = NG.gradient_keating_efficient(graph_dict, atom_to_relax)
+gradient = NG.gradient_keating_efficient(graph_dict, vertex_to_relax)
 
 translation_vector_eff =  NG.get_approximate_translation_vector_keating(gradient, 
         graph_dict["bond_bending_const"];
@@ -2339,14 +2339,14 @@ translation_vector_eff =  NG.get_approximate_translation_vector_keating(gradient
 
 #inefficient calculation
 
-#get initial position of atom to relax 
-initial_position = graph_dict["spatial_network"][atom_to_relax]["position"]
+#get initial position of vertex to relax 
+initial_position = graph_dict["spatial_network"][vertex_to_relax]["position"]
 
-#get matrix of the atom's neighbors' positions 
-neighbor_positions_mat = NG.get_neighbor_positions_mat(graph_dict, atom_to_relax)
+#get matrix of the vertex's neighbors' positions 
+neighbor_positions_mat = NG.get_neighbor_positions_mat(graph_dict, vertex_to_relax)
 
 #get next to nearest neighbors' positions
-next_neighbor_positions_arr = NG.get_next_neighbor_positions_arr(graph_dict, atom_to_relax)
+next_neighbor_positions_arr = NG.get_next_neighbor_positions_arr(graph_dict, vertex_to_relax)
 
 #set energy, gradient and hessian for energy minimization
 energy(x) = NG.energy_from_position_keating(x, graph_dict,
@@ -2371,7 +2371,7 @@ minimizer_result = Optim.optimize(
 #get relaxed position and local keating energy
 relaxed_position = Optim.minimizer(minimizer_result)
 
-#calculate translation vector for relaxed atom
+#calculate translation vector for relaxed vertex
 translation_vector_ineff = relaxed_position .- initial_position
 
 println("Efficient: "*string(translation_vector_eff))
@@ -2391,29 +2391,29 @@ figure = NG.plot_network(graph_dict)
 
 random_bond = NG.get_random_bond(graph_dict)
 
-atom_to_relax = random_bond[2]
+vertex_to_relax = random_bond[2]
 
 graph_dict, new_bond_vec = NG.switch_bond!(graph_dict, random_bond )
 
 
 #efficient calculation
-gradient = NG.gradient_keating_efficient(graph_dict, atom_to_relax)
+gradient = NG.gradient_keating_efficient(graph_dict, vertex_to_relax)
 
-hessian = NG.hessian_keating_efficient(graph_dict, atom_to_relax)
+hessian = NG.hessian_keating_efficient(graph_dict, vertex_to_relax)
 
 #calculate translation vector to approximate energy minimum
 translation_vector_eff = .- LinearAlgebra.inv(hessian)*gradient
 
 #inefficient calculation
 
-#get initial position of atom to relax 
-initial_position = graph_dict["spatial_network"][atom_to_relax]["position"]
+#get initial position of vertex to relax 
+initial_position = graph_dict["spatial_network"][vertex_to_relax]["position"]
 
-#get matrix of the atom's neighbors' positions 
-neighbor_positions_mat = NG.get_neighbor_positions_mat(graph_dict, atom_to_relax)
+#get matrix of the vertex's neighbors' positions 
+neighbor_positions_mat = NG.get_neighbor_positions_mat(graph_dict, vertex_to_relax)
 
 #get next to nearest neighbors' positions
-next_neighbor_positions_arr = NG.get_next_neighbor_positions_arr(graph_dict, atom_to_relax)
+next_neighbor_positions_arr = NG.get_next_neighbor_positions_arr(graph_dict, vertex_to_relax)
 
 #set energy, gradient and hessian for energy minimization
 energy(x) = NG.energy_from_position_keating(x, graph_dict,
@@ -2438,7 +2438,7 @@ minimizer_result = Optim.optimize(
 #get relaxed position and local keating energy
 relaxed_position = Optim.minimizer(minimizer_result)
 
-#calculate translation vector for relaxed atom
+#calculate translation vector for relaxed vertex
 translation_vector_ineff = relaxed_position .- initial_position
 
 println("Efficient: "*string(translation_vector_eff))
@@ -2448,32 +2448,32 @@ println("Inefficient "*string(translation_vector_ineff))
 
 #efficient calculation
 neighbor_vec = collect(
-        MetaGraphsNext.neighbor_labels(graph_dict["spatial_network"], central_atom))
+        MetaGraphsNext.neighbor_labels(graph_dict["spatial_network"], central_vertex))
 
 j=1
 
-#get vector pointing from central atom to neighbor j
-distance_vector_j_eff = (sign(neighbor_vec[j] - central_atom)
-* graph_dict["spatial_network"][central_atom, neighbor_vec[j]]["vector"])
+#get vector pointing from central vertex to neighbor j
+distance_vector_j_eff = (sign(neighbor_vec[j] - central_vertex)
+* graph_dict["spatial_network"][central_vertex, neighbor_vec[j]]["vector"])
 
 bond_stretching_term_eff = ( - 3/4 * ( 
-            graph_dict["spatial_network"][central_atom, neighbor_vec[j]]["distance_squared"] - 1 
+            graph_dict["spatial_network"][central_vertex, neighbor_vec[j]]["distance_squared"] - 1 
             ) ) .* distance_vector_j_eff
 
 #inefficient calculation
 
-#get initial position of atom to relax 
-x = graph_dict["spatial_network"][atom_to_relax]["position"]
+#get initial position of vertex to relax 
+x = graph_dict["spatial_network"][vertex_to_relax]["position"]
 
-#get matrix of the atom's neighbors' positions 
-neighbor_positions_mat = NG.get_neighbor_positions_mat(graph_dict, atom_to_relax)
+#get matrix of the vertex's neighbors' positions 
+neighbor_positions_mat = NG.get_neighbor_positions_mat(graph_dict, vertex_to_relax)
 
 #get next to nearest neighbors' positions
-next_neighbor_positions_arr = NG.get_next_neighbor_positions_arr(graph_dict, atom_to_relax)
+next_neighbor_positions_arr = NG.get_next_neighbor_positions_arr(graph_dict, vertex_to_relax)
 
 #set energy, gradient and hessian for energy minimization
 
-#get vector pointing from central atom to neighbor
+#get vector pointing from central vertex to neighbor
 distance_vector_j = neighbor_positions_mat[:,j] .- x
 
 #get bond stretching term
@@ -2489,7 +2489,7 @@ switched_bond = NG.get_random_bond(graph_dict, seed = 1)
 
 graph_dict, new_bond_vec = NG.switch_bond!(graph_dict, switched_bond )
 
-atomic_position_arr, cluster_energy_arr = NG.compare_relaxation_methods(graph_dict,
+vertexic_position_arr, cluster_energy_arr = NG.compare_relaxation_methods(graph_dict,
 switched_bond,
 "diamond_disordered_t10_30steps_1" )
 

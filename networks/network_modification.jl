@@ -12,10 +12,10 @@ which is the edge type of the MetaGraphsNext package
 """
 function switch_bond!(graph_dict::Dict, switched_bond::Tuple{Int64, Int64} )
 
-    #find the other atom's neighbors that are the closest to the current atom
-    new_bond_atom_vec = Vector{Int64}(undef, 2)
-    vector_to_new_bond_atom_vec = Vector{Vector{Float64}}(undef, 2)
-    distance_to_new_bond_atom_vec = Vector{Float64}(undef, 2)
+    #find the other vertex's neighbors that are the closest to the current vertex
+    new_bond_vertex_vec = Vector{Int64}(undef, 2)
+    vector_to_new_bond_vertex_vec = Vector{Vector{Float64}}(undef, 2)
+    distance_to_new_bond_vertex_vec = Vector{Float64}(undef, 2)
 
     #get vectors of original neighbors
     original_neighbors_vec_vec = [collect(MetaGraphsNext.neighbor_labels(
@@ -25,58 +25,58 @@ function switch_bond!(graph_dict::Dict, switched_bond::Tuple{Int64, Int64} )
 
     for i in 1:2
 
-        #get the atomic position of bond atom
-        atomic_position_vec = graph_dict["spatial_network"][switched_bond[i]]["position"]
+        #get the vertex position of bond vertex
+        vertex_position_vec = graph_dict["spatial_network"][switched_bond[i]]["position"]
 
-        #get the other bond atom's neighbors excluding 
-        #the bond atom and the bond atom's neighbors
-        considered_new_bond_atoms_vec = setdiff(original_neighbors_vec_vec[3-i], 
+        #get the other bond vertex's neighbors excluding 
+        #the bond vertex and the bond vertex's neighbors
+        considered_new_bond_vertices_vec = setdiff(original_neighbors_vec_vec[3-i], 
                                             switched_bond[i], 
                                             original_neighbors_vec_vec[i])
 
-        #break if there are no possible new bond atoms
-        if considered_new_bond_atoms_vec == []
+        #break if there are no possible new bond vertices
+        if considered_new_bond_vertices_vec == []
             new_bond_vec = []
             return [graph_dict, new_bond_vec]
         
-        #otherwise, pick a random new bond atom
+        #otherwise, pick a random new bond vertex
         else
-            new_bond_atom_vec[i] = rand(considered_new_bond_atoms_vec)
+            new_bond_vertex_vec[i] = rand(considered_new_bond_vertices_vec)
         end
 
-        #determine vector to new bond atom
-        if switched_bond[i] < new_bond_atom_vec[i]
-            vector_to_new_bond_atom_vec[i] = get_distance_vector_pbc(
-                    atomic_position_vec,
-                    graph_dict["spatial_network"][new_bond_atom_vec[i]]["position"],
+        #determine vector to new bond vertex
+        if switched_bond[i] < new_bond_vertex_vec[i]
+            vector_to_new_bond_vertex_vec[i] = get_distance_vector_pbc(
+                    vertex_position_vec,
+                    graph_dict["spatial_network"][new_bond_vertex_vec[i]]["position"],
                     graph_dict["supercell_edge_length"] )
         else
-            vector_to_new_bond_atom_vec[i] = get_distance_vector_pbc(
-                    graph_dict["spatial_network"][new_bond_atom_vec[i]]["position"],
-                    atomic_position_vec,
+            vector_to_new_bond_vertex_vec[i] = get_distance_vector_pbc(
+                    graph_dict["spatial_network"][new_bond_vertex_vec[i]]["position"],
+                    vertex_position_vec,
                     graph_dict["supercell_edge_length"] )
         end
 
-        #determine length of vector to new bond atom
-        distance_to_new_bond_atom_vec[i] = LinearAlgebra.norm(vector_to_new_bond_atom_vec[i])
+        #determine length of vector to new bond vertex
+        distance_to_new_bond_vertex_vec[i] = LinearAlgebra.norm(vector_to_new_bond_vertex_vec[i])
 
     end
 
     #create vector to save new bonds
     new_bond_vec = Vector{Tuple{Int64, Int64}}(undef, 2)
 
-    #for each bond atom, break bond to one neighbor and reconnect to
-    #random neighbor of the other atom
+    #for each bond vertex, break bond to one neighbor and reconnect to
+    #random neighbor of the other vertex
     for i in 1:2
 
         MetaGraphsNext.rem_edge!(graph_dict["spatial_network"],
-            switched_bond[i], new_bond_atom_vec[3-i])
+            switched_bond[i], new_bond_vertex_vec[3-i])
 
-        new_bond_vec[i] = (switched_bond[i], new_bond_atom_vec[i])
+        new_bond_vec[i] = (switched_bond[i], new_bond_vertex_vec[i])
 
         graph_dict["spatial_network"][new_bond_vec[i]...] = Dict(
-            "vector" => vector_to_new_bond_atom_vec[i], 
-            "distance_squared" => distance_to_new_bond_atom_vec[i]^2 )
+            "vector" => vector_to_new_bond_vertex_vec[i], 
+            "distance_squared" => distance_to_new_bond_vertex_vec[i]^2 )
     end
 
     #note, that total energy is not up to date any more
@@ -88,32 +88,32 @@ end
 
 
 """
-move an atom and update its energy and the edges to its neighbors
+move an vertex and update its energy and the edges to its neighbors
 """
-function move_atom!(graph_dict::Dict, 
-                    atom_to_move::Int64, 
+function move_vertex!(graph_dict::Dict, 
+                    vertex_to_move::Int64, 
                     translation_vector::Vector{Float64};
                     update_total_energy::Bool = false,
                     total_energy_fct = get_total_energy_keating)
 
-    #update atomic position by taking periodic boundary conditions into account
-    initial_position = graph_dict["spatial_network"][atom_to_move]["position"]
-    graph_dict["spatial_network"][atom_to_move]["position"] = (
+    #update vertex position by taking periodic boundary conditions into account
+    initial_position = graph_dict["spatial_network"][vertex_to_move]["position"]
+    graph_dict["spatial_network"][vertex_to_move]["position"] = (
                                                     initial_position .+ translation_vector
                                                             ).%graph_dict["supercell_edge_length"]
 
     #update outgoing edges                                                    
-    for neighbor in MetaGraphsNext.neighbor_labels(graph_dict["spatial_network"], atom_to_move)
+    for neighbor in MetaGraphsNext.neighbor_labels(graph_dict["spatial_network"], vertex_to_move)
 
-        original_distance_vector = graph_dict["spatial_network"][atom_to_move, neighbor]["vector"]
+        original_distance_vector = graph_dict["spatial_network"][vertex_to_move, neighbor]["vector"]
 
-        #determine new vector, where the direction of the vector (from atom with lower label
-        #to atom with higher label) has to be taken into account
-        graph_dict["spatial_network"][atom_to_move, neighbor]["vector"] = (
-                    original_distance_vector .- sign(neighbor - atom_to_move)*translation_vector )
+        #determine new vector, where the direction of the vector (from vertex with lower label
+        #to vertex with higher label) has to be taken into account
+        graph_dict["spatial_network"][vertex_to_move, neighbor]["vector"] = (
+                    original_distance_vector .- sign(neighbor - vertex_to_move)*translation_vector )
 
-        graph_dict["spatial_network"][atom_to_move, neighbor]["distance_squared"] = (
-            LinearAlgebra.norm(graph_dict["spatial_network"][atom_to_move, neighbor]["vector"])^2
+        graph_dict["spatial_network"][vertex_to_move, neighbor]["distance_squared"] = (
+            LinearAlgebra.norm(graph_dict["spatial_network"][vertex_to_move, neighbor]["vector"])^2
                                                                                     )
     end
     
@@ -130,21 +130,21 @@ end
 
 
 """
-Relax a single atom by moving it to the energy minimum 
+Relax a single vertex by moving it to the energy minimum 
 while fixing its neighbors' positions
 """
-function relax_single_atom_keating!(graph_dict::Dict, atom_to_relax::Int64;
+function relax_single_vertex_keating!(graph_dict::Dict, vertex_to_relax::Int64;
     optimization_method = Optim.Newton(),
     update_total_energy::Bool = false)
     
-    #get initial position of atom to relax 
-    initial_position = graph_dict["spatial_network"][atom_to_relax]["position"]
+    #get initial position of vertex to relax 
+    initial_position = graph_dict["spatial_network"][vertex_to_relax]["position"]
 
-    #get matrix of the atom's neighbors' positions 
-    neighbor_positions_mat = get_neighbor_positions_mat(graph_dict, atom_to_relax)
+    #get matrix of the vertex's neighbors' positions 
+    neighbor_positions_mat = get_neighbor_positions_mat(graph_dict, vertex_to_relax)
 
     #get next to nearest neighbors' positions
-    next_neighbor_positions_arr = get_next_neighbor_positions_arr(graph_dict, atom_to_relax)
+    next_neighbor_positions_arr = get_next_neighbor_positions_arr(graph_dict, vertex_to_relax)
 
     #set energy, gradient and hessian for energy minimization
     energy(x) = energy_from_position_keating(x, graph_dict,
@@ -172,17 +172,17 @@ function relax_single_atom_keating!(graph_dict::Dict, atom_to_relax::Int64;
         #get relaxed position and local keating energy
         relaxed_position = Optim.minimizer(minimizer_result)
 
-        #calculate translation vector for relaxed atom
+        #calculate translation vector for relaxed vertex
         translation_vector = relaxed_position .- initial_position
 
-        #move atom 
-        graph_dict = move_atom!(graph_dict, 
-                                atom_to_relax, 
+        #move vertex 
+        graph_dict = move_vertex!(graph_dict, 
+                                vertex_to_relax, 
                                 translation_vector;
                                 update_total_energy = update_total_energy)
 
     else
-        @warn "Using gradient descent for atom "*string(atom_to_relax)
+        @warn "Using gradient descent for vertex "*string(vertex_to_relax)
         
         #find energy minimum
         minimizer_result = Optim.optimize(
@@ -198,16 +198,16 @@ function relax_single_atom_keating!(graph_dict::Dict, atom_to_relax::Int64;
             #get relaxed position and local keating energy
             relaxed_position = Optim.minimizer(minimizer_result)
 
-            #calculate translation vector for relaxed atom
+            #calculate translation vector for relaxed vertex
             translation_vector = relaxed_position .- initial_position
 
-            #move atom 
-            graph_dict = move_atom!(graph_dict, 
-                                    atom_to_relax, 
+            #move vertex 
+            graph_dict = move_vertex!(graph_dict, 
+                                    vertex_to_relax, 
                                     translation_vector;
                                     update_total_energy = update_total_energy)
         else
-            @error "No minimum found for atom "*string(atom_to_relax)
+            @error "No minimum found for vertex "*string(vertex_to_relax)
         end
 
     end
@@ -237,18 +237,18 @@ end
 
 
 """
-Approximately relax a single atom by efficiently determining
+Approximately relax a single vertex by efficiently determining
 the approximated coordinate shift. The corresponding methdo is explained in
 10.1142/S0217984987000065
 """
-function relax_single_atom_keating_efficiently!(graph_dict::Dict,
-    atom_to_relax::Int64;
+function relax_single_vertex_keating_efficiently!(graph_dict::Dict,
+    vertex_to_relax::Int64;
     relaxation_overshoot_factor_r::Real = 1.5,
     relaxation_optimization_parameter_l::Real = 1,
     update_total_energy::Bool = false)
 
-    #get energy gradient at current atomic position
-    gradient = gradient_keating_efficient(graph_dict, atom_to_relax)
+    #get energy gradient at current vertex position
+    gradient = gradient_keating_efficient(graph_dict, vertex_to_relax)
 
     #calculate translation vector to approximate energy minimum
     translation_vector =  get_approximate_translation_vector_keating(gradient, 
@@ -256,9 +256,9 @@ function relax_single_atom_keating_efficiently!(graph_dict::Dict,
         relaxation_overshoot_factor_r = relaxation_overshoot_factor_r,
         relaxation_optimization_parameter_l = relaxation_optimization_parameter_l)
 
-    #move atom 
-    graph_dict = move_atom!(graph_dict, 
-                            atom_to_relax, 
+    #move vertex 
+    graph_dict = move_vertex!(graph_dict, 
+                            vertex_to_relax, 
                             translation_vector;
                             update_total_energy = update_total_energy)
 
@@ -269,7 +269,7 @@ end
 
 
 """
-Perform one cycle of relaxing a cluster of atoms 
+Perform one cycle of relaxing a cluster of vertices 
 """
 function relax_cluster_one_cycle_keating!(graph_dict::Dict, 
     cluster_dict::Dict;
@@ -292,18 +292,18 @@ function relax_cluster_one_cycle_keating!(graph_dict::Dict,
         graph_dict["total_energy"] = get_total_energy_keating(graph_dict)
     end
 
-    #relax each atom in the given cluster
-    for atom in cluster_dict["cluster_atoms_to_move_vec"]
+    #relax each vertex in the given cluster
+    for vertex in cluster_dict["cluster_vertices_to_move_vec"]
 
         #relax efficiently but approximately or exactly but slowly
         if relax_efficiently
-            graph_dict = relax_single_atom_keating_efficiently!(graph_dict,
-    atom;
+            graph_dict = relax_single_vertex_keating_efficiently!(graph_dict,
+    vertex;
     relaxation_overshoot_factor_r = relaxation_overshoot_factor_r,
     relaxation_optimization_parameter_l = relaxation_optimization_parameter_l,
     update_total_energy = false)
         else
-            graph_dict = relax_single_atom_keating!(graph_dict, atom;
+            graph_dict = relax_single_vertex_keating!(graph_dict, vertex;
                             optimization_method=inefficient_optimization_method,
                             update_total_energy = false)
         end
@@ -342,7 +342,7 @@ end
 
 
 """
-Fully relax a cluster of atoms. The cluster energy will always be updated
+Fully relax a cluster of vertices. The cluster energy will always be updated
 """
 function relax_cluster_keating!(graph_dict::Dict,
     cluster_dict::Dict; 
@@ -423,7 +423,7 @@ end
 
 
 """
-Move each atom in the cluster according to 
+Move each vertex in the cluster according to 
 """
 function excite_cluster!(graph_dict::Dict, cluster_dict::Dict,
                         temperature::Real;
@@ -447,14 +447,14 @@ function excite_cluster!(graph_dict::Dict, cluster_dict::Dict,
     #initialize excitation weight
     cluster_excitation_weight = 1
 
-    #initialize dict where atomic displacements will be stored
-    atom_excitation_dict = Dict()
+    #initialize dict where vertex displacements will be stored
+    vertex_excitation_dict = Dict()
 
-    #loop through all atoms that are allowed to move
-    for atom in cluster_dict["cluster_atoms_to_move_vec"]
+    #loop through all vertices that are allowed to move
+    for vertex in cluster_dict["cluster_vertices_to_move_vec"]
 
-        #get hessian matrix of current atom at relaxed position
-        hessian = hessian_keating_efficient(graph_dict, atom)
+        #get hessian matrix of current vertex at relaxed position
+        hessian = hessian_keating_efficient(graph_dict, vertex)
 
         #get vector of sigmas
         sigma_vec = sqrt.(temperature ./ LinearAlgebra.diag(hessian) ) 
@@ -463,23 +463,23 @@ function excite_cluster!(graph_dict::Dict, cluster_dict::Dict,
         #deviations in the sigma vector
         displacement_vec = sigma_vec .* randn(graph_dict["nr_dimensions"])
 
-        #get excitation weight for current atom
-        atom_excitation_weight = prod(displacement_vec)
+        #get excitation weight for current vertex
+        vertex_excitation_weight = prod(displacement_vec)
 
         #multiply it to cluster excitation weight
-        cluster_excitation_weight *= atom_excitation_weight
+        cluster_excitation_weight *= vertex_excitation_weight
 
         #store displacement vector
-        atom_excitation_dict[atom] = displacement_vec
+        vertex_excitation_dict[vertex] = displacement_vec
     end
 
-    #move atoms according to the given displacements
-    for atom in cluster_dict["cluster_atoms_to_move_vec"]
+    #move vertices according to the given displacements
+    for vertex in cluster_dict["cluster_vertices_to_move_vec"]
 
-        #move atoms according to the previously thermal fluctuations
-        graph_dict = move_atom!(graph_dict, 
-                            atom, 
-                            atom_excitation_dict[atom];
+        #move vertices according to the previously thermal fluctuations
+        graph_dict = move_vertex!(graph_dict, 
+                            vertex, 
+                            vertex_excitation_dict[vertex];
                             update_total_energy = false)
     end
 
@@ -607,7 +607,7 @@ function monte_carlo_move!(graph_dict::Dict,
         update_total_energy = false)
 
 
-    #if desired, include thermal fluctuations by randomly shifting all cluster atoms
+    #if desired, include thermal fluctuations by randomly shifting all cluster vertices
     if thermal_fluctuations
 
         #excite cluster with thermal fluctuations and get the corresponding excitation
@@ -749,12 +749,12 @@ function excite_entire_network!(graph_dict::Dict, temperature::Real;
     relaxation_optimization_parameter_l::Real = 1,
     update_total_energy::Bool = true)
 
-    #create tuple containing all atoms
-    all_atoms = Tuple(collect(1:graph_dict["nr_atoms"]))
+    #create tuple containing all vertices
+    all_vertices = Tuple(collect(1:graph_dict["nr_vertices"]))
 
     #get cluster for entire network
     cluster_dict = get_cluster_in_shells_dict(graph_dict, 
-                                    all_atoms; 
+                                    all_vertices; 
                                     shell_nr = 0)
     
     #if total energy is supposed to be updated, make sure that it is

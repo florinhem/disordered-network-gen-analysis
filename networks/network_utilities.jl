@@ -33,62 +33,62 @@ end
 
 
 """
-Calculate virtual position of an atom relative to a central atom
+Calculate virtual position of an vertex relative to a central vertex
 by placing it outside of the supercell if periodic boundary conditions
 have to be taken into account
 """
-function get_virtual_position(central_atom_position::Vector{Float64},
-                                other_atom_position::Vector{Float64},
+function get_virtual_position(central_vertex_position::Vector{Float64},
+                                other_vertex_position::Vector{Float64},
                                 supercell_edge_length::Real )
 
-    #get vector pointing from central atom to neighbor without considering 
+    #get vector pointing from central vertex to neighbor without considering 
     #boundary conditions
-    distance_vector_without_pbc = (other_atom_position .- central_atom_position)
+    distance_vector_without_pbc = (other_vertex_position .- central_vertex_position)
 
-    #get the other atoms virtual position according to boundary conditions
-    virtual_other_atom_position = ( ( abs.(distance_vector_without_pbc) 
+    #get the other vertices virtual position according to boundary conditions
+    virtual_other_vertex_position = ( ( abs.(distance_vector_without_pbc) 
                     .< (supercell_edge_length/2) ) 
-                .* other_atom_position
+                .* other_vertex_position
             .+ ( abs.(distance_vector_without_pbc .+ supercell_edge_length) 
                     .< (supercell_edge_length/2) ) 
-                .* (other_atom_position .+ supercell_edge_length)
+                .* (other_vertex_position .+ supercell_edge_length)
             .+ ( abs.(distance_vector_without_pbc .- supercell_edge_length) 
                     .< (supercell_edge_length/2) ) 
-                .* (other_atom_position .- supercell_edge_length)
+                .* (other_vertex_position .- supercell_edge_length)
             )    
 
-    return virtual_other_atom_position
+    return virtual_other_vertex_position
     
 end
 
 
 """
-Get matrix with the coordinates of an atoms neighbors
+Get matrix with the coordinates of an vertices neighbors
 by taking periodic boundary conditions into account
 """
-function get_neighbor_positions_mat(graph_dict::Dict, central_atom::Int64;
-                                    exclude_atoms::Vector = [])
+function get_neighbor_positions_mat(graph_dict::Dict, central_vertex::Int64;
+                                    exclude_vertices::Vector = [])
 
-    #get central atom's position
-    central_atom_position = graph_dict["spatial_network"][central_atom]["position"]
+    #get central vertex's position
+    central_vertex_position = graph_dict["spatial_network"][central_vertex]["position"]
 
     #create matrix to store neighbors coordinates
     neighbor_positions_mat = Matrix{Float64}(undef, 
                             graph_dict["nr_dimensions"],
-                            graph_dict["coordination_nr"]-length(exclude_atoms))
+                            graph_dict["coordination_nr"]-length(exclude_vertices))
     
     #save coordinates to matrix and array
     current_neighbor = 1
 
     for neighbor in MetaGraphsNext.neighbor_labels(
-        graph_dict["spatial_network"], central_atom)
+        graph_dict["spatial_network"], central_vertex)
 
-        if !in(neighbor, exclude_atoms)
+        if !in(neighbor, exclude_vertices)
 
             #get neighbor's virtual coordinates which might be outside of the 
             #supercell if periodic boundary conditions play a role
             neighbor_positions_mat[:,current_neighbor] = get_virtual_position(
-                            central_atom_position,
+                            central_vertex_position,
                             graph_dict["spatial_network"][neighbor]["position"],
                             graph_dict["supercell_edge_length"] )
 
@@ -103,17 +103,17 @@ end
 
 
 """
-Get array with the coordinates of an atoms next to nearest neighbors
+Get array with the coordinates of an vertices next to nearest neighbors
 by taking periodic boundary conditions into account
 """
-function get_next_neighbor_positions_arr(graph_dict::Dict, central_atom::Int64)
+function get_next_neighbor_positions_arr(graph_dict::Dict, central_vertex::Int64)
 
-    #get central atom's position
-    central_atom_position = graph_dict["spatial_network"][central_atom]["position"]
+    #get central vertex's position
+    central_vertex_position = graph_dict["spatial_network"][central_vertex]["position"]
 
-    #get central atoms neighbors 
+    #get central vertices neighbors 
     neighbor_vec = collect(MetaGraphsNext.neighbor_labels(
-                                graph_dict["spatial_network"], central_atom))
+                                graph_dict["spatial_network"], central_vertex))
 
     #create array to store next to nearest neighbors coordinates
     #The first array index labels the number of the direct neighbor
@@ -122,7 +122,7 @@ function get_next_neighbor_positions_arr(graph_dict::Dict, central_atom::Int64)
                                                 graph_dict["nr_dimensions"],
                                                 graph_dict["coordination_nr"]-1)
     
-    #loop through central atoms neighbors
+    #loop through central vertices neighbors
     for i in 1:graph_dict["coordination_nr"]
 
         current_next_neighbor = 1
@@ -131,12 +131,12 @@ function get_next_neighbor_positions_arr(graph_dict::Dict, central_atom::Int64)
         for next_neighbor in MetaGraphsNext.neighbor_labels(
                                         graph_dict["spatial_network"], neighbor_vec[i])
 
-            if next_neighbor !== central_atom
+            if next_neighbor !== central_vertex
 
                 #get next neighbor's virtual coordinates which might be outside of the 
                 #supercell if periodic boundary conditions play a role
                 next_neighbor_positions_arr[i,:,current_next_neighbor] = get_virtual_position(
-                            central_atom_position,
+                            central_vertex_position,
                             graph_dict["spatial_network"][next_neighbor]["position"],
                             graph_dict["supercell_edge_length"] )
 
@@ -157,33 +157,33 @@ end
 get all bonds inside and on the edge of cluster
 """
 function get_cluster_bonds_vec(graph_dict::Dict,
-                                cluster_atoms_to_move_vec::Vector{Int64},
-                                cluster_atoms_outer_shell_vec::Vector{Int64})
+                                cluster_vertices_to_move_vec::Vector{Int64},
+                                cluster_vertices_outer_shell_vec::Vector{Int64})
 
     #initialize vectors for bonds
     cluster_bonds_inside_vec = []
     cluster_bonds_edge_vec = []
 
-    #get vector of all cluster atoms
-    all_cluster_atoms_vec = vcat(cluster_atoms_to_move_vec, 
-                                cluster_atoms_outer_shell_vec)
+    #get vector of all cluster vertices
+    all_cluster_vertices_vec = vcat(cluster_vertices_to_move_vec, 
+                                cluster_vertices_outer_shell_vec)
 
-    #loop through all cluster atoms
-    for cluster_atom in all_cluster_atoms_vec
+    #loop through all cluster vertices
+    for cluster_vertex in all_cluster_vertices_vec
 
-        #loop through all neighbors of current atom
+        #loop through all neighbors of current vertex
         for neighbor in MetaGraphsNext.neighbor_labels(graph_dict["spatial_network"],
-                                                            cluster_atom)
+                                                            cluster_vertex)
 
             #add current bond to the respective vector if the it is not stored yet
-            if neighbor in all_cluster_atoms_vec
+            if neighbor in all_cluster_vertices_vec
 
-                if cluster_atom < neighbor
-                    push!(cluster_bonds_inside_vec, (cluster_atom, neighbor) )
+                if cluster_vertex < neighbor
+                    push!(cluster_bonds_inside_vec, (cluster_vertex, neighbor) )
                 end
 
             else
-                push!(cluster_bonds_edge_vec, Tuple(sort([cluster_atom, neighbor])) )
+                push!(cluster_bonds_edge_vec, Tuple(sort([cluster_vertex, neighbor])) )
             
             end
     
@@ -197,53 +197,53 @@ end
 
 
 """
-Get a dictionary of vectors containing all atoms neighboring
-the central atoms up to the given shell
+Get a dictionary of vectors containing all vertices neighboring
+the central vertices up to the given shell
 """
 function get_cluster_in_shells_dict(graph_dict::Dict, 
-                                    central_atoms::Tuple; 
+                                    central_vertices::Tuple; 
                                     shell_nr::Int64 = 5)
 
     #initialize dictionary for all neighbors sorted by shells
-    cluster_in_shells_dict = Dict(0 => copy(collect(central_atoms)) )
+    cluster_in_shells_dict = Dict(0 => copy(collect(central_vertices)) )
 
-    #initialize vector for cluster atoms which will be allowed to move
-    cluster_atoms_to_move_vec = collect(central_atoms)
+    #initialize vector for cluster vertices which will be allowed to move
+    cluster_vertices_to_move_vec = collect(central_vertices)
 
-    #initialize vector for atoms in the outer shell which will not be
+    #initialize vector for vertices in the outer shell which will not be
     #allowed to move
-    cluster_atoms_outer_shell_vec = Vector{Int64}()
+    cluster_vertices_outer_shell_vec = Vector{Int64}()
 
     #loop through neighbor shells
     for current_shell in 1:shell_nr
 
-        #initialize vector of atoms in current shell
-        current_shell_atoms_vec = Vector{Int64}()
+        #initialize vector of vertices in current shell
+        current_shell_vertices_vec = Vector{Int64}()
 
-        #loop through atoms of lower shell
-        for lower_shell_atom in cluster_in_shells_dict[current_shell-1]
+        #loop through vertices of lower shell
+        for lower_shell_vertex in cluster_in_shells_dict[current_shell-1]
 
-            #loop through neighbors of current atom
+            #loop through neighbors of current vertex
             for neighbor in MetaGraphsNext.neighbor_labels(
-                            graph_dict["spatial_network"], lower_shell_atom)
+                            graph_dict["spatial_network"], lower_shell_vertex)
 
-                #if not in outer shell, save as atom to move
+                #if not in outer shell, save as vertex to move
                 if current_shell < shell_nr
 
-                    #save current atom if it was not considered before
-                    if !(neighbor in cluster_atoms_to_move_vec)
+                    #save current vertex if it was not considered before
+                    if !(neighbor in cluster_vertices_to_move_vec)
 
-                        push!(current_shell_atoms_vec, neighbor)
-                        push!(cluster_atoms_to_move_vec, neighbor)
+                        push!(current_shell_vertices_vec, neighbor)
+                        push!(cluster_vertices_to_move_vec, neighbor)
                     end
 
-                #if in outer shell, the atom is not allowed to move
+                #if in outer shell, the vertex is not allowed to move
                 else
-                    if (!(neighbor in cluster_atoms_to_move_vec) 
-                            && !(neighbor in cluster_atoms_outer_shell_vec))
+                    if (!(neighbor in cluster_vertices_to_move_vec) 
+                            && !(neighbor in cluster_vertices_outer_shell_vec))
 
-                        push!(current_shell_atoms_vec, neighbor)
-                        push!(cluster_atoms_outer_shell_vec, neighbor)
+                        push!(current_shell_vertices_vec, neighbor)
+                        push!(cluster_vertices_outer_shell_vec, neighbor)
                     end
                 end
 
@@ -252,21 +252,21 @@ function get_cluster_in_shells_dict(graph_dict::Dict,
         end
 
         #save to cluster in shells dict
-        cluster_in_shells_dict[current_shell] = current_shell_atoms_vec
+        cluster_in_shells_dict[current_shell] = current_shell_vertices_vec
 
     end
 
     #get all bonds inside and on the edge of cluster
     cluster_bonds_inside_vec, cluster_bonds_edge_vec = get_cluster_bonds_vec(
                                                 graph_dict,
-                                                cluster_atoms_to_move_vec,
-                                                cluster_atoms_outer_shell_vec
+                                                cluster_vertices_to_move_vec,
+                                                cluster_vertices_outer_shell_vec
                                                 )
 
     #collect cluster information into dictionary
     cluster_dict = Dict("cluster_in_shells_dict" => cluster_in_shells_dict, 
-            "cluster_atoms_to_move_vec" => cluster_atoms_to_move_vec, 
-            "cluster_atoms_outer_shell_vec" => cluster_atoms_outer_shell_vec,
+            "cluster_vertices_to_move_vec" => cluster_vertices_to_move_vec, 
+            "cluster_vertices_outer_shell_vec" => cluster_vertices_outer_shell_vec,
             "cluster_bonds_inside_vec" => cluster_bonds_inside_vec, 
             "cluster_bonds_edge_vec" => cluster_bonds_edge_vec
             )
@@ -291,7 +291,7 @@ function get_random_bond(graph_dict::Dict; declined_bonds = [], seed = Nothing)
     end
 
     #determine nr of bonds
-    nr_bonds = graph_dict["nr_atoms"] * graph_dict["coordination_nr"] / 2 
+    nr_bonds = graph_dict["nr_vertices"] * graph_dict["coordination_nr"] / 2 
 
     #check if all bonds have been attempted already
     if length(declined_bonds) == nr_bonds
@@ -309,16 +309,16 @@ function get_random_bond(graph_dict::Dict; declined_bonds = [], seed = Nothing)
     #otherwise get random bond without listing all bonds
     else
 
-        #pick a random atom
-        atom_1 = rand(1:graph_dict["nr_atoms"])
+        #pick a random vertex
+        vertex_1 = rand(1:graph_dict["nr_vertices"])
 
         #pick a random neighbor
-        atom_2 = collect(MetaGraphsNext.neighbor_labels(
-                            graph_dict["spatial_network"], atom_1)
+        vertex_2 = collect(MetaGraphsNext.neighbor_labels(
+                            graph_dict["spatial_network"], vertex_1)
                             )[rand(1:graph_dict["coordination_nr"])]
 
         #create bond
-        random_bond = Tuple(sort([atom_1, atom_2]))
+        random_bond = Tuple(sort([vertex_1, vertex_2]))
 
         #find new bond if current one was already declined
         if random_bond in declined_bonds
@@ -333,21 +333,21 @@ end
 """
 Check whether all vertices in network have the correct coordination number
 """
-function get_incorrectly_coordinated_atoms(graph_dict::Dict)
+function get_incorrectly_coordinated_vertices(graph_dict::Dict)
 
-    incorrectly_coordinated_atoms = []
+    incorrectly_coordinated_vertices = []
 
-    #for each atom, check whether it has the correct coordination nr
-    for atom in MetaGraphsNext.labels(graph_dict["spatial_network"])
+    #for each vertex, check whether it has the correct coordination nr
+    for vertex in MetaGraphsNext.labels(graph_dict["spatial_network"])
         if (length( collect( MetaGraphsNext.neighbor_labels(
-                                graph_dict["spatial_network"], atom) ) ) 
+                                graph_dict["spatial_network"], vertex) ) ) 
             !== graph_dict["coordination_nr"])
 
-            push!(incorrectly_coordinated_atoms, atom)
+            push!(incorrectly_coordinated_vertices, vertex)
         end
     end
 
-    return incorrectly_coordinated_atoms
+    return incorrectly_coordinated_vertices
     
 end
 
@@ -356,11 +356,11 @@ end
 This function relaxes a given cluster in two ways, first using the
 Newton method which is slower but more accurate, and then more efficiently
 but less accurate using the method from 10.1142/S0217984987000065. The two
-relaxation methods are compared by plotting the evolution of atomic positions
+relaxation methods are compared by plotting the evolution of vertex positions
 and cluster energies
 """
 function compare_relaxation_methods(original_graph_dict,
-    central_cluster_atoms,
+    central_cluster_vertices,
     filename;
     nr_max_relaxation_cycles = 25,
     shell_nr::Int64 = 4,
@@ -368,9 +368,9 @@ function compare_relaxation_methods(original_graph_dict,
     relaxation_optimization_parameter_l::Real = 1,
     save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\random_networks\\" )
 
-    #initialize arrays for atomic positions and cluster energy as a
+    #initialize arrays for vertex positions and cluster energy as a
     #function of relaxation cycle
-    atomic_position_arr = Array{Float64}(undef, nr_max_relaxation_cycles+1, 3, 2)
+    vertex_position_arr = Array{Float64}(undef, nr_max_relaxation_cycles+1, 3, 2)
     cluster_energy_arr = Array{Float64}(undef, nr_max_relaxation_cycles+1, 2)
 
     #loop through relaxation methods
@@ -384,11 +384,11 @@ function compare_relaxation_methods(original_graph_dict,
         #get the cluster dict
         cluster_dict = get_cluster_in_shells_dict(
                                             graph_dict, 
-                                            central_cluster_atoms; 
+                                            central_cluster_vertices; 
                                             shell_nr = shell_nr)
 
-        #store initial atomic position and cluster energy
-        atomic_position_arr[1,:,i] = graph_dict["spatial_network"][central_cluster_atoms[1]]["position"]
+        #store initial vertex position and cluster energy
+        vertex_position_arr[1,:,i] = graph_dict["spatial_network"][central_cluster_vertices[1]]["position"]
         cluster_energy_arr[1,i] = cluster_dict["cluster_energy"]
 
         #perform relaxation cycles
@@ -400,27 +400,27 @@ function compare_relaxation_methods(original_graph_dict,
             relaxation_optimization_parameter_l = relaxation_optimization_parameter_l,
             update_cluster_energy = true )
 
-            #keep track of atomic position and cluster energy
-            atomic_position_arr[relaxation_cycle,:,i] = graph_dict["spatial_network"][central_cluster_atoms[1]]["position"]
+            #keep track of vertex position and cluster energy
+            vertex_position_arr[relaxation_cycle,:,i] = graph_dict["spatial_network"][central_cluster_vertices[1]]["position"]
             cluster_energy_arr[relaxation_cycle,i] = cluster_dict["cluster_energy"]
 
         end
     end
 
-    #plot evolution of atomic position and cluster energy
+    #plot evolution of vertex position and cluster energy
     Plots.plot(xlabel= Latex.L"x",
     ylabel=Latex.L"y" ,
     legend = true, dpi=250)
-    Plots.plot!(atomic_position_arr[:,1,1], atomic_position_arr[:,2,1], label = "Newton", markershape = :auto)
-    Plots.plot!(atomic_position_arr[:,1,2], atomic_position_arr[:,2,2], label = "efficient", markershape = :auto)
+    Plots.plot!(vertex_position_arr[:,1,1], vertex_position_arr[:,2,1], label = "Newton", markershape = :auto)
+    Plots.plot!(vertex_position_arr[:,1,2], vertex_position_arr[:,2,2], label = "efficient", markershape = :auto)
 
     Plots.savefig(save_path*filename*"_x_y_pos.png")
 
     Plots.plot(xlabel= Latex.L"x",
     ylabel=Latex.L"z" ,
     legend = true, dpi=250)
-    Plots.plot!(atomic_position_arr[:,1,1], atomic_position_arr[:,3,1], label = "Newton", markershape = :auto)
-    Plots.plot!(atomic_position_arr[:,1,2], atomic_position_arr[:,3,2], label = "efficient", markershape = :auto)
+    Plots.plot!(vertex_position_arr[:,1,1], vertex_position_arr[:,3,1], label = "Newton", markershape = :auto)
+    Plots.plot!(vertex_position_arr[:,1,2], vertex_position_arr[:,3,2], label = "efficient", markershape = :auto)
 
     Plots.savefig(save_path*filename*"_x_z_pos.png")
 
@@ -432,7 +432,7 @@ function compare_relaxation_methods(original_graph_dict,
 
     Plots.savefig(save_path*filename*"_cluster_energy.png")
 
-    return [atomic_position_arr, cluster_energy_arr]
+    return [vertex_position_arr, cluster_energy_arr]
 end
 
 

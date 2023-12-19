@@ -8,7 +8,7 @@ import .NetworkGeneration as NG
 temperature = 2
 shell_nr = 3
 
-graph_dict = NG.get_periodic_network( ; nr_atoms = 216 , 
+graph_dict = NG.get_periodic_network( ; nr_vertices = 216 , 
         nr_dimensions = 3, 
         network_type = "diamond",
         temperature = temperature,

@@ -55,7 +55,7 @@ import Graphs   #for simple graphs
 import MetaGraphsNext   #to deal with graphs with labelled vertices and edges
 import Combinatorics    #mainly used to get all possible combinations of bonds
 import LinearAlgebra    #to perform linear algebra calculations like the dot product
-import Optim    #for optimization such as relaxation of individual atoms
+import Optim    #for optimization such as relaxation of individual vertices
 import GLMakie  #Makie backend for plotting
 import GraphMakie   #additions to GLMakie for graph plotting
 import FileIO   #for file loading and saving

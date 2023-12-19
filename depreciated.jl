@@ -780,12 +780,12 @@ end
 
 
 """
-Update bond bending energy for a given atom
+Update bond bending energy for a given vertex
 """
-function update_local_bond_bending_energy_keating!(graph_dict::Dict, atom_label::Int64)
+function update_local_bond_bending_energy_keating!(graph_dict::Dict, vertex_label::Int64)
 
     #get vector of neighbor labels
-    neighbor_label_vec = collect(MetaGraphsNext.neighbor_labels(graph_dict["spatial_network"], atom_label))
+    neighbor_label_vec = collect(MetaGraphsNext.neighbor_labels(graph_dict["spatial_network"], vertex_label))
 
     #initialize bond bending sum
     bond_bending_sum = 0
@@ -796,10 +796,10 @@ function update_local_bond_bending_energy_keating!(graph_dict::Dict, atom_label:
         for k in j+1:graph_dict["coordination_nr"]
 
             bond_bending_sum += ( 3/8 * graph_dict["bond_bending_const"] 
-                * ( LinearAlgebra.dot( sign(neighbor_label_vec[j] - atom_label) .* 
-                            graph_dict["spatial_network"][atom_label, neighbor_label_vec[j]]["vector"], 
-                            sign(neighbor_label_vec[k] - atom_label) .* 
-                            graph_dict["spatial_network"][atom_label, neighbor_label_vec[k]]["vector"]
+                * ( LinearAlgebra.dot( sign(neighbor_label_vec[j] - vertex_label) .* 
+                            graph_dict["spatial_network"][vertex_label, neighbor_label_vec[j]]["vector"], 
+                            sign(neighbor_label_vec[k] - vertex_label) .* 
+                            graph_dict["spatial_network"][vertex_label, neighbor_label_vec[k]]["vector"]
                                      ) + 1/3 )^2 )
             
         end
@@ -810,7 +810,7 @@ function update_local_bond_bending_energy_keating!(graph_dict::Dict, atom_label:
     bond_bending_energy = 3/8 * graph_dict["bond_bending_const"] * bond_bending_sum
     
     #save to dict
-    graph_dict["spatial_network"][atom_label]["bond_bending_energy"] = bond_bending_energy
+    graph_dict["spatial_network"][vertex_label]["bond_bending_energy"] = bond_bending_energy
 
     return graph_dict
 
@@ -842,20 +842,20 @@ end
 
 
 """
-Calculate the local Keating energy for a given atom from 
+Calculate the local Keating energy for a given vertex from 
 the bond bending and stretching energies stored in the dictionary by fully
-considering its bonds and not sharing their energy between the two atoms
+considering its bonds and not sharing their energy between the two vertices
 """
-function local_energy_keating(atom_label::Int64, graph_dict::Dict)
+function local_energy_keating(vertex_label::Int64, graph_dict::Dict)
 
     #initialize local energy
-    local_energy = graph_dict["spatial_network"][atom_label]["bond_bending_energy"]
+    local_energy = graph_dict["spatial_network"][vertex_label]["bond_bending_energy"]
 
     #sum bond stretching energy contributions by considering that each bond
-    #is shared by two atoms
-    for neighbor in MetaGraphsNext.neighbor_labels(graph_dict["spatial_network"], atom_label)
+    #is shared by two vertices
+    for neighbor in MetaGraphsNext.neighbor_labels(graph_dict["spatial_network"], vertex_label)
 
-        local_energy += graph_dict["spatial_network"][atom_label, neighbor]["bond_stretching_energy"]
+        local_energy += graph_dict["spatial_network"][vertex_label, neighbor]["bond_stretching_energy"]
 
     end
     
@@ -866,20 +866,20 @@ end
 
 
 """
-Calculate the local Keating energy for a given atom from 
+Calculate the local Keating energy for a given vertex from 
 the bond bending and stretching energies stored in the dictionary by
 considering the bonds as shared and using half their bond energies
 """
-function local_energy_keating_shared_bonds(atom_label::Int64, graph_dict::Dict)
+function local_energy_keating_shared_bonds(vertex_label::Int64, graph_dict::Dict)
 
     #initialize local energy
     local_energy = graph_dict["spatial_network"][vertex]["bond_bending_energy"]
 
     #sum bond stretching energy contributions by considering that each bond
-    #is shared by two atoms
-    for neighbor in MetaGraphsNext.neighbor_labels(graph_dict["spatial_network"], atom_label)
+    #is shared by two vertices
+    for neighbor in MetaGraphsNext.neighbor_labels(graph_dict["spatial_network"], vertex_label)
 
-        local_energy += 1/2 * graph_dict["spatial_network"][atom_label, neighbor]["bond_stretching_energy"]
+        local_energy += 1/2 * graph_dict["spatial_network"][vertex_label, neighbor]["bond_stretching_energy"]
 
     end
     
@@ -891,14 +891,14 @@ end
 add bond bending and stretching energies to all vertices and bonds
 """
 function add_energies_to_spatial_network!(graph_dict;
-    update_local_atom_energy_fct! = update_local_bond_bending_energy_keating!,
+    update_local_vertex_energy_fct! = update_local_bond_bending_energy_keating!,
     update_local_bond_energy_fct! = update_local_bond_stretching_energy_keating!,
     total_energy_fct = total_energy_keating)
 
     #add bond bending energies to vertices
     for vertex in MetaGraphsNext.labels(graph_dict["spatial_network"])
 
-        graph_dict = update_local_atom_energy_fct!(graph_dict, vertex)
+        graph_dict = update_local_vertex_energy_fct!(graph_dict, vertex)
 
     end
 
@@ -999,34 +999,34 @@ function switch_bond_wrong!(graph_dict::Dict, switched_bond::Tuple{Int64, Int64}
     #break the original bond
     MetaGraphsNext.rem_edge!(graph_dict["spatial_network"], switched_bond...)
 
-    #find the other atom's neighbors that are the closest to the current atom
-    closest_other_atoms_neighbor_vec = Vector{Int64}(undef, 2)
-    vector_to_closest_other_atoms_neighbor_vec = Vector{Vector{Float64}}(undef, 2)
-    distance_to_closest_other_atoms_neighbor_vec = Vector{Float64}(undef, 2)
+    #find the other vertex's neighbors that are the closest to the current vertex
+    closest_other_vertices_neighbor_vec = Vector{Int64}(undef, 2)
+    vector_to_closest_other_vertices_neighbor_vec = Vector{Vector{Float64}}(undef, 2)
+    distance_to_closest_other_vertices_neighbor_vec = Vector{Float64}(undef, 2)
 
     for i in 1:2
 
-        #get the other atom's neighbors
-        other_atom_neighbors_vec = MetaGraphsNext.neighbor_labels(graph_dict["spatial_network"], switched_bond[(3-i)])
+        #get the other vertex's neighbors
+        other_vertex_neighbors_vec = MetaGraphsNext.neighbor_labels(graph_dict["spatial_network"], switched_bond[(3-i)])
 
-        #get the atomic position of bond atom and store it three times
-        atomic_position_vec = graph_dict["spatial_network"][switched_bond[i]]["position"]
+        #get the vertexic position of bond vertex and store it three times
+        vertexic_position_vec = graph_dict["spatial_network"][switched_bond[i]]["position"]
 
-        #determine the closest one of the other atom's neighbors
+        #determine the closest one of the other vertex's neighbors
         closest_distance = Inf
 
-        for neighbor in other_atom_neighbors_vec
+        for neighbor in other_vertex_neighbors_vec
 
             #determine vector to current neighbor
             if switched_bond[i] < neighbor
                 vector_to_neighbor =  get_distance_vector_pbc(
-                        atomic_position_vec,
+                        vertexic_position_vec,
                         graph_dict["spatial_network"][neighbor]["position"],
                         graph_dict["supercell_edge_length"] )
             else
                 vector_to_neighbor =  get_distance_vector_pbc(
                         graph_dict["spatial_network"][neighbor]["position"],
-                        atomic_position_vec,
+                        vertexic_position_vec,
                         graph_dict["supercell_edge_length"] )
             end
 
@@ -1035,9 +1035,9 @@ function switch_bond_wrong!(graph_dict::Dict, switched_bond::Tuple{Int64, Int64}
 
             #store current neighbor if its closer than the previous neighbors
             if distance_to_neighbor < closest_distance
-                closest_other_atoms_neighbor_vec[i] = neighbor
-                vector_to_closest_other_atoms_neighbor_vec[i] = vector_to_neighbor
-                distance_to_closest_other_atoms_neighbor_vec[i] = distance_to_neighbor
+                closest_other_vertices_neighbor_vec[i] = neighbor
+                vector_to_closest_other_vertices_neighbor_vec[i] = vector_to_neighbor
+                distance_to_closest_other_vertices_neighbor_vec[i] = distance_to_neighbor
             end
 
         end
@@ -1047,9 +1047,9 @@ function switch_bond_wrong!(graph_dict::Dict, switched_bond::Tuple{Int64, Int64}
     #create the two new bonds
     for i in 1:2
 
-        graph_dict["spatial_network"][switched_bond[i], closest_other_atoms_neighbor_vec[i]] = Dict(
-            "vector" => vector_to_closest_other_atoms_neighbor_vec[i], 
-            "distance_squared" => distance_to_closest_other_atoms_neighbor_vec[i]^2 )
+        graph_dict["spatial_network"][switched_bond[i], closest_other_vertices_neighbor_vec[i]] = Dict(
+            "vector" => vector_to_closest_other_vertices_neighbor_vec[i], 
+            "distance_squared" => distance_to_closest_other_vertices_neighbor_vec[i]^2 )
     end
 
     return graph_dict
@@ -1059,54 +1059,54 @@ end
 
 
 """
-Get four atoms in one line around a central bond,
-that is one atom on each side of the bond
+Get four vertices in one line around a central bond,
+that is one vertex on each side of the bond
 """
-function get_four_atoms_around_bond(graph_dict::Dict, 
+function get_four_vertices_around_bond(graph_dict::Dict, 
                                 switched_bond::Tuple{Int64, Int64})
 
-    #store four atoms that sit in one line with the switched bond in the center
-    atoms_in_line = zeros(Int64, 4)
-    atoms_in_line[2:3] = collect(switched_bond)
+    #store four vertices that sit in one line with the switched bond in the center
+    vertices_in_line = zeros(Int64, 4)
+    vertices_in_line[2:3] = collect(switched_bond)
 
-    #loop through bond atoms
+    #loop through bond vertices
     for i in 1:2
 
         #pick a random neighbor to which the bond will be cut        
-        atoms_in_line[-2+3*i] = setdiff(collect(MetaGraphsNext.neighbor_labels(
+        vertices_in_line[-2+3*i] = setdiff(collect(MetaGraphsNext.neighbor_labels(
                                 graph_dict["spatial_network"], switched_bond[i]
-                            )) , atoms_in_line)[rand(1:graph_dict["coordination_nr"])]
+                            )) , vertices_in_line)[rand(1:graph_dict["coordination_nr"])]
 
     end
 
-    return atoms_in_line
+    return vertices_in_line
 end
 
 
 
 """
-Approximately relax a single atom by efficiently determining
+Approximately relax a single vertex by efficiently determining
 the approximated coordinate shift. The corresponding methdo is explained in
 10.1142/S0217984987000065
 """
-function relax_single_atom_keating_efficiently!(graph_dict::Dict,
-    atom_to_relax::Int64;
+function relax_single_vertex_keating_efficiently!(graph_dict::Dict,
+    vertex_to_relax::Int64;
     relaxation_overshoot_factor_r::Real = 1.5,
     relaxation_optimization_parameter_l::Real = 1,
     update_total_energy::Bool = false)
 
-    #get energy gradient at current atomic position
-    gradient = gradient_keating_efficient(graph_dict, atom_to_relax)
+    #get energy gradient at current vertexic position
+    gradient = gradient_keating_efficient(graph_dict, vertex_to_relax)
 
-    #get energy hessian at current atomic position
-    hessian = hessian_keating_efficient(graph_dict, atom_to_relax)
+    #get energy hessian at current vertexic position
+    hessian = hessian_keating_efficient(graph_dict, vertex_to_relax)
 
     #calculate translation vector to approximate energy minimum
     translation_vector = .- LinearAlgebra.inv(hessian)*gradient
 
-    #move atom 
-    graph_dict = move_atom!(graph_dict, 
-                            atom_to_relax, 
+    #move vertex 
+    graph_dict = move_vertex!(graph_dict, 
+                            vertex_to_relax, 
                             translation_vector;
                             update_total_energy = update_total_energy)
 
@@ -1152,7 +1152,7 @@ end
 
 
 """
-Fully relax a cluster of atoms
+Fully relax a cluster of vertices
 """
 function relax_cluster_keating!(graph_dict::Dict,
     cluster_dict::Dict; 

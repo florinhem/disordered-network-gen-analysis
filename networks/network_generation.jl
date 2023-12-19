@@ -4,51 +4,51 @@ These functions generate geometric graphs
 
 
 """
-generate matrix of atom positions in a simple cubic lattice, 
+generate matrix of vertex positions in a simple cubic lattice, 
 where each column is a position vector
 """
-function get_simple_cubic_atom_position_mat(nr_atoms_per_dimension::Int64, 
+function get_simple_cubic_vertex_position_mat(nr_vertices_per_dimension::Int64, 
                                             nr_dimensions::Int64)
 
-    #generate empty matrix for atomic positions
-    atom_position_mat = Matrix{Float64}(undef, nr_dimensions, nr_atoms_per_dimension^nr_dimensions)
+    #generate empty matrix for vertexic positions
+    vertex_position_mat = Matrix{Float64}(undef, nr_dimensions, nr_vertices_per_dimension^nr_dimensions)
 
     #loop through Cartesian Indices
-    for i in CartesianIndices(atom_position_mat)
+    for i in CartesianIndices(vertex_position_mat)
 
-        #this sophisticated equation gives the right entries such that all atoms have 
+        #this sophisticated equation gives the right entries such that all vertices have 
         #a distance from the supercell boundary of half an equilibrium bond length
-        atom_position_mat[i] =  ( ( ceil( i[2] / nr_atoms_per_dimension^(i[1]-1) ) + 1 )
-                                    %nr_atoms_per_dimension + 0.5  ) 
+        vertex_position_mat[i] =  ( ( ceil( i[2] / nr_vertices_per_dimension^(i[1]-1) ) + 1 )
+                                    %nr_vertices_per_dimension + 0.5  ) 
 
     end
 
-    return atom_position_mat
+    return vertex_position_mat
 end
 
 
 """
 generate a simple cubic network using the graphs package
 """
-function get_simple_cubic_network(nr_atoms; 
+function get_simple_cubic_network(nr_vertices; 
                                     nr_dimensions::Int64 = 3 )
 
-    #calculate actual nr atoms from given nr atoms such that it can build 
+    #calculate actual nr vertices from given nr vertices such that it can build 
     #a simple cubic lattice inside a cubic box without defects
-    nr_atoms_per_dimension = Int(round( nr_atoms^(1/nr_dimensions) ))
-    nr_atoms = nr_atoms_per_dimension^nr_dimensions
+    nr_vertices_per_dimension = Int(round( nr_vertices^(1/nr_dimensions) ))
+    nr_vertices = nr_vertices_per_dimension^nr_dimensions
 
     #calculate edge length of supercell
-    supercell_edge_length = nr_atoms_per_dimension
+    supercell_edge_length = nr_vertices_per_dimension
 
-    #get matrix of atom positions, where each column is a position vector
-    atom_position_mat = get_simple_cubic_atom_position_mat(nr_atoms_per_dimension, 
+    #get matrix of vertex positions, where each column is a position vector
+    vertex_position_mat = get_simple_cubic_vertex_position_mat(nr_vertices_per_dimension, 
                                                             nr_dimensions)
 
-    #generate a graph by connecting all atoms of specified atomic positions that are closer
+    #generate a graph by connecting all vertices of specified vertexic positions that are closer
     #to each other than the distance cutoff
     #p=2 is the Euclidean distance
-    original_graph, edge_length_vec = Graphs.euclidean_graph(atom_position_mat, 
+    original_graph, edge_length_vec = Graphs.euclidean_graph(vertex_position_mat, 
                                             L= supercell_edge_length,
                                             p=2, 
                                             cutoff=1.1,
@@ -58,10 +58,10 @@ function get_simple_cubic_network(nr_atoms;
     original_graph_dict = Dict("original_graph" => original_graph,
                     "edge_length_vec" => edge_length_vec,
                     "coordination_nr" => 2*nr_dimensions,
-                    "nr_atoms" => nr_atoms,
+                    "nr_vertices" => nr_vertices,
                     "nr_dimensions" => nr_dimensions,
                     "supercell_edge_length" => supercell_edge_length,
-                    "atom_position_mat" => atom_position_mat
+                    "vertex_position_mat" => vertex_position_mat
                     )
     
     return original_graph_dict
@@ -70,19 +70,19 @@ end
 
 
 """
-generate matrix of atom positions in the cubic diamond structure,
+generate matrix of vertex positions in the cubic diamond structure,
 where each column is a position vector.
-Inside a unit cells, the atomic positions in units of the nearest
+Inside a unit cells, the vertexic positions in units of the nearest
 neighbor distance are
 1/sqrt(3) .* [(0,0,0), (0,2,2), (2,0,2), (2,2,0),
     (3,3,3), (3,1,1), (1,3,1), (1,1,3)]
 """
-function get_diamond_atom_position_mat(nr_unit_cells_per_dimension::Int64, 
-                                    nr_atoms,
+function get_diamond_vertex_position_mat(nr_unit_cells_per_dimension::Int64, 
+                                    nr_vertices,
                                     edge_length_unit_cell)
 
-    #generate empty matrix for atomic positions
-    atom_position_mat = Matrix{Float64}(undef, 3, nr_atoms)
+    #generate empty matrix for vertexic positions
+    vertex_position_mat = Matrix{Float64}(undef, 3, nr_vertices)
 
     #set the coordinates inside a unit cell in units of the equilibrium bond length
     coordinates_inside_unit_cell_vec = ( ( 1/sqrt(3) ) 
@@ -92,23 +92,23 @@ function get_diamond_atom_position_mat(nr_unit_cells_per_dimension::Int64,
     #shift all coordinates, such that none lie on the edge of the supercell
     coordinate_shift_vector =  ( 1/(2*sqrt(3)) ) .* [1,1,1]
 
-    #set counter of current atom
-    current_atom_nr = 1
+    #set counter of current vertex
+    current_vertex_nr = 1
 
     #loop through all three dimensions
     for i in 0:nr_unit_cells_per_dimension-1
         for j in 0:nr_unit_cells_per_dimension-1
             for k in 0:nr_unit_cells_per_dimension-1
 
-                for nr_atom_inside_unit_cell in 1:8
+                for nr_vertex_inside_unit_cell in 1:8
 
-                    #calculate position of the current atom
-                    atom_position_mat[:, current_atom_nr] = ( [i,j,k] .* edge_length_unit_cell
-                                    .+ coordinates_inside_unit_cell_vec[nr_atom_inside_unit_cell]
+                    #calculate position of the current vertex
+                    vertex_position_mat[:, current_vertex_nr] = ( [i,j,k] .* edge_length_unit_cell
+                                    .+ coordinates_inside_unit_cell_vec[nr_vertex_inside_unit_cell]
                                     .+ coordinate_shift_vector   )
 
-                    #increase atom counter
-                    current_atom_nr += 1
+                    #increase vertex counter
+                    current_vertex_nr += 1
 
                 end
 
@@ -116,37 +116,37 @@ function get_diamond_atom_position_mat(nr_unit_cells_per_dimension::Int64,
         end
     end
 
-    return atom_position_mat
+    return vertex_position_mat
 end
 
 
 """
 generate a diamond network using the graphs package.
-This algorithm is based on the information that the unit cell contains 8 atoms
+This algorithm is based on the information that the unit cell contains 8 vertices
 """
-function get_diamond_network(nr_atoms )
+function get_diamond_network(nr_vertices )
 
     #determine the edge length of a unit cell
     edge_length_unit_cell = 4/sqrt(3)
 
-    #calculate the actual nr atoms, given that we require a 
-    #cubic supercell and using the fact that the unit cell contains 8 atoms 
-    nr_unit_cells_per_dimension = max(1, Int(round( (nr_atoms/8)^(1/3) )) )
-    nr_atoms = 8 * nr_unit_cells_per_dimension^3
+    #calculate the actual nr vertices, given that we require a 
+    #cubic supercell and using the fact that the unit cell contains 8 vertices 
+    nr_unit_cells_per_dimension = max(1, Int(round( (nr_vertices/8)^(1/3) )) )
+    nr_vertices = 8 * nr_unit_cells_per_dimension^3
 
     #calculate edge length of supercell
     supercell_edge_length = nr_unit_cells_per_dimension*edge_length_unit_cell
 
 
-    #get matrix of atom positions, where each column is a position vector
-    atom_position_mat = get_diamond_atom_position_mat(nr_unit_cells_per_dimension, 
-                                                            nr_atoms,
+    #get matrix of vertex positions, where each column is a position vector
+    vertex_position_mat = get_diamond_vertex_position_mat(nr_unit_cells_per_dimension, 
+                                                            nr_vertices,
                                                             edge_length_unit_cell)
 
-    #generate a graph by connecting all atoms of specified atomic positions that are closer
+    #generate a graph by connecting all vertices of specified vertexic positions that are closer
     #to each other than the distance cutoff
     #p=2 is the Euclidean distance
-    original_graph, edge_length_vec = Graphs.euclidean_graph(atom_position_mat, 
+    original_graph, edge_length_vec = Graphs.euclidean_graph(vertex_position_mat, 
                                             L= supercell_edge_length,
                                             p=2, 
                                             cutoff=1.1,
@@ -156,10 +156,10 @@ function get_diamond_network(nr_atoms )
     original_graph_dict = Dict("original_graph" => original_graph,
                     "edge_length_vec" => edge_length_vec,
                     "coordination_nr" => 4,
-                    "nr_atoms" => nr_atoms,
+                    "nr_vertices" => nr_vertices,
                     "nr_dimensions" => 3,
                     "supercell_edge_length" => supercell_edge_length,
-                    "atom_position_mat" => atom_position_mat
+                    "vertex_position_mat" => vertex_position_mat
                     )
     
     return original_graph_dict
@@ -168,11 +168,11 @@ end
 
 
 """
-add information about atomic positions and edge vectors to the original graph
+add information about vertexic positions and edge vectors to the original graph
 """
 function convert_original_graph_to_spatial_network( original_graph_dict::Dict )
 
-    #create an empty network graph where atomic positions and edge vectors will be stored
+    #create an empty network graph where vertexic positions and edge vectors will be stored
     spatial_network = MetaGraphsNext.MetaGraph(Graphs.Graph(); 
                                         label_type = Int64,
                                         vertex_data_type = Dict{String, Any},
@@ -181,7 +181,7 @@ function convert_original_graph_to_spatial_network( original_graph_dict::Dict )
     #label each vertex by its code integer and assign it its position vector
     for vertex in Graphs.vertices(original_graph_dict["original_graph"])
 
-        spatial_network[vertex] = Dict( "position" => original_graph_dict["atom_position_mat"][:,vertex] )
+        spatial_network[vertex] = Dict( "position" => original_graph_dict["vertex_position_mat"][:,vertex] )
 
     end
 
@@ -199,8 +199,8 @@ function convert_original_graph_to_spatial_network( original_graph_dict::Dict )
         target = Graphs.dst(original_edges_vec[edge_nr])
 
         #calculate vector from source to target considering periodic boundary conditions
-        edge_vector = get_distance_vector_pbc(original_graph_dict["atom_position_mat"][:,source],
-                                            original_graph_dict["atom_position_mat"][:,target],
+        edge_vector = get_distance_vector_pbc(original_graph_dict["vertex_position_mat"][:,source],
+                                            original_graph_dict["vertex_position_mat"][:,target],
                                             original_graph_dict["supercell_edge_length"] )
 
         #save edge vector and its length
@@ -212,7 +212,7 @@ function convert_original_graph_to_spatial_network( original_graph_dict::Dict )
     #create dictionary out of graph and its properties
     graph_dict = Dict("spatial_network" => spatial_network,
                     "coordination_nr" => original_graph_dict["coordination_nr"],
-                    "nr_atoms" => original_graph_dict["nr_atoms"],
+                    "nr_vertices" => original_graph_dict["nr_vertices"],
                     "nr_dimensions" => original_graph_dict["nr_dimensions"],
                     "supercell_edge_length" => original_graph_dict["supercell_edge_length"]
                     )
@@ -226,7 +226,7 @@ end
 """
 create a network graph representing the given network structure
 """
-function get_periodic_network( ; nr_atoms = 27 , 
+function get_periodic_network( ; nr_vertices = 27 , 
                             nr_dimensions::Int64 = 3, 
                             network_type = "diamond",
                             bond_bending_const = 0.285,
@@ -241,12 +241,12 @@ function get_periodic_network( ; nr_atoms = 27 ,
                             relaxation_optimization_parameter_l::Real = 1)
 
     #depending on the network structure, create an original graph that does not
-    #contain atomic positions and bond information
+    #contain vertexic positions and bond information
 
     #simple cubic which is defined for any dimensionality
     if cmp(network_type, "simple cubic") == 0
 
-        original_graph_dict = get_simple_cubic_network(nr_atoms;
+        original_graph_dict = get_simple_cubic_network(nr_vertices;
                                     nr_dimensions = nr_dimensions) 
 
     #diamond which is only defined for 3d
@@ -254,7 +254,7 @@ function get_periodic_network( ; nr_atoms = 27 ,
 
         if nr_dimensions == 3
 
-            original_graph_dict = get_diamond_network(nr_atoms ) 
+            original_graph_dict = get_diamond_network(nr_vertices ) 
         else
             @error "The diamond network is only defined in 3d."
         end
