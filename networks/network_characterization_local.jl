@@ -1,6 +1,6 @@
 """
 these functions can be used to characterize networks
-by means of order parameters
+by means of local order parameters
 """
 
 """
@@ -275,3 +275,4 @@ function get_steinhardt_order_parameter_dict(graph_dict::Dict,
 
     return steinhardt_order_parameter_dict
 end
+

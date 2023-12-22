@@ -347,8 +347,8 @@ Fully relax a cluster of vertices. The cluster energy will always be updated
 function relax_cluster_keating!(graph_dict::Dict,
     cluster_dict::Dict; 
     nr_max_relaxation_cycles::Int64 = 25,
-    break_at_relative_cluster_energy_change::Float64 = 0.001,
-    reject_during_relaxation_cycle_threshold::Int64 = 5,
+    break_at_relative_cluster_energy_change::Float64 = 0.0001,
+    reject_during_relaxation_cycle_threshold::Int64 = 10,
     relax_efficiently::Bool = true,
     relaxation_overshoot_factor_r::Real = 1.5,
     relaxation_optimization_parameter_l::Real = 1,
@@ -524,13 +524,13 @@ function monte_carlo_move!(graph_dict::Dict,
     temperature::Real; 
     switched_bond::Tuple{Int64, Int64} = get_random_bond(graph_dict),
     nr_max_relaxation_cycles::Int64 = 25,
-    reject_during_relaxation_cycle_threshold::Int64 = 5,
-    break_at_relative_cluster_energy_change::Float64 = 0.001,
+    reject_during_relaxation_cycle_threshold::Int64 = 10,
+    break_at_relative_cluster_energy_change::Float64 = 0.0001,
     shell_nr::Int64 = 5,
     relax_efficiently::Bool = true,
     relaxation_overshoot_factor_r::Real = 1.5,
     relaxation_optimization_parameter_l::Real = 1,
-    thermal_fluctuations::Bool = true,
+    thermal_fluctuations::Bool = false,
     print_progress::Bool = false)
 
     #save original graph dict 
@@ -660,15 +660,15 @@ function evolve_network(graph_dict::Dict,
     nr_attempted_bond_switches, 
     temperature::Real; 
     nr_max_relaxation_cycles::Int64 = 25,
-    reject_during_relaxation_cycle_threshold::Int64 = 5,
-    break_at_relative_cluster_energy_change::Float64 = 0.001,
+    reject_during_relaxation_cycle_threshold::Int64 = 10,
+    break_at_relative_cluster_energy_change::Float64 = 0.0001,
     shell_nr::Int64 = 5,
     relax_efficiently::Bool = true,
     relaxation_overshoot_factor_r::Real = 1.5,
     relaxation_optimization_parameter_l::Real = 1,
     print_progress::Bool = false,
     random_evolution_seed = Nothing,
-    thermal_fluctuations::Bool = true)
+    thermal_fluctuations::Bool = false)
 
     #initialize vectors to keep track of network evolution
     declined_bonds = []
@@ -742,8 +742,8 @@ Thermally excite entire network
 function excite_entire_network!(graph_dict::Dict, temperature::Real;
     relax_first::Bool = false,
     nr_max_relaxation_cycles::Int64 = 25,
-    reject_during_relaxation_cycle_threshold::Int64 = 5,
-    break_at_relative_cluster_energy_change::Float64 = 0.001,
+    reject_during_relaxation_cycle_threshold::Int64 = 10,
+    break_at_relative_cluster_energy_change::Float64 = 0.0001,
     relax_efficiently::Bool = true,
     relaxation_overshoot_factor_r::Real = 1.5,
     relaxation_optimization_parameter_l::Real = 1,

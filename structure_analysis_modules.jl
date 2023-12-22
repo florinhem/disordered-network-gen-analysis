@@ -46,7 +46,7 @@ end
 
 
 """
-This module combines all functions to generate and analyze network structures
+This module combines all functions to generate network structures
 """
 module NetworkGeneration
 
@@ -84,8 +84,12 @@ include(load_path*"network_energy_calculation.jl")
 include(load_path*"network_modification.jl")
 
 #these functions can be used to characterize networks
-#by means of order parameters
-include(load_path*"network_characterization.jl")
+#by means of local order parameters
+include(load_path*"network_characterization_local.jl")
+
+#these functions can be used to characterize networks
+#by means of order parameters measuring correlations
+include(load_path*"network_characterization_correlations.jl")
 
 #functions for graph plotting
 include(load_path*"network_plotting.jl")
@@ -94,3 +98,29 @@ include(load_path*"network_plotting.jl")
 include(load_path*"network_io.jl")
 
 end
+
+
+
+"""
+This module combines all functions to analyze network structures
+"""
+module NetworkAnalysis
+
+#import the necessary packages
+import MetaGraphsNext   #to deal with graphs with labelled vertices and edges
+import LinearAlgebra    #to perform linear algebra calculations like the dot product
+
+#set path to files
+load_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\code_photonic_structures\networks\\"
+
+#these functions can be used to characterize networks
+#by means of local order parameters
+include(load_path*"network_characterization_local.jl")
+
+#these functions can be used to characterize networks
+#by means of order parameters measuring correlations
+include(load_path*"network_characterization_correlations.jl")
+
+end
+
+
