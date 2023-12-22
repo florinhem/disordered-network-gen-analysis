@@ -750,6 +750,16 @@ BDA.plot_spectral_density_heatmap(spectral_density_dict,
     wavevector_value_fixed = 0)
 
 
+data_path_raw = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\3Dvolumes\Blue_SI.tif"
+
+
+structure_dict = BDA.get_structure_dict_from_colorscale(data_path_raw; 
+    voxel_size=(10,12,10), 
+    label = "P. c. mirabilis blue",
+    save_result=true, 
+    save_path=raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_blue")
+
+
 """
 This is where the calculations for nodal surfaces begin
 """
@@ -1174,6 +1184,27 @@ for i in eachindex(structure_dict_path_vec)
 
     BDA.save_dict_to_h5(structure_dict; save_path=structure_dict_path_vec[i] * "_structure.h5")
 
+end
+
+
+#set which surfaces will be generated
+label_vec = ["D", "G", "P", "I-WP"]  #
+
+#set properties of generated data
+unit_cell_length = 500
+nr_unit_cells = 10
+
+for label in label_vec
+
+    #generate 3d binary data for current nodal surface
+    structure_dict = BDA.get_binary_data_from_nodal_eqn(unit_cell_length, 
+                                                nr_unit_cells,
+                                                label;
+    save_result=true, 
+    save_path=raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\nodal_surfaces\\"*label*"_surface_structure.h5")
+
+    println(label*" done")
+    
 end
 
 
@@ -1802,6 +1833,21 @@ for i in eachindex(data_path_vec_vec)
     println(string(i)*" done")
 
 end
+
+
+#set raw data path
+data_path_raw_prefix = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\2d_images_green\slice_"
+data_path_raw_suffix = "_max11.tif"
+
+data_path_corrected = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_green.h5"
+
+structure_dict = BDA.get_structure_dict_from_colorscale_stack(data_path_raw_prefix,
+    data_path_raw_suffix,
+    301; 
+    voxel_size=(11,11,11), 
+    label = "S. virescens green",
+    save_result=true, 
+    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_green")
 
 
 

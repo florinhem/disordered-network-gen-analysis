@@ -200,7 +200,7 @@ perform a single measurement on local volume fraction and update the sampled vox
 """
 function get_local_volume_fract_and_update_sampled_voxels!(nr_dimensions_data::Int64,
                                                             edge_length_window::Int64,
-                                                            data_binary::Array{Float64},
+                                                            data_binary::Array{Bool},
                                                             sampled_voxels_array::Array{Int64},
                                                             window_center::Tuple;
                                                             window_shape::String="spherical" )
@@ -360,7 +360,7 @@ for a given window size, shape and positioning get the local volume fraction
 function get_local_volume_fract_vec(nr_dimensions_data::Int64, 
                                             edge_length_window::Int64,
                                             size_data::Tuple, 
-                                            data_binary::Array{Float64};
+                                            data_binary::Array{Bool};
                                             window_positioning::String="random",
                                             window_shape::String="spherical",
                                             constraints_nr_measurements::Tuple{Int64, Int64} = (100,10000) ) 

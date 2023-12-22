@@ -92,13 +92,13 @@ end
 obtain binary 3d data array for a given surface.
 The unit cell size and voxel_edge_length are given in nanometers.
 """
-function get_binary_data_from_nodal_eqn(unit_cell_length=500, 
-    nr_unit_cells=10,
+function get_binary_data_from_nodal_eqn(unit_cell_length::Real=500, 
+    nr_unit_cells::Real=10,
     surface_type::String="D";
     voxel_edge_length=10,
     volume_fraction_parameter = 0,
     save_result::Bool=false, 
-    save_path=raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\nodal_surfaces\\D_surface")
+    save_path=raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\nodal_surfaces\\"*surface_type*"_surface_structure.h5")
 
     #get desired nodal equation
     nodal_eqn = get_nodal_eqn(surface_type)
@@ -110,7 +110,7 @@ function get_binary_data_from_nodal_eqn(unit_cell_length=500,
     data_edge_length = Int( round( unit_cell_length_in_voxels * nr_unit_cells  ) )
 
     #generate array of zeros where data will be stored in
-    data_binary = zeros(data_edge_length, data_edge_length, data_edge_length)
+    data_binary = zeros(Bool, data_edge_length, data_edge_length, data_edge_length)
 
     #determine the wavenumber
     wavenumber = 2*pi/unit_cell_length_in_voxels
@@ -124,7 +124,7 @@ function get_binary_data_from_nodal_eqn(unit_cell_length=500,
                                 wavenumber*j,
                                 wavenumber*k) < volume_fraction_parameter )
 
-                    data_binary[i,j,k] = 1.0
+                    data_binary[i,j,k] = 1
                 end
 
             end
@@ -141,7 +141,7 @@ function get_binary_data_from_nodal_eqn(unit_cell_length=500,
                             "size_data" => size_data, 
                             "mean_edge_length_data" => mean_edge_length_data, 
                             "nr_dimensions_data" => nr_dimensions_data,
-                            "voxel_edge_length" => minimum(voxel_size) ,
+                            "voxel_edge_length" => voxel_edge_length ,
                             "label" => surface_type,
                             "unit_cell_length" => unit_cell_length,
                             "nr_unit_cells" => nr_unit_cells,
@@ -149,7 +149,7 @@ function get_binary_data_from_nodal_eqn(unit_cell_length=500,
 
     #if desired, save corrected data
     if save_result
-        FileIO.save(save_path*"_structure.h5", structure_dict)
+        save_dict_to_h5(structure_dict; save_path)
 
     end
 

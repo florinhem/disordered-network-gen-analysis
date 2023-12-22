@@ -29,7 +29,7 @@ end
 """
 correct voxel size in data array in case of anisotropic voxel size
 """
-function correct_voxel_size!(data_binary::Array{Float64}, voxel_size::Tuple) 
+function correct_voxel_size!(data_binary::Array{Bool}, voxel_size::Tuple) 
 
     #determine smallest voxel size
     min_voxel_size = minimum(voxel_size)
@@ -99,7 +99,7 @@ end
 """
 determine volume fraction within given data array
 """
-function get_volume_fraction(data_binary::Array{Float64})
+function get_volume_fraction(data_binary::Array{Bool})
     
     volume_fraction = Statistics.mean(data_binary)
 
@@ -111,7 +111,7 @@ end
 """
 load data and get all its essential properties
 """
-function get_data_essentials(data_binary::Array)
+function get_data_essentials(data_binary::Array{Bool})
 
     #get total volume fraction
     volume_fract_tot = get_volume_fraction(data_binary)
@@ -135,6 +135,21 @@ end
 
 
 """
+Convert a colorscale array to binary data
+"""
+function convert_colorscale_to_binary(data_colorscale::Array)
+
+    #convert colorscale data to grayscale, then to float and then to binary data
+    data_gray = Images.Gray.(data_colorscale)
+    data_float = Float64.( data_gray ) 
+    data_binary = Array(Bool.(round.( (1 / maximum( data_float ) ) .* data_float )))
+
+    return data_binary
+
+end
+
+
+"""
 load structure data, bring to binary form, correct asymmetric voxels and
 if desired save to dictionary
 """
@@ -142,15 +157,13 @@ function get_structure_dict_from_colorscale(data_path_raw::String;
     voxel_size::Tuple=(1,1,1), 
     label = "some structure",
     save_result::Bool=false, 
-    save_path::String=raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\\binary_data")
+    save_path::String=raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\binary_data")
 
     #load colorscale structure data
     data_colorscale = FileIO.load(data_path_raw)
 
     #convert colorscale data to grayscale, then to float and then to binary data
-    data_gray = Images.Gray.(data_colorscale)
-    data_float = Float64.( data_gray ) 
-    data_binary = round.( (1 / maximum( data_float ) ) .* data_float )
+    data_binary = convert_colorscale_to_binary(data_colorscale)
     
     #in case of anisotropic voxel size, correct anisotropy by stretching the array
     if voxel_size !== (1,1,1)
@@ -175,7 +188,7 @@ function get_structure_dict_from_colorscale(data_path_raw::String;
 
     #if desired, save corrected data
     if save_result
-        FileIO.save(save_path*"_structure.h5", structure_dict)
+        save_dict_to_h5(structure_dict; save_path = save_path*"_structure.h5")
 
     end
 
@@ -199,16 +212,20 @@ function get_structure_dict_from_colorscale_stack(data_path_raw_prefix::String,
     image_1_colorscale = FileIO.load(data_path_raw_prefix*string(0)*data_path_raw_suffix)
 
     #initialize empty array where data will be stored in
-    data_binary = Array{Float64}(undef, 
+    data_binary = Array{Bool}(undef, 
                                 size(image_1_colorscale)..., 
                                 nr_images)
 
     #loop through all images and save them to array
     for i in 1:nr_images
 
-        data_binary[:,:,i] = get_binary_data_from_colorscale(data_path_raw_prefix
-                                                            *string(i-1)
-                                                            *data_path_raw_suffix)
+        #load colorscale structure data
+        data_colorscale = FileIO.load(data_path_raw_prefix
+                                    *string(i-1)
+                                    *data_path_raw_suffix)
+
+        #convert colorscale data to grayscale, then to float and then to binary data
+        data_binary[:,:,i] = convert_colorscale_to_binary(data_colorscale)
 
         println("slice "*string(i)*" done")
 
@@ -237,7 +254,7 @@ function get_structure_dict_from_colorscale_stack(data_path_raw_prefix::String,
 
     #if desired, save corrected data
     if save_result
-        FileIO.save(save_path*"_structure.h5", structure_dict)
+        save_dict_to_h5(structure_dict; save_path = save_path*"_structure.h5")
 
     end
 

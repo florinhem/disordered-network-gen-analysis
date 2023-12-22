@@ -80,7 +80,7 @@ Get the autocovariance function for statistically homogeneous and isotropic
 function get_autocovariance_fct_isotrope(sampling_distance,
                                 size_data::Tuple,
                                 volume_fract_tot::Float64,
-                                data_binary::Array{Float64};
+                                data_binary::Array{Bool};
                                 nr_measurements_per_distance::Int64 = 10000)
 
     #initialize vector from which the two point prob. fct. will be calculated later
@@ -240,7 +240,7 @@ end
 """
 get wavenumber vector such that the discrete Fourier transform can be determined
 properly based on the sampled distances.
-The info about minimal and maximal wavenumbers is taken from the DFT into PDF
+The info about minimal and maximal wavenumbers is taken from the DFT intro PDF
 """
 function get_wavenumber_vec(sampling_distance_vec::Vector)
     
