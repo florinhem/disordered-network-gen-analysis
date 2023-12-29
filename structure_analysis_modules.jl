@@ -20,18 +20,18 @@ This module combines all functions to statistically analyze binary structure dat
 module BinaryDataAnalysis
 
 #import the necessary packages
-import .GeneralUtilities as GU  #for general utitilities like IO functions
+import ..GeneralUtilities as GU  #for general utitilities like IO functions
 import FileIO   #for file loading and saving
 import Images #for image conversion, in our case from color to grayscale
 import Statistics   #for statistical operations like mean()
-import Measurements    #for handling data with uncertainty and error propagationy
+import Measurements    #for handling data with uncertainty and error propagation
 import FFTW     #to calculate the Fast Fourier Transform
 import Plots    #for plotting
 import LaTeXStrings as Latex #to display latex symbols in plot labels
 import Formatting as Fmt    #for python-like string formatting
 
 #set path to files
-load_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\code_photonic_structures\binary_structes\\"
+load_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\code_photonic_structures\binary_structures\\"
 
 #include functions to load binary 3d data, convert and correct it and to extract
 #some basic measures
@@ -66,7 +66,7 @@ This module combines all functions to generate network structures
 module NetworkGeneration
 
 #import the necessary packages
-import .GeneralUtilities as GU  #for general utitilities like IO functions
+import ..GeneralUtilities as GU  #for general utitilities like IO functions
 import Graphs   #for simple graphs
 import MetaGraphsNext   #to deal with graphs with labelled vertices and edges
 import Combinatorics    #mainly used to get all possible combinations of bonds
@@ -123,20 +123,29 @@ This module combines all functions to analyze network structures
 module NetworkAnalysis
 
 #import the necessary packages
-import .GeneralUtilities as GU  #for general utitilities like IO functions
+import ..GeneralUtilities as GU  #for general utitilities like IO functions
+import ..NetworkGeneration as NG    #to generate network structures
 import MetaGraphsNext   #to deal with graphs with labelled vertices and edges
 import LinearAlgebra    #to perform linear algebra calculations like the dot product
+import Statistics   #for statistical operations like mean()
+import Measurements    #for handling data with uncertainty and error propagation
 
 #set path to files
 load_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\code_photonic_structures\networks\\"
 
 #these functions can be used to characterize networks
 #by means of local order parameters
-include(load_path*"network_characterization_local.jl")
+include(load_path*"network_analysis_local.jl")
 
 #these functions can be used to characterize networks
 #by means of order parameters measuring correlations
-include(load_path*"network_characterization_correlations.jl")
+include(load_path*"network_analysis_correlations.jl")
+
+#these functions provide utilities for analyzing networks
+include(load_path*"network_analysis_utitilites.jl")
+
+#these functions are used to evolve and eventually analyze networks
+include(load_path*"network_analysis_and_evolution.jl")
 
 end
 

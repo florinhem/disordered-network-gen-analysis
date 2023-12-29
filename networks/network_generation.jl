@@ -226,10 +226,10 @@ end
 """
 create a network graph representing the given network structure
 """
-function get_periodic_network( ; nr_vertices = 27 , 
+function get_periodic_network( ; nr_vertices::Int64 = 27 , 
                             nr_dimensions::Int64 = 3, 
                             network_type = "diamond",
-                            bond_bending_const = 0.285,
+                            bond_bending_const::Real = 0.285,
                             total_energy_fct = get_total_energy_keating,
                             temperature::Real = 1,
                             thermal_fluctuations::Bool = false,

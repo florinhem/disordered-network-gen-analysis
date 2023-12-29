@@ -49,9 +49,9 @@ end
 """
 Get vector of wavenumbers, for which the structure factor is calculated
 """
-function get_wavenumber_vec(graph_dict;
+function get_wavenumber_vec(graph_dict::Dict;
     sampling_distance_step_length::Real = 0.1,
-    maximal_sampling_distance = graph_dict["supercell_edge_length"])
+    maximal_sampling_distance::Real = graph_dict["supercell_edge_length"]/2)
 
     #determine virtual nr of sampling distances
     #(in reality I don't sample in direct space anywhere)
@@ -77,11 +77,11 @@ averaged over angles according to Barlett's isotropic estimator
 as described in equation 40 of 10.1007/s11222-023-10219-1
 """
 function get_structure_factor_isotrope_by_wavenumber_vec(
-    graph_dict::Dict,
+    graph_dict::Dict;
     sampling_distance_step_length::Real = 0.1,
-    maximal_sampling_distance = graph_dict["supercell_edge_length"],
-    save_result = false,
-    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\sample_name",
+    maximal_sampling_distance::Real = graph_dict["supercell_edge_length"]/2,
+    save_result::Bool = false,
+    save_path::String = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\sample_name",
     label = nothing)
 
     #get vector of wavenumbers

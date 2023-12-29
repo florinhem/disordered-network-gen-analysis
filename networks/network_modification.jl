@@ -667,7 +667,7 @@ function evolve_network(graph_dict::Dict,
     relaxation_overshoot_factor_r::Real = 1.5,
     relaxation_optimization_parameter_l::Real = 1,
     print_progress::Bool = false,
-    random_evolution_seed = Nothing,
+    random_evolution_seed = nothing,
     thermal_fluctuations::Bool = false)
 
     #initialize vectors to keep track of network evolution
@@ -676,7 +676,7 @@ function evolve_network(graph_dict::Dict,
     move_accepted_vec = []
 
     #set seed for random evolution if desired
-    if random_evolution_seed !== Nothing
+    if random_evolution_seed !== nothing
         Random.seed!(random_evolution_seed)
     end
 
