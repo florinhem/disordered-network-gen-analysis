@@ -361,11 +361,10 @@ and cluster energies
 """
 function compare_relaxation_methods(original_graph_dict,
     central_cluster_vertices,
+    evolution_dict,
     filename;
     nr_max_relaxation_cycles = 25,
     shell_nr::Int64 = 4,
-    relaxation_overshoot_factor_r::Real = 1.5,
-    relaxation_optimization_parameter_l::Real = 1,
     save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\random_networks\\" )
 
     #initialize arrays for vertex positions and cluster energy as a
@@ -393,11 +392,12 @@ function compare_relaxation_methods(original_graph_dict,
 
         #perform relaxation cycles
         for relaxation_cycle in 2:nr_max_relaxation_cycles+1
+
+            evolution_dict["relax_efficiently"] = relax_efficiently_vec[i]
+
             graph_dict, cluster_dict = relax_cluster_one_cycle_keating!(graph_dict, 
-            cluster_dict; 
-            relax_efficiently = relax_efficiently_vec[i],
-            relaxation_overshoot_factor_r = relaxation_overshoot_factor_r,
-            relaxation_optimization_parameter_l = relaxation_optimization_parameter_l,
+            cluster_dict,
+            evolution_dict;
             update_cluster_energy = true )
 
             #keep track of vertex position and cluster energy

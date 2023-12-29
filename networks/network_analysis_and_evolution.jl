@@ -7,25 +7,35 @@ these functions are used to evolve and eventually analyze networks
 Get a dictionary with all quantities describing the generation
 and evolution of a network
 """
-function get_network_evolution_dict(;
-    nr_vertices::Int64 = 27 , 
+function get_evolution_dict(;
+    nr_vertices::Int64 = 512 , 
     nr_dimensions::Int64 = 3, 
     network_type = "diamond",
     bond_bending_const::Real = 0.285,
-    total_energy_fct = get_total_energy_keating,
+    total_energy_fct = NG.get_total_energy_keating,
     nr_max_relaxation_cycles::Int64 = 25,
     reject_during_relaxation_cycle_threshold::Int64 = 10,
     break_at_relative_cluster_energy_change::Float64 = 0.0001,
-    shell_nr::Int64 = 5,
+    shell_nr::Int64 = 4,
     relax_efficiently::Bool = true,
     relaxation_overshoot_factor_r::Real = 1.5,
     relaxation_optimization_parameter_l::Real = 1,
-    print_progress::Bool = false,
+    inefficient_optimization_method = Optim.Newton(),
     random_evolution_seed = nothing,
-    thermal_fluctuations::Bool = false)
+    thermal_fluctuations::Bool = false,
+    temperature_vec::Vector = [2, 1],
+    nr_monte_carlo_steps_per_temperature_vec::Vector{Int64} = [10,10]
+    )
+
+    #check if the temperature sequence is given correctly
+    if (length(temperature_vec) !== 
+        length(nr_monte_carlo_steps_per_temperature_vec))
+        @error "temperature_vec and nr_monte_carlo_steps_per_temperature_vec
+        must have the same length"
+    end
 
     #store all arguments in a dictionary
-    network_evolution_dict = Dict(
+    evolution_dict = Dict(
     "nr_vertices" => nr_vertices, 
     "nr_dimensions" => nr_dimensions, 
     "network_type" => network_type,
@@ -38,12 +48,14 @@ function get_network_evolution_dict(;
     "relax_efficiently" => relax_efficiently,
     "relaxation_overshoot_factor_r" => relaxation_overshoot_factor_r,
     "relaxation_optimization_parameter_l" => relaxation_optimization_parameter_l,
-    "print_progress" => print_progress,
+    "inefficient_optimization_method" => inefficient_optimization_method,
     "random_evolution_seed" => random_evolution_seed,
-    "thermal_fluctuations" => thermal_fluctuations
+    "thermal_fluctuations" => thermal_fluctuations,
+    "temperature_vec" => temperature_vec,
+    "nr_monte_carlo_steps_per_temperature_vec" => nr_monte_carlo_steps_per_temperature_vec
     )
 
-    return network_evolution_dict
+    return evolution_dict
 
 end
 

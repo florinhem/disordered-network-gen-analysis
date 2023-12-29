@@ -101,11 +101,11 @@ include(load_path*"network_modification.jl")
 
 #these functions can be used to characterize networks
 #by means of local order parameters
-include(load_path*"network_characterization_local.jl")
+include(load_path*"network_analysis_local.jl")
 
 #these functions can be used to characterize networks
 #by means of order parameters measuring correlations
-include(load_path*"network_characterization_correlations.jl")
+include(load_path*"network_analysis_correlations.jl")
 
 #functions for graph plotting
 include(load_path*"network_plotting.jl")
@@ -126,6 +126,7 @@ module NetworkAnalysis
 import ..GeneralUtilities as GU  #for general utitilities like IO functions
 import ..NetworkGeneration as NG    #to generate network structures
 import MetaGraphsNext   #to deal with graphs with labelled vertices and edges
+import Optim    #for optimization such as relaxation of individual vertices
 import LinearAlgebra    #to perform linear algebra calculations like the dot product
 import Statistics   #for statistical operations like mean()
 import Measurements    #for handling data with uncertainty and error propagation
@@ -142,7 +143,7 @@ include(load_path*"network_analysis_local.jl")
 include(load_path*"network_analysis_correlations.jl")
 
 #these functions provide utilities for analyzing networks
-include(load_path*"network_analysis_utitilites.jl")
+include(load_path*"network_analysis_utilities.jl")
 
 #these functions are used to evolve and eventually analyze networks
 include(load_path*"network_analysis_and_evolution.jl")

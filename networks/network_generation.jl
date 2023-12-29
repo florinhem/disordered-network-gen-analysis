@@ -226,35 +226,23 @@ end
 """
 create a network graph representing the given network structure
 """
-function get_periodic_network( ; nr_vertices::Int64 = 27 , 
-                            nr_dimensions::Int64 = 3, 
-                            network_type = "diamond",
-                            bond_bending_const::Real = 0.285,
-                            total_energy_fct = get_total_energy_keating,
-                            temperature::Real = 1,
-                            thermal_fluctuations::Bool = false,
-                            nr_max_relaxation_cycles::Int64 = 25,
-                            reject_during_relaxation_cycle_threshold::Int64 = 10,
-                            break_at_relative_cluster_energy_change::Float64 = 0.0001,
-                            relax_efficiently::Bool = true,
-                            relaxation_overshoot_factor_r::Real = 1.5,
-                            relaxation_optimization_parameter_l::Real = 1)
+function get_periodic_network(evolution_dict)
 
     #depending on the network structure, create an original graph that does not
     #contain vertexic positions and bond information
 
     #simple cubic which is defined for any dimensionality
-    if cmp(network_type, "simple cubic") == 0
+    if cmp(evolution_dict["network_type"], "simple cubic") == 0
 
-        original_graph_dict = get_simple_cubic_network(nr_vertices;
-                                    nr_dimensions = nr_dimensions) 
+        original_graph_dict = get_simple_cubic_network(evolution_dict["nr_vertices"];
+                                    nr_dimensions = evolution_dict["nr_dimensions"]) 
 
     #diamond which is only defined for 3d
-    elseif cmp(network_type, "diamond") == 0
+    elseif cmp(evolution_dict["network_type"], "diamond") == 0
 
-        if nr_dimensions == 3
+        if evolution_dict["nr_dimensions"] == 3
 
-            original_graph_dict = get_diamond_network(nr_vertices ) 
+            original_graph_dict = get_diamond_network(evolution_dict["nr_vertices"] ) 
         else
             @error "The diamond network is only defined in 3d."
         end
@@ -268,28 +256,22 @@ function get_periodic_network( ; nr_vertices::Int64 = 27 ,
     graph_dict = convert_original_graph_to_spatial_network( original_graph_dict )
 
     #set bond bending constant
-    graph_dict["bond_bending_const"] = bond_bending_const
+    graph_dict["bond_bending_const"] = evolution_dict["bond_bending_const"]
 
     
     #thermally excite network if desired
-    if thermal_fluctuations
+    if evolution_dict["thermal_fluctuations"]
         graph_dict["total_energy_up_to_date"] = false
 
         graph_dict = excite_entire_network!(graph_dict,
-        temperature;
-        relax_first = false,
-        nr_max_relaxation_cycles = nr_max_relaxation_cycles,
-        break_at_relative_cluster_energy_change = break_at_relative_cluster_energy_change,
-        reject_during_relaxation_cycle_threshold = reject_during_relaxation_cycle_threshold,
-        relax_efficiently = relax_efficiently,
-        relaxation_overshoot_factor_r = relaxation_overshoot_factor_r,
-        relaxation_optimization_parameter_l = relaxation_optimization_parameter_l,
-        update_total_energy = true)
+            evolution_dict;
+            relax_first = false,
+            update_total_energy = true)
 
     #otherwise just get total energy
     else
         #get total energy
-        graph_dict["total_energy"] = total_energy_fct(graph_dict)
+        graph_dict["total_energy"] = evolution_dict["total_energy_fct"](graph_dict)
         graph_dict["total_energy_up_to_date"] = true
 
     end

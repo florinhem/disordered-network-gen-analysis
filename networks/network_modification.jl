@@ -272,11 +272,8 @@ end
 Perform one cycle of relaxing a cluster of vertices 
 """
 function relax_cluster_one_cycle_keating!(graph_dict::Dict, 
-    cluster_dict::Dict;
-    relax_efficiently::Bool = true,
-    relaxation_overshoot_factor_r::Real = 1.5,
-    relaxation_optimization_parameter_l::Real = 1,
-    inefficient_optimization_method = Optim.Newton(),
+    cluster_dict::Dict,
+    evolution_dict::Dict;
     update_total_energy::Bool = false,
     update_cluster_energy::Bool = true )
 
@@ -296,15 +293,15 @@ function relax_cluster_one_cycle_keating!(graph_dict::Dict,
     for vertex in cluster_dict["cluster_vertices_to_move_vec"]
 
         #relax efficiently but approximately or exactly but slowly
-        if relax_efficiently
+        if evolution_dict["relax_efficiently"]
             graph_dict = relax_single_vertex_keating_efficiently!(graph_dict,
     vertex;
-    relaxation_overshoot_factor_r = relaxation_overshoot_factor_r,
-    relaxation_optimization_parameter_l = relaxation_optimization_parameter_l,
+    relaxation_overshoot_factor_r = evolution_dict["relaxation_overshoot_factor_r"],
+    relaxation_optimization_parameter_l = evolution_dict["relaxation_optimization_parameter_l"],
     update_total_energy = false)
         else
             graph_dict = relax_single_vertex_keating!(graph_dict, vertex;
-                            optimization_method=inefficient_optimization_method,
+                            optimization_method = evolution_dict["inefficient_optimization_method"],
                             update_total_energy = false)
         end
 
@@ -345,13 +342,8 @@ end
 Fully relax a cluster of vertices. The cluster energy will always be updated
 """
 function relax_cluster_keating!(graph_dict::Dict,
-    cluster_dict::Dict; 
-    nr_max_relaxation_cycles::Int64 = 25,
-    break_at_relative_cluster_energy_change::Float64 = 0.0001,
-    reject_during_relaxation_cycle_threshold::Int64 = 10,
-    relax_efficiently::Bool = true,
-    relaxation_overshoot_factor_r::Real = 1.5,
-    relaxation_optimization_parameter_l::Real = 1,
+    cluster_dict::Dict, 
+    evolution_dict::Dict;
     update_total_energy::Bool = false,
     print_progress::Bool = false)
 
@@ -371,16 +363,14 @@ function relax_cluster_keating!(graph_dict::Dict,
     end
 
     #perform the given number of relaxation cycles
-    for cycle_nr in 1:nr_max_relaxation_cycles
+    for cycle_nr in 1:evolution_dict["nr_max_relaxation_cycles"]
 
         #store previous cluster energy
         previous_cluster_energy = cluster_dict["cluster_energy"]
 
         graph_dict, cluster_dict = relax_cluster_one_cycle_keating!(graph_dict, 
-        cluster_dict;
-        relax_efficiently = relax_efficiently,
-        relaxation_overshoot_factor_r = relaxation_overshoot_factor_r,
-        relaxation_optimization_parameter_l = relaxation_optimization_parameter_l,
+        cluster_dict,
+        evolution_dict;
         update_total_energy = false,
         update_cluster_energy = true )
 
@@ -389,8 +379,8 @@ function relax_cluster_keating!(graph_dict::Dict,
             abs((previous_cluster_energy - cluster_dict["cluster_energy"])
                     /cluster_dict["cluster_energy"]))
 
-        if (relative_cluster_energy_change < break_at_relative_cluster_energy_change 
-                && cycle_nr > reject_during_relaxation_cycle_threshold)
+        if (relative_cluster_energy_change < evolution_dict["break_at_relative_cluster_energy_change"] 
+                && cycle_nr > evolution_dict["reject_during_relaxation_cycle_threshold"])
             if print_progress
                 println("Breaking at cycle nr "*string(cycle_nr))
             end
@@ -399,7 +389,7 @@ function relax_cluster_keating!(graph_dict::Dict,
 
         #if cycle nr is above the given threshold, check if the relaxation can 
         #be rejected before full relaxation by estimating the final energy
-        if cycle_nr > reject_during_relaxation_cycle_threshold
+        if cycle_nr > evolution_dict["reject_during_relaxation_cycle_threshold"]
 
             #to be implemented
 
@@ -521,16 +511,9 @@ by switching a bond, relaxing the network and then accepting the network
 with Metropolis acceptance probability
 """
 function monte_carlo_move!(graph_dict::Dict, 
+    evolution_dict::Dict,
     temperature::Real; 
     switched_bond::Tuple{Int64, Int64} = get_random_bond(graph_dict),
-    nr_max_relaxation_cycles::Int64 = 25,
-    reject_during_relaxation_cycle_threshold::Int64 = 10,
-    break_at_relative_cluster_energy_change::Float64 = 0.0001,
-    shell_nr::Int64 = 5,
-    relax_efficiently::Bool = true,
-    relaxation_overshoot_factor_r::Real = 1.5,
-    relaxation_optimization_parameter_l::Real = 1,
-    thermal_fluctuations::Bool = false,
     print_progress::Bool = false)
 
     #save original graph dict 
@@ -540,7 +523,7 @@ function monte_carlo_move!(graph_dict::Dict,
     initial_cluster_dict = get_cluster_in_shells_dict(
                                     graph_dict, 
                                     switched_bond; 
-                                    shell_nr = shell_nr)
+                                    shell_nr = evolution_dict["shell_nr"])
 
     #make sure that total energy is up to date
     if !graph_dict["total_energy_up_to_date"]
@@ -555,20 +538,15 @@ function monte_carlo_move!(graph_dict::Dict,
 
     #if there are thermal fluctuations, relax cluster first and calculate
     #weights of the corresponding shifts
-    if thermal_fluctuations
+    if evolution_dict["thermal_fluctuations"]
 
         #deep copy initial cluster, such that it does not get modified
         cluster_dict = deepcopy(initial_cluster_dict)
 
         #relax cluster
         graph_dict, cluster_dict = relax_cluster_keating!(graph_dict,
-            cluster_dict; 
-            nr_max_relaxation_cycles = nr_max_relaxation_cycles,
-            break_at_relative_cluster_energy_change = break_at_relative_cluster_energy_change,
-            reject_during_relaxation_cycle_threshold = reject_during_relaxation_cycle_threshold,
-            relax_efficiently = relax_efficiently,
-            relaxation_overshoot_factor_r = relaxation_overshoot_factor_r,
-            relaxation_optimization_parameter_l = relaxation_optimization_parameter_l,
+            cluster_dict,
+            evolution_dict;
             update_total_energy = false,
             print_progress = print_progress)
 
@@ -592,23 +570,18 @@ function monte_carlo_move!(graph_dict::Dict,
     cluster_dict = get_cluster_in_shells_dict(
                                     graph_dict, 
                                     switched_bond; 
-                                    shell_nr = shell_nr)
+                                    shell_nr = evolution_dict["shell_nr"])
 
     #relax cluster around switched bond and only update energy when there won't be
     #thermal fluctuations included afterward
     graph_dict, cluster_dict = relax_cluster_keating!(graph_dict,
-        cluster_dict; 
-        nr_max_relaxation_cycles = nr_max_relaxation_cycles,
-        break_at_relative_cluster_energy_change = break_at_relative_cluster_energy_change,
-        reject_during_relaxation_cycle_threshold = reject_during_relaxation_cycle_threshold,
-        relax_efficiently = relax_efficiently,
-        relaxation_overshoot_factor_r = relaxation_overshoot_factor_r,
-        relaxation_optimization_parameter_l = relaxation_optimization_parameter_l,
+        cluster_dict,
+        evolution_dict;
         update_total_energy = false)
 
 
     #if desired, include thermal fluctuations by randomly shifting all cluster vertices
-    if thermal_fluctuations
+    if evolution_dict["thermal_fluctuations"]
 
         #excite cluster with thermal fluctuations and get the corresponding excitation
         #weight
@@ -631,14 +604,6 @@ function monte_carlo_move!(graph_dict::Dict,
                 - temperature 
                 * (cluster_excitation_weight/cluster_relaxation_weight) * log(rand()) )
 
-    #if print_progress
-    #    println("Initial energy: "*string(initial_graph_dict["total_energy"]))
-    #    println("Cluster relaxation weight: "*string(cluster_relaxation_weight))
-    #    println("Cluster excitation weight: "*string(cluster_excitation_weight))
-    #    println("Threshold energy: "*string(total_threshold_energy))
-    #    println("New energy: "*string(graph_dict["total_energy"]))
-    #end
-
     #accept move if total energy is below threshold
     move_accepted = false
 
@@ -657,23 +622,14 @@ end
 Evolve the network with a given number of attempted Monte Carlo moves
 """
 function evolve_network(graph_dict::Dict,
-    nr_attempted_bond_switches, 
-    temperature::Real; 
-    nr_max_relaxation_cycles::Int64 = 25,
-    reject_during_relaxation_cycle_threshold::Int64 = 10,
-    break_at_relative_cluster_energy_change::Float64 = 0.0001,
-    shell_nr::Int64 = 5,
-    relax_efficiently::Bool = true,
-    relaxation_overshoot_factor_r::Real = 1.5,
-    relaxation_optimization_parameter_l::Real = 1,
+    evolution_dict::Dict,
+    nr_attempted_bond_switches::Int64, 
+    temperature::Real;
+    declined_bonds::Vector = [],
+    total_energy_vec::Vector = [],
+    move_accepted_vec::Vector = [],
     print_progress::Bool = false,
-    random_evolution_seed = nothing,
-    thermal_fluctuations::Bool = false)
-
-    #initialize vectors to keep track of network evolution
-    declined_bonds = []
-    total_energy_vec = []
-    move_accepted_vec = []
+    random_evolution_seed = nothing)
 
     #set seed for random evolution if desired
     if random_evolution_seed !== nothing
@@ -695,16 +651,9 @@ function evolve_network(graph_dict::Dict,
         #attempt Monte Carlo move
         graph_dict, move_accepted, new_bond_vec = monte_carlo_move!(
         graph_dict, 
+        evolution_dict,
         temperature; 
         switched_bond = switched_bond,
-        nr_max_relaxation_cycles = nr_max_relaxation_cycles,
-        break_at_relative_cluster_energy_change = break_at_relative_cluster_energy_change,
-        reject_during_relaxation_cycle_threshold = reject_during_relaxation_cycle_threshold,
-        shell_nr = shell_nr,
-        relax_efficiently = relax_efficiently,
-        relaxation_overshoot_factor_r = relaxation_overshoot_factor_r,
-        relaxation_optimization_parameter_l = relaxation_optimization_parameter_l,
-        thermal_fluctuations = thermal_fluctuations,
         print_progress = print_progress)
 
         #update declined bond vec
@@ -737,16 +686,60 @@ end
 
 
 """
+Evolve network according to a given order of temperatures
+and nr of Monte Carlo steps (which I define as nr_bonds
+attempted Monte Carlo moves) per temperature
+"""
+function evolve_network_temperature_sequence(
+    graph_dict::Dict,
+    evolution_dict::Dict;
+    total_energy_vec::Vector = [],
+    move_accepted_vec::Vector = [],
+    print_progress::Bool = false,
+    random_evolution_seed = nothing)
+
+    #set seed for random evolution if desired
+    if random_evolution_seed !== nothing
+        Random.seed!(random_evolution_seed)
+    end
+
+    #calculate total nr of bonds
+    nr_bonds = Int(graph_dict["nr_vertices"]
+                *graph_dict["nr_dimensions"]/2)
+
+    #evolve network according to given temperature sequence 
+    for i in eachindex(evolution_dict["temperature_vec"])
+
+        nr_attempted_bond_switches = (nr_bonds
+        * evolution_dict["nr_monte_carlo_steps_per_temperature_vec"][i])
+
+        graph_dict, total_energy_vec_new, move_accepted_vec_new = evolve_network(graph_dict,
+        evolution_dict,
+        nr_attempted_bond_switches, 
+        evolution_dict["temperature_vec"][i])
+
+        #concatenate new vectors to previous ones 
+        total_energy_vec = vcat(total_energy_vec, total_energy_vec_new)
+        move_accepted_vec = vcat(move_accepted_vec, move_accepted_vec_new)
+
+        #print progress if desired
+        if print_progress
+            println("temperature "
+                *string(evolution_dict["temperature_vec"][i])*" done")
+        end
+    end
+
+    return [graph_dict, total_energy_vec, move_accepted_vec]
+
+end
+
+
+"""
 Thermally excite entire network
 """
-function excite_entire_network!(graph_dict::Dict, temperature::Real;
+function excite_entire_network!(graph_dict::Dict,
+    evolution_dict::Dict;
     relax_first::Bool = false,
-    nr_max_relaxation_cycles::Int64 = 25,
-    reject_during_relaxation_cycle_threshold::Int64 = 10,
-    break_at_relative_cluster_energy_change::Float64 = 0.0001,
-    relax_efficiently::Bool = true,
-    relaxation_overshoot_factor_r::Real = 1.5,
-    relaxation_optimization_parameter_l::Real = 1,
     update_total_energy::Bool = true)
 
     #create tuple containing all vertices
@@ -767,20 +760,15 @@ function excite_entire_network!(graph_dict::Dict, temperature::Real;
     #if desired, relax network first
     if relax_first
         graph_dict, cluster_dict = relax_cluster_keating!(graph_dict,
-        cluster_dict; 
-        nr_max_relaxation_cycles = nr_max_relaxation_cycles,
-        break_at_relative_cluster_energy_change = break_at_relative_cluster_energy_change,
-        reject_during_relaxation_cycle_threshold = reject_during_relaxation_cycle_threshold,
-        relax_efficiently = relax_efficiently,
-        relaxation_overshoot_factor_r = relaxation_overshoot_factor_r,
-        relaxation_optimization_parameter_l = relaxation_optimization_parameter_l,
-        update_total_energy = false)
+            cluster_dict,
+            evolution_dict;
+            update_total_energy = false)
     end
 
     #excite network
     graph_dict, cluster_dict, cluster_excitation_weight = excite_cluster!(graph_dict,
                                 cluster_dict,
-                                temperature;
+                                evolution_dict["temperature_vec"][1];
                                 update_cluster_energy = update_total_energy,
                                 update_total_energy = update_total_energy)
 
