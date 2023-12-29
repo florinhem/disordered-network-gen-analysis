@@ -635,7 +635,7 @@ function plot_statistical_measures(data_path_vec,
         for i in eachindex(data_path_vec)
 
             #load plot dictionary
-            autocovariance_fct_plot_dict = load_h5_dict(data_path_vec[i]*"_autocovariance_fct.h5")
+            autocovariance_fct_plot_dict = GU.load_h5_dict(data_path_vec[i]*"_autocovariance_fct.h5")
 
             #if desired adjust label and voxel edge length
             if  label_vec !== nothing
@@ -677,7 +677,7 @@ function plot_statistical_measures(data_path_vec,
         for i in eachindex(data_path_vec)
 
             #load plot dictionary
-            spectral_density_plot_dict = load_h5_dict(data_path_vec[i]*"_spectral_density.h5")
+            spectral_density_plot_dict = GU.load_h5_dict(data_path_vec[i]*"_spectral_density.h5")
 
             #if desired adjust label and voxel edge length
             if label_vec !== nothing
@@ -721,7 +721,7 @@ function plot_statistical_measures(data_path_vec,
         for i in eachindex(data_path_vec)
 
             #load plot dictionary
-            local_volume_fraction_variance_plot_dict = load_h5_dict(
+            local_volume_fraction_variance_plot_dict = GU.load_h5_dict(
                                                             data_path_vec[i]*"_volume_fraction_variance.h5")
 
             #if desired adjust label and voxel edge length
@@ -754,7 +754,7 @@ function plot_statistical_measures(data_path_vec,
         for i in eachindex(data_path_vec)
 
             #load plot dictionary
-            autocovariance_fct_direction_plot_dict = load_h5_dict(
+            autocovariance_fct_direction_plot_dict = GU.load_h5_dict(
                                                             data_path_vec[i]*"_autocovariance_fct_direction_complete.h5")
 
             #if desired adjust label and voxel edge length
@@ -816,7 +816,7 @@ function plot_statistical_measures(data_path_vec,
                 for j in range_vec[plot_per_sample_nr]
 
                     #load plot dictionary
-                    spectral_density_direction_plot_dict = load_h5_dict(
+                    spectral_density_direction_plot_dict = GU.load_h5_dict(
                                                 data_path_vec[i]*"_"*naming_vec[j]*"_spectral_density_direction.h5")
 
                     #if desired adjust label
@@ -869,7 +869,7 @@ function plot_statistical_measures(data_path_vec,
         for i in eachindex(data_path_vec)
 
             #load plot dictionary
-            spectral_density_array_dict = load_h5_dict(data_path_vec[i]*"_spectral_density_array.h5")
+            spectral_density_array_dict = GU.load_h5_dict(data_path_vec[i]*"_spectral_density_array.h5")
 
             #if desired adjust label and voxel edge length
             if label_vec  !== nothing

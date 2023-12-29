@@ -51,7 +51,7 @@ Get vector of wavenumbers, for which the structure factor is calculated
 """
 function get_wavenumber_vec(graph_dict;
     sampling_distance_step_length::Real = 0.1,
-    maximal_sampling_distance = graph_dict["supercell_edge_length"]/2)
+    maximal_sampling_distance = graph_dict["supercell_edge_length"])
 
     #determine virtual nr of sampling distances
     #(in reality I don't sample in direct space anywhere)
@@ -76,18 +76,42 @@ Measure structure factor as a function of wavenumber
 averaged over angles according to Barlett's isotropic estimator
 as described in equation 40 of 10.1007/s11222-023-10219-1
 """
-function get_structure_factor_isotrope_by_wavenumber_vec(graph_dict)
+function get_structure_factor_isotrope_by_wavenumber_vec(
+    graph_dict::Dict,
+    sampling_distance_step_length::Real = 0.1,
+    maximal_sampling_distance = graph_dict["supercell_edge_length"],
+    save_result = false,
+    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\sample_name",
+    label = nothing)
 
-    wavenumber_vec = get_wavenumber_vec(graph_dict)
+    #get vector of wavenumbers
+    wavenumber_vec = get_wavenumber_vec(graph_dict; 
+        sampling_distance_step_length = sampling_distance_step_length,
+        maximal_sampling_distance = maximal_sampling_distance)
 
+    #initialize structure factor vector
     structure_factor_vec = Vector{Float64}(undef, length(wavenumber_vec))
 
+    #get vector of structure factor as a function of wavenumber
     for i in eachindex(wavenumber_vec)
         structure_factor_vec[i] = get_structure_factor_isotrope(graph_dict, wavenumber_vec[i])
 
     end
 
-    #to be continued
+    #create dictionary for current plot
+    structure_factor_dict = Dict("wavenumber_vec" => wavenumber_vec,
+                            "structure_factor_vec" => structure_factor_vec,
+                            "sampling_distance_step_length" => 
+                            sampling_distance_step_length,
+                            "maximal_sampling_distance" => maximal_sampling_distance,
+                            "label" => label )
+
+    #save results if desired
+    if save_result
+        GU.save_dict_to_h5(copy(structure_factor_dict);
+                        save_path=save_path*"_structure_factor_isotrope.h5")
+
+    end
 
     return [wavenumber_vec, structure_factor_vec]
 end

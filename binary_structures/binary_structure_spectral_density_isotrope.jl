@@ -195,7 +195,7 @@ function get_autocovariance_fct_isotrope_by_sampling_distance_vec(structure_dict
     #save results if desired
     if save_result
         #save the plot_dict to a H5 file
-        save_dict_to_h5(copy(autocovariance_fct_dict);
+        GU.save_dict_to_h5(copy(autocovariance_fct_dict);
             save_path=save_path*"_autocovariance_fct.h5")
 
     end
@@ -330,7 +330,7 @@ function get_spectral_density_isotrope_by_wavenumber_vec(structure_dict::Dict;
 
     #save results if desired
     if save_result
-        save_dict_to_h5(copy(spectral_density_dict);
+        GU.save_dict_to_h5(copy(spectral_density_dict);
                         save_path=save_path*"_spectral_density.h5")
 
     end

@@ -149,7 +149,7 @@ function get_binary_data_from_nodal_eqn(unit_cell_length::Real=500,
 
     #if desired, save corrected data
     if save_result
-        save_dict_to_h5(structure_dict; save_path)
+        GU.save_dict_to_h5(structure_dict; save_path)
 
     end
 

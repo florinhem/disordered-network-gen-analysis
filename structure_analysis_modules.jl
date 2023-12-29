@@ -1,4 +1,18 @@
 
+"""
+This module contains all functions with general utitilities like
+IO functions
+"""
+module GeneralUtilities
+
+#set path to files
+load_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\code_photonic_structures\general_utilities\\"
+
+#include IO utilities
+include(load_path*"utilities_io.jl")
+
+end
+
 
 """
 This module combines all functions to statistically analyze binary structure data
@@ -6,6 +20,7 @@ This module combines all functions to statistically analyze binary structure dat
 module BinaryDataAnalysis
 
 #import the necessary packages
+import .GeneralUtilities as GU  #for general utitilities like IO functions
 import FileIO   #for file loading and saving
 import Images #for image conversion, in our case from color to grayscale
 import Statistics   #for statistical operations like mean()
@@ -51,6 +66,7 @@ This module combines all functions to generate network structures
 module NetworkGeneration
 
 #import the necessary packages
+import .GeneralUtilities as GU  #for general utitilities like IO functions
 import Graphs   #for simple graphs
 import MetaGraphsNext   #to deal with graphs with labelled vertices and edges
 import Combinatorics    #mainly used to get all possible combinations of bonds
@@ -107,6 +123,7 @@ This module combines all functions to analyze network structures
 module NetworkAnalysis
 
 #import the necessary packages
+import .GeneralUtilities as GU  #for general utitilities like IO functions
 import MetaGraphsNext   #to deal with graphs with labelled vertices and edges
 import LinearAlgebra    #to perform linear algebra calculations like the dot product
 

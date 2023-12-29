@@ -187,7 +187,7 @@ function get_autocovariance_fct_by_sampling_vec_array(structure_dict::Dict;
     #save results if desired
     if save_result
 
-        save_dict_to_h5(copy(autocovariance_fct_dict);
+        GU.save_dict_to_h5(copy(autocovariance_fct_dict);
                         save_path=save_path*"_autocovariance_fct_direction.h5")
 
     end
@@ -243,7 +243,7 @@ function get_complete_autocovariance_fct_by_sampling_vec_array(
 
     #save results if desired
     if save_result
-        save_dict_to_h5(copy(complete_autocovariance_fct_dict);
+        GU.save_dict_to_h5(copy(complete_autocovariance_fct_dict);
                         save_path=save_path*"_autocovariance_fct_direction_complete.h5")
 
     end
@@ -334,7 +334,7 @@ function extrapolate_periodic_data_autocovariance_fct_by_sampling_vec_array(
 
     #save results if desired
     if save_result
-        save_dict_to_h5(copy(extrapolated_autocovariance_fct_dict);
+        GU.save_dict_to_h5(copy(extrapolated_autocovariance_fct_dict);
                         save_path=save_path*"_autocovariance_fct_direction.h5")
 
     end
@@ -476,7 +476,7 @@ function get_spectral_density_along_direction_by_wavenumber_vec(structure_dict::
 
     #save results if desired
     if save_result
-        save_dict_to_h5(copy(spectral_density_dict);
+        GU.save_dict_to_h5(copy(spectral_density_dict);
                         save_path=save_path*"_spectral_density_direction.h5")
 
     end
@@ -612,7 +612,7 @@ function get_spectral_density_by_wavevector_array(
 
     #save results if desired
     if save_result
-        save_dict_to_h5(copy(spectral_density_dict);
+        GU.save_dict_to_h5(copy(spectral_density_dict);
                         save_path=save_path*"_spectral_density_array.h5")
 
     end
@@ -690,7 +690,7 @@ function get_spectral_density_array_by_fft(complete_autocovariance_fct_direction
 
     #save results if desired
     if save_result
-        save_dict_to_h5(copy(spectral_density_dict);
+        GU.save_dict_to_h5(copy(spectral_density_dict);
                         save_path=save_path*"_spectral_density_array.h5")
 
     end

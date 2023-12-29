@@ -546,7 +546,7 @@ function get_local_volume_fract_variance_by_window_vec(structure_dict::Dict;
 
     #save results if desired
     if save_result
-        save_dict_to_h5(copy(local_volume_fract_variance_dict);
+        GU.save_dict_to_h5(copy(local_volume_fract_variance_dict);
                         save_path=save_path*"_volume_fraction_variance.h5")
 
     end
