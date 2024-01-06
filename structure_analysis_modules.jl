@@ -5,6 +5,10 @@ IO functions
 """
 module GeneralUtilities
 
+#import the necessary packages
+import Measurements    #for handling data with uncertainty and error propagation
+import FileIO   #for file loading and saving
+
 #set path to files
 load_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\code_photonic_structures\general_utilities\\"
 

@@ -270,8 +270,9 @@ function get_periodic_network(evolution_dict)
 
     #otherwise just get total energy
     else
+
         #get total energy
-        graph_dict["total_energy"] = evolution_dict["total_energy_fct"](graph_dict)
+        graph_dict["total_energy"] = get_total_energy_keating(graph_dict)
         graph_dict["total_energy_up_to_date"] = true
 
     end

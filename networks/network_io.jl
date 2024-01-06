@@ -2,6 +2,9 @@
 Functions for loading and saving graph data
 """
 
+"""
+Save the coordinates of start and end of all edges in a graph to a CSV file
+"""
 function save_graph_to_csv(graph_dict::Dict,
     filename::String;
     save_path::String 
@@ -30,6 +33,47 @@ function save_graph_to_csv(graph_dict::Dict,
 
     return
 
+end
+
+
+"""
+Save spatial network to an MGformat file and the rest of graph_dict and
+evolution_dict to an h5 file
+"""
+function save_graph_to_h5_and_MGformat(graph_dict::Dict,
+    filename::String;
+    save_path::String 
+        = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\\")
+
+    #save graph to MGformat
+    MetaGraphsNext.savegraph(save_path*filename*".mg", graph_dict["spatial_network"])
+
+    #remove spatial_network from graph_dict
+    delete!(graph_dict, "spatial_network")
+
+    #save graph dict
+    GU.save_dict_to_h5(graph_dict; save_path=save_path*filename*".h5")
+
+    return
+end
+
+
+"""
+Load graph to an MGformat file and its properties to an h5 dictionary
+"""
+function load_graph_from_h5_and_MGformat(dict_path_without_format::String)
+
+    #load spatial network in MGformat
+    spatial_network = MetaGraphsNext.loadgraph(
+            dict_path_without_format*".mg", MetaGraphsNext.MGFormat())
+
+    #load rest of graph dict
+    graph_dict = GU.load_h5_dict(dict_path_without_format*".h5")
+
+    #add spatial network key to graph dict
+    graph_dict["spatial_network"] = spatial_network
+
+    return graph_dict
 end
 
 

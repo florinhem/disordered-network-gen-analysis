@@ -93,8 +93,7 @@ move an vertex and update its energy and the edges to its neighbors
 function move_vertex!(graph_dict::Dict, 
                     vertex_to_move::Int64, 
                     translation_vector::Vector{Float64};
-                    update_total_energy::Bool = false,
-                    total_energy_fct = get_total_energy_keating)
+                    update_total_energy::Bool = false)
 
     #update vertex position by taking periodic boundary conditions into account
     initial_position = graph_dict["spatial_network"][vertex_to_move]["position"]
@@ -119,7 +118,7 @@ function move_vertex!(graph_dict::Dict,
     
     #update total energy if desired
     if update_total_energy
-        graph_dict["total_energy"] = total_energy_fct(graph_dict)
+        graph_dict["total_energy"] = get_total_energy_keating(graph_dict)
         graph_dict["total_energy_up_to_date"] = true
     else
         graph_dict["total_energy_up_to_date"] = false
@@ -134,8 +133,15 @@ Relax a single vertex by moving it to the energy minimum
 while fixing its neighbors' positions
 """
 function relax_single_vertex_keating!(graph_dict::Dict, vertex_to_relax::Int64;
-    optimization_method = Optim.Newton(),
+    optimization_method = "newton", 
     update_total_energy::Bool = false)
+
+    #check if optimization method is Newton
+    optimization_fct = Optim.Newton()
+    if optimization_method != "newton"
+        @error "Inefficient optimization method, specified in evolution dict
+        is not known."
+    end
     
     #get initial position of vertex to relax 
     initial_position = graph_dict["spatial_network"][vertex_to_relax]["position"]
@@ -164,7 +170,7 @@ function relax_single_vertex_keating!(graph_dict::Dict, vertex_to_relax::Int64;
                                 gradient!, 
                                 hessian!,
                                 initial_position, 
-                                optimization_method)
+                                optimization_fct)
 
     #if minimization converged update dictionary
     if Optim.converged(minimizer_result)
@@ -629,10 +635,10 @@ function evolve_network(graph_dict::Dict,
     total_energy_vec::Vector = [],
     move_accepted_vec::Vector = [],
     print_progress::Bool = false,
-    random_evolution_seed = nothing)
+    random_evolution_seed::Int64 = -1)
 
     #set seed for random evolution if desired
-    if random_evolution_seed !== nothing
+    if random_evolution_seed != -1
         Random.seed!(random_evolution_seed)
     end
 
@@ -696,10 +702,10 @@ function evolve_network_temperature_sequence(
     total_energy_vec::Vector = [],
     move_accepted_vec::Vector = [],
     print_progress::Bool = false,
-    random_evolution_seed = nothing)
+    random_evolution_seed::Int64 = -1)
 
     #set seed for random evolution if desired
-    if random_evolution_seed !== nothing
+    if random_evolution_seed != -1
         Random.seed!(random_evolution_seed)
     end
 

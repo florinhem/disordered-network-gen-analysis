@@ -2612,3 +2612,18 @@ actual_total_energy = NG.get_total_energy_keating(graph_dict)
 
 println(string(smart_total_energy))
 println(string(actual_total_energy))
+
+
+structure_factor_dict = NA.get_structure_factor_isotrope_by_wavenumber_vec(
+        graph_dict)
+
+hyperuniformity_parameter = NA.get_effective_hyperuniformity_parameter(structure_factor_dict)
+println("hyperuniformity parameter: "*string(hyperuniformity_parameter))
+
+local_nr_variance_dict = NA.get_local_nr_variance_by_window_radius_vec(graph_dict;
+structure_factor_dict = structure_factor_dict)
+
+Plots.plot(local_nr_variance_dict["window_radius_vec"], 
+local_nr_variance_dict["local_nr_variance_vec"] ./ local_nr_variance_dict["window_radius_vec"].^3)
+
+NG.plot_network(graph_dict)

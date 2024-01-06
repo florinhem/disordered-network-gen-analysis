@@ -216,7 +216,7 @@ load dict from h5 file.
 When loaded, variables of type Measurements.Measurement whcih were decomposed are
 restored again. Also vectors of vectors had to be decomposed for saving and are restored
 """
-function load_h5_dict(dict_path)
+function load_h5_dict(dict_path::String)
 
     #save dict
     loaded_dict = FileIO.load(dict_path)
