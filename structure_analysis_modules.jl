@@ -130,6 +130,8 @@ import Optim    #for optimization such as relaxation of individual vertices
 import LinearAlgebra    #to perform linear algebra calculations like the dot product
 import Statistics   #for statistical operations like mean()
 import Measurements    #for handling data with uncertainty and error propagation
+import Polynomials  #to curve fit polynomials
+import Peaks    #to locate peaks of a function
 
 #set path to files
 load_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\code_photonic_structures\networks\\"

@@ -50,8 +50,8 @@ end
 Get vector of wavenumbers, for which the structure factor is calculated
 """
 function get_wavenumber_vec(graph_dict::Dict;
-    sampling_distance_step_length::Real = 0.1,
-    maximal_sampling_distance::Real = graph_dict["supercell_edge_length"]/2)
+    sampling_distance_step_length::Real = 0.05,
+    maximal_sampling_distance::Real = graph_dict["supercell_edge_length"]/sqrt(3))
 
     #determine virtual nr of sampling distances
     #(in reality I don't sample in direct space anywhere)
@@ -94,7 +94,8 @@ function get_structure_factor_isotrope_by_wavenumber_vec(
 
     #get vector of structure factor as a function of wavenumber
     for i in eachindex(wavenumber_vec)
-        structure_factor_vec[i] = get_structure_factor_isotrope(graph_dict, wavenumber_vec[i])
+        structure_factor_vec[i] = get_structure_factor_isotrope(
+                                            graph_dict, wavenumber_vec[i])
 
     end
 
@@ -113,29 +114,126 @@ function get_structure_factor_isotrope_by_wavenumber_vec(
 
     end
 
-    return [wavenumber_vec, structure_factor_vec]
+    return structure_factor_dict
 end
 
 
 """
-Measure structure factor for a given wavevector by determining
-the so called scattering intensity as described in equation 26 
-of 10.1007/s11222-023-10219-1
+Get local number variance for a spherical window of given radius from the
+structure factor according to eq 58 in 10.1016/j.physrep.2018.03.001
 """
-function get_structure_factor(graph_dict::Dict, wavevector::Vector{Real})
+function get_local_nr_variance(graph_dict::Dict,
+    structure_factor_dict::Dict,
+    window_radius::Real)
 
-    #to be implemented
+    #check if system is 3d
+    if graph_dict["nr_dimensions"] != 3
+        @error "Calculation of number variance is only implemented for 3d systems"
+    end
 
+    #calculate vertex density
+    vertex_density = (graph_dict["nr_vertices"] 
+        / graph_dict["supercell_edge_length"]^graph_dict["nr_dimensions"])
+
+    #calculate wavenumber sampling step length
+    wavenumber_step_length = (structure_factor_dict["wavenumber_vec"][2] 
+                                - structure_factor_dict["wavenumber_vec"][1])
+
+    #calculate local nr variance
+    local_nr_variance = (vertex_density * 32 * pi^2 * window_radius^2
+        * wavenumber_step_length * sum(
+            structure_factor_dict["structure_factor_vec"] 
+            .* sin.( structure_factor_dict["wavenumber_vec"] .* window_radius) .^2
+            ./ structure_factor_dict["wavenumber_vec"].^2
+        )    
+    )
+    
+    return local_nr_variance
 end
 
 
 """
-Measure structure factor as a function of wavenumber
-by determining the so called scattering intensity
-as described in equation 26 of 10.1007/s11222-023-10219-1
+Measure local nr variance as a function of window radius according
+from structure factor
 """
-function get_structure_factor_by_wavevector_array(graph_dict::Dict)
+function get_local_nr_variance_by_window_radius_vec(
+    graph_dict::Dict;
+    structure_factor_dict::Dict = get_structure_factor_isotrope_by_wavenumber_vec(graph_dict),
+    window_radius_step_length::Real = 0.2,
+    maximal_window_radius::Real = graph_dict["supercell_edge_length"]/2,
+    save_result::Bool = false,
+    save_path::String = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\sample_name",
+    label = nothing)
 
-    #to be implemented
+    #get vector of winow radii
+    window_radius_vec = collect(
+        window_radius_step_length:window_radius_step_length:maximal_window_radius)
 
+    #initialize local nr variance vector
+    local_nr_variance_vec = Vector{Float64}(undef, length(window_radius_vec))
+
+    #get local nr variance vector as a window radius
+    for i in eachindex(window_radius_vec)
+        local_nr_variance_vec[i] = get_local_nr_variance(graph_dict,
+        structure_factor_dict,
+        window_radius_vec[i])
+
+    end
+
+    #create dictionary for current plot
+    local_nr_variance_dict = Dict("window_radius_vec" => window_radius_vec,
+                            "local_nr_variance_vec" => local_nr_variance_vec,
+                            "label" => label )
+
+    #save results if desired
+    if save_result
+        GU.save_dict_to_h5(copy(local_nr_variance_dict);
+                        save_path=save_path*"_local_nr_variance.h5")
+
+    end
+
+    return local_nr_variance_dict
 end
+
+
+"""
+Get effective hyperuniformity parameter which is the structure factor
+at zero momentum normalized by the height of the first peak in the structure factor
+as defined in equation 251 in 10.1016/j.physrep.2018.03.001
+"""
+function get_effective_hyperuniformity_parameter(structure_factor_dict::Dict)
+
+    #locate first peak of structure factor
+    pks, vals = Peaks.findmaxima(structure_factor_dict["structure_factor_vec"])
+
+    #cut structure factor data at momentum just above first peak
+    structure_factor_cut_vec = structure_factor_dict["structure_factor_vec"][1:pks[1]+1]
+    wavenumber_cut_vec = structure_factor_dict["wavenumber_vec"][1:pks[1]+1]
+
+    #set the order of the fitted polynomial
+    polynomial_order = 3
+
+    #fit polynomial of given order to cut data
+    polynomial_fit = Polynomials.fit(wavenumber_cut_vec, 
+                                    structure_factor_cut_vec,
+                                    polynomial_order)
+
+    #get extrapolated structure factor at zero momentum
+    structure_factor_zero_momentum = polynomial_fit[0]
+
+    #get the two critical momenta where the fitted structure factor is extremal
+    critical_momenta = (
+    ((-polynomial_fit[2]) 
+        .+ [-1, +1 ] .* (sqrt(polynomial_fit[2]^2-3*polynomial_fit[3]*polynomial_fit[1])) )
+    ./ (3*polynomial_fit[3]) )
+
+    #get fitted structure factor at (first) peak
+    structure_factor_first_peak = maximum( polynomial_fit.(critical_momenta) )
+
+    #get hyperuniformity parameter
+    hyperuniformity_parameter = structure_factor_zero_momentum/structure_factor_first_peak
+
+    return hyperuniformity_parameter
+end
+
+
