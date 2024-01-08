@@ -3,86 +3,50 @@ These functions modify the network graphs,
 e. g. by a bond switch
 """
 
-
-
 """
 This function performs a bond switch on a graph.
-The argument switched_bond is a tuple of two integers
+The argument switched_chain is a tuple of four integers
 which is the edge type of the MetaGraphsNext package
 """
-function switch_bond!(graph_dict::Dict, switched_bond::Tuple{Int64, Int64} )
+function switch_chain!(graph_dict::Dict,
+    switched_chain::Tuple{Int64, Int64, Int64, Int64} )
 
-    #find the other vertex's neighbors that are the closest to the current vertex
-    new_bond_vertex_vec = Vector{Int64}(undef, 2)
-    vector_to_new_bond_vertex_vec = Vector{Vector{Float64}}(undef, 2)
-    distance_to_new_bond_vertex_vec = Vector{Float64}(undef, 2)
-
-    #get vectors of original neighbors
-    original_neighbors_vec_vec = [collect(MetaGraphsNext.neighbor_labels(
-        graph_dict["spatial_network"], switched_bond[1]) ),
-        collect(MetaGraphsNext.neighbor_labels(
-            graph_dict["spatial_network"], switched_bond[2]) )]
-
+    #remove two old bonds and create new ones
     for i in 1:2
 
-        #get the vertex position of bond vertex
-        vertex_position_vec = graph_dict["spatial_network"][switched_bond[i]]["position"]
-
-        #get the other bond vertex's neighbors excluding 
-        #the bond vertex and the bond vertex's neighbors
-        considered_new_bond_vertices_vec = setdiff(original_neighbors_vec_vec[3-i], 
-                                            switched_bond[i], 
-                                            original_neighbors_vec_vec[i])
-
-        #break if there are no possible new bond vertices
-        if considered_new_bond_vertices_vec == []
-            new_bond_vec = []
-            return [graph_dict, new_bond_vec]
-        
-        #otherwise, pick a random new bond vertex
-        else
-            new_bond_vertex_vec[i] = rand(considered_new_bond_vertices_vec)
-        end
-
-        #determine vector to new bond vertex
-        if switched_bond[i] < new_bond_vertex_vec[i]
-            vector_to_new_bond_vertex_vec[i] = get_distance_vector_pbc(
-                    vertex_position_vec,
-                    graph_dict["spatial_network"][new_bond_vertex_vec[i]]["position"],
-                    graph_dict["supercell_edge_length"] )
-        else
-            vector_to_new_bond_vertex_vec[i] = get_distance_vector_pbc(
-                    graph_dict["spatial_network"][new_bond_vertex_vec[i]]["position"],
-                    vertex_position_vec,
-                    graph_dict["supercell_edge_length"] )
-        end
-
-        #determine length of vector to new bond vertex
-        distance_to_new_bond_vertex_vec[i] = LinearAlgebra.norm(vector_to_new_bond_vertex_vec[i])
-
-    end
-
-    #create vector to save new bonds
-    new_bond_vec = Vector{Tuple{Int64, Int64}}(undef, 2)
-
-    #for each bond vertex, break bond to one neighbor and reconnect to
-    #random neighbor of the other vertex
-    for i in 1:2
-
+        #remove old bond
         MetaGraphsNext.rem_edge!(graph_dict["spatial_network"],
-            switched_bond[i], new_bond_vertex_vec[3-i])
+            switched_chain[2*i-1], switched_chain[2*i])
 
-        new_bond_vec[i] = (switched_bond[i], new_bond_vertex_vec[i])
+        #initialize vector along new bond
+        vector_along_new_bond = Vector{Float64}(undef, graph_dict["nr_dimensions"])
 
-        graph_dict["spatial_network"][new_bond_vec[i]...] = Dict(
-            "vector" => vector_to_new_bond_vertex_vec[i], 
-            "distance_squared" => distance_to_new_bond_vertex_vec[i]^2 )
+        #determine vector along new bond
+        if switched_chain[i] < switched_chain[2+i]
+            vector_along_new_bond = get_distance_vector_pbc(
+                    graph_dict["spatial_network"][switched_chain[i]]["position"],
+                    graph_dict["spatial_network"][switched_chain[2+i]]["position"],
+                    graph_dict["supercell_edge_length"] )
+        else
+            vector_along_new_bond = get_distance_vector_pbc(
+                    graph_dict["spatial_network"][switched_chain[2+i]]["position"],
+                    graph_dict["spatial_network"][switched_chain[i]]["position"],
+                    graph_dict["supercell_edge_length"] )
+        end
+
+        #determine length of vector along new bond
+        distance_along_new_bond = LinearAlgebra.norm(vector_along_new_bond)
+
+        #create new bond
+        graph_dict["spatial_network"][switched_chain[i], switched_chain[2+i]] = Dict(
+            "vector" => vector_along_new_bond, 
+            "distance_squared" => distance_along_new_bond^2 )
     end
 
     #note, that total energy is not up to date any more
     graph_dict["total_energy_up_to_date"] = false
 
-    return [graph_dict, new_bond_vec]
+    return graph_dict
 
 end
 
@@ -519,7 +483,7 @@ with Metropolis acceptance probability
 function monte_carlo_move!(graph_dict::Dict, 
     evolution_dict::Dict,
     temperature::Real; 
-    switched_bond::Tuple{Int64, Int64} = get_random_bond(graph_dict),
+    switched_chain::Tuple{Int64, Int64, Int64, Int64} = get_random_chain(graph_dict),
     print_progress::Bool = false)
 
     #save original graph dict 
@@ -528,7 +492,7 @@ function monte_carlo_move!(graph_dict::Dict,
     #get initial cluster before bond switch
     initial_cluster_dict = get_cluster_in_shells_dict(
                                     graph_dict, 
-                                    switched_bond; 
+                                    switched_chain; 
                                     shell_nr = evolution_dict["shell_nr"])
 
     #make sure that total energy is up to date
@@ -563,22 +527,16 @@ function monte_carlo_move!(graph_dict::Dict,
                                                             temperature)
     end
 
-    #switch bond
-    graph_dict, new_bond_vec = switch_bond!(graph_dict, switched_bond )
-
-    #return immediately if bond switch was not possible
-    if new_bond_vec == []
-        move_accepted = false
-        return [graph_dict, move_accepted, new_bond_vec]
-    end
+    #switch bonds
+    graph_dict = switch_chain!(graph_dict, switched_chain)
 
     #get cluster after bond switch
     cluster_dict = get_cluster_in_shells_dict(
                                     graph_dict, 
-                                    switched_bond; 
+                                    switched_chain; 
                                     shell_nr = evolution_dict["shell_nr"])
 
-    #relax cluster around switched bond and only update energy when there won't be
+    #relax cluster around switched chain and only update energy when there won't be
     #thermal fluctuations included afterward
     graph_dict, cluster_dict = relax_cluster_keating!(graph_dict,
         cluster_dict,
@@ -617,24 +575,25 @@ function monte_carlo_move!(graph_dict::Dict,
         move_accepted = true
     else
         graph_dict = initial_graph_dict
-        new_bond_vec = []
     end
 
-    return [graph_dict, move_accepted, new_bond_vec]
+    return [graph_dict, move_accepted]
 end
 
 
 """
 Evolve the network with a given number of attempted Monte Carlo moves
 """
-function evolve_network(graph_dict::Dict,
+function evolve_network!(graph_dict::Dict,
     evolution_dict::Dict,
     nr_attempted_bond_switches::Int64, 
     temperature::Real;
-    declined_bonds::Vector = [],
+    declined_chains::Vector = [],
+    remaining_chains::Vector = [],
     total_energy_vec::Vector = [],
     move_accepted_vec::Vector = [],
     print_progress::Bool = false,
+    print_every_nr_attempted_bond_switches::Int64 = 1,
     random_evolution_seed::Int64 = -1)
 
     #set seed for random evolution if desired
@@ -642,43 +601,97 @@ function evolve_network(graph_dict::Dict,
         Random.seed!(random_evolution_seed)
     end
 
+    #determine nr of chains of four vertices
+    nr_chains = Int(graph_dict["nr_vertices"] 
+        * graph_dict["coordination_nr"] 
+        * (graph_dict["coordination_nr"]-1) 
+        * (graph_dict["coordination_nr"]-1) /2 ) 
+
     #attempt given number of bond switches
     for i in 1:nr_attempted_bond_switches
 
-        #get random bond that hasn't been declined since the last
-        #accepted switch
-        switched_bond = get_random_bond(graph_dict; 
-                                        declined_bonds = declined_bonds)
+        #get remaining chains if list of declined chains is long and
+        #remaining have not been determined yet
+        if (length(declined_chains) > 0.8*nr_chains && remaining_chains == [])
 
-        if print_progress
-            println("Attempt bond "*string(switched_bond))
+            remaining_chains = get_remaining_chains(graph_dict,
+            declined_chains)
+
+            #break if network is quenched 
+            #(all chains have been attempted without success)
+            if remaining_chains == []
+                println("Network quenched after "*string(i)*"th attempt.")
+                break
+            end
+        end
+
+        #get random chain that hasn't been declined since the last
+        #accepted switch
+        switched_chain = get_random_chain(graph_dict; 
+                                        declined_chains = declined_chains,
+                                        remaining_chains = remaining_chains)
+
+        #print attempted chain if desired
+        if print_progress && (print_every_nr_attempted_bond_switches == 1)
+            println("Attempt chain "*string(switched_chain))
         end
 
         #attempt Monte Carlo move
-        graph_dict, move_accepted, new_bond_vec = monte_carlo_move!(
+        graph_dict, move_accepted = monte_carlo_move!(
         graph_dict, 
         evolution_dict,
         temperature; 
-        switched_bond = switched_bond,
-        print_progress = print_progress)
+        switched_chain = switched_chain,
+        print_progress = false)
 
-        #update declined bond vec
+        #update declined and remaining chains vectors
         if move_accepted
             push!(move_accepted_vec, true)
-            declined_bonds = []
+            declined_chains = []
+            remaining_chains = []
 
+            #print progress if desired
             if print_progress
-                println("Bond "*string(switched_bond)*" accepted. Energy: "
-                *string(graph_dict["total_energy"]))
+                if print_every_nr_attempted_bond_switches == 1
+                    println("Chain "*string(switched_chain)*" accepted. Energy: "
+                        *string(graph_dict["total_energy"]))
+
+                elseif i%print_every_nr_attempted_bond_switches == 0
+                    println("Attempted bond switch nr "
+                        *string(i)*" at T="*string(temperature)*" accepted.")
+
+                end
             end
 
         else
             push!(move_accepted_vec, false)
-            push!(declined_bonds, switched_bond)
+            push!(declined_chains, switched_chain)
+            println("length declined chains: "*string(length(declined_chains)))
 
+            #print progress if desired
             if print_progress
-                println("Bond "*string(switched_bond)*" declined.")
+                if print_every_nr_attempted_bond_switches == 1
+                    println("Chain "*string(switched_chain)*" declined.")
+
+                elseif i%print_every_nr_attempted_bond_switches == 0
+                    println("Attempted bond switch nr "
+                        *string(i)*" at T="*string(temperature)*" declined.")
+                    
+                end
             end
+
+            #break if network is quenched 
+            #(all chains have been attempted without success)
+            if length(remaining_chains) == 1
+                println("Network quenched after "*string(i)*"th attempt.")
+                break
+
+            #otherwise update remaining chains
+            else
+                deleteat!(remaining_chains, findall(x->x==switched_chain,remaining_chains))
+                println("length remaining chains: "*string(length(remaining_chains)))
+            end
+            
         end
 
         #update total energy
@@ -686,7 +699,7 @@ function evolve_network(graph_dict::Dict,
 
     end
 
-    return [graph_dict, total_energy_vec, move_accepted_vec]
+    return [graph_dict, total_energy_vec, move_accepted_vec, declined_chains, remaining_chains]
 
 end
 
@@ -696,12 +709,13 @@ Evolve network according to a given order of temperatures
 and nr of Monte Carlo steps (which I define as nr_bonds
 attempted Monte Carlo moves) per temperature
 """
-function evolve_network_temperature_sequence(
+function evolve_network_temperature_sequence!(
     graph_dict::Dict,
     evolution_dict::Dict;
     total_energy_vec::Vector = [],
     move_accepted_vec::Vector = [],
     print_progress::Bool = false,
+    print_every_nr_attempted_bond_switches::Int64 = 100,
     random_evolution_seed::Int64 = -1)
 
     #set seed for random evolution if desired
@@ -709,20 +723,24 @@ function evolve_network_temperature_sequence(
         Random.seed!(random_evolution_seed)
     end
 
-    #calculate total nr of bonds
-    nr_bonds = Int(graph_dict["nr_vertices"]
-                *graph_dict["nr_dimensions"]/2)
+    #determine nr of chains of four vertices
+    nr_chains = Int(graph_dict["nr_vertices"] 
+        * graph_dict["coordination_nr"] 
+        * (graph_dict["coordination_nr"]-1) 
+        * (graph_dict["coordination_nr"]-1) /2 ) 
 
     #evolve network according to given temperature sequence 
     for i in eachindex(evolution_dict["temperature_vec"])
 
-        nr_attempted_bond_switches = (nr_bonds
+        nr_attempted_bond_switches = (nr_chains
         * evolution_dict["nr_monte_carlo_steps_per_temperature_vec"][i])
 
-        graph_dict, total_energy_vec_new, move_accepted_vec_new = evolve_network(graph_dict,
+        graph_dict, total_energy_vec_new, move_accepted_vec_new = evolve_network!(graph_dict,
         evolution_dict,
         nr_attempted_bond_switches, 
-        evolution_dict["temperature_vec"][i])
+        evolution_dict["temperature_vec"][i];
+        print_progress = print_progress,
+        print_every_nr_attempted_bond_switches = print_every_nr_attempted_bond_switches)
 
         #concatenate new vectors to previous ones 
         total_energy_vec = vcat(total_energy_vec, total_energy_vec_new)
@@ -730,7 +748,7 @@ function evolve_network_temperature_sequence(
 
         #print progress if desired
         if print_progress
-            println("temperature "
+            println("T="
                 *string(evolution_dict["temperature_vec"][i])*" done")
         end
     end

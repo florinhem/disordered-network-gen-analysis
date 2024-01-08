@@ -2627,3 +2627,23 @@ Plots.plot(local_nr_variance_dict["window_radius_vec"],
 local_nr_variance_dict["local_nr_variance_vec"] ./ local_nr_variance_dict["window_radius_vec"].^3)
 
 NG.plot_network(graph_dict)
+
+
+graph_dict, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_sequence(graph_dict,
+        evolution_dict;
+        print_progress = true,
+        print_every_nr_attempted_bond_switches = 50)
+
+evolution_dict["temperature_vec"] = [0]
+evolution_dict["nr_monte_carlo_steps_per_temperature_vec"] = [30]
+
+graph_dict, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_sequence(graph_dict,
+        evolution_dict;
+        move_accepted_vec = move_accepted_vec,
+        total_energy_vec = total_energy_vec,
+        print_progress = true,
+        print_every_nr_attempted_bond_switches = 50)
+
+Plots.plot(collect(1:length(total_energy_vec)), total_energy_vec)
+
+NG.save_graph_to_h5_and_MGformat(deepcopy(graph_dict), "example")

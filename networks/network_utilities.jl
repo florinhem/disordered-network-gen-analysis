@@ -281,52 +281,105 @@ end
 
 
 """
-Pick a random bond that has not been declined since the last accepted move
+Get all remaining 4-vertex-chains that have not been declined yet
+and where the first index label is lower than
+the last index label in order to not count chains twice
 """
-function get_random_bond(graph_dict::Dict; declined_bonds = [], seed = Nothing)
+function get_remaining_chains(graph_dict::Dict,
+        declined_chains::Vector)
 
-    #set seed if desired
-    if seed !== Nothing
-        Random.seed!(seed)
-    end
+    #initialize vector of remaining chains
+    remaining_chains = []
 
-    #determine nr of bonds
-    nr_bonds = graph_dict["nr_vertices"] * graph_dict["coordination_nr"] / 2 
+    #loop through all possible chains
+    for first_vertex in 1:graph_dict["nr_vertices"]
 
-    #check if all bonds have been attempted already
-    if length(declined_bonds) == nr_bonds
-            @warn "All bonds have been attempted without success"
-        random_bond = []
+        for second_vertex in setdiff(
+            MetaGraphsNext.neighbor_labels(
+            graph_dict["spatial_network"], first_vertex), 
+            first_vertex)
 
-    #if the list of declined bonds is already very long
-    #pick one of the remaining ones
-    elseif length(declined_bonds) > nr_bonds/2
-        all_bonds_vec = collect(
-                MetaGraphsNext.edge_labels(graph_dict["spatial_network"]))
+            for third_vertex in setdiff(
+                MetaGraphsNext.neighbor_labels(
+                graph_dict["spatial_network"], second_vertex), 
+                first_vertex, second_vertex)
 
-        random_bond = rand(all_bonds_vec)
+                for fourth_vertex in setdiff(
+                    MetaGraphsNext.neighbor_labels(
+                    graph_dict["spatial_network"], third_vertex), 
+                    first_vertex, second_vertex, third_vertex)
 
-    #otherwise get random bond without listing all bonds
-    else
+                    #creat current chain
+                    current_chain = (
+                        first_vertex, second_vertex, third_vertex, fourth_vertex)
 
-        #pick a random vertex
-        vertex_1 = rand(1:graph_dict["nr_vertices"])
+                    #save current chain to remaining chains if it has not been
+                    #declined yet
+                    if (fourth_vertex > first_vertex 
+                        && !(current_chain in declined_chains))
 
-        #pick a random neighbor
-        vertex_2 = collect(MetaGraphsNext.neighbor_labels(
-                            graph_dict["spatial_network"], vertex_1)
-                            )[rand(1:graph_dict["coordination_nr"])]
-
-        #create bond
-        random_bond = Tuple(sort([vertex_1, vertex_2]))
-
-        #find new bond if current one was already declined
-        if random_bond in declined_bonds
-            random_bond = get_random_bond(graph_dict; declined_bonds = declined_bonds)
+                        push!(remaining_chains, current_chain)
+                    end
+                end
+            end
         end
     end
 
-    return random_bond
+    return remaining_chains
+    
+end
+
+
+
+"""
+Pick a random chain of four vertices that has not been declined since
+the last accepted move and where the first index label is lower than
+the last index label in order to not count chains twice
+"""
+function get_random_chain(graph_dict::Dict; 
+        declined_chains::Vector = [], 
+        remaining_chains::Vector = [], seed = nothing)
+
+    #set seed if desired
+    if seed !== nothing
+        Random.seed!(seed)
+    end
+
+    #if a vector of remaining chains is passed, pick one of those
+    if remaining_chains != []
+        random_chain = rand(remaining_chains)
+
+    #otherwise get random chain without listing all bonds
+    else
+
+        #pick a random vertex 1
+        random_chain = [rand(1:graph_dict["nr_vertices"])]
+
+        #pick 3 further vertices that sit along a chain
+        for i in 1:3
+            push!(random_chain, 
+                rand(setdiff(
+                MetaGraphsNext.neighbor_labels(
+                graph_dict["spatial_network"], random_chain[end]), 
+                random_chain)) )
+
+        end
+
+        #sort chain such that first index label is lower than last one
+        if random_chain[1] > random_chain[end]
+            random_chain = reverse(random_chain)
+        end
+
+        #create bond
+        random_chain = Tuple(random_chain)
+
+        #find new bond if current one was already declined
+        if random_chain in declined_chains
+            random_chain = get_random_chain(graph_dict; declined_chains = declined_chains)
+        end
+    end
+
+    return random_chain
 end
 
 

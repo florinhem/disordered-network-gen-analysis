@@ -1227,3 +1227,136 @@ function relax_cluster_keating!(graph_dict::Dict,
         return graph_dict
     end
 end
+
+
+"""
+Pick a random bond that has not been declined since the last accepted move
+"""
+function get_random_bond(graph_dict::Dict; declined_bonds = [], seed = Nothing)
+
+    #set seed if desired
+    if seed !== Nothing
+        Random.seed!(seed)
+    end
+
+    #determine nr of bonds
+    nr_bonds = graph_dict["nr_vertices"] * graph_dict["coordination_nr"] / 2 
+
+    #check if all bonds have been attempted already
+    if length(declined_bonds) == nr_bonds
+            @warn "All bonds have been attempted without success"
+        random_bond = []
+
+    #if the list of declined bonds is already very long
+    #pick one of the remaining ones
+    elseif length(declined_bonds) > nr_bonds/2
+        all_bonds_vec = collect(
+                MetaGraphsNext.edge_labels(graph_dict["spatial_network"]))
+
+        random_bond = rand(all_bonds_vec)
+
+    #otherwise get random bond without listing all bonds
+    else
+
+        #pick a random vertex
+        vertex_1 = rand(1:graph_dict["nr_vertices"])
+
+        #pick a random neighbor
+        vertex_2 = collect(MetaGraphsNext.neighbor_labels(
+                            graph_dict["spatial_network"], vertex_1)
+                            )[rand(1:graph_dict["coordination_nr"])]
+
+        #create bond
+        random_bond = Tuple(sort([vertex_1, vertex_2]))
+
+        #find new bond if current one was already declined
+        if random_bond in declined_bonds
+            random_bond = get_random_bond(graph_dict; declined_bonds = declined_bonds)
+        end
+    end
+
+    return random_bond
+end
+
+
+"""
+This function performs a bond switch on a graph.
+The argument switched_bond is a tuple of two integers
+which is the edge type of the MetaGraphsNext package
+"""
+function switch_bond!(graph_dict::Dict,
+    switched_bond::Tuple{Int64, Int64} )
+
+    #find the other vertex's neighbors that are the closest to the current vertex
+    new_bond_vertex_vec = Vector{Int64}(undef, 2)
+    vector_to_new_bond_vertex_vec = Vector{Vector{Float64}}(undef, 2)
+    distance_to_new_bond_vertex_vec = Vector{Float64}(undef, 2)
+
+    #get vectors of original neighbors
+    original_neighbors_vec_vec = [collect(MetaGraphsNext.neighbor_labels(
+        graph_dict["spatial_network"], switched_bond[1]) ),
+        collect(MetaGraphsNext.neighbor_labels(
+            graph_dict["spatial_network"], switched_bond[2]) )]
+
+    for i in 1:2
+
+        #get the vertex position of bond vertex
+        vertex_position_vec = graph_dict["spatial_network"][switched_bond[i]]["position"]
+
+        #get the other bond vertex's neighbors excluding 
+        #the bond vertex and the bond vertex's neighbors
+        considered_new_bond_vertices_vec = setdiff(original_neighbors_vec_vec[3-i], 
+                                            switched_bond[i], 
+                                            original_neighbors_vec_vec[i])
+
+        #break if there are no possible new bond vertices
+        if considered_new_bond_vertices_vec == []
+            new_bond_vec = []
+            return [graph_dict, new_bond_vec]
+        
+        #otherwise, pick a random new bond vertex
+        else
+            new_bond_vertex_vec[i] = rand(considered_new_bond_vertices_vec)
+        end
+
+        #determine vector to new bond vertex
+        if switched_bond[i] < new_bond_vertex_vec[i]
+            vector_to_new_bond_vertex_vec[i] = get_distance_vector_pbc(
+                    vertex_position_vec,
+                    graph_dict["spatial_network"][new_bond_vertex_vec[i]]["position"],
+                    graph_dict["supercell_edge_length"] )
+        else
+            vector_to_new_bond_vertex_vec[i] = get_distance_vector_pbc(
+                    graph_dict["spatial_network"][new_bond_vertex_vec[i]]["position"],
+                    vertex_position_vec,
+                    graph_dict["supercell_edge_length"] )
+        end
+
+        #determine length of vector to new bond vertex
+        distance_to_new_bond_vertex_vec[i] = LinearAlgebra.norm(vector_to_new_bond_vertex_vec[i])
+
+    end
+
+    #create vector to save new bonds
+    new_bond_vec = Vector{Tuple{Int64, Int64}}(undef, 2)
+
+    #for each bond vertex, break bond to one neighbor and reconnect to
+    #random neighbor of the other vertex
+    for i in 1:2
+
+        MetaGraphsNext.rem_edge!(graph_dict["spatial_network"],
+            switched_bond[i], new_bond_vertex_vec[3-i])
+
+        new_bond_vec[i] = (switched_bond[i], new_bond_vertex_vec[i])
+
+        graph_dict["spatial_network"][new_bond_vec[i]...] = Dict(
+            "vector" => vector_to_new_bond_vertex_vec[i], 
+            "distance_squared" => distance_to_new_bond_vertex_vec[i]^2 )
+    end
+
+    #note, that total energy is not up to date any more
+    graph_dict["total_energy_up_to_date"] = false
+
+    return [graph_dict, new_bond_vec]
+
+end
