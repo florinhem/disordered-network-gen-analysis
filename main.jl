@@ -8,8 +8,8 @@ import .NetworkAnalysis as NA
 import Plots
 import Measurements
 
-evolution_dict = NA.get_evolution_dict(;nr_vertices = 512 ,temperature_vec = [0.2,0],
-nr_monte_carlo_steps_per_temperature_vec = [2,20])
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 1000 ,temperature_vec = [1,0],
+nr_monte_carlo_steps_per_temperature_vec = [1,30])
 
 graph_dict = NG.get_periodic_network(evolution_dict)
 

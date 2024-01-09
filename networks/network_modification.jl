@@ -62,7 +62,9 @@ function move_vertex!(graph_dict::Dict,
     #update vertex position by taking periodic boundary conditions into account
     initial_position = graph_dict["spatial_network"][vertex_to_move]["position"]
     graph_dict["spatial_network"][vertex_to_move]["position"] = (
-                                                    initial_position .+ translation_vector
+                                                    initial_position
+                                                    .+ translation_vector
+                                                    .+ graph_dict["supercell_edge_length"]
                                                             ).%graph_dict["supercell_edge_length"]
 
     #update outgoing edges                                                    
@@ -666,7 +668,6 @@ function evolve_network!(graph_dict::Dict,
         else
             push!(move_accepted_vec, false)
             push!(declined_chains, switched_chain)
-            println("length declined chains: "*string(length(declined_chains)))
 
             #print progress if desired
             if print_progress
@@ -689,7 +690,6 @@ function evolve_network!(graph_dict::Dict,
             #otherwise update remaining chains
             else
                 deleteat!(remaining_chains, findall(x->x==switched_chain,remaining_chains))
-                println("length remaining chains: "*string(length(remaining_chains)))
             end
             
         end

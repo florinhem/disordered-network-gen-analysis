@@ -314,9 +314,13 @@ function get_remaining_chains(graph_dict::Dict,
                         first_vertex, second_vertex, third_vertex, fourth_vertex)
 
                     #save current chain to remaining chains if it has not been
-                    #declined yet
+                    #declined yet and if neither 1-3 nor 2-4 are already connected
                     if (fourth_vertex > first_vertex 
-                        && !(current_chain in declined_chains))
+                        && !(current_chain in declined_chains)
+                        && !(current_chain[1] in collect(MetaGraphsNext.neighbor_labels(
+                        graph_dict["spatial_network"], current_chain[3])))
+                        && !(current_chain[2] in collect(MetaGraphsNext.neighbor_labels(
+                            graph_dict["spatial_network"], current_chain[4]))))
 
                         push!(remaining_chains, current_chain)
                     end
@@ -370,13 +374,22 @@ function get_random_chain(graph_dict::Dict;
             random_chain = reverse(random_chain)
         end
 
-        #create bond
+        #create tuple
         random_chain = Tuple(random_chain)
 
-        #find new bond if current one was already declined
-        if random_chain in declined_chains
+        #check that new chain has not already been declined and
+        #also that neither 1 and 3 nor 2 and 4 are already connected 
+        if (random_chain in declined_chains
+            || random_chain[1] in collect(MetaGraphsNext.neighbor_labels(
+            graph_dict["spatial_network"], random_chain[3]))
+            || random_chain[2] in collect(MetaGraphsNext.neighbor_labels(
+                graph_dict["spatial_network"], random_chain[4]))
+            )
             random_chain = get_random_chain(graph_dict; declined_chains = declined_chains)
+        else
+            random_chain =  random_chain
         end
+
     end
 
     return random_chain
