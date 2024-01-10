@@ -592,8 +592,8 @@ function evolve_network!(graph_dict::Dict,
     temperature::Real;
     declined_chains::Vector = [],
     remaining_chains::Vector = [],
-    total_energy_vec::Vector = [],
-    move_accepted_vec::Vector = [],
+    total_energy_vec::Vector{Float64} = [],
+    move_accepted_vec::Vector{Bool} = [],
     print_progress::Bool = false,
     print_every_nr_attempted_bond_switches::Int64 = 1,
     random_evolution_seed::Int64 = -1)
@@ -712,8 +712,8 @@ attempted Monte Carlo moves) per temperature
 function evolve_network_temperature_sequence!(
     graph_dict::Dict,
     evolution_dict::Dict;
-    total_energy_vec::Vector = [],
-    move_accepted_vec::Vector = [],
+    total_energy_vec::Vector{Float64} = [],
+    move_accepted_vec::Vector{Bool} = [],
     print_progress::Bool = false,
     print_every_nr_attempted_bond_switches::Int64 = 100,
     random_evolution_seed::Int64 = -1)

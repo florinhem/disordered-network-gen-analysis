@@ -42,17 +42,27 @@ evolution_dict to an h5 file
 """
 function save_graph_to_h5_and_MGformat(graph_dict::Dict,
     filename::String;
+    evolution_dict = nothing,
     save_path::String 
         = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\\")
 
+    #save evolution dict if passed
+    if evolution_dict !== nothing
+        GU.save_dict_to_h5(evolution_dict;
+            save_path=path*filename*"_evolution.h5")
+    end
+
+    #create copy of graph_dict to not change the original file
+    graph_dict_to_save = deepcopy(graph_dict)
+
     #save graph to MGformat
-    MetaGraphsNext.savegraph(save_path*filename*".mg", graph_dict["spatial_network"])
+    MetaGraphsNext.savegraph(save_path*filename*".mg", graph_dict_to_save["spatial_network"])
 
     #remove spatial_network from graph_dict
-    delete!(graph_dict, "spatial_network")
+    delete!(graph_dict_to_save, "spatial_network")
 
     #save graph dict
-    GU.save_dict_to_h5(graph_dict; save_path=save_path*filename*".h5")
+    GU.save_dict_to_h5(graph_dict_to_save; save_path=save_path*filename*".h5")
 
     return
 end
@@ -82,7 +92,7 @@ Get mesh from network
 """
 function save_mesh_from_network(graph_dict::Dict, filename::String;
     bond_radius::Real = 0.05,
-    path::String = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\\")
+    save_path::String = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\\")
 
     #loop through bonds
     for bond in MetaGraphsNext.edge_labels(graph_dict["spatial_network"])
@@ -102,7 +112,7 @@ function save_mesh_from_network(graph_dict::Dict, filename::String;
         current_cylinder_mesh = GeometryBasics.mesh(current_cylinder)
 
         #save mesh
-        total_path = path*filename*"\\"*string(bond[1])*"_"*string(bond[2])*".obj"
+        total_path = save_path*filename*"\\"*string(bond[1])*"_"*string(bond[2])*".obj"
 
         FileIO.save(total_path, current_cylinder_mesh)
 

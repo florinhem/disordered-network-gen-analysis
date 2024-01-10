@@ -86,11 +86,36 @@ end
 
 
 """
+convert all booleans and vectors of booleans to ints
+"""
+function bool_to_int_in_dict(dict)
+
+    #loop through each key of the dict
+    for (key, value) in dict
+
+        #check if value is a bool or vector of bools
+        if typeof(value) == [Bool, Vector{Bool}]
+
+            #save vector to dict
+            dict[key*"_bool"] = Int.(value)
+
+            #delete vector of vectors
+            delete!(dict, key)
+
+        end
+    end
+
+    return dict
+
+end
+
+
+"""
 save dict to H5 file.
 The dicts can not be stored right away, because they contain some variables of type
 Measurements.Measurement. These need to be decomposed into value and uncertainty first.
-Also vectors of vectors need to be decomposed and the vectors have to be stored individually
-and tuples need to be converted into vectors
+Also vectors of vectors need to be decomposed and the vectors have to be stored individually,
+tuples need to be converted into vectors and booleans need to be converted to ints (0 and 1)
 """
 function save_dict_to_h5(dict::Dict;
                         save_path::String)
@@ -102,12 +127,39 @@ function save_dict_to_h5(dict::Dict;
     decomposed_vec_vec_dict = decompose_vec_vecs_in_dict(decomposed_measurements_dict)
 
     #turn tuples into vectors
-    saving_dict = tuples_to_vectors_in_dict(decomposed_vec_vec_dict)
+    tuples_to_vectors_dict = tuples_to_vectors_in_dict(decomposed_vec_vec_dict)
+
+    #convert bool to int 
+    saving_dict = bool_to_int_in_dict(tuples_to_vectors_dict)
 
     #save dict
     FileIO.save(save_path, saving_dict)
 
     return
+
+end
+
+
+"""
+restore all booleans from ints in dictionary
+"""
+function restore_bool_from_int_in_dict(dict)
+
+    #loop through each key of the dict
+    for (key, value) in dict
+
+        #if key ends on "_tuple", then convert it to a vector
+        if endswith(key, "_bool")
+
+            #get core key
+            dict[key[1:end-5]] = Bool.(value )
+            
+            delete!(dict, key)
+
+        end
+    end
+
+    return dict
 
 end
 
@@ -221,8 +273,11 @@ function load_h5_dict(dict_path::String)
     #save dict
     loaded_dict = FileIO.load(dict_path)
 
+    #restore booleans from integers
+    bool_restored_dict = restore_bool_from_int_in_dict(loaded_dict)
+
     #restore vectors of type Measurements.Measurement
-    measurements_restored_dict = restore_measurement_types(loaded_dict)
+    measurements_restored_dict = restore_measurement_types(bool_restored_dict)
 
     #restore vectors of vectors
     vec_vecs_restored_dict = restore_vec_vecs_in_dict(measurements_restored_dict)
