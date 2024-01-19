@@ -49,7 +49,7 @@ function save_graph_to_h5_and_MGformat(graph_dict::Dict,
     #save evolution dict if passed
     if evolution_dict !== nothing
         GU.save_dict_to_h5(evolution_dict;
-            save_path=path*filename*"_evolution.h5")
+            save_path=save_path*filename*"_evolution.h5")
     end
 
     #create copy of graph_dict to not change the original file
@@ -94,13 +94,20 @@ function save_mesh_from_network(graph_dict::Dict, filename::String;
     bond_radius::Real = 0.05,
     save_path::String = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\\")
 
+    #create graph dict to plot
+    plot_dict = deepcopy(graph_dict)
+    
+    #cut all bonds that reach out of supercell and replace
+    #them by half way bonds
+    plot_dict = cut_bonds_out_of_supercell!(plot_dict)
+
     #loop through bonds
-    for bond in MetaGraphsNext.edge_labels(graph_dict["spatial_network"])
+    for bond in MetaGraphsNext.edge_labels(plot_dict["spatial_network"])
 
         #get bond's start and target positions and its direction vector
-        start_pos = graph_dict["spatial_network"][bond[1]]["position"]
-        target_pos = graph_dict["spatial_network"][bond[2]]["position"]
-        #direction_vec = graph_dict["spatial_network"][bond...]["vector"]
+        start_pos = plot_dict["spatial_network"][bond[1]]["position"]
+        target_pos = plot_dict["spatial_network"][bond[2]]["position"]
+        #direction_vec = plot_dict["spatial_network"][bond...]["vector"]
 
         #create cylinder object
         current_cylinder = GeometryBasics.Cylinder(

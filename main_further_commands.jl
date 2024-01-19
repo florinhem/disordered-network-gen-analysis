@@ -2647,3 +2647,46 @@ graph_dict, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_
 Plots.plot(collect(1:length(total_energy_vec)), total_energy_vec)
 
 NG.save_graph_to_h5_and_MGformat(deepcopy(graph_dict), "example")
+
+
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 64 ,temperature_vec = [0.1],
+nr_monte_carlo_steps_per_temperature_vec = [1])
+
+graph_dict = NG.get_periodic_network(evolution_dict)
+
+graph_dict, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_sequence!(graph_dict,
+        evolution_dict; 
+    print_progress = true,
+    print_every_nr_attempted_bond_switches = 20)
+
+Plots.plot(collect(1:length(total_energy_vec)), total_energy_vec)
+
+evolution_dict["total_energy_vec"] = total_energy_vec
+evolution_dict["move_accepted_vec"] = move_accepted_vec
+
+NG.plot_network(graph_dict)
+
+filename = "64_vertices_T_0.1"
+
+save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\\"
+
+NG.save_mesh_from_network(graph_dict_to_save, filename; save_path = save_path)
+
+NG.save_graph_to_h5_and_MGformat(graph_dict_to_save,
+    filename;
+    evolution_dict = evolution_dict,
+    save_path 
+        = save_path)
+        
+
+
+network_names = ["64_vertices_T_0.1", "1000_vertices_T_1_quenched", "1000_vertices_T_2_quenched", "1000_vertices_T_4_quenched"]
+
+save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\\"
+
+for name in network_names
+    graph_dict_to_save = NG.load_graph_from_h5_and_MGformat(save_path*name)
+
+    NG.save_mesh_from_network(graph_dict_to_save, name; save_path = save_path)
+
+end
