@@ -2690,3 +2690,35 @@ for name in network_names
     NG.save_mesh_from_network(graph_dict_to_save, name; save_path = save_path)
 
 end
+
+
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 1000 ,temperature_vec = [0.25, 0],
+nr_monte_carlo_steps_per_temperature_vec = [3, 50])
+
+graph_dict = NG.get_periodic_network(evolution_dict)
+
+graph_dict, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_sequence!(graph_dict,
+        evolution_dict; 
+        move_accepted_vec=move_accepted_vec,
+        total_energy_vec=total_energy_vec,
+    print_progress = true,
+    print_every_nr_attempted_bond_switches = 500)
+
+Plots.plot(collect(1:length(total_energy_vec)), total_energy_vec)
+
+evolution_dict["total_energy_vec"] = total_energy_vec
+evolution_dict["move_accepted_vec"] = move_accepted_vec
+
+NG.plot_network(graph_dict)
+
+filename = "1000_vertices_T_0.25_quenched"
+
+save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\\"
+
+NG.save_mesh_from_network(graph_dict, filename; save_path = save_path)
+
+NG.save_graph_to_h5_and_MGformat(graph_dict,
+    filename;
+    evolution_dict = evolution_dict,
+    save_path 
+        = save_path)

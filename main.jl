@@ -10,37 +10,37 @@ import Plots
 
 #possible choices of nr_vertices for diamond: 64, 216, 512, 1000, that is (2*n)^3 with natural nr n
 
+nr_samples = 10
 
-#evolution_dict = NA.get_evolution_dict(;nr_vertices = 64 ,temperature_vec = [0.05],
-#nr_monte_carlo_steps_per_temperature_vec = [1])
-#
-#graph_dict = NG.get_periodic_network(evolution_dict)
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 1000 )
 
-evolution_dict["nr_monte_carlo_steps_per_temperature_vec"] = 3
+evolution_dict["temperature_vec"] = zeros(nr_samples) .+ 1
+evolution_dict["nr_monte_carlo_steps_per_temperature_vec"] = ones(Int64, nr_samples)
+evolution_dict["nr_monte_carlo_steps_per_temperature_vec"][1] = 3 
+
+graph_dict = NG.get_periodic_network(evolution_dict)
+
 
 graph_dict, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_sequence!(graph_dict,
         evolution_dict; 
-        move_accepted_vec=move_accepted_vec,
-        total_energy_vec=total_energy_vec,
     print_progress = true,
-    print_every_nr_attempted_bond_switches = 20)
+    print_every_nr_attempted_bond_switches = 200,
+    save_network_after_each_step = true,
+    filename = "1000_vertices_T_1",)
 
-Plots.plot(collect(1:length(total_energy_vec)), total_energy_vec)
 
-evolution_dict["total_energy_vec"] = total_energy_vec
-evolution_dict["move_accepted_vec"] = move_accepted_vec
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 1000 )
 
-NG.plot_network(graph_dict)
+evolution_dict["temperature_vec"] = zeros(nr_samples) .+ 2
+evolution_dict["nr_monte_carlo_steps_per_temperature_vec"] = ones(Int64, nr_samples)
+evolution_dict["nr_monte_carlo_steps_per_temperature_vec"][1] = 3 
 
-filename = "64_vertices_T_0.05"
+graph_dict = NG.get_periodic_network(evolution_dict)
 
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\\"
 
-NG.save_mesh_from_network(graph_dict, filename; save_path = save_path)
-
-NG.save_graph_to_h5_and_MGformat(graph_dict,
-    filename;
-    evolution_dict = evolution_dict,
-    save_path 
-        = save_path)
-        
+graph_dict, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_sequence!(graph_dict,
+        evolution_dict; 
+    print_progress = true,
+    print_every_nr_attempted_bond_switches = 200,
+    save_network_after_each_step = true,
+    filename = "1000_vertices_T_2",)
