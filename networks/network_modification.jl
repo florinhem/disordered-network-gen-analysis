@@ -614,10 +614,11 @@ function evolve_network!(graph_dict::Dict,
 
         #get remaining chains if list of declined chains is long and
         #remaining have not been determined yet
-        if (length(declined_chains) > 0.8*nr_chains && remaining_chains == [])
+        if (length(declined_chains) > 0.7*nr_chains && remaining_chains == [])
 
             remaining_chains = get_remaining_chains(graph_dict,
-            declined_chains)
+            declined_chains;
+            min_ring_size=evolution_dict["min_ring_size"])
 
             #break if network is quenched 
             #(all chains have been attempted without success)
@@ -630,8 +631,9 @@ function evolve_network!(graph_dict::Dict,
         #get random chain that hasn't been declined since the last
         #accepted switch
         switched_chain = get_random_chain(graph_dict; 
-                                        declined_chains = declined_chains,
-                                        remaining_chains = remaining_chains)
+                                declined_chains = declined_chains,
+                                remaining_chains = remaining_chains,
+                                min_ring_size = evolution_dict["min_ring_size"])
 
         #print attempted chain if desired
         if print_progress && (print_every_nr_attempted_bond_switches == 1)

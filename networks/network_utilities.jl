@@ -202,7 +202,8 @@ the central vertices up to the given shell
 """
 function get_cluster_in_shells_dict(graph_dict::Dict, 
                                     central_vertices::Tuple; 
-                                    shell_nr::Int64 = 5)
+                                    shell_nr::Int64 = 5,
+                                    calculate_cluster_energy::Bool = true)
 
     #initialize dictionary for all neighbors sorted by shells
     cluster_in_shells_dict = Dict(0 => copy(collect(central_vertices)) )
@@ -271,12 +272,112 @@ function get_cluster_in_shells_dict(graph_dict::Dict,
             "cluster_bonds_edge_vec" => cluster_bonds_edge_vec
             )
 
-    #add cluster energy to dictionary
-    cluster_dict["cluster_energy"] = get_cluster_energy(graph_dict, cluster_dict)
-    cluster_dict["cluster_energy_up_to_date"] = true
+    #add cluster energy to dictionary if desired
+    if calculate_cluster_energy
+        cluster_dict["cluster_energy"] = get_cluster_energy(graph_dict, cluster_dict)
+        cluster_dict["cluster_energy_up_to_date"] = true
+    else
+        cluster_dict["cluster_energy_up_to_date"] = false
+    end
 
     return cluster_dict
 
+end
+
+
+"""
+Check if there are ring up the given member number containing the basis vertex
+"""
+function has_ring_up_to_member_nr(graph_dict::Dict, basis_vertex::Int64; 
+                                max_member_nr::Int64 = 4)
+
+    #get the maximal shell nr where a ring of given member nr could be closed
+    maximal_shell_nr = Int(floor(max_member_nr/2))
+
+    #get cluster up to maximal shell nr
+    cluster_dict = get_cluster_in_shells_dict(graph_dict, 
+                Tuple(basis_vertex); 
+                shell_nr = maximal_shell_nr,
+                calculate_cluster_energy = false)
+
+    #loop through neighbor shells
+    for current_shell in 1:maximal_shell_nr
+
+        #loop through vertices of current shell
+        for current_vertex in cluster_dict["cluster_in_shells_dict"][current_shell]
+
+            #get vector of current vertex' neighbors
+            current_neighbor_vec = collect(MetaGraphsNext.neighbor_labels(
+                graph_dict["spatial_network"],  current_vertex))
+
+            #check if there are two connections to lower shell vertices if current shell 
+            #is not the first one
+            if current_shell > 1
+                if sum(current_neighbor in cluster_dict["cluster_in_shells_dict"][current_shell-1]
+                        for current_neighbor in current_neighbor_vec) > 1
+                    return true
+                end
+            end
+
+            #check connection to current shell vertices if max member nr is odd
+            if isodd(max_member_nr)
+                if sum(current_neighbor in cluster_dict["cluster_in_shells_dict"][current_shell]
+                            for current_neighbor in current_neighbor_vec) > 0
+                    return true
+                end
+            end
+        end
+    end
+
+    #if no ring was found, return false
+    return false
+end
+
+
+"""
+Check if a proposed bond switch introduces a ring of given member nr
+"""
+function introduces_ring_up_to_member(graph_dict::Dict, 
+    switched_chain::Tuple{Int64, Int64, Int64, Int64}; 
+    max_member_nr::Int64 = 4)
+
+    #initialize vector to save current bonds' information 
+    current_bonds_info_vec = Vector{Dict{String, Any}}(undef, 2)
+
+    #perform trial bond switch
+    for i in 1:2
+        #save current bond info
+        current_bonds_info_vec[i] = graph_dict["spatial_network"][switched_chain[2*i-1], 
+                                                            switched_chain[2*i]]
+
+        #remove current bond
+        MetaGraphsNext.rem_edge!(graph_dict["spatial_network"],
+            switched_chain[2*i-1], switched_chain[2*i])
+
+        #create new trial bond with meaningless data
+        graph_dict["spatial_network"][switched_chain[i], switched_chain[2+i]] = Dict(
+            "a" => 1)
+    end
+
+    #check if new bonds are part of rings 
+    has_ring = (has_ring_up_to_member_nr(graph_dict, switched_chain[1]; 
+                            max_member_nr = max_member_nr)
+            || has_ring_up_to_member_nr(graph_dict, switched_chain[end]; 
+                            max_member_nr = max_member_nr))
+
+    #reverse trial bond switch 
+    for i in 1:2
+
+        #remove trial bond
+        MetaGraphsNext.rem_edge!(graph_dict["spatial_network"],
+        switched_chain[i], switched_chain[2+i])
+
+        #recreate previous bond with its data
+        graph_dict["spatial_network"][switched_chain[2*i-1], 
+        switched_chain[2*i]] = current_bonds_info_vec[i]
+    end
+
+    return has_ring
 end
 
 
@@ -286,7 +387,8 @@ and where the first index label is lower than
 the last index label in order to not count chains twice
 """
 function get_remaining_chains(graph_dict::Dict,
-        declined_chains::Vector)
+        declined_chains::Vector;
+        min_ring_size::Int64 = 5)
 
     #initialize vector of remaining chains
     remaining_chains = []
@@ -320,7 +422,11 @@ function get_remaining_chains(graph_dict::Dict,
                         && !(current_chain[1] in collect(MetaGraphsNext.neighbor_labels(
                         graph_dict["spatial_network"], current_chain[3])))
                         && !(current_chain[2] in collect(MetaGraphsNext.neighbor_labels(
-                            graph_dict["spatial_network"], current_chain[4]))))
+                            graph_dict["spatial_network"], current_chain[4])))
+                        && !(introduces_ring_up_to_member(graph_dict, 
+                        current_chain; 
+                        max_member_nr = min_ring_size-1) )
+                            )
 
                         push!(remaining_chains, current_chain)
                     end
@@ -342,7 +448,8 @@ the last index label in order to not count chains twice
 """
 function get_random_chain(graph_dict::Dict; 
         declined_chains::Vector = [], 
-        remaining_chains::Vector = [], seed = nothing)
+        remaining_chains::Vector = [], seed = nothing,
+        min_ring_size::Int64 = 5)
 
     #set seed if desired
     if seed !== nothing
@@ -378,12 +485,16 @@ function get_random_chain(graph_dict::Dict;
         random_chain = Tuple(random_chain)
 
         #check that new chain has not already been declined and
-        #also that neither 1 and 3 nor 2 and 4 are already connected 
+        #that neither 1 and 3 nor 2 and 4 are already connected 
+        #and that no ring of given member nr is introduced
         if (random_chain in declined_chains
             || random_chain[1] in collect(MetaGraphsNext.neighbor_labels(
             graph_dict["spatial_network"], random_chain[3]))
             || random_chain[2] in collect(MetaGraphsNext.neighbor_labels(
                 graph_dict["spatial_network"], random_chain[4]))
+            || introduces_ring_up_to_member(graph_dict, 
+            random_chain; 
+            max_member_nr = min_ring_size-1)
             )
             random_chain = get_random_chain(graph_dict; declined_chains = declined_chains)
         else

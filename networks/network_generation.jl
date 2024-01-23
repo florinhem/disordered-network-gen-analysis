@@ -282,3 +282,94 @@ function get_periodic_network(evolution_dict)
 end
 
 
+"""
+Create network of random vertex positions and connections
+"""
+function get_poisson_random_network(evolution_dict::Dict)
+
+    #diamond which is only defined for 3d
+    if cmp(evolution_dict["network_type"], "diamond") == 0
+
+        if evolution_dict["nr_dimensions"] == 3
+
+            original_graph_dict = get_diamond_network(evolution_dict["nr_vertices"] ) 
+        else
+            @error "The diamond network is only defined in 3d."
+        end
+
+    else
+        @error "Only simple cubic and diamond networks are implemented so far."
+
+    end
+
+    #create an empty network graph where vertexic positions and edge vectors will be stored
+    spatial_network = MetaGraphsNext.MetaGraph(Graphs.Graph(); 
+                                        label_type = Int64,
+                                        vertex_data_type = Dict{String, Any},
+                                        edge_data_type = Dict{String, Any} )
+
+    #label each vertex by its code integer and assign it its position vector
+    for vertex in Graphs.vertices(original_graph_dict["original_graph"])
+
+        spatial_network[vertex] = Dict( "position" => rand(Float64, (3)) .* original_graph_dict["supercell_edge_length"] )
+
+    end
+
+    #label each edge by the vertices it connects and assign to it the vector where it points
+
+    #get the nr and vector of original edges
+    nr_edges = Graphs.ne(original_graph_dict["original_graph"])
+    original_edges_vec = collect(Graphs.edges(original_graph_dict["original_graph"]))
+    
+    #loop through orinal edges to get edge descriptions
+    for edge_nr in 1:nr_edges
+
+        #get source and target of edge
+        source = Graphs.src(original_edges_vec[edge_nr])
+        target = Graphs.dst(original_edges_vec[edge_nr])
+
+        #calculate vector from source to target considering periodic boundary conditions
+        edge_vector = get_distance_vector_pbc(spatial_network[source]["position"],
+                                            spatial_network[target]["position"],
+                                            original_graph_dict["supercell_edge_length"] )
+
+        #save edge vector and its length
+        spatial_network[source, target] =  Dict("vector" => edge_vector, 
+        "distance_squared" => LinearAlgebra.norm(edge_vector)^2 )
+
+    end
+    
+    #create dictionary out of graph and its properties
+    graph_dict = Dict("spatial_network" => spatial_network,
+                    "coordination_nr" => original_graph_dict["coordination_nr"],
+                    "nr_vertices" => original_graph_dict["nr_vertices"],
+                    "nr_dimensions" => original_graph_dict["nr_dimensions"],
+                    "supercell_edge_length" => original_graph_dict["supercell_edge_length"]
+                    )
+
+
+    #set bond bending constant
+    graph_dict["bond_bending_const"] = evolution_dict["bond_bending_const"]
+
+    
+    #thermally excite network if desired
+    if evolution_dict["thermal_fluctuations"]
+        graph_dict["total_energy_up_to_date"] = false
+
+        graph_dict = excite_entire_network!(graph_dict,
+            evolution_dict;
+            relax_first = false,
+            update_total_energy = true)
+
+    #otherwise just get total energy
+    else
+
+        #get total energy
+        graph_dict["total_energy"] = get_total_energy_keating(graph_dict)
+        graph_dict["total_energy_up_to_date"] = true
+
+    end
+
+    return graph_dict
+    
+end
