@@ -1360,3 +1360,45 @@ function switch_bond!(graph_dict::Dict,
     return [graph_dict, new_bond_vec]
 
 end
+
+
+
+"""
+Get effective hyperuniformity parameter which is the structure factor
+at zero momentum normalized by the height of the first peak in the structure factor
+as defined in equation 251 in 10.1016/j.physrep.2018.03.001
+"""
+function get_effective_hyperuniformity_parameter(structure_factor_dict::Dict)
+
+    #locate first peak of structure factor
+    pks, vals = Peaks.findmaxima(structure_factor_dict["structure_factor_vec"])
+
+    #cut structure factor data at momentum just above first peak
+    structure_factor_cut_vec = structure_factor_dict["structure_factor_vec"][1:pks[1]+1]
+    wavenumber_cut_vec = structure_factor_dict["wavenumber_vec"][1:pks[1]+1]
+
+    #set the order of the fitted polynomial
+    polynomial_order = 3
+
+    #fit polynomial of given order to cut data
+    polynomial_fit = Polynomials.fit(wavenumber_cut_vec, 
+                                    structure_factor_cut_vec,
+                                    polynomial_order)
+
+    #get extrapolated structure factor at zero momentum
+    structure_factor_zero_momentum = polynomial_fit(0)
+
+    #get the two critical momenta where the fitted structure factor is extremal
+    critical_momenta = (
+    ((-polynomial_fit[2]) 
+        .+ [-1, +1 ] .* (sqrt(polynomial_fit[2]^2-3*polynomial_fit[3]*polynomial_fit[1])) )
+    ./ (3*polynomial_fit[3]) )
+
+    #get fitted structure factor at (first) peak
+    structure_factor_first_peak = maximum( polynomial_fit.(critical_momenta) )
+
+    #get hyperuniformity parameter
+    hyperuniformity_parameter = structure_factor_zero_momentum/structure_factor_first_peak
+
+    return [hyperuniformity_parameter, polynomial_fit]
+end

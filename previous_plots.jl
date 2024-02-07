@@ -1,0 +1,152 @@
+include("structure_analysis_modules.jl")
+
+#import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+import Plots
+import LaTeXStrings as Latex
+
+
+path = raw"C:\Users\HemmannF\switchdrive\presentations\material\\"
+
+Plots.gr()
+Plots.default(grid=false, 
+legend = true, 
+dpi=250,
+xtickfontsize=fontsize,
+ytickfontsize=fontsize,
+xguidefontsize=fontsize,
+yguidefontsize=fontsize,
+legendfontsize=fontsize,
+bottom_margin = 3Plots.mm,
+linewidth=3, 
+thickness_scaling = 1)
+
+x = collect(0:0.01:10)
+plot_1 = 1/2 * exp.( .- x ./2 )
+plot_2 = 1/4 * exp.( .- x ./4 )
+
+my_plot = Plots.plot(x, plot_1, label = Latex.L"T_1")
+my_plot = Plots.plot!(x, plot_2, label = Latex.L"T_2>T_1")
+my_plot = Plots.plot!(xlabel="energy",
+ylabel = "probability")
+
+Plots.savefig(path*"boltzmann_distribution_2.png")
+
+
+x = collect(-8:0.01:8)
+
+plot_1 = min.(1, exp.( .-  x ./ 1  ) )  
+plot_2 = min.(1, exp.( .-  x ./ 4  ) )  
+
+myplot = Plots.plot(x, plot_2, label = Latex.L"kT=4", linecolor=Plots.palette(:tab10)[2])
+myplot = Plots.plot!(x, plot_1, label = Latex.L"kT=1", linecolor=Plots.palette(:tab10)[1])
+
+Plots.plot!(grid=false, xlabel="energy difference",
+ylabel = "acceptance probability")
+
+Plots.savefig(path*"boltzmann_metropolis_3.png")
+
+
+random_array = rand(Float64, (2, 100))
+
+my_plot = Plots.plot(random_array[1,:], random_array[2,:], seriestype=:scatter, aspect_ratio=:equal, fillcolor=Plots.palette(:tab10)[5], markercolor=Plots.palette(:tab10)[5])
+my_plot = Plots.plot!(xlabel=Latex.L"x", ylabel=Latex.L"y",
+legend = false, dpi=400, xlims=(0,1), ylims=(0,1))
+
+Plots.savefig(path*"poisson_process.png")
+
+
+dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+
+graph_dict_1 = NG.load_graph_from_h5_and_MGformat(dict_path*"1000_vertices_T_1_quenched")
+graph_dict_4 = NG.load_graph_from_h5_and_MGformat(dict_path*"1000_vertices_T_4_quenched")
+
+
+bond_length_std_1, bond_length_vec_1 = NA.get_bond_length_std(graph_dict_1)
+bond_length_std_4, bond_length_vec_4 = NA.get_bond_length_std(graph_dict_4)
+
+b_range = range(0.4, 1.8, length=71)
+
+my_plot = Plots.stephist(bond_length_vec_4, bins=b_range, label = Latex.L"kT=4", linecolor=Plots.palette(:tab10)[2])
+my_plot = Plots.stephist!(bond_length_vec_1, bins=b_range, label = Latex.L"kT=1", linecolor=Plots.palette(:tab10)[1])
+my_plot = Plots.plot!(xlabel="bond length",
+ylabel = "frequency")
+
+Plots.savefig(path*"bond_length_T_1_4.png")
+
+
+bond_angle_std_1, bond_angle_vec_1 = NA.get_bond_angle_std(graph_dict_1)
+bond_angle_std_4, bond_angle_vec_4 = NA.get_bond_angle_std(graph_dict_4)
+
+b_range = range(0, 180, length=61)
+
+my_plot = Plots.stephist(bond_angle_vec_4 ./pi .* 180, bins=b_range, label = Latex.L"kT=4", linecolor=Plots.palette(:tab10)[2])
+my_plot = Plots.stephist!(bond_angle_vec_1 ./pi .* 180, bins=b_range, label = Latex.L"kT=1", linecolor=Plots.palette(:tab10)[1])
+my_plot = Plots.plot!(xlabel="bond angle",
+ylabel = "frequency")
+
+Plots.savefig(path*"bond_angle_T_1_4.png")
+
+
+steinhardt_order_parameter_dict_1 = NA.get_steinhardt_order_parameter_dict(graph_dict_1, 6)
+steinhardt_order_parameter_dict_4 = NA.get_steinhardt_order_parameter_dict(graph_dict_4, 6)
+
+diamond = [0.509, 0.629]
+cubic = [0.764, 0.354]
+fcc = [0.191, 0.575]
+hcp = [0.097, 0.485]
+
+marker_size = 9
+
+my_plot = Plots.plot([steinhardt_order_parameter_dict_4[4]], [steinhardt_order_parameter_dict_4[6]], seriestype=:scatter, label="kT=4", mc=Plots.palette(:tab10)[2], ms=marker_size)
+my_plot = Plots.plot!([steinhardt_order_parameter_dict_1[4]], [steinhardt_order_parameter_dict_1[6]], seriestype=:scatter, label="kT=1", mc=Plots.palette(:tab10)[1], ms=marker_size)
+my_plot = Plots.plot!([diamond[1]], [diamond[2]], seriestype=:scatter, label="diamond", ms=marker_size)
+my_plot = Plots.plot!([cubic[1]], [cubic[2]], seriestype=:scatter, label="cubic", ms=marker_size)
+my_plot = Plots.plot!([fcc[1]], [fcc[2]], seriestype=:scatter, label="fcc", ms=marker_size)
+my_plot = Plots.plot!([hcp[1]], [hcp[2]], seriestype=:scatter, label="hcp", ms=marker_size)
+my_plot = Plots.plot!(grid=true, legend=false, xlabel=Latex.L"q_4",
+ylabel = Latex.L"q_6")
+
+Plots.savefig(path*"steinhardt_order_parameter_T_1_4.png")
+
+
+dict_path_1 = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_1_quenched_structure_factor_isotrope.h5"
+
+dict_path_4 = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_4_quenched_structure_factor_isotrope.h5"
+
+structure_factor_dict_1 = GU.load_h5_dict(dict_path_1)
+structure_factor_dict_4 = GU.load_h5_dict(dict_path_4)
+
+my_plot = Plots.plot(structure_factor_dict_4["wavenumber_vec"], structure_factor_dict_4["structure_factor_vec"], linecolor=Plots.palette(:tab10)[2], label = Latex.L"kT=4" )
+my_plot = Plots.plot!(structure_factor_dict_1["wavenumber_vec"], structure_factor_dict_1["structure_factor_vec"], linecolor=Plots.palette(:tab10)[1], label = Latex.L"kT=1" )
+my_plot = Plots.plot!(xlabel="wavenumber",
+ylabel = "structure factor", xlims=(0,32.5), ylims=(0,2.75))
+
+Plots.savefig(path*"structure_factor_T_1_4.png")
+
+
+x_vec = collect(0:0.01:4)
+plot_1 = (0.8 .* sinc.(( 2 .* (x_vec .- 2.5)) .^2) .+ 0.2) .* exp.( .-(x_vec .- 2.5).^2)
+Plots.plot(x_vec, plot_1, linecolor="black", ylims=(0,1), xlims=(0,4), framestyle = :box, legend=false)
+
+Plots.savefig(path*"reflectivity_band_structure_2.png")
+
+
+x_vec = collect(0:0.01:2)
+y_vec = collect(0.5:0.01:1.5)
+Plots.plot(x_vec, (3/16) .* (x_vec.^2 .- 1).^2   )
+Plots.plot!(y_vec, (3/4) .* (y_vec .- 1).^2 , linestyle=:dash )
+Plots.plot!(xlabel="bond length", ylabel="energy", right_margin = 3Plots.mm, ylims=(0,0.4), xlims=(0,2), legend=false)
+
+Plots.savefig(path*"bond_stretching_energy.png")
+
+
+x_vec = collect(0:0.1:180)
+y_vec = collect(40:0.1:180)
+Plots.plot(x_vec, (3/8 * 0.285) .* (cosd.(x_vec) .+ 1/3).^2  )
+Plots.plot!(y_vec, (0.095 .* (y_vec .* pi ./ 180 .- acos(-1/3)).^2 ) , linestyle=:dash  )
+Plots.plot!(xlabel="bond angle", ylabel="energy", right_margin = 5Plots.mm, ylims=(0,0.4), xlims=(0,180), legend=false)
+Plots.savefig(path*"bond_bending_energy.png")

@@ -613,22 +613,3 @@ function compare_relaxation_methods(original_graph_dict,
 end
 
 
-"""
-Convert cartesian to spherical coordinates
-"""
-function convert_cartesian_to_spherical(cartesian_vec::Vector)
-
-    #check if vector is 3d
-    if length(cartesian_vec) !== 3
-        @error "conversion to spherical coordinates only implemented in 3d"
-        return []
-    end
-
-    #calculate r, theta and phi 
-    r_length = LinearAlgebra.norm(cartesian_vec)
-    theta = acos(cartesian_vec[3]/r_length)
-    phi = acos(cartesian_vec[1]/(r_length*sin(theta)) )
-
-    return [r_length, theta, phi]
-end
-    

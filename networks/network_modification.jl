@@ -737,7 +737,7 @@ function evolve_network_temperature_sequence!(
     #evolve network according to given temperature sequence 
     for i in eachindex(evolution_dict["temperature_vec"])
 
-        nr_attempted_bond_switches = (nr_chains
+        nr_attempted_bond_switches = Int(nr_chains
         * evolution_dict["nr_monte_carlo_steps_per_temperature_vec"][i])
 
         graph_dict, total_energy_vec_new, move_accepted_vec_new = evolve_network!(graph_dict,

@@ -82,7 +82,6 @@ import FileIO   #for file loading and saving
 import Random   #to access more features for random number generation like seeds
 import Statistics   #for statistical operations like mean()
 import CoordinateTransformations    #to convert between coordinate systems
-import SphericalHarmonics   #to calculate spherical harmonics
 import GeometryBasics   #to create meshes out of networks
 import Plots    #for plotting
 import LaTeXStrings as Latex #to display latex symbols in plot labels
@@ -136,6 +135,8 @@ import Statistics   #for statistical operations like mean()
 import Measurements    #for handling data with uncertainty and error propagation
 import Polynomials  #to curve fit polynomials
 import Peaks    #to locate peaks of a function
+import Combinatorics    #mainly used to get all possible combinations of bonds
+import SphericalHarmonics   #to calculate spherical harmonics
 
 #set path to files
 load_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\code_photonic_structures\networks\\"

@@ -1,6 +1,6 @@
 """
 these functions can be used to characterize networks
-by means of order parameters measuring correlations
+by means of order metrics measuring correlations
 """
 
 """
@@ -197,21 +197,21 @@ end
 
 
 """
-Get effective hyperuniformity parameter which is the structure factor
+Get hyperuniformity metric which is the structure factor
 at zero momentum normalized by the height of the first peak in the structure factor
 as defined in equation 251 in 10.1016/j.physrep.2018.03.001
 """
-function get_effective_hyperuniformity_parameter(structure_factor_dict::Dict)
+function get_hyperuniformity_metric(structure_factor_dict::Dict)
 
     #locate first peak of structure factor
     pks, vals = Peaks.findmaxima(structure_factor_dict["structure_factor_vec"])
 
     #cut structure factor data at momentum just above first peak
-    structure_factor_cut_vec = structure_factor_dict["structure_factor_vec"][1:pks[1]+1]
-    wavenumber_cut_vec = structure_factor_dict["wavenumber_vec"][1:pks[1]+1]
+    structure_factor_cut_vec = structure_factor_dict["structure_factor_vec"][1:pks[2]+1]
+    wavenumber_cut_vec = structure_factor_dict["wavenumber_vec"][1:pks[2]+1]
 
     #set the order of the fitted polynomial
-    polynomial_order = 3
+    polynomial_order = 5
 
     #fit polynomial of given order to cut data
     polynomial_fit = Polynomials.fit(wavenumber_cut_vec, 
@@ -219,21 +219,22 @@ function get_effective_hyperuniformity_parameter(structure_factor_dict::Dict)
                                     polynomial_order)
 
     #get extrapolated structure factor at zero momentum
-    structure_factor_zero_momentum = polynomial_fit[0]
+    structure_factor_zero_momentum = polynomial_fit(0)
 
-    #get the two critical momenta where the fitted structure factor is extremal
-    critical_momenta = (
-    ((-polynomial_fit[2]) 
-        .+ [-1, +1 ] .* (sqrt(polynomial_fit[2]^2-3*polynomial_fit[3]*polynomial_fit[1])) )
-    ./ (3*polynomial_fit[3]) )
+    #get critical momenta which is roots of first derivative of polynomial
+    polynomial_derivative = Polynomials.derivative(polynomial_fit)
+    critical_momenta = Polynomials.roots(polynomial_derivative)
 
-    #get fitted structure factor at (first) peak
-    structure_factor_first_peak = maximum( polynomial_fit.(critical_momenta) )
+    #get real critical momenta
+    critical_momenta_real = real.(critical_momenta[imag.(critical_momenta) .== 0])
 
-    #get hyperuniformity parameter
-    hyperuniformity_parameter = structure_factor_zero_momentum/structure_factor_first_peak
+    #get fitted structure factor at highest peak
+    structure_factor_first_peak = maximum( polynomial_fit.(critical_momenta_real) )
 
-    return hyperuniformity_parameter
+    #get hyperuniformity metric
+    hyperuniformity_metric = structure_factor_zero_momentum/structure_factor_first_peak
+
+    return [hyperuniformity_metric, polynomial_fit]
 end
 
 

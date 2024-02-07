@@ -24,7 +24,7 @@ function get_evolution_dict(;
     random_evolution_seed::Int64 = -1,
     thermal_fluctuations::Bool = false,
     temperature_vec::Vector = [2, 1],
-    nr_monte_carlo_steps_per_temperature_vec::Vector{Int64} = [10,10]
+    nr_monte_carlo_steps_per_temperature_vec::Vector = [10,10]
     )
 
     #check if the temperature sequence is given correctly
@@ -70,8 +70,19 @@ Generate and evolve multiple networks and calculate the average
 of several order metrics over these multiple networks
 """
 function get_averaged_order_metrics(;save_result = false,
+    load_path_without_format = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\sample_name",
     save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\sample_name",
-    label = nothing)
+    label = nothing,
+    nr_samples = 5)
+
+    #initialize vectors and arrays for order metrics
+    bond_length_std_vec = Vector{Fl}
+
+    #loop through samples 
+    for i in 1:nr_samples
+
+
+    end
 
     #create dict to save
     order_metrics_dict = Dict("wavevector_array" => wavevector_array,

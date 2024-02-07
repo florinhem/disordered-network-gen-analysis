@@ -1,6 +1,6 @@
 """
 these functions can be used to characterize networks
-by means of local order parameters
+by means of local order metrics
 """
 
 """
@@ -34,7 +34,7 @@ function get_bond_length_std(graph_dict::Dict)
     #bond_length_bin_edges = histogram.edges
     #bond_length_bin_weights = histogram.weights
 
-    return bond_length_std
+    return [bond_length_std, bond_length_vec]
 end
 
 
@@ -88,7 +88,7 @@ graph_dict["spatial_network"][vertex, bond_combination[1]]["distance_squared"]
     #determine standard deviation
     bond_angle_std = Statistics.std(bond_angle_vec)
 
-    return bond_angle_std
+    return [bond_angle_std, bond_angle_vec]
 end
 
 
@@ -158,8 +158,11 @@ function get_dihedral_angle_std(graph_dict::Dict)
     #determine standard deviation
     dihedral_angle_std = Statistics.std(dihedral_angle_one_peak_vec)
 
-    return dihedral_angle_std
+
+    return [dihedral_angle_std, dihedral_angle_vec]
 end
+
+
 
 
 """
