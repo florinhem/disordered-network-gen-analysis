@@ -11,17 +11,17 @@ which is the edge type of the MetaGraphsNext package
 function switch_chain!(graph_dict::Dict,
     switched_chain::Tuple{Int64, Int64, Int64, Int64} )
 
-    #remove two old bonds and create new ones
+    # remove two old bonds and create new ones
     for i in 1:2
 
-        #remove old bond
+        # remove old bond
         MetaGraphsNext.rem_edge!(graph_dict["spatial_network"],
             switched_chain[2*i-1], switched_chain[2*i])
 
-        #initialize vector along new bond
+        # initialize vector along new bond
         vector_along_new_bond = Vector{Float64}(undef, graph_dict["nr_dimensions"])
 
-        #determine vector along new bond
+        # determine vector along new bond
         if switched_chain[i] < switched_chain[2+i]
             vector_along_new_bond = get_distance_vector_pbc(
                     graph_dict["spatial_network"][switched_chain[i]]["position"],
@@ -34,16 +34,16 @@ function switch_chain!(graph_dict::Dict,
                     graph_dict["supercell_edge_length"] )
         end
 
-        #determine length of vector along new bond
+        # determine length of vector along new bond
         distance_along_new_bond = LinearAlgebra.norm(vector_along_new_bond)
 
-        #create new bond
+        # create new bond
         graph_dict["spatial_network"][switched_chain[i], switched_chain[2+i]] = Dict(
             "vector" => vector_along_new_bond, 
             "distance_squared" => distance_along_new_bond^2 )
     end
 
-    #note, that total energy is not up to date any more
+    # note, that total energy is not up to date any more
     graph_dict["total_energy_up_to_date"] = false
 
     return graph_dict
@@ -59,7 +59,7 @@ function move_vertex!(graph_dict::Dict,
                     translation_vector::Vector{Float64};
                     update_total_energy::Bool = false)
 
-    #update vertex position by taking periodic boundary conditions into account
+    # update vertex position by taking periodic boundary conditions into account
     initial_position = graph_dict["spatial_network"][vertex_to_move]["position"]
     graph_dict["spatial_network"][vertex_to_move]["position"] = (
                                                     initial_position
@@ -67,13 +67,13 @@ function move_vertex!(graph_dict::Dict,
                                                     .+ graph_dict["supercell_edge_length"]
                                                             ).%graph_dict["supercell_edge_length"]
 
-    #update outgoing edges                                                    
+    # update outgoing edges                                                    
     for neighbor in MetaGraphsNext.neighbor_labels(graph_dict["spatial_network"], vertex_to_move)
 
         original_distance_vector = graph_dict["spatial_network"][vertex_to_move, neighbor]["vector"]
 
-        #determine new vector, where the direction of the vector (from vertex with lower label
-        #to vertex with higher label) has to be taken into account
+        # determine new vector, where the direction of the vector (from vertex with lower label
+        # to vertex with higher label) has to be taken into account
         graph_dict["spatial_network"][vertex_to_move, neighbor]["vector"] = (
                     original_distance_vector .- sign(neighbor - vertex_to_move)*translation_vector )
 
@@ -82,7 +82,7 @@ function move_vertex!(graph_dict::Dict,
                                                                                     )
     end
     
-    #update total energy if desired
+    # update total energy if desired
     if update_total_energy
         graph_dict["total_energy"] = get_total_energy_keating(graph_dict)
         graph_dict["total_energy_up_to_date"] = true
@@ -102,23 +102,23 @@ function relax_single_vertex_keating!(graph_dict::Dict, vertex_to_relax::Int64;
     optimization_method = "newton", 
     update_total_energy::Bool = false)
 
-    #check if optimization method is Newton
+    # check if optimization method is Newton
     optimization_fct = Optim.Newton()
     if optimization_method != "newton"
         @error "Inefficient optimization method, specified in evolution dict
         is not known."
     end
     
-    #get initial position of vertex to relax 
+    # get initial position of vertex to relax 
     initial_position = graph_dict["spatial_network"][vertex_to_relax]["position"]
 
-    #get matrix of the vertex's neighbors' positions 
+    # get matrix of the vertex's neighbors' positions 
     neighbor_positions_mat = get_neighbor_positions_mat(graph_dict, vertex_to_relax)
 
-    #get next to nearest neighbors' positions
+    # get next to nearest neighbors' positions
     next_neighbor_positions_arr = get_next_neighbor_positions_arr(graph_dict, vertex_to_relax)
 
-    #set energy, gradient and hessian for energy minimization
+    # set energy, gradient and hessian for energy minimization
     energy(x) = energy_from_position_keating(x, graph_dict,
                                                 neighbor_positions_mat,
                                                 next_neighbor_positions_arr )
@@ -130,7 +130,7 @@ function relax_single_vertex_keating!(graph_dict::Dict, vertex_to_relax::Int64;
     hessian!(hessian, x) = hessian_keating!(hessian, x, graph_dict,
                                                 neighbor_positions_mat,
                                                 next_neighbor_positions_arr)
-    #find energy minimum
+    # find energy minimum
     minimizer_result = Optim.optimize(
                                 energy, 
                                 gradient!, 
@@ -138,16 +138,16 @@ function relax_single_vertex_keating!(graph_dict::Dict, vertex_to_relax::Int64;
                                 initial_position, 
                                 optimization_fct)
 
-    #if minimization converged update dictionary
+    # if minimization converged update dictionary
     if Optim.converged(minimizer_result)
 
-        #get relaxed position and local keating energy
+        # get relaxed position and local keating energy
         relaxed_position = Optim.minimizer(minimizer_result)
 
-        #calculate translation vector for relaxed vertex
+        # calculate translation vector for relaxed vertex
         translation_vector = relaxed_position .- initial_position
 
-        #move vertex 
+        # move vertex 
         graph_dict = move_vertex!(graph_dict, 
                                 vertex_to_relax, 
                                 translation_vector;
@@ -156,7 +156,7 @@ function relax_single_vertex_keating!(graph_dict::Dict, vertex_to_relax::Int64;
     else
         @warn "Using gradient descent for vertex "*string(vertex_to_relax)
         
-        #find energy minimum
+        # find energy minimum
         minimizer_result = Optim.optimize(
                                 energy, 
                                 gradient!, 
@@ -164,16 +164,16 @@ function relax_single_vertex_keating!(graph_dict::Dict, vertex_to_relax::Int64;
                                 initial_position, 
                                 Optim.GradientDescent())
 
-        #if minimization converged update dictionary
+        # if minimization converged update dictionary
         if Optim.converged(minimizer_result)
 
-            #get relaxed position and local keating energy
+            # get relaxed position and local keating energy
             relaxed_position = Optim.minimizer(minimizer_result)
 
-            #calculate translation vector for relaxed vertex
+            # calculate translation vector for relaxed vertex
             translation_vector = relaxed_position .- initial_position
 
-            #move vertex 
+            # move vertex 
             graph_dict = move_vertex!(graph_dict, 
                                     vertex_to_relax, 
                                     translation_vector;
@@ -198,7 +198,7 @@ function get_approximate_translation_vector_keating(gradient::Vector{Float64},
                                         relaxation_overshoot_factor_r::Real = 1.5,
                                         relaxation_optimization_parameter_l::Real = 1)
 
-    #determine translation vector
+    # determine translation vector
     translation_vector = ((- relaxation_overshoot_factor_r/(4 + 5*bond_bending_const 
                     + relaxation_optimization_parameter_l*LinearAlgebra.norm(gradient)))
             .* gradient
@@ -219,16 +219,16 @@ function relax_single_vertex_keating_efficiently!(graph_dict::Dict,
     relaxation_optimization_parameter_l::Real = 1,
     update_total_energy::Bool = false)
 
-    #get energy gradient at current vertex position
+    # get energy gradient at current vertex position
     gradient = gradient_keating_efficient(graph_dict, vertex_to_relax)
 
-    #calculate translation vector to approximate energy minimum
+    # calculate translation vector to approximate energy minimum
     translation_vector =  get_approximate_translation_vector_keating(gradient, 
         graph_dict["bond_bending_const"];
         relaxation_overshoot_factor_r = relaxation_overshoot_factor_r,
         relaxation_optimization_parameter_l = relaxation_optimization_parameter_l)
 
-    #move vertex 
+    # move vertex 
     graph_dict = move_vertex!(graph_dict, 
                             vertex_to_relax, 
                             translation_vector;
@@ -249,22 +249,22 @@ function relax_cluster_one_cycle_keating!(graph_dict::Dict,
     update_total_energy::Bool = false,
     update_cluster_energy::Bool = true )
 
-    #get initial cluster energy
+    # get initial cluster energy
     if cluster_dict["cluster_energy_up_to_date"]
         initial_cluster_energy = cluster_dict["cluster_energy"]
     else
         initial_cluster_energy = get_cluster_energy(graph_dict, cluster_dict)
     end
 
-    #get total energy if its not up to date but supposed to be updated later
+    # get total energy if its not up to date but supposed to be updated later
     if update_total_energy && !graph_dict["total_energy_up_to_date"]
         graph_dict["total_energy"] = get_total_energy_keating(graph_dict)
     end
 
-    #relax each vertex in the given cluster
+    # relax each vertex in the given cluster
     for vertex in cluster_dict["cluster_vertices_to_move_vec"]
 
-        #relax efficiently but approximately or exactly but slowly
+        # relax efficiently but approximately or exactly but slowly
         if evolution_dict["relax_efficiently"]
             graph_dict = relax_single_vertex_keating_efficiently!(graph_dict,
     vertex;
@@ -279,7 +279,7 @@ function relax_cluster_one_cycle_keating!(graph_dict::Dict,
 
     end
 
-    #update cluster energy if desired
+    # update cluster energy if desired
     if update_cluster_energy
         cluster_dict["cluster_energy"] = get_cluster_energy(graph_dict, cluster_dict)
         cluster_dict["cluster_energy_up_to_date"] = true
@@ -287,7 +287,7 @@ function relax_cluster_one_cycle_keating!(graph_dict::Dict,
         cluster_dict["cluster_energy_up_to_date"] = false
     end
 
-    #update total energy if desired
+    # update total energy if desired
     if update_total_energy
 
         if cluster_dict["cluster_energy_up_to_date"]
@@ -319,25 +319,25 @@ function relax_cluster_keating!(graph_dict::Dict,
     update_total_energy::Bool = false,
     print_progress::Bool = false)
 
-    #make sure that cluster energy is up to date
+    # make sure that cluster energy is up to date
     if !cluster_dict["cluster_energy_up_to_date"]
         cluster_dict["cluster_energy"] = get_cluster_energy(graph_dict, cluster_dict)
     end
 
-    #store initial cluster energy if total energy will be updated
+    # store initial cluster energy if total energy will be updated
     if update_total_energy
         initial_cluster_energy  = cluster_dict["cluster_energy"]
     end
 
-    #make sure that total energy is up to date if it will be updated later
+    # make sure that total energy is up to date if it will be updated later
     if !graph_dict["total_energy_up_to_date"] && update_total_energy
         graph_dict["total_energy"] = get_total_energy_keating(graph_dict)
     end
 
-    #perform the given number of relaxation cycles
+    # perform the given number of relaxation cycles
     for cycle_nr in 1:evolution_dict["nr_max_relaxation_cycles"]
 
-        #store previous cluster energy
+        # store previous cluster energy
         previous_cluster_energy = cluster_dict["cluster_energy"]
 
         graph_dict, cluster_dict = relax_cluster_one_cycle_keating!(graph_dict, 
@@ -346,7 +346,7 @@ function relax_cluster_keating!(graph_dict::Dict,
         update_total_energy = false,
         update_cluster_energy = true )
 
-        #break if cluster energy changes less than the given threshold
+        # break if cluster energy changes less than the given threshold
         relative_cluster_energy_change = (
             abs((previous_cluster_energy - cluster_dict["cluster_energy"])
                     /cluster_dict["cluster_energy"]))
@@ -359,17 +359,17 @@ function relax_cluster_keating!(graph_dict::Dict,
             break
         end
 
-        #if cycle nr is above the given threshold, check if the relaxation can 
-        #be rejected before full relaxation by estimating the final energy
+        # if cycle nr is above the given threshold, check if the relaxation can 
+        # be rejected before full relaxation by estimating the final energy
         if cycle_nr > evolution_dict["reject_during_relaxation_cycle_threshold"]
 
-            #to be implemented
+            # to be implemented
 
         end
 
     end
 
-    #update total energy if desired
+    # update total energy if desired
     if update_total_energy
         graph_dict["total_energy"] = (graph_dict["total_energy"] 
                                     + cluster_dict["cluster_energy"]
@@ -392,8 +392,8 @@ function excite_cluster!(graph_dict::Dict, cluster_dict::Dict,
                         update_total_energy = false,
                         update_cluster_energy = false)
 
-    #if total energy will be updated, store initial cluster energy and make sure
-    #that total energy is up to date
+    # if total energy will be updated, store initial cluster energy and make sure
+    # that total energy is up to date
     if update_total_energy
         if !graph_dict["total_energy_up_to_date"]
             graph_dict["total_energy"] = get_total_energy_keating(graph_dict)
@@ -406,46 +406,46 @@ function excite_cluster!(graph_dict::Dict, cluster_dict::Dict,
         end
     end
 
-    #initialize excitation weight
+    # initialize excitation weight
     cluster_excitation_weight = 1
 
-    #initialize dict where vertex displacements will be stored
+    # initialize dict where vertex displacements will be stored
     vertex_excitation_dict = Dict()
 
-    #loop through all vertices that are allowed to move
+    # loop through all vertices that are allowed to move
     for vertex in cluster_dict["cluster_vertices_to_move_vec"]
 
-        #get hessian matrix of current vertex at relaxed position
+        # get hessian matrix of current vertex at relaxed position
         hessian = hessian_keating_efficient(graph_dict, vertex)
 
-        #get vector of sigmas
+        # get vector of sigmas
         sigma_vec = sqrt.(temperature ./ LinearAlgebra.diag(hessian) ) 
 
-        #draw vector of displacements from Gaussian distribution with standard
-        #deviations in the sigma vector
+        # draw vector of displacements from Gaussian distribution with standard
+        # deviations in the sigma vector
         displacement_vec = sigma_vec .* randn(graph_dict["nr_dimensions"])
 
-        #get excitation weight for current vertex
+        # get excitation weight for current vertex
         vertex_excitation_weight = prod(displacement_vec)
 
-        #multiply it to cluster excitation weight
+        # multiply it to cluster excitation weight
         cluster_excitation_weight *= vertex_excitation_weight
 
-        #store displacement vector
+        # store displacement vector
         vertex_excitation_dict[vertex] = displacement_vec
     end
 
-    #move vertices according to the given displacements
+    # move vertices according to the given displacements
     for vertex in cluster_dict["cluster_vertices_to_move_vec"]
 
-        #move vertices according to the previously thermal fluctuations
+        # move vertices according to the previously thermal fluctuations
         graph_dict = move_vertex!(graph_dict, 
                             vertex, 
                             vertex_excitation_dict[vertex];
                             update_total_energy = false)
     end
 
-    #update cluster energy if desired
+    # update cluster energy if desired
     if update_cluster_energy
         cluster_dict["cluster_energy"] = get_cluster_energy(graph_dict, cluster_dict)
         cluster_dict["cluster_energy_up_to_date"] = true
@@ -453,17 +453,17 @@ function excite_cluster!(graph_dict::Dict, cluster_dict::Dict,
         cluster_dict["cluster_energy_up_to_date"] = false
     end
 
-    #if desired update total energy
+    # if desired update total energy
     if update_total_energy
 
-        #get excited cluster energy
+        # get excited cluster energy
         if cluster_dict["cluster_energy_up_to_date"]
             excited_cluster_energy = cluster_dict["cluster_energy"]
         else
             excited_cluster_energy = get_cluster_energy(graph_dict, cluster_dict)
         end
 
-        #update total energy
+        # update total energy
         graph_dict["total_energy"] = (graph_dict["total_energy"] 
                                     + excited_cluster_energy
                                     - initial_cluster_energy)
@@ -488,69 +488,69 @@ function monte_carlo_move!(graph_dict::Dict,
     switched_chain::Tuple{Int64, Int64, Int64, Int64} = get_random_chain(graph_dict),
     print_progress::Bool = false)
 
-    #save original graph dict 
+    # save original graph dict 
     initial_graph_dict = deepcopy(graph_dict)
 
-    #get initial cluster before bond switch
+    # get initial cluster before bond switch
     initial_cluster_dict = get_cluster_in_shells_dict(
                                     graph_dict, 
                                     switched_chain; 
                                     shell_nr = evolution_dict["shell_nr"])
 
-    #make sure that total energy is up to date
+    # make sure that total energy is up to date
     if !graph_dict["total_energy_up_to_date"]
         graph_dict["total_energy"] = get_total_energy_keating(graph_dict)
         graph_dict["total_energy_up_to_date"] = true
     end
 
-    #initialize cluster weights which will contribute to the acceptance probability
-    #when thermal fluctuations are included
+    # initialize cluster weights which will contribute to the acceptance probability
+    # when thermal fluctuations are included
     cluster_relaxation_weight = 1
     cluster_excitation_weight = 1
 
-    #if there are thermal fluctuations, relax cluster first and calculate
-    #weights of the corresponding shifts
+    # if there are thermal fluctuations, relax cluster first and calculate
+    # weights of the corresponding shifts
     if evolution_dict["thermal_fluctuations"]
 
-        #deep copy initial cluster, such that it does not get modified
+        # deep copy initial cluster, such that it does not get modified
         cluster_dict = deepcopy(initial_cluster_dict)
 
-        #relax cluster
+        # relax cluster
         graph_dict, cluster_dict = relax_cluster_keating!(graph_dict,
             cluster_dict,
             evolution_dict;
             update_total_energy = false,
             print_progress = print_progress)
 
-        #get cluster weight corresponding to the relaxation translations
+        # get cluster weight corresponding to the relaxation translations
         cluster_relaxation_weight = get_cluster_fluctuation_weight(initial_graph_dict, 
                                                             graph_dict, 
                                                             cluster_dict,
                                                             temperature)
     end
 
-    #switch bonds
+    # switch bonds
     graph_dict = switch_chain!(graph_dict, switched_chain)
 
-    #get cluster after bond switch
+    # get cluster after bond switch
     cluster_dict = get_cluster_in_shells_dict(
                                     graph_dict, 
                                     switched_chain; 
                                     shell_nr = evolution_dict["shell_nr"])
 
-    #relax cluster around switched chain and only update energy when there won't be
-    #thermal fluctuations included afterward
+    # relax cluster around switched chain and only update energy when there won't be
+    # thermal fluctuations included afterward
     graph_dict, cluster_dict = relax_cluster_keating!(graph_dict,
         cluster_dict,
         evolution_dict;
         update_total_energy = false)
 
 
-    #if desired, include thermal fluctuations by randomly shifting all cluster vertices
+    # if desired, include thermal fluctuations by randomly shifting all cluster vertices
     if evolution_dict["thermal_fluctuations"]
 
-        #excite cluster with thermal fluctuations and get the corresponding excitation
-        #weight
+        # excite cluster with thermal fluctuations and get the corresponding excitation
+        # weight
         graph_dict, cluster_dict, cluster_excitation_weight = excite_cluster!(graph_dict,
                                                             cluster_dict,
                                                             temperature;
@@ -558,19 +558,19 @@ function monte_carlo_move!(graph_dict::Dict,
                                                             update_cluster_energy = true)
     end
 
-    #update total energy
+    # update total energy
     graph_dict["total_energy"] = (graph_dict["total_energy"] 
                             + cluster_dict["cluster_energy"]
                             - initial_cluster_dict["cluster_energy"])
 
     graph_dict["total_energy_up_to_date"] = true
     
-    #set threshold energy for Metropolis acceptance probability
+    # set threshold energy for Metropolis acceptance probability
     total_threshold_energy = (initial_graph_dict["total_energy"]
                 - temperature 
                 * (cluster_excitation_weight/cluster_relaxation_weight) * log(rand()) )
 
-    #accept move if total energy is below threshold
+    # accept move if total energy is below threshold
     move_accepted = false
 
     if graph_dict["total_energy"] <= total_threshold_energy
@@ -598,49 +598,49 @@ function evolve_network!(graph_dict::Dict,
     print_every_nr_attempted_bond_switches::Int64 = 1,
     random_evolution_seed::Int64 = -1)
 
-    #set seed for random evolution if desired
+    # set seed for random evolution if desired
     if random_evolution_seed != -1
         Random.seed!(random_evolution_seed)
     end
 
-    #determine nr of chains of four vertices
+    # determine nr of chains of four vertices
     nr_chains = Int(graph_dict["nr_vertices"] 
         * graph_dict["coordination_nr"] 
         * (graph_dict["coordination_nr"]-1) 
         * (graph_dict["coordination_nr"]-1) /2 ) 
 
-    #attempt given number of bond switches
+    # attempt given number of bond switches
     for i in 1:nr_attempted_bond_switches
 
-        #get remaining chains if list of declined chains is long and
-        #remaining have not been determined yet
+        # get remaining chains if list of declined chains is long and
+        # remaining have not been determined yet
         if (length(declined_chains) > 0.7*nr_chains && remaining_chains == [])
 
             remaining_chains = get_remaining_chains(graph_dict,
             declined_chains;
             min_ring_size=evolution_dict["min_ring_size"])
 
-            #break if network is quenched 
-            #(all chains have been attempted without success)
+            # break if network is quenched 
+            # (all chains have been attempted without success)
             if remaining_chains == []
                 println("Network quenched after "*string(i)*"th attempt.")
                 break
             end
         end
 
-        #get random chain that hasn't been declined since the last
-        #accepted switch
+        # get random chain that hasn't been declined since the last
+        # accepted switch
         switched_chain = get_random_chain(graph_dict; 
                                 declined_chains = declined_chains,
                                 remaining_chains = remaining_chains,
                                 min_ring_size = evolution_dict["min_ring_size"])
 
-        #print attempted chain if desired
+        # print attempted chain if desired
         if print_progress && (print_every_nr_attempted_bond_switches == 1)
             println("Attempt chain "*string(switched_chain))
         end
 
-        #attempt Monte Carlo move
+        # attempt Monte Carlo move
         graph_dict, move_accepted = monte_carlo_move!(
         graph_dict, 
         evolution_dict,
@@ -648,13 +648,13 @@ function evolve_network!(graph_dict::Dict,
         switched_chain = switched_chain,
         print_progress = false)
 
-        #update declined and remaining chains vectors
+        # update declined and remaining chains vectors
         if move_accepted
             push!(move_accepted_vec, true)
             declined_chains = []
             remaining_chains = []
 
-            #print progress if desired
+            # print progress if desired
             if print_progress
                 if print_every_nr_attempted_bond_switches == 1
                     println("Chain "*string(switched_chain)*" accepted. Energy: "
@@ -671,7 +671,7 @@ function evolve_network!(graph_dict::Dict,
             push!(move_accepted_vec, false)
             push!(declined_chains, switched_chain)
 
-            #print progress if desired
+            # print progress if desired
             if print_progress
                 if print_every_nr_attempted_bond_switches == 1
                     println("Chain "*string(switched_chain)*" declined.")
@@ -683,20 +683,20 @@ function evolve_network!(graph_dict::Dict,
                 end
             end
 
-            #break if network is quenched 
-            #(all chains have been attempted without success)
+            # break if network is quenched 
+            # (all chains have been attempted without success)
             if length(remaining_chains) == 1
                 println("Network quenched after "*string(i)*"th attempt.")
                 break
 
-            #otherwise update remaining chains
+            # otherwise update remaining chains
             else
                 deleteat!(remaining_chains, findall(x->x==switched_chain,remaining_chains))
             end
             
         end
 
-        #update total energy
+        # update total energy
         push!(total_energy_vec, graph_dict["total_energy"])
 
     end
@@ -723,18 +723,18 @@ function evolve_network_temperature_sequence!(
     filename::String = "some_network",
     save_path::String = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\\")
 
-    #set seed for random evolution if desired
+    # set seed for random evolution if desired
     if random_evolution_seed != -1
         Random.seed!(random_evolution_seed)
     end
 
-    #determine nr of chains of four vertices
+    # determine nr of chains of four vertices
     nr_chains = Int(graph_dict["nr_vertices"] 
         * graph_dict["coordination_nr"] 
         * (graph_dict["coordination_nr"]-1) 
         * (graph_dict["coordination_nr"]-1) /2 ) 
 
-    #evolve network according to given temperature sequence 
+    # evolve network according to given temperature sequence 
     for i in eachindex(evolution_dict["temperature_vec"])
 
         nr_attempted_bond_switches = Int(nr_chains
@@ -747,24 +747,24 @@ function evolve_network_temperature_sequence!(
         print_progress = print_progress,
         print_every_nr_attempted_bond_switches = print_every_nr_attempted_bond_switches)
 
-        #concatenate new vectors to previous ones 
+        # concatenate new vectors to previous ones 
         total_energy_vec = vcat(total_energy_vec, total_energy_vec_new)
         move_accepted_vec = vcat(move_accepted_vec, move_accepted_vec_new)
 
-        #print progress if desired
+        # print progress if desired
         if print_progress
             println("T="
                 *string(evolution_dict["temperature_vec"][i])*" done")
         end
 
-        #if desired, save network
+        # if desired, save network
         if save_network_after_each_step
 
-            #save evolution data to evolution dict
+            # save evolution data to evolution dict
             evolution_dict["total_energy_vec"] = total_energy_vec
             evolution_dict["move_accepted_vec"] = move_accepted_vec
 
-            #save network and evolution_dict
+            # save network and evolution_dict
             save_graph_to_h5_and_MGformat(graph_dict,
                 filename*"_"*string(i);
                 evolution_dict = evolution_dict,
@@ -788,22 +788,22 @@ function excite_entire_network!(graph_dict::Dict,
     relax_first::Bool = false,
     update_total_energy::Bool = true)
 
-    #create tuple containing all vertices
+    # create tuple containing all vertices
     all_vertices = Tuple(collect(1:graph_dict["nr_vertices"]))
 
-    #get cluster for entire network
+    # get cluster for entire network
     cluster_dict = get_cluster_in_shells_dict(graph_dict, 
                                     all_vertices; 
                                     shell_nr = 0)
     
-    #if total energy is supposed to be updated, make sure that it is
-    #initially up to date
+    # if total energy is supposed to be updated, make sure that it is
+    # initially up to date
     if update_total_energy && !graph_dict["total_energy_up_to_date"]
         graph_dict["total_energy"] = cluster_dict["cluster_energy"]
         graph_dict["total_energy_up_to_date"] = true
     end
 
-    #if desired, relax network first
+    # if desired, relax network first
     if relax_first
         graph_dict, cluster_dict = relax_cluster_keating!(graph_dict,
             cluster_dict,
@@ -811,7 +811,7 @@ function excite_entire_network!(graph_dict::Dict,
             update_total_energy = false)
     end
 
-    #excite network
+    # excite network
     graph_dict, cluster_dict, cluster_excitation_weight = excite_cluster!(graph_dict,
                                 cluster_dict,
                                 evolution_dict["temperature_vec"][1];

@@ -27,14 +27,14 @@ function get_evolution_dict(;
     nr_monte_carlo_steps_per_temperature_vec::Vector = [10,10]
     )
 
-    #check if the temperature sequence is given correctly
+    # check if the temperature sequence is given correctly
     if (length(temperature_vec) !== 
         length(nr_monte_carlo_steps_per_temperature_vec))
         @error "temperature_vec and nr_monte_carlo_steps_per_temperature_vec
         must have the same length"
     end
 
-    #store all arguments in a dictionary
+    # store all arguments in a dictionary
     evolution_dict = Dict(
     "nr_vertices" => nr_vertices, 
     "nr_dimensions" => nr_dimensions, 
@@ -75,16 +75,16 @@ function get_averaged_order_metrics(;save_result = false,
     label = nothing,
     nr_samples = 5)
 
-    #initialize vectors and arrays for order metrics
+    # initialize vectors and arrays for order metrics
     bond_length_std_vec = Vector{Fl}
 
-    #loop through samples 
+    # loop through samples 
     for i in 1:nr_samples
 
 
     end
 
-    #create dict to save
+    # create dict to save
     order_metrics_dict = Dict("wavevector_array" => wavevector_array,
                         "wavenumber_vec_vec" => wavenumber_vec_vec,
                         "spectral_density_array" => spectral_density_array,
@@ -93,10 +93,10 @@ function get_averaged_order_metrics(;save_result = false,
                         "voxel_edge_length" => autocovariance_fct_dict["voxel_edge_length"],
                         "label" => autocovariance_fct_dict["label"])
 
-    #if desired, adjust voxel edge length and label
+    # if desired, adjust voxel edge length and label
     order_metrics_dict = modify_keys_in_dict(spectral_density_dict, voxel_edge_length, label)
 
-    #save results if desired
+    # save results if desired
     if save_result
         GU.save_dict_to_h5(copy(order_metrics_dict);
                 save_path=save_path*"_order_metrics.h5")

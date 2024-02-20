@@ -3,37 +3,37 @@
 These are the calculations for the pachy weevil from the 10.1002advs.202202145 paper
 """
 
-#set raw data path
+# set raw data path
 data_path_raw = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy_10.1002advs.202202145\3Dvolumes\SD_ff04_a51_box5_vox1.tif"
 
 
-#load data, correct voxel size anisotropy and save data
+# load data, correct voxel size anisotropy and save data
 data_binary = BDA.get_binary_data_from_colorscale(data_path_raw; 
                                         voxel_size=(1,1,1), 
                                         save_data=true, 
                                         data_path_corrected=data_path_corrected)
 
 
-#set path to voxel size corrected data
+# set path to voxel size corrected data
 data_path_corrected = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy_10.1002advs.202202145\pachy_blue.h5"
       
-#compare hyperuniformity criterion for red and blue patches
+# compare hyperuniformity criterion for red and blue patches
 data_path_corrected_vec = [raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy_10.1002advs.202202145\pachy_blue.h5"]
 
-#set labels for plotting 
-label_vec = ["blue patch"] #, "red patch", "simple diamond"
+# set labels for plotting 
+label_vec = ["blue patch"] # , "red patch", "simple diamond"
 
-#create empty vector where plot dictionaries will be stored in            
+# create empty vector where plot dictionaries will be stored in            
 plot_dict_vec = []
 
 
-#loop through data that will be analyzed
+# loop through data that will be analyzed
 for i in eachindex(data_path_corrected_vec)
 
-    #load data and get all its essential information
+    # load data and get all its essential information
     data_binary, volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(data_path_corrected_vec[i] )
 
-    #determine local volume fraction variance vector by using measuring windows
+    # determine local volume fraction variance vector by using measuring windows
     window_edge_length_vec, local_volume_fract_variance_vec = BDA.get_local_volume_fract_variance_by_window_vec(nr_dimensions_data, 
                                                                                                     mean_edge_length_data,
                                                                                                     size_data, 
@@ -43,7 +43,7 @@ for i in eachindex(data_path_corrected_vec)
                                                                                                     window_positioning="scanned",
                                                                                                     window_shape="spherical")
 
-    #create dictionary for current plot
+    # create dictionary for current plot
     plot_dict = Dict("window_edge_length_vec" => window_edge_length_vec,
                     "local_volume_fract_variance_vec" => local_volume_fract_variance_vec,
                     "label" => label_vec[i] )
@@ -53,8 +53,8 @@ for i in eachindex(data_path_corrected_vec)
 end
 
 
-#plot window volume times local volume fraction uncertainty as a function of window edge length
-#to determine whether structure is hyperuniform
+# plot window volume times local volume fraction uncertainty as a function of window edge length
+# to determine whether structure is hyperuniform
 BDA.plot_volume_fraction_variance_times_window_volume(nr_dimensions_data,
                             plot_dict_vec,
                             save_plot=true,
@@ -65,29 +65,29 @@ BDA.plot_volume_fraction_variance_times_window_volume(nr_dimensions_data,
 
 
 
-#compare hyperuniformity criterion for red and blue patches
+# compare hyperuniformity criterion for red and blue patches
 data_path_corrected_vec = [raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy_10.1002advs.202202145\pachy_blue.h5",
                         raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy_10.1002advs.202202145\pachy_red.h5",
                         raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy_10.1002advs.202202145\simple_diamond.h5"]
 
-#set labels for plotting 
-label_vec = ["blue patch", "red patch", "simple diamond"] #, "red patch", "simple diamond"
+# set labels for plotting 
+label_vec = ["blue patch", "red patch", "simple diamond"] # , "red patch", "simple diamond"
 
-#in order to properly scale the x axis, save voxel edge lengths of the anisotropy corrected voxels
-#they are: blue 10nm, red 9nm, simple diamond 8.5nm (estimately)
+# in order to properly scale the x axis, save voxel edge lengths of the anisotropy corrected voxels
+# they are: blue 10nm, red 9nm, simple diamond 8.5nm (estimately)
 voxel_edge_length_vec = [10, 9, 8.5]
 
-#create empty vector where plot dictionaries will be stored in            
+# create empty vector where plot dictionaries will be stored in            
 plot_dict_vec = []
 
 
-#loop through data that will be analyzed
+# loop through data that will be analyzed
 for i in eachindex(data_path_corrected_vec)
 
-    #load data and get all its essential information
+    # load data and get all its essential information
     data_binary, volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(data_path_corrected_vec[i] )
 
-    #determine local volume fraction variance vector by using measuring windows
+    # determine local volume fraction variance vector by using measuring windows
     window_edge_length_vec, local_volume_fract_variance_vec = BDA.get_local_volume_fract_variance_by_window_vec(nr_dimensions_data, 
                                                                                                     mean_edge_length_data,
                                                                                                     size_data, 
@@ -97,7 +97,7 @@ for i in eachindex(data_path_corrected_vec)
                                                                                                     window_positioning="random",
                                                                                                     window_shape="spherical")
 
-    #create dictionary for current plot
+    # create dictionary for current plot
     plot_dict = Dict("window_edge_length_vec" => window_edge_length_vec,
                     "local_volume_fract_variance_vec" => local_volume_fract_variance_vec,
                     "voxel_edge_length" => voxel_edge_length_vec[i],
@@ -106,14 +106,14 @@ for i in eachindex(data_path_corrected_vec)
     push!(plot_dict_vec, plot_dict)
 
     
-    #save the plot_dict to a H5 file
+    # save the plot_dict to a H5 file
     BDA.save_dict_to_h5(copy(plot_dict);
     save_filename="pachy_volume_fraction_variance_random_spherical_"*label_vec[i])
                                                                                             
 end
 
 
-#plot local volume fraction variance as a function of window edge length
+# plot local volume fraction variance as a function of window edge length
 BDA.plot_volume_fraction_variance(plot_dict_vec,
                             save_plot=true,
                             title="Spherical measuring windows of random positions",
@@ -122,32 +122,32 @@ BDA.plot_volume_fraction_variance(plot_dict_vec,
 
 
 
-#compare hyperuniformity criterion for red and blue patches
+# compare hyperuniformity criterion for red and blue patches
 data_path_vec = [raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy_volume_fraction_variance_random_spherical_blue patch.h5",
                 raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy_volume_fraction_variance_random_spherical_red patch.h5",
                 raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\volume_fraction_variance_random_spherical_D_surface.h5"]
 
-#set labels for plotting 
-label_vec = ["blue patch", "red patch", "perfect diamond"] #, "red patch", "simple diamond"
+# set labels for plotting 
+label_vec = ["blue patch", "red patch", "perfect diamond"] # , "red patch", "simple diamond"
 
-#in order to properly scale the x axis, save voxel edge lengths of the anisotropy corrected voxels
-#they are: blue 10nm, red 9nm, simple diamond 8.5nm (estimately)
+# in order to properly scale the x axis, save voxel edge lengths of the anisotropy corrected voxels
+# they are: blue 10nm, red 9nm, simple diamond 8.5nm (estimately)
 voxel_edge_length_vec = [10, 9, 8.5]
 
-#create empty vector where plot dictionaries will be stored in            
+# create empty vector where plot dictionaries will be stored in            
 plot_dict_vec = []
 
-#loop through data that will be analyzed
+# loop through data that will be analyzed
 for i in eachindex(data_path_vec)
 
-    #load dictionary that contains the following keys:
-    #"window_edge_length_vec"
-    #"local_volume_fract_variance_vec"
-    #"voxel_edge_length"
-    #"label"
+    # load dictionary that contains the following keys:
+    # "window_edge_length_vec"
+    # "local_volume_fract_variance_vec"
+    # "voxel_edge_length"
+    # "label"
     plot_dict = BDA.load_h5_dict(data_path_vec[i])
 
-    #adjust label and voxel edge length
+    # adjust label and voxel edge length
     plot_dict["label"] = label_vec[i]
     plot_dict["voxel_edge_length"] = voxel_edge_length_vec[i]
 
@@ -156,15 +156,15 @@ for i in eachindex(data_path_vec)
 end
 
 
-#plot local volume fraction variance as a function of window edge length
+# plot local volume fraction variance as a function of window edge length
 BDA.plot_volume_fraction_variance(plot_dict_vec,
                             save_plot=true,
                             title="Spherical measuring windows of random positions",
                             save_filename="pachy_volume_fraction_variance_random_spherical_windows_blue_red_sd")
 
 
-#perform convergence analysis to determine the nr of measurements per distance 
-#when calculating the autocovariance function
+# perform convergence analysis to determine the nr of measurements per distance 
+# when calculating the autocovariance function
 BDA.convergence_analysis_autocovariance_fct_nr_measurements_per_distance(size_data,
                             volume_fract_tot,
                             data_binary;
@@ -173,21 +173,21 @@ BDA.convergence_analysis_autocovariance_fct_nr_measurements_per_distance(size_da
 
 
 
-#loop through data that will be analyzed
+# loop through data that will be analyzed
 for i in eachindex(data_path_corrected_vec)
 
-    #load data and get all its essential information
+    # load data and get all its essential information
     data_binary, volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(data_path_corrected_vec[i] )
 
 
-    #get autocovariance function as a function of sampling distance
+    # get autocovariance function as a function of sampling distance
     sampling_distance_vec, autocovariance_fct_vec = BDA.get_autocovariance_fct_isotrope_by_sampling_distance_vec(mean_edge_length_data,
                                                                                     size_data, 
                                                                                     volume_fract_tot,
                                                                                     data_binary;
                                                                                     nr_measurements_per_distance = 5000)
 
-    #create dictionary for current plot
+    # create dictionary for current plot
     plot_dict = Dict("sampling_distance_vec" => sampling_distance_vec,
                     "autocovariance_fct_vec" => autocovariance_fct_vec,
                     "voxel_edge_length" => voxel_edge_length_vec[i],
@@ -196,15 +196,15 @@ for i in eachindex(data_path_corrected_vec)
     push!(plot_dict_vec, plot_dict)
 
     
-    #save the plot_dict to a H5 file
+    # save the plot_dict to a H5 file
     BDA.save_dict_to_h5(copy(plot_dict);
     save_filename="pachy_autocovariance_fct_"*label_vec[i])
                                                                                             
 end
 
 
-#plot real part, imaginary part and absolute value of spectral 
-#density as a function of the wavenumber
+# plot real part, imaginary part and absolute value of spectral 
+# density as a function of the wavenumber
 BDA.plot_autocovariance_fct(plot_dict_vec;
                         title="Autocovariance function",
                         save_plot = true,
@@ -212,32 +212,32 @@ BDA.plot_autocovariance_fct(plot_dict_vec;
                         save_filename="pachy_autocovariance_fct_blue_red_sd")
 
 
-#compare hyperuniformity criterion for red and blue patches
+# compare hyperuniformity criterion for red and blue patches
 data_path_vec = [raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy_autocovariance_fct_blue patch.h5",
                 raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy_autocovariance_fct_red patch.h5",
                 raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\autocovariance_fct_D_surface.h5"]
 
-#set labels for plotting 
-label_vec = ["blue patch", "red patch", "perfect diamond"] #, "red patch", "simple diamond"
+# set labels for plotting 
+label_vec = ["blue patch", "red patch", "perfect diamond"] # , "red patch", "simple diamond"
 
-#in order to properly scale the x axis, save voxel edge lengths of the anisotropy corrected voxels
-#they are: blue 10nm, red 9nm, simple diamond 8.5nm (estimately)
+# in order to properly scale the x axis, save voxel edge lengths of the anisotropy corrected voxels
+# they are: blue 10nm, red 9nm, simple diamond 8.5nm (estimately)
 voxel_edge_length_vec = [10, 9, 8.5]
 
-#create empty vector where plot dictionaries will be stored in            
+# create empty vector where plot dictionaries will be stored in            
 plot_dict_vec = []
 
-#loop through data that will be analyzed
+# loop through data that will be analyzed
 for i in eachindex(data_path_vec)
 
-    #load dictionary that contains the following keys:
-    #"sampling_distance_vec"
-    #"autocovariance_fct_vec"
-    #"voxel_edge_length"
-    #"label"
+    # load dictionary that contains the following keys:
+    # "sampling_distance_vec"
+    # "autocovariance_fct_vec"
+    # "voxel_edge_length"
+    # "label"
     plot_dict = BDA.load_h5_dict(data_path_vec[i])
 
-    #adjust label and voxel edge length
+    # adjust label and voxel edge length
     plot_dict["label"] = label_vec[i]
     plot_dict["voxel_edge_length"] = voxel_edge_length_vec[i]
 
@@ -246,7 +246,7 @@ for i in eachindex(data_path_vec)
 end
 
 
-#plot local volume fraction variance as a function of window edge length
+# plot local volume fraction variance as a function of window edge length
 BDA.plot_autocovariance_fct(plot_dict_vec;
                             title="Autocovariance function",
                             save_plot = true,
@@ -255,14 +255,14 @@ BDA.plot_autocovariance_fct(plot_dict_vec;
 
 
 
-#loop through data that will be analyzed
+# loop through data that will be analyzed
 for i in eachindex(data_path_corrected_vec)
 
-    #load data and get all its essential information
+    # load data and get all its essential information
     data_binary, volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(data_path_corrected_vec[i] )
 
 
-    #get spectral density as a function of the wavenumber
+    # get spectral density as a function of the wavenumber
     wavenumber_vec, spectral_density_vec = BDA.get_spectral_density_isotrope_by_wavenumber_vec(mean_edge_length_data,
                                                                                         size_data,
                                                                                         volume_fract_tot,
@@ -270,7 +270,7 @@ for i in eachindex(data_path_corrected_vec)
                                                                                         nr_measurements_per_distance = 5000,
                                                                                         nr_wavenumbers=50) 
 
-    #create dictionary for current plot
+    # create dictionary for current plot
     plot_dict = Dict("wavenumber_vec" => wavenumber_vec,
                     "spectral_density_vec" => spectral_density_vec,
                     "voxel_edge_length" => voxel_edge_length_vec[i],
@@ -278,15 +278,15 @@ for i in eachindex(data_path_corrected_vec)
 
     push!(plot_dict_vec, plot_dict)
     
-    #save the plot_dict to a H5 file
+    # save the plot_dict to a H5 file
     BDA.save_dict_to_h5(copy(plot_dict);
     save_filename="pachy_spectral_density_fct_"*label_vec[i])
                                                                                             
 end
 
 
-#plot real part, imaginary part and absolute value of spectral 
-#density as a function of the wavenumber
+# plot real part, imaginary part and absolute value of spectral 
+# density as a function of the wavenumber
 BDA.plot_spectral_density(plot_dict_vec;
                         title="Spectral density",
                         save_plot = true,
@@ -294,32 +294,32 @@ BDA.plot_spectral_density(plot_dict_vec;
                         save_filename="pachy_spectral_density_blue_red_sd")
 
 
-#compare hyperuniformity criterion for red and blue patches
+# compare hyperuniformity criterion for red and blue patches
 data_path_vec = [raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy_spectral_density_fct_blue patch.h5",
                 raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy_spectral_density_fct_red patch.h5",
                 raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\spectral_density_D_surface.h5"]
 
-#set labels for plotting 
-label_vec = ["blue patch", "red patch", "perfect diamond"] #, "red patch", "simple diamond"
+# set labels for plotting 
+label_vec = ["blue patch", "red patch", "perfect diamond"] # , "red patch", "simple diamond"
 
-#in order to properly scale the x axis, save voxel edge lengths of the anisotropy corrected voxels
-#they are: blue 10nm, red 9nm, simple diamond 8.5nm (estimately)
+# in order to properly scale the x axis, save voxel edge lengths of the anisotropy corrected voxels
+# they are: blue 10nm, red 9nm, simple diamond 8.5nm (estimately)
 voxel_edge_length_vec = [10, 9, 8.5]
 
-#create empty vector where plot dictionaries will be stored in            
+# create empty vector where plot dictionaries will be stored in            
 plot_dict_vec = []
 
-#loop through data that will be analyzed
+# loop through data that will be analyzed
 for i in eachindex(data_path_vec)
 
-    #load dictionary that contains the following keys:
-    #"wavenumber_vec"
-    #"spectral_density_vec"
-    #"voxel_edge_length"
-    #"label"
+    # load dictionary that contains the following keys:
+    # "wavenumber_vec"
+    # "spectral_density_vec"
+    # "voxel_edge_length"
+    # "label"
     plot_dict = BDA.load_h5_dict(data_path_vec[i])
 
-    #adjust label and voxel edge length
+    # adjust label and voxel edge length
     plot_dict["label"] = label_vec[i]
     plot_dict["voxel_edge_length"] = voxel_edge_length_vec[i]
 
@@ -328,8 +328,8 @@ for i in eachindex(data_path_vec)
 end
 
 
-#plot real part, imaginary part and absolute value of spectral 
-#density as a function of the wavenumber
+# plot real part, imaginary part and absolute value of spectral 
+# density as a function of the wavenumber
 BDA.plot_spectral_density(plot_dict_vec;
                         title="Spectral density",
                         save_plot = true,
@@ -337,26 +337,26 @@ BDA.plot_spectral_density(plot_dict_vec;
                         save_filename="pachy_spectral_density_blue_red_sd")
 
 
-#path of original data
+# path of original data
 data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_blue.h5"
 
-#path where analysis data will be saved
+# path where analysis data will be saved
 save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_blue"
     
-#calculate and save all statistical measures
+# calculate and save all statistical measures
 BDA.save_statistical_measures(data_path, 
                                 10, 
                                 "blue", 
                                 save_path)
 
 
-#path of original data
+# path of original data
 data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_red.h5"
 
-#path where analysis data will be saved
+# path where analysis data will be saved
 save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red"
     
-#calculate and save all statistical measures
+# calculate and save all statistical measures
 BDA.save_statistical_measures(data_path, 
                                 9, 
                                 "red", 
@@ -364,15 +364,15 @@ BDA.save_statistical_measures(data_path,
 
                     
 
-#set paths where statistical data is stored
+# set paths where statistical data is stored
 data_path_vec = [raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_blue",
 raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red",
 raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\nodal_surfaces\D_surface"]
 
-#set path where plot will be stored
+# set path where plot will be stored
 save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\pachy\pachy_blue_red_d"
 
-#plot all statistical measures
+# plot all statistical measures
 BDA.plot_statistical_measures(data_path_vec,
             save_path;
             voxel_edge_length_vec=[10, 9, 8.5],
@@ -380,13 +380,13 @@ BDA.plot_statistical_measures(data_path_vec,
             )
 
 
-#path of original data
+# path of original data
 data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_blue.h5"
 
-#path where analysis data will be saved
+# path where analysis data will be saved
 save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_blue"
     
-#calculate and save all statistical measures
+# calculate and save all statistical measures
 BDA.save_statistical_measures(data_path, 
                                 10, 
                                 "blue", 
@@ -395,13 +395,13 @@ BDA.save_statistical_measures(data_path,
                                 save_local_volume_fraction_variance=false)
 
 
-#path of original data
+# path of original data
 data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_red.h5"
 
-#path where analysis data will be saved
+# path where analysis data will be saved
 save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red"
     
-#calculate and save all statistical measures
+# calculate and save all statistical measures
 BDA.save_statistical_measures(data_path, 
                                 9, 
                                 "red", 
@@ -411,11 +411,11 @@ BDA.save_statistical_measures(data_path,
 
 
 
-#set data path
+# set data path
 data_path_vec = [raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_blue",
                 raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red"]
 
-#set path to save plot
+# set path to save plot
 save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\pachy\\"
 
 BDA.plot_statistical_measures(data_path_vec,
@@ -431,16 +431,16 @@ BDA.plot_statistical_measures(data_path_vec,
 data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_red.h5"
 
 
-#load data and get all its essential information
+# load data and get all its essential information
 data_binary, volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(data_path )
 
-#set data path
+# set data path
 dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red_autocovariance_fct_direction.h5"
 
-#load dict
+# load dict
 data_dict = BDA.load_h5_dict(dict_path)
 
-#calculate spectral density
+# calculate spectral density
 sampled_wavenumbers_vec_vec, sampled_wavevectors_array, spectral_density_array = BDA.get_spectral_density(size_data, 
                                                 volume_fract_tot,
                                                 data_binary;
@@ -448,10 +448,10 @@ sampled_wavenumbers_vec_vec, sampled_wavevectors_array, spectral_density_array =
                                                 sampling_vec_array = data_dict["sampling_vec_array"],
                                                 autocovariance_fct_array = data_dict["autocovariance_fct_array"])
 
-#path where spectral density is saved
+# path where spectral density is saved
 save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red_spectral_density_direction.h5"
 
-#create dict to save
+# create dict to save
 saving_dict = Dict("sampled_wavevectors_array" => sampled_wavevectors_array,
                     "sampled_wavenumbers_vec_vec" => sampled_wavenumbers_vec_vec,
                     "spectral_density_array" => spectral_density_array,
@@ -462,11 +462,11 @@ BDA.save_dict_to_h5(saving_dict; save_path)
 
 
 
-#path where spectral density data is saved
+# path where spectral density data is saved
 dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red_spectral_density_direction.h5"
 
 
-#path where plot is saved
+# path where plot is saved
 save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\pachy\pachy_red_"
 
 spectral_density_dict = BDA.load_h5_dict(dict_path)
@@ -480,29 +480,29 @@ BDA.plot_spectral_density_heatmap(spectral_density_dict,
 
 
 
-#path of original data
+# path of original data
 data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_red.h5"
 
-#load data and get all its essential information
+# load data and get all its essential information
 data_binary, volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(data_path )
 
-#set data path
+# set data path
 dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red_autocovariance_fct_direction.h5"
 
-#load dict
+# load dict
 data_dict = BDA.load_h5_dict(dict_path)
 
-#set matrix of measured direction vectors (in this case the identity matrix)
+# set matrix of measured direction vectors (in this case the identity matrix)
 direction_vec_mat = [1 0 0; 0 1 0; 0 0 1]
 
-#set vector of labels
+# set vector of labels
 label_vec = ["pachy red [1,0,0]", "pachy red [0,1,0]", "pachy red [0,0,1]" ]
 
 for i in 1:3
 
     direction_vec = direction_vec_mat[:,i]
 
-    #determine spectral density
+    # determine spectral density
     sampled_wavenumbers_vec, spectral_density_vec = BDA.get_spectral_density_along_direction(size_data, 
                 volume_fract_tot,
                 data_binary,
@@ -510,10 +510,10 @@ for i in 1:3
                 sampling_vec_array = data_dict["sampling_vec_array"],
                 autocovariance_fct_array = data_dict["autocovariance_fct_array"])
     
-    #path where spectral density is saved
+    # path where spectral density is saved
     save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\\"* label_vec[i] *"_spectral_density_direction.h5"
 
-    #create dict to save
+    # create dict to save
     saving_dict = Dict("wavenumber_vec" => sampled_wavenumbers_vec,
                         "spectral_density_vec" => spectral_density_vec,
                         "voxel_edge_length" => data_dict["voxel_edge_length"],
@@ -523,24 +523,24 @@ for i in 1:3
 end
 
 
-#path of original data
+# path of original data
 data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_red.h5"
 
-#load data and get all its essential information
+# load data and get all its essential information
 data_binary, volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(data_path )
 
-#set data path
+# set data path
 dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red_autocovariance_fct_direction.h5"
 
-#load dict
+# load dict
 data_dict = BDA.load_h5_dict(dict_path)
 
-#set matrix of measured direction vectors (in this case the identity matrix)
+# set matrix of measured direction vectors (in this case the identity matrix)
 direction_vec_mat = [1/sqrt(2) 1/sqrt(3) 1/sqrt(6); 
                     -1/sqrt(2) 1/sqrt(3) 1/sqrt(6); 
                     0 1/sqrt(3) -2/sqrt(6)]
 
-#set vector of labels
+# set vector of labels
 label_vec = ["pachy red 1/sqrt(2)*[1,-1,0]", "pachy red 1/sqrt(3)*[1,1,1]", "pachy red 1/sqrt(6)*[1,1,-2]" ]
 
 
@@ -550,7 +550,7 @@ for i in 1:3
 
     direction_vec = direction_vec_mat[:,i]
 
-    #determine spectral density
+    # determine spectral density
     sampled_wavenumbers_vec, spectral_density_vec = BDA.get_spectral_density_along_direction(size_data, 
                 volume_fract_tot,
                 data_binary,
@@ -558,10 +558,10 @@ for i in 1:3
                 sampling_vec_array = data_dict["sampling_vec_array"],
                 autocovariance_fct_array = data_dict["autocovariance_fct_array"])
     
-    #path where spectral density is saved
+    # path where spectral density is saved
     save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\\"* naming_vec[i] *"_spectral_density_direction.h5"
 
-    #create dict to save
+    # create dict to save
     saving_dict = Dict("wavenumber_vec" => sampled_wavenumbers_vec,
                         "spectral_density_vec" => spectral_density_vec,
                         "voxel_edge_length" => data_dict["voxel_edge_length"],
@@ -574,25 +574,25 @@ end
 naming_vec = ["pachy red [1,-1,0]", "pachy red [1,1,1]", "pachy red [1,1,-2]" ]
 
 
-#initialize plot dict vec 
+# initialize plot dict vec 
 plot_dict_vec = []
 
 for i in 1:3
     
-    #path where spectral density is saved
+    # path where spectral density is saved
     load_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\\"* naming_vec[i] *"_spectral_density_direction.h5"
     
-    #load dict
+    # load dict
     data_dict = BDA.load_h5_dict(load_path)
 
-    #add current dict to plot dict vector
+    # add current dict to plot dict vector
     push!(plot_dict_vec, data_dict)
 end
 
-#path where plot will be saved
+# path where plot will be saved
 save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\pachy\pachy_red_direction_rotated_axes"
 
-#plot the spectral densities
+# plot the spectral densities
 BDA.plot_spectral_density(plot_dict_vec,
                                 save_path,
                                 save_plot = true,
@@ -600,13 +600,13 @@ BDA.plot_spectral_density(plot_dict_vec,
 
 
                     
-#path of original data
+# path of original data
 data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_blue.h5"
 
-#path where analysis data will be saved
+# path where analysis data will be saved
 save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_blue"
     
-#calculate and save all statistical measures
+# calculate and save all statistical measures
 BDA.save_statistical_measures(data_path, 
                                 10, 
                                 "P. c. mirabilis blue", 
@@ -618,13 +618,13 @@ BDA.save_statistical_measures(data_path,
                                 save_spectral_density_along_directions = true)
 
 
-#path of original data
+# path of original data
 data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_red.h5"
 
-#path where analysis data will be saved
+# path where analysis data will be saved
 save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red"
     
-#calculate and save all statistical measures
+# calculate and save all statistical measures
 BDA.save_statistical_measures(data_path, 
                                 9, 
                                 "P. c. mirabilis red", 
@@ -636,14 +636,14 @@ BDA.save_statistical_measures(data_path,
                                 save_spectral_density_along_directions = true)
 
 
-#set paths where statistical data is stored
+# set paths where statistical data is stored
 data_path_vec = [raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red",
 raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_blue"]
 
-#set path where plot will be stored
+# set path where plot will be stored
 save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\pachy\\"
 
-#plot all statistical measures
+# plot all statistical measures
 BDA.plot_statistical_measures(data_path_vec,
             save_path;
             spectral_density_xlims = [0,0.1],
@@ -657,20 +657,20 @@ BDA.plot_statistical_measures(data_path_vec,
 
 data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_red.h5"
 
-#load data and get all its essential information
+# load data and get all its essential information
 data_binary, volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(data_path )
 
-#set data path
+# set data path
 dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red_autocovariance_fct_direction.h5"
 
-#load dict
+# load dict
 data_dict = BDA.load_h5_dict(dict_path)
 
 
-#path where spectral density is saved
+# path where spectral density is saved
 save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red_spectral_density_direction.h5"
 
-#calculate spectral density
+# calculate spectral density
 wavenumber_vec_vec, wavevector_array, spectral_density_array = BDA.get_spectral_density_by_wavevector_array(size_data, 
                                                 volume_fract_tot,
                                                 data_binary;
@@ -685,16 +685,16 @@ wavenumber_vec_vec, wavevector_array, spectral_density_array = BDA.get_spectral_
 
 
 
-#set paths for structure dict, autocovariance fct dict and where spectral_density along direction is saved 
+# set paths for structure dict, autocovariance fct dict and where spectral_density along direction is saved 
 structure_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_blue_structure.h5"
 autocovariance_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_blue_autocovariance_fct.h5"
 save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_blue"
 plot_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\pachy\pachy_blue"
 
-#load structure dict
+# load structure dict
 structure_dict = BDA.load_h5_dict(structure_path)
 
-#load autocovariance fct direction dict
+# load autocovariance fct direction dict
 autocovariance_dict = BDA.load_h5_dict(autocovariance_path)
 
 spectral_density_dict = BDA.get_spectral_density_isotrope_by_wavenumber_vec(structure_dict;
@@ -714,19 +714,19 @@ BDA.plot_spectral_density([spectral_density_dict],
 
 
 
-#set paths for structure dict, autocovariance fct dict and where spectral_density along direction is saved 
+# set paths for structure dict, autocovariance fct dict and where spectral_density along direction is saved 
 structure_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_red_structure.h5"
 autocovariance_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red_autocovariance_fct_direction.h5"
 save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red"
 plot_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\pachy\pachy_red"
 
-#load structure dict
+# load structure dict
 structure_dict = BDA.load_h5_dict(structure_path)
 
-#load autocovariance fct direction dict
+# load autocovariance fct direction dict
 autocovariance_fct_direction_dict = BDA.load_h5_dict(autocovariance_path)
 
-#calculate and save complete autocovariance fct 
+# calculate and save complete autocovariance fct 
 complete_autocovariance_dict = BDA.get_complete_autocovariance_fct_by_sampling_vec_array(
     autocovariance_fct_direction_dict;
     save_result = true,
@@ -740,7 +740,7 @@ spectral_density_dict = BDA.get_spectral_density_array_by_fft(complete_autocovar
 
 println("spectral density dict calculated")
 
-#plot spectral density
+# plot spectral density
 BDA.plot_spectral_density_heatmap(spectral_density_dict,
     plot_path;
     title="Spectral density",
@@ -765,24 +765,24 @@ This is where the calculations for nodal surfaces begin
 """
 
 
-#set which surfaces will be generated
+# set which surfaces will be generated
 label_vec = ["D", "G", "P", "I-WP"] 
 
-#set properties of generated data
+# set properties of generated data
 unit_cell_length = 500
 nr_unit_cells = 10
 
 
-#loop through surfaces
+# loop through surfaces
 for label in label_vec
 
-    #generate 3d binary data for current nodal surface
+    # generate 3d binary data for current nodal surface
     data_binary = BDA.get_binary_data_from_nodal_eqn(unit_cell_length, 
                                                 nr_unit_cells,
                                                 label)
 
 
-    #save current nodal surface to h5 file
+    # save current nodal surface to h5 file
     BDA.save_nodal_surface_data(data_binary,
                             unit_cell_length, 
                             nr_unit_cells,
@@ -792,26 +792,26 @@ end
 
 
 
-#compare hyperuniformity criterion for red and blue patches
+# compare hyperuniformity criterion for red and blue patches
 data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\nodal_surfaces\\"
 
-#set surfaces that are analyzed
+# set surfaces that are analyzed
 label_vec = ["D", "G", "P", "I-WP"] 
 
-#create empty vector where plot dictionaries will be stored in            
+# create empty vector where plot dictionaries will be stored in            
 plot_dict_vec = []
 
 
-#loop through data that will be analyzed
+# loop through data that will be analyzed
 for label in label_vec
 
-    #determine data path of binary data for current nodal structure
+    # determine data path of binary data for current nodal structure
     current_path = data_path*label*"_surface.h5"
 
-    #load data and get all its essential information
+    # load data and get all its essential information
     data_binary, volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(current_path )
 
-    #determine local volume fraction variance vector by using measuring windows
+    # determine local volume fraction variance vector by using measuring windows
     window_edge_length_vec, local_volume_fract_variance_vec = BDA.get_local_volume_fract_variance_by_window_vec(nr_dimensions_data, 
                                                                                                     mean_edge_length_data,
                                                                                                     size_data, 
@@ -821,7 +821,7 @@ for label in label_vec
                                                                                                     window_positioning="random",
                                                                                                     window_shape="spherical")
 
-    #create dictionary for current plot
+    # create dictionary for current plot
     plot_dict = Dict("window_edge_length_vec" => window_edge_length_vec,
                     "local_volume_fract_variance_vec" => local_volume_fract_variance_vec,
                     "voxel_edge_length" => 10,
@@ -830,14 +830,14 @@ for label in label_vec
     push!(plot_dict_vec, plot_dict)
 
     
-    #save the plot_dict to a H5 file
+    # save the plot_dict to a H5 file
     BDA.save_dict_to_h5(copy(plot_dict);
     save_filename="volume_fraction_variance_random_spherical_"*label*"_surface")
                                                                                             
 end
 
 
-#plot local volume fraction variance as a function of window edge length
+# plot local volume fraction variance as a function of window edge length
 BDA.plot_volume_fraction_variance(plot_dict_vec,
                             save_plot=true,
                             title="Spherical measuring windows of random positions",
@@ -845,23 +845,23 @@ BDA.plot_volume_fraction_variance(plot_dict_vec,
 
 
 
-#loop through data that will be analyzed
+# loop through data that will be analyzed
 for label in label_vec
 
-    #determine data path of binary data for current nodal structure
+    # determine data path of binary data for current nodal structure
     current_path = data_path*label*"_surface.h5"
 
-    #load data and get all its essential information
+    # load data and get all its essential information
     data_binary, volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(current_path )
 
-    #get autocovariance function as a function of sampling distance
+    # get autocovariance function as a function of sampling distance
     sampling_distance_vec, autocovariance_fct_vec = BDA.get_autocovariance_fct_isotrope_by_sampling_distance_vec(mean_edge_length_data,
                                                                                     size_data, 
                                                                                     volume_fract_tot,
                                                                                     data_binary;
                                                                                     nr_measurements_per_distance = 20000)
 
-    #create dictionary for current plot
+    # create dictionary for current plot
     plot_dict = Dict("sampling_distance_vec" => sampling_distance_vec,
                     "autocovariance_fct_vec" => autocovariance_fct_vec,
                     "voxel_edge_length" => 10,
@@ -870,14 +870,14 @@ for label in label_vec
     push!(plot_dict_vec, plot_dict)
 
     
-    #save the plot_dict to a H5 file
+    # save the plot_dict to a H5 file
     BDA.save_dict_to_h5(copy(plot_dict);
     save_filename="autocovariance_fct_"*label*"_surface")
                                                                                             
 end
 
 
-#plot local volume fraction variance as a function of window edge length
+# plot local volume fraction variance as a function of window edge length
 BDA.plot_autocovariance_fct(plot_dict_vec;
                             title="Autocovariance function",
                             save_plot = true,
@@ -885,26 +885,26 @@ BDA.plot_autocovariance_fct(plot_dict_vec;
 
 
                             
-#create vector for plot_dicts
+# create vector for plot_dicts
 plot_dict_vec = []
 
-#loop through data that will be analyzed
+# loop through data that will be analyzed
 for label in label_vec
 
-    #determine data path of binary data for current nodal structure
+    # determine data path of binary data for current nodal structure
     current_path = data_path*label*"_surface.h5"
 
-    #load data and get all its essential information
+    # load data and get all its essential information
     data_binary, volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(current_path )
 
-    #load dictionary that contains the following keys:
-    #"sampling_distance_vec"
-    #"autocovariance_fct_vec"
-    #"voxel_edge_length"
-    #"label"
+    # load dictionary that contains the following keys:
+    # "sampling_distance_vec"
+    # "autocovariance_fct_vec"
+    # "voxel_edge_length"
+    # "label"
     dict = BDA.load_h5_dict("autocovariance_fct_"*label*"_surface")
 
-    #calculate spectral density for loaded autocovariance function
+    # calculate spectral density for loaded autocovariance function
     wavenumber_vec, spectral_density_vec = BDA.get_spectral_density_isotrope_by_wavenumber_vec(mean_edge_length_data,
                 size_data, 
                 volume_fract_tot,
@@ -914,7 +914,7 @@ for label in label_vec
                 sampling_distance_vec = dict["sampling_distance_vec"],
                 autocovariance_fct_vec = dict["autocovariance_fct_vec"])
 
-    #create dictionary for current plot
+    # create dictionary for current plot
     plot_dict = Dict("wavenumber_vec" => wavenumber_vec,
                     "spectral_density_vec" => spectral_density_vec,
                     "voxel_edge_length" => 10,
@@ -923,48 +923,48 @@ for label in label_vec
     push!(plot_dict_vec, plot_dict)
 
     
-    #save the plot_dict to a H5 file
+    # save the plot_dict to a H5 file
     BDA.save_dict_to_h5(copy(plot_dict);
                         save_filename="spectral_density_"*label*"_surface")
                                                                                             
 end
 
-#plot real part, imaginary part and absolute value of spectral 
-#density as a function of the wavenumber
+# plot real part, imaginary part and absolute value of spectral 
+# density as a function of the wavenumber
 BDA.plot_spectral_density(plot_dict_vec;
                         title="Spectral density",
                         save_plot = true,
                         save_filename="spectral_density_nodal_surfaces")
 
 
-#set paths where statistical data is stored
+# set paths where statistical data is stored
 data_path_vec = (raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\nodal_surfaces\\"
                     .* ["D", "I-WP", "P", "G"] .* "_surface" )
 
-#set path where plot will be stored
+# set path where plot will be stored
 save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\nodal_surfaces\nodal_surfaces"
 
-#plot all statistical measures
+# plot all statistical measures
 BDA.plot_statistical_measures(data_path_vec,
             save_path)
 
 
 
-#get data essentials of stervi data
+# get data essentials of stervi data
 data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_green.h5"
 data_binary, volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(data_path )
 nr_sampling_distances = BDA.get_nr_sampling_distances(mean_edge_length_data)
 
 
-#now analyze I-WP with the nr of sampling distances of the stervi weevil
-#path of original data
+# now analyze I-WP with the nr of sampling distances of the stervi weevil
+# path of original data
 data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\nodal_surfaces\I-WP_surface.h5"
 
-#path where analysis data will be saved
+# path where analysis data will be saved
 save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\nodal_surfaces\I-WP_surface_fewer_sampling_distances"
     
 
-#calculate and save all statistical measures
+# calculate and save all statistical measures
 BDA.save_statistical_measures(data_path, 
                                 10, 
                                 "I-WP", 
@@ -978,13 +978,13 @@ label_vec = ["D", "I-WP", "P", "G"]
 
 for label in label_vec
 
-    #path of original data
+    # path of original data
     data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\nodal_surfaces\\"*label*"_surface.h5"
 
-    #path where analysis data will be saved
+    # path where analysis data will be saved
     save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\nodal_surfaces\\"*label*"_surface"
 
-    #calculate and save all statistical measures
+    # calculate and save all statistical measures
     BDA.save_statistical_measures(data_path, 
                                     10, 
                                     label, 
@@ -995,24 +995,24 @@ for label in label_vec
 end
 
 
-#set which surfaces will be generated
+# set which surfaces will be generated
 label_vec = ["D", "G", "P", "I-WP"] 
 
-#set properties of generated data
+# set properties of generated data
 unit_cell_length = 500
 nr_unit_cells = 1
 
 
-#loop through surfaces
+# loop through surfaces
 for label in label_vec
 
-    #generate 3d binary data for current nodal surface
+    # generate 3d binary data for current nodal surface
     data_binary = BDA.get_binary_data_from_nodal_eqn(unit_cell_length, 
                                                 nr_unit_cells,
                                                 label)
 
 
-    #save current nodal surface to h5 file
+    # save current nodal surface to h5 file
     BDA.save_nodal_surface_data(data_binary,
                             unit_cell_length, 
                             nr_unit_cells,
@@ -1021,23 +1021,23 @@ for label in label_vec
 end
 
 
-#set which surfaces will be generated
+# set which surfaces will be generated
 label_vec = ["D", "G", "P", "I-WP"] 
 
-#set data path
+# set data path
 data_path_vec = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\nodal_surfaces\single_unit_cell_" .* label_vec .* "_surface.h5" 
 
 
-#set path where autocovariance dict will be stored
+# set path where autocovariance dict will be stored
 save_path_vec = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\nodal_surfaces\single_unit_cell_" .* label_vec .* "_surface"
 
 
 for i in eachindex(data_path_vec)
 
-    #get data and essential information
+    # get data and essential information
     data_binary, volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(data_path_vec[i])
 
-    #get autocovariance function array
+    # get autocovariance function array
     sampling_distance_vec_vec, sampling_vec_array, autocovariance_fct_array = BDA.get_autocovariance_fct_by_sampling_vec_array(
                         size_data,
                         volume_fract_tot,
@@ -1054,10 +1054,10 @@ end
 
 
 
-#set which surfaces will be generated
+# set which surfaces will be generated
 label_vec = ["D", "G", "P", "I-WP"] 
 
-#set path where autocovariance dict of single unit cell is stored
+# set path where autocovariance dict of single unit cell is stored
 suc_path_vec = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\nodal_surfaces\single_unit_cell_" .* label_vec .* "_surface_autocovariance_fct_direction.h5"
 
 save_path_vec = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\nodal_surfaces\\" .* label_vec .* "_surface"
@@ -1065,10 +1065,10 @@ save_path_vec = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_da
 
 for i in eachindex(suc_path_vec)
 
-    #load dict
+    # load dict
     suc_dict = BDA.load_h5_dict(suc_path_vec[i])
 
-    #get autocovariance function array
+    # get autocovariance function array
     sampling_distance_vec_vec, sampling_vec_array, autocovariance_fct_array = BDA.extrapolate_periodic_data_autocovariance_fct_by_sampling_vec_array(
                 suc_dict;
                 save_result = true,
@@ -1080,19 +1080,19 @@ end
 
 
 
-#set which surfaces will be generated
+# set which surfaces will be generated
 label_vec = ["D", "G", "P", "I-WP"] 
 
 
-#path where analysis data will be saved
+# path where analysis data will be saved
 data_path_vec = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\nodal_surfaces\\" .* label_vec .* "_surface.h5"
 
-#path where analysis data will be saved
+# path where analysis data will be saved
 save_path_vec = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\nodal_surfaces\\" .* label_vec .* "_surface"
 
 for i in eachindex(data_path_vec)
     
-    #calculate and save all statistical measures
+    # calculate and save all statistical measures
     BDA.save_statistical_measures(data_path_vec[i], 
                                     10, 
                                     label_vec[i], 
@@ -1107,10 +1107,10 @@ for i in eachindex(data_path_vec)
 end
 
 
-#set paths where statistical data is stored
+# set paths where statistical data is stored
 plot_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\nodal_surfaces\\"
 
-#plot all statistical measures
+# plot all statistical measures
 BDA.plot_statistical_measures(save_path_vec,
                     plot_path;
                     spectral_density_xlims = [0,0.1],
@@ -1123,10 +1123,10 @@ BDA.plot_statistical_measures(save_path_vec,
 
 
 
-#compare hyperuniformity criterion for red and blue patches
+# compare hyperuniformity criterion for red and blue patches
 data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\nodal_surfaces\\"
 
-#set surfaces that are analyzed
+# set surfaces that are analyzed
 label_vec = ["D", "G", "P", "I-WP"] 
 
 structure_dict_path_vec = data_path .* label_vec .* "_surface"
@@ -1135,13 +1135,13 @@ voxel_edge_length_vec = [10, 10, 10, 10]
 
 for i in eachindex(structure_dict_path_vec)
 
-    #load dictionary
+    # load dictionary
     structure_dict = BDA.load_h5_dict(structure_dict_path_vec[i]* ".h5")
 
-    #get essential information of data
+    # get essential information of data
     volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(structure_dict["data"])
 
-    #add this info to dictionary and save it
+    # add this info to dictionary and save it
     structure_dict = Dict("data_binary" => structure_dict["data"], 
                             "volume_fract_tot" => volume_fract_tot, 
                             "size_data" => collect(size_data), 
@@ -1157,20 +1157,20 @@ for i in eachindex(structure_dict_path_vec)
 
 end
 
-#compare hyperuniformity criterion for red and blue patches
+# compare hyperuniformity criterion for red and blue patches
 data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\nodal_surfaces\\single_unit_cell_"
 
 structure_dict_path_vec = data_path .* label_vec .* "_surface"
 
 for i in eachindex(structure_dict_path_vec)
 
-    #load dictionary
+    # load dictionary
     structure_dict = BDA.load_h5_dict(structure_dict_path_vec[i]* ".h5")
 
-    #get essential information of data
+    # get essential information of data
     volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(structure_dict["data"])
 
-    #add this info to dictionary and save it
+    # add this info to dictionary and save it
     structure_dict = Dict("data_binary" => structure_dict["data"], 
                             "volume_fract_tot" => volume_fract_tot, 
                             "size_data" => collect(size_data), 
@@ -1187,16 +1187,16 @@ for i in eachindex(structure_dict_path_vec)
 end
 
 
-#set which surfaces will be generated
-label_vec = ["D", "G", "P", "I-WP"]  #
+# set which surfaces will be generated
+label_vec = ["D", "G", "P", "I-WP"]  # 
 
-#set properties of generated data
+# set properties of generated data
 unit_cell_length = 500
 nr_unit_cells = 10
 
 for label in label_vec
 
-    #generate 3d binary data for current nodal surface
+    # generate 3d binary data for current nodal surface
     structure_dict = BDA.get_binary_data_from_nodal_eqn(unit_cell_length, 
                                                 nr_unit_cells,
                                                 label;
@@ -1214,13 +1214,13 @@ The data was sent by Viola and is not directly taken from Zenodo
 """
 
 
-#set raw data path
+# set raw data path
 data_path_raw_prefix = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\2d_images_green\slice_"
 data_path_raw_suffix = "_max11.tif"
 
 data_path_corrected = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_green.h5"
 
-#load data, correct voxel size anisotropy and save data
+# load data, correct voxel size anisotropy and save data
 data_binary = BDA.get_binary_data_from_colorscale_stack(data_path_raw_prefix,
                                         data_path_raw_suffix,
                                         301; 
@@ -1229,13 +1229,13 @@ data_binary = BDA.get_binary_data_from_colorscale_stack(data_path_raw_prefix,
 
 
                                         
-#set raw data path
+# set raw data path
 data_path_raw_prefix = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\2d_images_blue\slice_"
 data_path_raw_suffix = "_max11.tif"
 
 data_path_corrected = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_blue.h5"
 
-#load data, correct voxel size anisotropy and save data
+# load data, correct voxel size anisotropy and save data
 data_binary = BDA.get_binary_data_from_colorscale_stack(data_path_raw_prefix,
                                         data_path_raw_suffix,
                                         250; 
@@ -1243,33 +1243,33 @@ data_binary = BDA.get_binary_data_from_colorscale_stack(data_path_raw_prefix,
                                         data_path_corrected=data_path_corrected)
 
 
-#loop through data that will be analyzed
+# loop through data that will be analyzed
 for i in eachindex(data_path_corrected_vec)
 
-    #load data and get all its essential information
+    # load data and get all its essential information
     data_binary, volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(data_path_corrected_vec[i] )
 
     
-    #get autocovariance function as a function of sampling distance
+    # get autocovariance function as a function of sampling distance
     sampling_distance_vec, autocovariance_fct_vec = BDA.get_autocovariance_fct_isotrope_by_sampling_distance_vec(mean_edge_length_data,
                                                                                     size_data, 
                                                                                     volume_fract_tot,
                                                                                     data_binary;
                                                                                     nr_measurements_per_distance = 10000)
 
-    #create dictionary for current plot
+    # create dictionary for current plot
     plot_dict = Dict("sampling_distance_vec" => sampling_distance_vec,
                     "autocovariance_fct_vec" => autocovariance_fct_vec,
                     "voxel_edge_length" => 11,
                     "label" => "green" )
 
     
-    #save the plot_dict to a H5 file
+    # save the plot_dict to a H5 file
     BDA.save_dict_to_h5(copy(plot_dict);
     save_filename="stervi_autocovariance_fct_green")
 
 
-    #calculate spectral density for loaded autocovariance function
+    # calculate spectral density for loaded autocovariance function
     wavenumber_vec, spectral_density_vec = BDA.get_spectral_density_isotrope_by_wavenumber_vec(mean_edge_length_data,
                 size_data, 
                 volume_fract_tot,
@@ -1279,19 +1279,19 @@ for i in eachindex(data_path_corrected_vec)
                 sampling_distance_vec = sampling_distance_vec,
                 autocovariance_fct_vec = autocovariance_fct_vec)
 
-    #create dictionary for current plot
+    # create dictionary for current plot
     plot_dict = Dict("wavenumber_vec" => wavenumber_vec,
                     "spectral_density_vec" => spectral_density_vec,
                     "voxel_edge_length" => 11,
                     "label" => "green" )
 
     
-    #save the plot_dict to a H5 file
+    # save the plot_dict to a H5 file
     BDA.save_dict_to_h5(copy(plot_dict);
                         save_filename="stervi_spectral_density_green")
 
 
-    #determine local volume fraction variance vector by using measuring windows
+    # determine local volume fraction variance vector by using measuring windows
     window_edge_length_vec, local_volume_fract_variance_vec = BDA.get_local_volume_fract_variance_by_window_vec(nr_dimensions_data, 
                                                                                                     mean_edge_length_data,
                                                                                                     size_data, 
@@ -1301,14 +1301,14 @@ for i in eachindex(data_path_corrected_vec)
                                                                                                     window_positioning="random",
                                                                                                     window_shape="spherical")
 
-    #create dictionary for current plot
+    # create dictionary for current plot
     plot_dict = Dict("window_edge_length_vec" => window_edge_length_vec,
                     "local_volume_fract_variance_vec" => local_volume_fract_variance_vec,
                     "voxel_edge_length" => 11,
                     "label" => "green" )
 
     
-    #save the plot_dict to a H5 file
+    # save the plot_dict to a H5 file
     BDA.save_dict_to_h5(copy(plot_dict);
     save_filename="stervi_volume_fraction_variance_random_spherical_green")
 
@@ -1316,31 +1316,31 @@ for i in eachindex(data_path_corrected_vec)
 end
 
 
-#compare hyperuniformity criterion for red and blue patches
+# compare hyperuniformity criterion for red and blue patches
 data_path_vec = [raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi_volume_fraction_variance_random_spherical_green.h5",
                 raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\volume_fraction_variance_random_spherical_I-WP_surface.h5"]
 
-#set surfaces that are analyzed
+# set surfaces that are analyzed
 label_vec = ["S. virescens green", "perfect I-WP"]
 
-#set edge lengths
+# set edge lengths
 voxel_edge_length_vec = [11, 6]
 
-#create empty vector where plot dictionaries will be stored in            
+# create empty vector where plot dictionaries will be stored in            
 plot_dict_vec = []
 
 
-#loop through data that will be analyzed
+# loop through data that will be analyzed
 for i in eachindex(data_path_vec)
     
-    #load dictionary that contains the following keys:
-    #"window_edge_length_vec"
-    #"local_volume_fract_variance_vec"
-    #"voxel_edge_length"
-    #"label"
+    # load dictionary that contains the following keys:
+    # "window_edge_length_vec"
+    # "local_volume_fract_variance_vec"
+    # "voxel_edge_length"
+    # "label"
     plot_dict = BDA.load_h5_dict(data_path_vec[i])
 
-    #adjust label and voxel edge length
+    # adjust label and voxel edge length
     plot_dict["label"] = label_vec[i]
     plot_dict["voxel_edge_length"] = voxel_edge_length_vec[i]
 
@@ -1348,7 +1348,7 @@ for i in eachindex(data_path_vec)
                                                                                             
 end
 
-#plot local volume fraction variance as a function of window edge length
+# plot local volume fraction variance as a function of window edge length
 BDA.plot_volume_fraction_variance(plot_dict_vec,
                             save_plot=true,
                             title="Spherical measuring windows of random positions",
@@ -1356,31 +1356,31 @@ BDA.plot_volume_fraction_variance(plot_dict_vec,
 
 
 
-#compare hyperuniformity criterion for red and blue patches
+# compare hyperuniformity criterion for red and blue patches
 data_path_vec = [raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi_spectral_density_green.h5",
                 raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\spectral_density_I-WP_surface.h5"]
 
-#set surfaces that are analyzed
+# set surfaces that are analyzed
 label_vec = ["S. virescens green", "perfect I-WP"]
 
-#set edge lengths
+# set edge lengths
 voxel_edge_length_vec = [11, 6]
 
-#create empty vector where plot dictionaries will be stored in            
+# create empty vector where plot dictionaries will be stored in            
 plot_dict_vec = []
 
 
-#loop through data that will be analyzed
+# loop through data that will be analyzed
 for i in eachindex(data_path_vec)
     
-    #load dictionary that contains the following keys:
-    #"wavenumber_vec"
-    #"spectral_density_vec"
-    #"voxel_edge_length"
-    #"label"
+    # load dictionary that contains the following keys:
+    # "wavenumber_vec"
+    # "spectral_density_vec"
+    # "voxel_edge_length"
+    # "label"
     plot_dict = BDA.load_h5_dict(data_path_vec[i])
 
-    #adjust label and voxel edge length
+    # adjust label and voxel edge length
     plot_dict["label"] = label_vec[i]
     plot_dict["voxel_edge_length"] = voxel_edge_length_vec[i]
 
@@ -1389,35 +1389,35 @@ for i in eachindex(data_path_vec)
 end
 
 
-#plot real part, imaginary part and absolute value of spectral 
-#density as a function of the wavenumber
+# plot real part, imaginary part and absolute value of spectral 
+# density as a function of the wavenumber
 BDA.plot_spectral_density(plot_dict_vec;
                         title="Spectral density",
                         save_plot = true,
                         save_filename="stervi_spectral_density_green_i_wp")
 
 
-#path of original data
+# path of original data
 data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_green.h5"
 
-#path where analysis data will be saved
+# path where analysis data will be saved
 save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_green"
     
-#calculate and save all statistical measures
+# calculate and save all statistical measures
 BDA.save_statistical_measures(data_path, 
                                 11, 
                                 "green", 
                                 save_path)
 
-#set paths where statistical data is stored
+# set paths where statistical data is stored
 data_path_vec = [raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_blue",
 raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\nodal_surfaces\I-WP_surface",
 raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_green"]
 
-#set path where plot will be stored
+# set path where plot will be stored
 save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\stervi\stervi_blue_green_i_wp"
 
-#plot all statistical measures
+# plot all statistical measures
 BDA.plot_statistical_measures(data_path_vec,
             save_path;
             voxel_edge_length_vec=[11,6,11],
@@ -1426,13 +1426,13 @@ BDA.plot_statistical_measures(data_path_vec,
 
 
 
-#path of original data
+# path of original data
 data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_green.h5"
 
-#path where analysis data will be saved
+# path where analysis data will be saved
 save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_green"
     
-#calculate and save all statistical measures
+# calculate and save all statistical measures
 BDA.save_statistical_measures(data_path, 
                                 11, 
                                 "green", 
@@ -1441,13 +1441,13 @@ BDA.save_statistical_measures(data_path,
                                 save_local_volume_fraction_variance=false)
 
 
-#path of original data
+# path of original data
 data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_blue.h5"
 
-#path where analysis data will be saved
+# path where analysis data will be saved
 save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_blue"
     
-#calculate and save all statistical measures
+# calculate and save all statistical measures
 BDA.save_statistical_measures(data_path, 
                                 11, 
                                 "blue", 
@@ -1457,21 +1457,21 @@ BDA.save_statistical_measures(data_path,
 
 
 
-#path of original data
+# path of original data
 data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_blue.h5"
 
 save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_autocovariance_fct_direction_blue_small_sampling.h5"
 
-#get essential information
+# get essential information
 data_binary, volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(data_path )
 
-#get autocovariance function array
+# get autocovariance function array
 sampling_vec_array, autocovariance_fct_array = BDA.get_autocovariance_fct_by_sampling_vec_array(size_data,
                        volume_fract_tot,
                        data_binary,
                        nr_measurements_per_direction=10)
 
-#create dict to save
+# create dict to save
 saving_dict = Dict("sampling_vec_array" => sampling_vec_array,
                     "autocovariance_fct_array" => autocovariance_fct_array,
                     "voxel_edge_length" => 11,
@@ -1480,27 +1480,27 @@ saving_dict = Dict("sampling_vec_array" => sampling_vec_array,
 save_dict_to_h5(saving_dict; save_path)
 
 
-#path where autocovariance fct data is saved
+# path where autocovariance fct data is saved
 dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_autocovariance_fct_direction_blue_small_sampling.h5"
 
-#load dict
+# load dict
 data_dict = BDA.load_h5_dict(dict_path)
 
-#get sampling vec array and autocovariance fct array from dict
+# get sampling vec array and autocovariance fct array from dict
 sampling_vec_array = data_dict["sampling_vec_array"]
 autocovariance_fct_array = data_dict["autocovariance_fct"]
 
-#calculate spectral density
+# calculate spectral density
 sampled_wavevectors_array, spectral_density_array = get_spectral_density(size_data, 
                                                 volume_fract_tot,
                                                 data_binary;
                                                 sampling_vec_array = sampling_vec_array,
                                                 autocovariance_fct_array)
 
-#path where spectral density is saved
+# path where spectral density is saved
 save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_spectral_density_direction_blue_small_sampling.h5"
 
-#create dict to save
+# create dict to save
 saving_dict = Dict("sampled_wavevectors_array" => sampled_wavevectors_array,
                     "spectral_density_array" => spectral_density_array,
                     "voxel_edge_length" => 11,
@@ -1510,22 +1510,22 @@ save_dict_to_h5(saving_dict; save_path)
 
 
 
-#set data path
+# set data path
 data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_blue.h5"
 
-#get data and essential information
+# get data and essential information
 data_binary, volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(data_path)
 
 
-#path of dict
+# path of dict
 load_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_autocovariance_fct_direction_blue_small_sampling.h5"
 
-#load dict
+# load dict
 data_dict = BDA.load_h5_dict(load_path)
 
 autocovariance_fct_array = data_dict["autocovariance_fct_array"]
 
-#calculate spectral density
+# calculate spectral density
 sampled_wavenumbers_vec_vec, sampled_wavevectors_array, spectral_density_array = BDA.get_spectral_density(size_data, 
 volume_fract_tot,
 data_binary;
@@ -1533,7 +1533,7 @@ nr_measurements_per_direction = 50,
 autocovariance_fct_array = autocovariance_fct_array)
 
 
-#create dictionary for current plot
+# create dictionary for current plot
 plot_dict = Dict("sampled_wavenumbers_vec_vec" => sampled_wavenumbers_vec_vec,
                 "sampled_wavevectors_array" => sampled_wavevectors_array,
                 "spectral_density_array" => spectral_density_array,
@@ -1541,20 +1541,20 @@ plot_dict = Dict("sampled_wavenumbers_vec_vec" => sampled_wavenumbers_vec_vec,
                 "label" => data_dict["label"])
 
 
-#path of dict
+# path of dict
 save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_spectral_density_direction_blue_small_sampling.h5"
 
-#save the plot_dict to a H5 file
+# save the plot_dict to a H5 file
 BDA.save_dict_to_h5(copy(plot_dict); save_path=save_path)
 
 
 
-#plot heat map of spectral density in x-y-plane for k_z=0
+# plot heat map of spectral density in x-y-plane for k_z=0
 BDA.plot_spectral_density_heatmap(plot_dict,
                                 save_path;
                                 save_plot = false)
 
-#wait until key is pressed
+# wait until key is pressed
 readline()
 
 
@@ -1567,10 +1567,10 @@ spectral_density_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\ana
 spectral_density_dict = BDA.load_h5_dict(spectral_density_path)
 
 
-#set data path
+# set data path
 data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_blue.h5"
 
-#get data and essential information
+# get data and essential information
 data_binary, volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(data_path)
 
 sampling_distance_vec_vec = BDA.get_sampling_distance_vec_vec(size_data)
@@ -1579,28 +1579,28 @@ autocovariance_fct_dict["sampling_distance_vec_1"] = sampling_distance_vec_vec[1
 autocovariance_fct_dict["sampling_distance_vec_2"] = sampling_distance_vec_vec[2]
 autocovariance_fct_dict["sampling_distance_vec_3"] = sampling_distance_vec_vec[3]
 
-#save the plot_dict to a H5 file
+# save the plot_dict to a H5 file
 BDA.save_dict_to_h5(copy(autocovariance_fct_dict); save_path=autocovariance_fct_path)
 
 
 
-#set data path
+# set data path
 data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_blue.h5"
 
-#set path where autocovariance dict will be stored
+# set path where autocovariance dict will be stored
 save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_autocovariance_fct_direction_blue.h5"
 
-#get data and essential information
+# get data and essential information
 data_binary, volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(data_path)
 
-#get autocovariance function array
+# get autocovariance function array
 sampling_distance_vec_vec, sampling_vec_array, autocovariance_fct_array = BDA.get_autocovariance_fct_by_sampling_vec_array(
                     size_data,
                     volume_fract_tot,
                     data_binary,
                     nr_measurements_per_direction=100)
 
-#create dict to save
+# create dict to save
 saving_dict = Dict("sampling_vec_array" => sampling_vec_array,
                     "sampling_distance_vec_vec" => sampling_distance_vec_vec,
                     "autocovariance_fct_array" => autocovariance_fct_array,
@@ -1610,16 +1610,16 @@ saving_dict = Dict("sampling_vec_array" => sampling_vec_array,
 BDA.save_dict_to_h5(saving_dict; save_path)
 
 
-#set data path
+# set data path
 data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_blue.h5"
 
-#set path where autocovariance dict will be stored
+# set path where autocovariance dict will be stored
 dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_autocovariance_fct_direction_blue.h5"
 
-#get data and essential information
+# get data and essential information
 data_binary, volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(data_path)
 
-#load autocovariance array
+# load autocovariance array
 loaded_dict = BDA.load_h5_dict(dict_path)
 
 plot_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\stervi\stervi_direction_blue"
@@ -1633,14 +1633,14 @@ BDA.plot_autocovariance_fct_heatmap(loaded_dict,
 
 
     
-#set data path
+# set data path
 data_path_vec = [raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_blue.h5",
 raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_green.h5",
 raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_blue.h5",
 raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_red.h5"
 ]
 
-#set path where autocovariance dict will be stored
+# set path where autocovariance dict will be stored
 save_path_vec = [raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_blue_autocovariance_fct_direction.h5",
 raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_green_autocovariance_fct_direction.h5",
 raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_blue_autocovariance_fct_direction.h5",
@@ -1653,17 +1653,17 @@ label_vec = ["stervi blue", "stervi green", "pachy blue","pachy red"]
 
 for i in eachindex(data_path_vec)
 
-    #get data and essential information
+    # get data and essential information
     data_binary, volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(data_path_vec[i])
 
-    #get autocovariance function array
+    # get autocovariance function array
     sampling_distance_vec_vec, sampling_vec_array, autocovariance_fct_array = BDA.get_autocovariance_fct_by_sampling_vec_array(
                         size_data,
                         volume_fract_tot,
                         data_binary,
                         nr_measurements_per_direction=1000)
 
-    #create dict to save
+    # create dict to save
     saving_dict = Dict("sampling_vec_array" => sampling_vec_array,
                         "sampling_distance_vec_vec" => sampling_distance_vec_vec,
                         "autocovariance_fct_array" => autocovariance_fct_array,
@@ -1677,11 +1677,11 @@ for i in eachindex(data_path_vec)
 end
 
 
-#set data path
+# set data path
 data_path_vec = [raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_blue",
                 raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_green"]
 
-#set path to save plot
+# set path to save plot
 save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\stervi\\"
 
 BDA.plot_statistical_measures(data_path_vec,
@@ -1693,13 +1693,13 @@ BDA.plot_statistical_measures(data_path_vec,
             )
 
             
-#path of original data
+# path of original data
 data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_blue.h5"
 
-#path where analysis data will be saved
+# path where analysis data will be saved
 save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_blue"
     
-#calculate and save all statistical measures
+# calculate and save all statistical measures
 BDA.save_statistical_measures(data_path, 
                                 11, 
                                 "S. virescens blue", 
@@ -1710,13 +1710,13 @@ BDA.save_statistical_measures(data_path,
                                 save_autocovariance_fct_direction = false,
                                 save_spectral_density_along_directions = true)
 
-#path of original data
+# path of original data
 data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_green.h5"
 
-#path where analysis data will be saved
+# path where analysis data will be saved
 save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_green"
     
-#calculate and save all statistical measures
+# calculate and save all statistical measures
 BDA.save_statistical_measures(data_path, 
                                 11, 
                                 "S. virescens green", 
@@ -1728,14 +1728,14 @@ BDA.save_statistical_measures(data_path,
                                 save_spectral_density_along_directions = true)
 
 
-#set paths where statistical data is stored
+# set paths where statistical data is stored
 data_path_vec = [raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_green",
                 raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_blue"]
 
-#set path where plot will be stored
+# set path where plot will be stored
 save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\stervi\\"
 
-#plot all statistical measures
+# plot all statistical measures
 BDA.plot_statistical_measures(data_path_vec,
             save_path;
             spectral_density_xlims = [0,0.1],
@@ -1835,7 +1835,7 @@ for i in eachindex(data_path_vec_vec)
 end
 
 
-#set raw data path
+# set raw data path
 data_path_raw_prefix = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\2d_images_green\slice_"
 data_path_raw_suffix = "_max11.tif"
 
@@ -1856,7 +1856,7 @@ This is where commands for network generation begin
 """
 
 
-#import my module that contains all functions for the analysis of binary structure data
+# import my module that contains all functions for the analysis of binary structure data
 import .NetworkGeneration as NG
 import MetaGraphsNext as MGN
 
@@ -1867,10 +1867,10 @@ network_dict = NG.get_periodic_network( ; nr_vertices = 150 ,
 
 network_dict["bond_bending_const"] = 0.285
 
-#get list of bonds (edges)
+# get list of bonds (edges)
 edges_vec = collect(MGN.edge_labels(network_dict["network_graph"]))
 
-#break a random bond
+# break a random bond
 network_dict = NG.switch_bond!(network_dict, edges_vec[4] )
 
 vertex = 1
@@ -1904,16 +1904,16 @@ graph_dict = NG.get_periodic_network( ; nr_vertices = 150 ,
                             
 vertex = 5
 
-#get and print neighbors
+# get and print neighbors
 vertex_neighbors = collect(MetaGraphsNext.neighbor_labels(graph_dict["spatial_network"], vertex))
 
 println(vertex_neighbors)
 
-#get position of some vertex
+# get position of some vertex
 println(graph_dict["spatial_network"][vertex]["position"] )
 println(graph_dict["spatial_network"][vertex]["local_energy"] )
 
-#move vertex
+# move vertex
 graph_dict = NG.move_vertex!(graph_dict, 
 vertex, 
 [1,-0.5,0.3] )
@@ -1922,7 +1922,7 @@ println(graph_dict["spatial_network"][vertex]["position"] )
 println(graph_dict["spatial_network"][vertex]["local_energy"] )
 
 
-#relax vertex
+# relax vertex
 graph_dict = NG.relax_single_vertex_keating!(graph_dict, vertex)
 
 println(graph_dict["spatial_network"][vertex]["position"] )
@@ -1934,7 +1934,7 @@ graph_dict = NG.get_periodic_network( ; nr_vertices = 1500 ,
                             
 vertex_vec = [5,12]
 
-#get and print neighbors
+# get and print neighbors
 neighbors_in_shells_dict, all_vertices_vec = NG.get_neighbors_in_shells_dict(graph_dict, 
                                     vertex_vec; 
                                     shell_nr = 4)
@@ -1943,17 +1943,17 @@ neighbors_in_shells_dict, all_vertices_vec = NG.get_neighbors_in_shells_dict(gra
 vertex_vec = [5,12]
 
 
-#get position of some vertex
+# get position of some vertex
 println(graph_dict["total_energy"] )
 println(graph_dict["spatial_network"][vertex_vec[1]]["position"] )
 println(graph_dict["spatial_network"][vertex_vec[1]]["local_energy"] )
 
-#move vertex
+# move vertex
 graph_dict = NG.move_vertex!(graph_dict, 
 vertex_vec[1], 
 [1,-0.5,0.3] )
 
-#move vertex
+# move vertex
 graph_dict = NG.move_vertex!(graph_dict, 
 vertex_vec[2], 
 [-0.1,0.5,1.5] )
@@ -1991,17 +1991,17 @@ graph_dict = NG.get_periodic_network( ; nr_vertices = 1500 ,
 vertex_vec = [5,12]
 
 
-#get position of some vertex
+# get position of some vertex
 println(graph_dict["total_energy"] )
 println(graph_dict["spatial_network"][vertex_vec[1]]["position"] )
 println(graph_dict["spatial_network"][vertex_vec[1]]["local_energy"] )
 
-#move vertex
+# move vertex
 graph_dict = NG.move_vertex!(graph_dict, 
 vertex_vec[1], 
 [1,-0.5,0.3] )
 
-#move vertex
+# move vertex
 graph_dict = NG.move_vertex!(graph_dict, 
 vertex_vec[2], 
 [-0.1,0.5,1.5] )
@@ -2026,16 +2026,16 @@ println(graph_dict["spatial_network"][vertex_vec[1]]["local_energy"] )
 vertex_vec = [5,12]
 
 
-#get position of some vertex
+# get position of some vertex
 println(graph_dict["total_energy"] )
 println(graph_dict["spatial_network"][vertex_vec[1]]["position"] )
 
-#move vertex
+# move vertex
 graph_dict = NG.move_vertex!(graph_dict, 
 vertex_vec[1], 
 [1,-0.5,0.3] )
 
-#move vertex
+# move vertex
 graph_dict = NG.move_vertex!(graph_dict, 
 vertex_vec[2], 
 [-0.1,0.5,1.5] )
@@ -2064,21 +2064,21 @@ println(graph_dict["spatial_network"][vertex_vec[1]]["position"] )
 
 vertex_to_relax = 5
 
-#move vertex
+# move vertex
 graph_dict = NG.move_vertex!(graph_dict, 
 vertex_to_relax, 
 [0.2,0.5,-0.9] )
 
-#get initial position of vertex to relax 
+# get initial position of vertex to relax 
 initial_position = graph_dict["spatial_network"][vertex_to_relax]["position"]
 
-#get matrix of the vertex's neighbors' positions 
+# get matrix of the vertex's neighbors' positions 
 neighbor_positions_mat = NG.get_neighbor_positions_mat(graph_dict, vertex_to_relax)
 
-#get next to nearest neighbors' positions
+# get next to nearest neighbors' positions
 next_neighbor_positions_arr = NG.get_next_neighbor_positions_arr(graph_dict, vertex_to_relax)
 
-#set energy, gradient and hessian for energy minimization
+# set energy, gradient and hessian for energy minimization
 energy(x) = NG.energy_from_position_keating(x, graph_dict,
                                             neighbor_positions_mat,
                                             next_neighbor_positions_arr )
@@ -2142,7 +2142,7 @@ vertex = 2
 println(graph_dict["total_energy"] )
 println(graph_dict["spatial_network"][vertex]["position"] )
 
-#move vertex
+# move vertex
 graph_dict = NG.move_vertex!(graph_dict, 
 vertex, 
 [1,-0.5,0.3]; update_total_energy=true)
@@ -2151,7 +2151,7 @@ println(graph_dict["total_energy"] )
 println(graph_dict["spatial_network"][vertex]["position"] )
 
 
-#relax vertex
+# relax vertex
 graph_dict = NG.relax_single_vertex_keating!(graph_dict, vertex; update_total_energy=true)
 
 println(graph_dict["total_energy"] )
@@ -2164,7 +2164,7 @@ vertex = 3
 println(graph_dict["total_energy"] )
 println(graph_dict["spatial_network"][vertex]["position"] )
 
-#move vertex
+# move vertex
 graph_dict = NG.move_vertex!(graph_dict, 
 vertex, 
 [1,-0.5,0.3]; update_total_energy=true)
@@ -2173,7 +2173,7 @@ println(graph_dict["total_energy"] )
 println(graph_dict["spatial_network"][vertex]["position"] )
 
 
-#relax vertex
+# relax vertex
 graph_dict = NG.relax_single_vertex_keating!(graph_dict, vertex; update_total_energy=true)
 
 println(graph_dict["total_energy"] )
@@ -2218,25 +2218,25 @@ central_vertex = 100
 
 central_vertex_position = graph_dict["spatial_network"][central_vertex]["position"]
 
-    #get central vertices neighbors 
+    # get central vertices neighbors 
     neighbor_vec = collect(MetaGraphsNext.neighbor_labels(
                                 graph_dict["spatial_network"], central_vertex))
-#create array to store next to nearest neighbors coordinates
-#The first array index labels the number of the direct neighbor
+# create array to store next to nearest neighbors coordinates
+# The first array index labels the number of the direct neighbor
 next_neighbor_positions_arr = Array{Float64}(undef, 
                                             graph_dict["coordination_nr"],
                                             graph_dict["nr_dimensions"],
                                             graph_dict["coordination_nr"]-1)
 
-#loop through central vertices neighbors
+# loop through central vertices neighbors
 for i in 1:graph_dict["coordination_nr"]
     current_next_neighbor = 1
-    #loop through the current neighbor's neighbors
+    # loop through the current neighbor's neighbors
     for next_neighbor in MetaGraphsNext.neighbor_labels(
                                     graph_dict["spatial_network"], neighbor_vec[i])
         if next_neighbor !== central_vertex
-            #get next neighbor's virtual coordinates which might be outside of the 
-            #supercell if periodic boundary conditions play a role
+            # get next neighbor's virtual coordinates which might be outside of the 
+            # supercell if periodic boundary conditions play a role
             next_neighbor_positions_arr[i,:,current_next_neighbor] = NG.get_virtual_position(
                         central_vertex_position,
                         graph_dict["spatial_network"][next_neighbor]["position"],
@@ -2248,13 +2248,13 @@ end
 
 
 
-#get cluster after bond switch
+# get cluster after bond switch
 cluster_dict = NG.get_cluster_in_shells_dict(
                                 graph_dict, 
                                 switched_bond; 
                                 shell_nr = shell_nr)
 
-#relax cluster around switched bond
+# relax cluster around switched bond
 graph_dict = NG.relax_cluster_keating!(graph_dict,
     switched_bond; 
     nr_cycles = nr_cycles,
@@ -2306,9 +2306,9 @@ bond_bending_const = 0.285)
 
 figure = NG.plot_network(graph_dict)
 
-#figure = NG.plot_network(graph_dict)
+# figure = NG.plot_network(graph_dict)
 
-switched_bond = (5,12) #NG.get_random_bond(graph_dict)
+switched_bond = (5,12) # NG.get_random_bond(graph_dict)
 
 temperature = 100.5
 
@@ -2338,24 +2338,24 @@ relax_efficiently = true,
 Plots.plot(collect(1:26), cluster_energy_vec)
 
 
-#compare the gradient in the inefficient and efficient calculation
+# compare the gradient in the inefficient and efficient calculation
 vertex_to_relax = random_bond[2]
 
-#efficient calculation
+# efficient calculation
 gradient_eff = NG.gradient_keating_efficient(graph_dict, vertex_to_relax)
 
-#inefficient calculation
+# inefficient calculation
 
-#get initial position of vertex to relax 
+# get initial position of vertex to relax 
 initial_position = graph_dict["spatial_network"][vertex_to_relax]["position"]
 
-#get matrix of the vertex's neighbors' positions 
+# get matrix of the vertex's neighbors' positions 
 neighbor_positions_mat = NG.get_neighbor_positions_mat(graph_dict, vertex_to_relax)
 
-#get next to nearest neighbors' positions
+# get next to nearest neighbors' positions
 next_neighbor_positions_arr = NG.get_next_neighbor_positions_arr(graph_dict, vertex_to_relax)
 
-#set energy, gradient and hessian for energy minimization
+# set energy, gradient and hessian for energy minimization
 
 gradient_ineff = zeros(3)
                                         
@@ -2372,10 +2372,10 @@ random_bond = NG.get_random_bond(graph_dict)
 graph_dict, new_bond_vec = NG.switch_bond!(graph_dict, random_bond )
 
 
-#compare the gradient in the inefficient and efficient calculation
+# compare the gradient in the inefficient and efficient calculation
 vertex_to_relax = random_bond[2]
 
-#efficient calculation
+# efficient calculation
 gradient = NG.gradient_keating_efficient(graph_dict, vertex_to_relax)
 
 translation_vector_eff =  NG.get_approximate_translation_vector_keating(gradient, 
@@ -2383,18 +2383,18 @@ translation_vector_eff =  NG.get_approximate_translation_vector_keating(gradient
         relaxation_overshoot_factor_r = 1.5,
         relaxation_optimization_parameter_l = 1)
 
-#inefficient calculation
+# inefficient calculation
 
-#get initial position of vertex to relax 
+# get initial position of vertex to relax 
 initial_position = graph_dict["spatial_network"][vertex_to_relax]["position"]
 
-#get matrix of the vertex's neighbors' positions 
+# get matrix of the vertex's neighbors' positions 
 neighbor_positions_mat = NG.get_neighbor_positions_mat(graph_dict, vertex_to_relax)
 
-#get next to nearest neighbors' positions
+# get next to nearest neighbors' positions
 next_neighbor_positions_arr = NG.get_next_neighbor_positions_arr(graph_dict, vertex_to_relax)
 
-#set energy, gradient and hessian for energy minimization
+# set energy, gradient and hessian for energy minimization
 energy(x) = NG.energy_from_position_keating(x, graph_dict,
                                             neighbor_positions_mat,
                                             next_neighbor_positions_arr )
@@ -2406,7 +2406,7 @@ gradient!(gradient, x) = NG.gradient_keating!(gradient, x, graph_dict,
 hessian!(hessian, x) = NG.hessian_keating!(hessian, x, graph_dict,
                                             neighbor_positions_mat,
                                             next_neighbor_positions_arr)
-#find energy minimum
+# find energy minimum
 minimizer_result = Optim.optimize(
                             energy, 
                             gradient!, 
@@ -2414,10 +2414,10 @@ minimizer_result = Optim.optimize(
                             initial_position, 
                             Optim.Newton())
 
-#get relaxed position and local keating energy
+# get relaxed position and local keating energy
 relaxed_position = Optim.minimizer(minimizer_result)
 
-#calculate translation vector for relaxed vertex
+# calculate translation vector for relaxed vertex
 translation_vector_ineff = relaxed_position .- initial_position
 
 println("Efficient: "*string(translation_vector_eff))
@@ -2442,26 +2442,26 @@ vertex_to_relax = random_bond[2]
 graph_dict, new_bond_vec = NG.switch_bond!(graph_dict, random_bond )
 
 
-#efficient calculation
+# efficient calculation
 gradient = NG.gradient_keating_efficient(graph_dict, vertex_to_relax)
 
 hessian = NG.hessian_keating_efficient(graph_dict, vertex_to_relax)
 
-#calculate translation vector to approximate energy minimum
+# calculate translation vector to approximate energy minimum
 translation_vector_eff = .- LinearAlgebra.inv(hessian)*gradient
 
-#inefficient calculation
+# inefficient calculation
 
-#get initial position of vertex to relax 
+# get initial position of vertex to relax 
 initial_position = graph_dict["spatial_network"][vertex_to_relax]["position"]
 
-#get matrix of the vertex's neighbors' positions 
+# get matrix of the vertex's neighbors' positions 
 neighbor_positions_mat = NG.get_neighbor_positions_mat(graph_dict, vertex_to_relax)
 
-#get next to nearest neighbors' positions
+# get next to nearest neighbors' positions
 next_neighbor_positions_arr = NG.get_next_neighbor_positions_arr(graph_dict, vertex_to_relax)
 
-#set energy, gradient and hessian for energy minimization
+# set energy, gradient and hessian for energy minimization
 energy(x) = NG.energy_from_position_keating(x, graph_dict,
                                             neighbor_positions_mat,
                                             next_neighbor_positions_arr )
@@ -2473,7 +2473,7 @@ gradient!(gradient, x) = NG.gradient_keating!(gradient, x, graph_dict,
 hessian!(hessian, x) = NG.hessian_keating!(hessian, x, graph_dict,
                                             neighbor_positions_mat,
                                             next_neighbor_positions_arr)
-#find energy minimum
+# find energy minimum
 minimizer_result = Optim.optimize(
                             energy, 
                             gradient!, 
@@ -2481,10 +2481,10 @@ minimizer_result = Optim.optimize(
                             initial_position, 
                             Optim.Newton())
 
-#get relaxed position and local keating energy
+# get relaxed position and local keating energy
 relaxed_position = Optim.minimizer(minimizer_result)
 
-#calculate translation vector for relaxed vertex
+# calculate translation vector for relaxed vertex
 translation_vector_ineff = relaxed_position .- initial_position
 
 println("Efficient: "*string(translation_vector_eff))
@@ -2492,13 +2492,13 @@ println("Inefficient "*string(translation_vector_ineff))
 
 
 
-#efficient calculation
+# efficient calculation
 neighbor_vec = collect(
         MetaGraphsNext.neighbor_labels(graph_dict["spatial_network"], central_vertex))
 
 j=1
 
-#get vector pointing from central vertex to neighbor j
+# get vector pointing from central vertex to neighbor j
 distance_vector_j_eff = (sign(neighbor_vec[j] - central_vertex)
 * graph_dict["spatial_network"][central_vertex, neighbor_vec[j]]["vector"])
 
@@ -2506,23 +2506,23 @@ bond_stretching_term_eff = ( - 3/4 * (
             graph_dict["spatial_network"][central_vertex, neighbor_vec[j]]["distance_squared"] - 1 
             ) ) .* distance_vector_j_eff
 
-#inefficient calculation
+# inefficient calculation
 
-#get initial position of vertex to relax 
+# get initial position of vertex to relax 
 x = graph_dict["spatial_network"][vertex_to_relax]["position"]
 
-#get matrix of the vertex's neighbors' positions 
+# get matrix of the vertex's neighbors' positions 
 neighbor_positions_mat = NG.get_neighbor_positions_mat(graph_dict, vertex_to_relax)
 
-#get next to nearest neighbors' positions
+# get next to nearest neighbors' positions
 next_neighbor_positions_arr = NG.get_next_neighbor_positions_arr(graph_dict, vertex_to_relax)
 
-#set energy, gradient and hessian for energy minimization
+# set energy, gradient and hessian for energy minimization
 
-#get vector pointing from central vertex to neighbor
+# get vector pointing from central vertex to neighbor
 distance_vector_j = neighbor_positions_mat[:,j] .- x
 
-#get bond stretching term
+# get bond stretching term
 bond_stretching_term_ineff = ( - 3/4 * ( LinearAlgebra.norm(distance_vector_j)^2 - 1 ) 
                                 ) .* distance_vector_j
 
@@ -2562,16 +2562,16 @@ initial_cluster_dict = NG.get_cluster_in_shells_dict(
                 shell_nr = shell_nr)
 
 
-#switch bond
+# switch bond
 graph_dict, new_bond_vec = NG.switch_bond!(graph_dict, switched_bond )
 
-#get cluster after bond switch
+# get cluster after bond switch
 cluster_dict = NG.get_cluster_in_shells_dict(
                 graph_dict, 
                 switched_bond; 
                 shell_nr = shell_nr)
 
-#relax cluster once and update cluster energy
+# relax cluster once and update cluster energy
 graph_dict, cluster_dict = NG.relax_cluster_keating!(graph_dict,
 cluster_dict; 
 nr_max_relaxation_cycles = 25,
@@ -2580,7 +2580,7 @@ reject_during_relaxation_cycle_threshold = 10,
 relax_efficiently = true,
 update_total_energy = true)
 
-#calculate new total energy and compare to actual total energy
+# calculate new total energy and compare to actual total energy
 smart_total_energy = graph_dict["total_energy"] 
 
 actual_total_energy = NG.get_total_energy_keating(graph_dict)
@@ -2605,7 +2605,7 @@ graph_dict, total_energy_vec, move_accepted_vec = NG.evolve_network(graph_dict,
     random_evolution_seed = 3,
     thermal_fluctuations = false)
 
-#calculate new total energy and compare to actual total energy
+# calculate new total energy and compare to actual total energy
 smart_total_energy = graph_dict["total_energy"] 
 
 actual_total_energy = NG.get_total_energy_keating(graph_dict)
@@ -2773,3 +2773,18 @@ graph_dict, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_
     print_every_nr_attempted_bond_switches = 200,
     save_network_after_each_step = true,
     filename = "1000_vertices_T_0.015625",)
+
+
+load_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+
+load_name = "1000_vertices_T_1_quenched"
+
+# load dictionary with 1000 vertices which was heated to T=1 and then quenched
+graph_dict = NG.load_graph_from_h5_and_MGformat(load_path*load_name)
+
+save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\\"
+
+NG.save_mesh_from_network(graph_dict, load_name*"_thick_bonds"; save_path = load_path, bond_radius = 0.3131)
+
+structure_factor_dict = NA.get_structure_factor_isotrope_by_wavenumber_vec(
+        graph_dict)

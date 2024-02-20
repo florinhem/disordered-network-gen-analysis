@@ -1,7 +1,7 @@
 
 include("structure_analysis_modules.jl")
 
-#import my module that contains all functions for the generation and analysis of networks
+# import my module that contains all functions for the generation and analysis of networks
 import .NetworkGeneration as NG
 import .NetworkAnalysis as NA
 import .GeneralUtilities as GU
@@ -27,7 +27,7 @@ bottom_margin = 3Plots.mm,
 linewidth=3, 
 thickness_scaling = 1)
 
-#get structure factor dicts
+# get structure factor dicts
 
 dict_path_1 = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_1_quenched_structure_factor_isotrope.h5"
 dict_path_4 = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_4_quenched_structure_factor_isotrope.h5"
@@ -35,11 +35,11 @@ dict_path_4 = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data
 structure_factor_dict_1 = GU.load_h5_dict(dict_path_1)
 structure_factor_dict_4 = GU.load_h5_dict(dict_path_4)
 
-#get effective hyperuniformity parameter and fit parameters for T=1 and T=4
+# get effective hyperuniformity parameter and fit parameters for T=1 and T=4
 hyperuniformity_parameter_1, polynomial_fit_1 = NA.get_hyperuniformity_metric(structure_factor_dict_1)
 hyperuniformity_parameter_4, polynomial_fit_4 = NA.get_hyperuniformity_metric(structure_factor_dict_4)
 
-#plot structure factor
+# plot structure factor
 x_vec = collect(0:10/200:10)
 fit_1_vec = polynomial_fit_1.(x_vec)
 fit_4_vec = polynomial_fit_4.(x_vec)

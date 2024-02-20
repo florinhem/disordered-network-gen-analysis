@@ -8,7 +8,7 @@ Get bond stretching energy for a given bond
 """
 function local_bond_stretching_energy_keating(graph_dict::Dict, bond::Tuple{Int64, Int64})
 
-    #get bond stretching energy
+    # get bond stretching energy
     bond_stretching_energy = (3/16 * ( 
             graph_dict["spatial_network"][bond...]["distance_squared"] - 1 
                                             )^2 ) 
@@ -23,14 +23,14 @@ Get bond bending energy for a given vertex
 """
 function local_bond_bending_energy_keating(graph_dict::Dict, vertex_label::Int64)
 
-    #get vector of neighbor labels
+    # get vector of neighbor labels
     neighbor_label_vec = collect(MetaGraphsNext.neighbor_labels(graph_dict["spatial_network"], 
                                 vertex_label))
 
-    #initialize bond bending sum
+    # initialize bond bending sum
     bond_bending_sum = 0
 
-    #loop through all bond combinations
+    # loop through all bond combinations
     for j in 1:graph_dict["coordination_nr"]
 
         for k in j+1:graph_dict["coordination_nr"]
@@ -45,7 +45,7 @@ function local_bond_bending_energy_keating(graph_dict::Dict, vertex_label::Int64
 
     end
 
-    #calculate bond bending energy
+    # calculate bond bending energy
     bond_bending_energy =  3/8 * graph_dict["bond_bending_const"] * bond_bending_sum
 
     return bond_bending_energy
@@ -60,13 +60,13 @@ function get_total_energy_keating(graph_dict::Dict)
 
     total_energy = 0
 
-    #loop through all vertices and sum bond bending energies
+    # loop through all vertices and sum bond bending energies
     for vertex in MetaGraphsNext.labels(graph_dict["spatial_network"])
 
         total_energy += local_bond_bending_energy_keating(graph_dict, vertex)
     end
 
-    #loop through all bonds and sum bond stretching energies
+    # loop through all bonds and sum bond stretching energies
     for bond in MetaGraphsNext.edge_labels(graph_dict["spatial_network"])
 
         total_energy += local_bond_stretching_energy_keating(graph_dict, bond)
@@ -82,29 +82,29 @@ are stored in the respective dictionary
 """
 function get_cluster_energy(graph_dict, cluster_dict)
 
-    #initialize cluster energy
+    # initialize cluster energy
     cluster_energy = 0
 
-    #get vector of all cluster vertices
+    # get vector of all cluster vertices
     all_cluster_vertices_vec = vcat(cluster_dict["cluster_vertices_to_move_vec"], 
                             cluster_dict["cluster_vertices_outer_shell_vec"]) 
 
-    #loop through all vertices and sum bond bending energies
+    # loop through all vertices and sum bond bending energies
     for vertex in all_cluster_vertices_vec
 
         cluster_energy += local_bond_bending_energy_keating(graph_dict, vertex)
     end
 
-    #loop through all bonds inside the cluster
+    # loop through all bonds inside the cluster
     for bond in cluster_dict["cluster_bonds_inside_vec"]
 
         cluster_energy += local_bond_stretching_energy_keating(
                                                             graph_dict, bond)
     end
 
-    #loop through all bonds on the edge of the cluster which only
-    #contributy half
-    #loop through all bonds inside the cluster
+    # loop through all bonds on the edge of the cluster which only
+    # contributy half
+    # loop through all bonds inside the cluster
     for bond in cluster_dict["cluster_bonds_edge_vec"]
 
         cluster_energy += 1/2 * local_bond_stretching_energy_keating(
@@ -121,12 +121,12 @@ Calculate the local Keating energy for a given vertex
 """
 function local_energy_keating(vertex_label::Int64, graph_dict::Dict)
 
-    #get bond bending energy
+    # get bond bending energy
     local_energy = local_bond_bending_energy_keating(graph_dict, 
                                                                 vertex_label)
 
-    #sum bond stretching energy contributions by considering that each bond
-    #is shared by two vertices
+    # sum bond stretching energy contributions by considering that each bond
+    # is shared by two vertices
     for neighbor in MetaGraphsNext.neighbor_labels(graph_dict["spatial_network"],
                                                         vertex_label)
 
@@ -153,13 +153,13 @@ function energy_from_position_keating(x::Vector,
 
     for j in 1:graph_dict["coordination_nr"]
 
-        #get vector pointing from central vertex to neighbor
+        # get vector pointing from central vertex to neighbor
         distance_vector_j = neighbor_positions_mat[:,j] .- x
 
-        #get bond stretching term
+        # get bond stretching term
         bond_stretching_term = (3/16 * ( LinearAlgebra.norm(distance_vector_j)^2 - 1 )^2 ) 
 
-        #get bond bending term
+        # get bond bending term
         bond_bending_sum = 0
 
         for k in j+1:graph_dict["coordination_nr"]
@@ -170,7 +170,7 @@ function energy_from_position_keating(x::Vector,
             
         end
 
-        #get bond bending terms due to next to nearest neighbors
+        # get bond bending terms due to next to nearest neighbors
         neighbor_bond_bending_sum = 0
 
         for l in 1:graph_dict["coordination_nr"]-1
@@ -182,7 +182,7 @@ function energy_from_position_keating(x::Vector,
             
         end
 
-        #sum bond stretching and bending terms
+        # sum bond stretching and bending terms
         local_energy += bond_stretching_term + bond_bending_sum + neighbor_bond_bending_sum
 
     end
@@ -199,31 +199,31 @@ the distances and vectors that have already been calculated
 """
 function gradient_keating_efficient(graph_dict::Dict, central_vertex::Int64)
     
-    #initialize gradient
+    # initialize gradient
     gradient = zeros(graph_dict["nr_dimensions"])
 
-    #get vector of neighbors
+    # get vector of neighbors
     neighbor_vec = collect(
         MetaGraphsNext.neighbor_labels(graph_dict["spatial_network"], central_vertex))
 
-    #loop through central vertex's neighbors
+    # loop through central vertex's neighbors
     for j in 1:graph_dict["coordination_nr"]
 
-        #get vector pointing from central vertex to neighbor j
+        # get vector pointing from central vertex to neighbor j
         distance_vector_j = (sign(neighbor_vec[j] - central_vertex)
             * graph_dict["spatial_network"][central_vertex, neighbor_vec[j]]["vector"])
 
-        #get bond stretching term
+        # get bond stretching term
         bond_stretching_term = ( - 3/4 * ( 
             graph_dict["spatial_network"][central_vertex, neighbor_vec[j]]["distance_squared"] - 1 
             ) ) .* distance_vector_j
 
-        #get bond bending term
+        # get bond bending term
         bond_bending_sum = zeros(graph_dict["nr_dimensions"])
 
         for k in j+1:graph_dict["coordination_nr"]
 
-            #get vector pointing from central vertex to neighbor k
+            # get vector pointing from central vertex to neighbor k
             distance_vector_k = (sign(neighbor_vec[k] - central_vertex)
                 * graph_dict["spatial_network"][central_vertex, neighbor_vec[k]]["vector"])
 
@@ -233,17 +233,17 @@ function gradient_keating_efficient(graph_dict::Dict, central_vertex::Int64)
             
         end
 
-        #get bond bending terms due to next to nearest neighbors
+        # get bond bending terms due to next to nearest neighbors
         neighbor_bond_bending_sum = zeros(graph_dict["nr_dimensions"])
 
-        #get neighbors of current neighbor excluding the central vertex
+        # get neighbors of current neighbor excluding the central vertex
         neighbors_neighbor_vec = setdiff( collect(
             MetaGraphsNext.neighbor_labels(graph_dict["spatial_network"], neighbor_vec[j])
                 ), central_vertex )
 
         for l in 1:graph_dict["coordination_nr"]-1
 
-            #get vector pointing from next-to-nearest-neighbor l to neighbor j
+            # get vector pointing from next-to-nearest-neighbor l to neighbor j
             distance_vector_l = (sign(neighbor_vec[j] - neighbors_neighbor_vec[l])
             * graph_dict["spatial_network"][neighbors_neighbor_vec[l], neighbor_vec[j]]["vector"])
 
@@ -253,7 +253,7 @@ function gradient_keating_efficient(graph_dict::Dict, central_vertex::Int64)
             
         end
 
-        #sum bond stretching and bending terms
+        # sum bond stretching and bending terms
         gradient .+= bond_stretching_term .+ bond_bending_sum .+ neighbor_bond_bending_sum
 
     end
@@ -269,36 +269,36 @@ Calculate the Hessian matrix for a given vertex from
 """
 function hessian_keating_efficient(graph_dict::Dict, central_vertex::Int64)
 
-    #initialize hessian
+    # initialize hessian
     hessian = zeros(graph_dict["nr_dimensions"],graph_dict["nr_dimensions"])
     
-    #get vector of neighbors
+    # get vector of neighbors
     neighbor_vec = collect(
         MetaGraphsNext.neighbor_labels(graph_dict["spatial_network"], central_vertex))
 
     for a in 1:graph_dict["nr_dimensions"]
 
-        #since the hessian is symmetric, it only needs to be calculated for the lower left half
+        # since the hessian is symmetric, it only needs to be calculated for the lower left half
         for b in a:graph_dict["nr_dimensions"]
 
             for j in 1:graph_dict["coordination_nr"]
 
-                #get vector pointing from central vertex to neighbor j
+                # get vector pointing from central vertex to neighbor j
                 distance_vector_j = (sign(neighbor_vec[j] - central_vertex)
                 * graph_dict["spatial_network"][central_vertex, neighbor_vec[j]]["vector"])
         
-                #get bond stretching term
+                # get bond stretching term
                 bond_stretching_term = (3/2 * distance_vector_j[b] * distance_vector_j[a]
                     + ==(a,b) * 3/4 * (
                     graph_dict["spatial_network"][central_vertex, neighbor_vec[j]]["distance_squared"] 
                     - 1 ) )
         
-                #get bond bending term 
+                # get bond bending term 
                 bond_bending_sum = 0
         
                 for k in j+1:graph_dict["coordination_nr"]
 
-                    #get vector pointing from central vertex to neighbor k
+                    # get vector pointing from central vertex to neighbor k
                     distance_vector_k = (sign(neighbor_vec[k] - central_vertex)
                     * graph_dict["spatial_network"][central_vertex, neighbor_vec[k]]["vector"])
         
@@ -311,17 +311,17 @@ function hessian_keating_efficient(graph_dict::Dict, central_vertex::Int64)
                     
                 end
 
-                #get bond bending terms due to next to nearest neighbors
+                # get bond bending terms due to next to nearest neighbors
                 neighbor_bond_bending_sum = 0
 
-                #get neighbors of current neighbor excluding the central vertex
+                # get neighbors of current neighbor excluding the central vertex
                 neighbors_neighbor_vec = setdiff( collect(
                     MetaGraphsNext.neighbor_labels(graph_dict["spatial_network"], neighbor_vec[j])
                         ), central_vertex )
         
                 for l in 1:graph_dict["coordination_nr"]-1
 
-                    #get vector pointing from next-to-nearest-neighbor l to neighbor j
+                    # get vector pointing from next-to-nearest-neighbor l to neighbor j
                     distance_vector_l = (sign(neighbor_vec[j] - neighbors_neighbor_vec[l])
                     * graph_dict["spatial_network"][neighbors_neighbor_vec[l], neighbor_vec[j]]["vector"])
         
@@ -331,14 +331,14 @@ function hessian_keating_efficient(graph_dict::Dict, central_vertex::Int64)
                     
                 end
         
-                #sum bond stretching and bending terms
+                # sum bond stretching and bending terms
                 hessian[a,b] += bond_stretching_term + bond_bending_sum + neighbor_bond_bending_sum
         
             end
             
         end
 
-        #use symmetry of hessian and copy entries from lower left to upper right half
+        # use symmetry of hessian and copy entries from lower left to upper right half
         for b in 1:a-1
             hessian[a,b] = hessian[b,a]
         end
@@ -359,20 +359,20 @@ function gradient_keating!(gradient::Vector, x::Vector{Float64},
                         neighbor_positions_mat::Matrix{Float64},
                         next_neighbor_positions_arr::Array{Float64})
 
-    #reset gradient (for some reason the optimization does not
-    #work if this is done vectorized)
+    # reset gradient (for some reason the optimization does not
+    # work if this is done vectorized)
     gradient[:] = zeros(graph_dict["nr_dimensions"])
 
     for j in 1:graph_dict["coordination_nr"]
 
-        #get vector pointing from central vertex to neighbor
+        # get vector pointing from central vertex to neighbor
         distance_vector_j = neighbor_positions_mat[:,j] .- x
 
-        #get bond stretching term
+        # get bond stretching term
         bond_stretching_term = ( - 3/4 * ( LinearAlgebra.norm(distance_vector_j)^2 - 1 ) 
                                 ) .* distance_vector_j
 
-        #get bond bending term
+        # get bond bending term
         bond_bending_sum = zeros(graph_dict["nr_dimensions"])
 
         for k in j+1:graph_dict["coordination_nr"]
@@ -385,7 +385,7 @@ function gradient_keating!(gradient::Vector, x::Vector{Float64},
             
         end
 
-        #get bond bending terms due to next to nearest neighbors
+        # get bond bending terms due to next to nearest neighbors
         neighbor_bond_bending_sum = zeros(graph_dict["nr_dimensions"])
 
         for l in 1:graph_dict["coordination_nr"]-1
@@ -398,7 +398,7 @@ function gradient_keating!(gradient::Vector, x::Vector{Float64},
             
         end
 
-        #sum bond stretching and bending terms
+        # sum bond stretching and bending terms
         gradient .+= bond_stretching_term .+ bond_bending_sum .+ neighbor_bond_bending_sum
 
     end
@@ -415,23 +415,23 @@ function hessian_keating!(hessian::Matrix{Float64}, x::Vector{Float64},
                         neighbor_positions_mat::Matrix{Float64},
                         next_neighbor_positions_arr::Array{Float64})
 
-    #get hessian
+    # get hessian
     hessian[:,:] = zeros(graph_dict["nr_dimensions"],graph_dict["nr_dimensions"])
 
     for a in 1:graph_dict["nr_dimensions"]
 
-        #since the hessian is symmetric, it only needs to be calculated for the lower left half
+        # since the hessian is symmetric, it only needs to be calculated for the lower left half
         for b in a:graph_dict["nr_dimensions"]
 
             for j in 1:graph_dict["coordination_nr"]
         
-                #get bond stretching term
+                # get bond stretching term
                 bond_stretching_term = (3/2 * (x[b]-neighbor_positions_mat[b,j] ) 
                                             * (x[a]-neighbor_positions_mat[a,j] )
                         + ==(a,b) * 3/4 * ( LinearAlgebra.norm( 
                                 neighbor_positions_mat[:,j] .- x )^2 - 1 ) )
         
-                #get bond bending term 
+                # get bond bending term 
                 bond_bending_sum = 0
         
                 for k in j+1:graph_dict["coordination_nr"]
@@ -446,7 +446,7 @@ function hessian_keating!(hessian::Matrix{Float64}, x::Vector{Float64},
                     
                 end
 
-                #get bond bending terms due to next to nearest neighbors
+                # get bond bending terms due to next to nearest neighbors
                 neighbor_bond_bending_sum = 0
         
                 for l in 1:graph_dict["coordination_nr"]-1
@@ -458,14 +458,14 @@ function hessian_keating!(hessian::Matrix{Float64}, x::Vector{Float64},
                     
                 end
         
-                #sum bond stretching and bending terms
+                # sum bond stretching and bending terms
                 hessian[a,b] += bond_stretching_term + bond_bending_sum + neighbor_bond_bending_sum
         
             end
             
         end
 
-        #use symmetry of hessian and copy entries from lower left to upper right half
+        # use symmetry of hessian and copy entries from lower left to upper right half
         for b in 1:a-1
             hessian[a,b] = hessian[b,a]
         end
@@ -481,22 +481,22 @@ included
 function get_vertex_relaxation_weight(excited_graph_dict::Dict, 
     relaxed_graph_dict::Dict, vertex::Int64, temperature::Real)
 
-    #get displacement vector 
+    # get displacement vector 
     displacement_vec = (excited_graph_dict["spatial_network"][vertex]["position"]
                     .- relaxed_graph_dict["spatial_network"][vertex]["position"])
 
-    #get hessian matrix of current vertex at relaxed position
+    # get hessian matrix of current vertex at relaxed position
     hessian = hessian_keating_efficient(relaxed_graph_dict, vertex)
 
-    #get vector of sigmas
+    # get vector of sigmas
     sigma_vec = sqrt.(temperature ./ LinearAlgebra.diag(hessian) ) 
 
-    #get vector of gauss functions
+    # get vector of gauss functions
     gauss_fct_vec = ( (1/sqrt(2*pi)) ./ sigma_vec
                     .* exp.( .- displacement_vec.^2 ./ (2 .* (sigma_vec .^2 ) ) ) )
 
-    #get relaxation weight which is the product of the gauss fct for
-    #all dimensions
+    # get relaxation weight which is the product of the gauss fct for
+    # all dimensions
     vertex_relaxation_weight = prod(gauss_fct_vec)
 
     return vertex_relaxation_weight
@@ -513,13 +513,13 @@ function get_cluster_fluctuation_weight(excited_graph_dict::Dict,
                                     cluster_dict::Dict,
                                     temperature::Real)
 
-    #initialize cluster relaxation weight
+    # initialize cluster relaxation weight
     cluster_relaxation_weight = 1
 
-    #loop through all vertices that are allowed to move
+    # loop through all vertices that are allowed to move
     for vertex in cluster_dict["cluster_vertices_to_move_vec"]
 
-        #get relaxation weight for current vertex
+        # get relaxation weight for current vertex
         vertex_relaxation_weight = get_vertex_relaxation_weight(excited_graph_dict, 
                                                         relaxed_graph_dict, vertex, temperature)
 

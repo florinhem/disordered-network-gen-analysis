@@ -8,11 +8,11 @@ decompose measurement types in dictionary and store them as new keys
 """
 function decompose_measurements_in_dict(dict::Dict)
 
-    #loop through each key of the dict
+    # loop through each key of the dict
     for (key, value) in dict
 
-        #if key if of type Measurements.Measurement, save values and uncertainties
-        #to two seperate keys and delete previous key
+        # if key if of type Measurements.Measurement, save values and uncertainties
+        # to two seperate keys and delete previous key
         if typeof(value) in [Vector{Measurements.Measurement},
                             Vector{Measurements.Measurement{Float64}}, 
                             Vector{Complex{Measurements.Measurement{Float64}}},
@@ -37,21 +37,21 @@ decompose vectors of vectors into seperate vectors
 """
 function decompose_vec_vecs_in_dict(dict::Dict)
 
-    #loop through each key of the dict
+    # loop through each key of the dict
     for (key, value) in dict
 
-        #if key ends with _vec_vec
+        # if key ends with _vec_vec
         if endswith(key, "_vec_vec")
 
-            #cut of the last "vec" from key
+            # cut of the last "vec" from key
             core_key = key[1:end-3]
 
-            #loop through vector of vectors and save individual vectors
+            # loop through vector of vectors and save individual vectors
             for i in eachindex(value)
                 dict[core_key*string(i)] = value[i]
             end
 
-            #delete vector of vectors
+            # delete vector of vectors
             delete!(dict, key)
 
         end
@@ -66,16 +66,16 @@ turn tuples into vectors
 """
 function tuples_to_vectors_in_dict(dict::Dict)
 
-    #loop through each key of the dict
+    # loop through each key of the dict
     for (key, value) in dict
 
-        #check if value is a tuple
+        # check if value is a tuple
         if typeof(value) in [Tuple{Int64, Int64}, Tuple{Int64, Int64, Int64}]
 
-            #save vector to dict
+            # save vector to dict
             dict[key*"_tuple"] = collect(value)
 
-            #delete vector of vectors
+            # delete vector of vectors
             delete!(dict, key)
 
         end
@@ -90,16 +90,16 @@ convert all booleans and vectors of booleans to ints
 """
 function bool_to_int_in_dict(dict)
 
-    #loop through each key of the dict
+    # loop through each key of the dict
     for (key, value) in dict
 
-        #check if value is a bool or vector of bools
+        # check if value is a bool or vector of bools
         if typeof(value) == [Bool, Vector{Bool}]
 
-            #save vector to dict
+            # save vector to dict
             dict[key*"_bool"] = Int.(value)
 
-            #delete vector of vectors
+            # delete vector of vectors
             delete!(dict, key)
 
         end
@@ -120,19 +120,19 @@ tuples need to be converted into vectors and booleans need to be converted to in
 function save_dict_to_h5(dict::Dict;
                         save_path::String)
 
-    #decompose those keys of the dict that are of measurement type
+    # decompose those keys of the dict that are of measurement type
     decomposed_measurements_dict = decompose_measurements_in_dict(dict)
 
-    #decompose vectors of vectors into seperate vectors
+    # decompose vectors of vectors into seperate vectors
     decomposed_vec_vec_dict = decompose_vec_vecs_in_dict(decomposed_measurements_dict)
 
-    #turn tuples into vectors
+    # turn tuples into vectors
     tuples_to_vectors_dict = tuples_to_vectors_in_dict(decomposed_vec_vec_dict)
 
-    #convert bool to int 
+    # convert bool to int 
     saving_dict = bool_to_int_in_dict(tuples_to_vectors_dict)
 
-    #save dict
+    # save dict
     FileIO.save(save_path, saving_dict)
 
     return
@@ -145,13 +145,13 @@ restore all booleans from ints in dictionary
 """
 function restore_bool_from_int_in_dict(dict)
 
-    #loop through each key of the dict
+    # loop through each key of the dict
     for (key, value) in dict
 
-        #if key ends on "_tuple", then convert it to a vector
+        # if key ends on "_tuple", then convert it to a vector
         if endswith(key, "_bool")
 
-            #get core key
+            # get core key
             dict[key[1:end-5]] = Bool.(value )
             
             delete!(dict, key)
@@ -169,21 +169,21 @@ restore measurement types in dictionary
 """
 function restore_measurement_types(dict::Dict)
 
-    #loop through each key of the dict
+    # loop through each key of the dict
     for (key, value) in dict
 
-        #if key ends on "_values", then merge it with corresponding uncertainties
-        #into measurement type
+        # if key ends on "_values", then merge it with corresponding uncertainties
+        # into measurement type
         if endswith(key, "_values")
 
-            #get original key
+            # get original key
             original_key = first(key, findfirst("_values", key)[1]-1)
 
-            #get key of uncertainties
+            # get key of uncertainties
             uncertainty_key = original_key*"_uncertainties"
 
-            #create vector of type Measurements.Measurement after checking whether
-            #values are complex or real
+            # create vector of type Measurements.Measurement after checking whether
+            # values are complex or real
             if typeof(value[1]) == ComplexF64
                 measurement_vector = Complex.( Measurements.measurement.( real.( value ), real.( dict[uncertainty_key] ) ),
                                                 Measurements.measurement.( imag.( value ), imag.( dict[uncertainty_key] ) )  )
@@ -193,7 +193,7 @@ function restore_measurement_types(dict::Dict)
 
             end
 
-            #save measurement vector to dict and delete value and uncertainty keys
+            # save measurement vector to dict and delete value and uncertainty keys
             dict[original_key] = measurement_vector
             delete!(dict, key)
             delete!(dict, uncertainty_key)
@@ -211,22 +211,22 @@ restore vectors of vectors that were decomposed to save the dict
 """
 function restore_vec_vecs_in_dict(dict::Dict)
 
-    #loop through each key of the dict
+    # loop through each key of the dict
     for (key, value) in dict
 
-        #if key ends on "_1", then merge it with the other vectors
-        #ending on _2 and _3
+        # if key ends on "_1", then merge it with the other vectors
+        # ending on _2 and _3
         if endswith(key, "_1")
 
-            #get core key
+            # get core key
             core_key = key[1:end-1]
 
             vec_vec = [value, dict[core_key*"2"], dict[core_key*"3"]]
 
-            #save vec vec to dict
+            # save vec vec to dict
             dict[core_key*"vec"] = vec_vec
 
-            #delete single vectors
+            # delete single vectors
             for i in 1:3
                 delete!(dict, core_key*string(i))
 
@@ -244,13 +244,13 @@ restore tuples in a dictionary
 """
 function restore_tuples_in_dict(dict::Dict)
     
-    #loop through each key of the dict
+    # loop through each key of the dict
     for (key, value) in dict
 
-        #if key ends on "_tuple", then convert it to a vector
+        # if key ends on "_tuple", then convert it to a vector
         if endswith(key, "_tuple")
 
-            #get core key
+            # get core key
             dict[key[1:end-6]] = Tuple(value )
             
             delete!(dict, key)
@@ -270,19 +270,19 @@ restored again. Also vectors of vectors had to be decomposed for saving and are 
 """
 function load_h5_dict(dict_path::String)
 
-    #save dict
+    # save dict
     loaded_dict = FileIO.load(dict_path)
 
-    #restore booleans from integers
+    # restore booleans from integers
     bool_restored_dict = restore_bool_from_int_in_dict(loaded_dict)
 
-    #restore vectors of type Measurements.Measurement
+    # restore vectors of type Measurements.Measurement
     measurements_restored_dict = restore_measurement_types(bool_restored_dict)
 
-    #restore vectors of vectors
+    # restore vectors of vectors
     vec_vecs_restored_dict = restore_vec_vecs_in_dict(measurements_restored_dict)
 
-    #restore tuples
+    # restore tuples
     restored_dict = restore_tuples_in_dict(vec_vecs_restored_dict)
 
     return restored_dict

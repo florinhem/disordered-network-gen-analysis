@@ -1,4 +1,4 @@
-#there are some depreciated functions
+# there are some depreciated functions
 
 """
 determine uncertainty on the local volume fraction for given window size
@@ -11,12 +11,12 @@ function get_uncertainty_local_volume_fract_variance_random_windows_depreciated(
     
    
 
-    #sometimes the uncertainty becomes negative which can only them from the nr of independent samples
-    #therefore print this number for each window size
+    # sometimes the uncertainty becomes negative which can only them from the nr of independent samples
+    # therefore print this number for each window size
     println("window length: "*string(edge_length_window)*", nr_independent_samples: "*string(nr_independent_samples))
     println("local_volume_fract_variance: "*string(local_volume_fract_variance))
 
-    #calculate  uncertainty on the local volume fraction
+    # calculate  uncertainty on the local volume fraction
     uncertainty_local_volume_fract_variance = sqrt( 1/( window_volume^3 * nr_independent_samples
                                                         * volume_fract_tot * (1 - volume_fract_tot )^2 )
                                                     + 2 * local_volume_fract_variance 
@@ -41,10 +41,10 @@ function plot_hyperuniform_criterion_depreciated(nr_dimensions_data::Int64,
                                     save_path=raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\\",
                                     save_filename="hyperuniform_test.pdf")
 
-    #get vector of window volumes
+    # get vector of window volumes
     window_volume_vec = window_edge_length_vec .^ nr_dimensions_data
 
-    #plot window volume times local volume fraction variance against window edge length
+    # plot window volume times local volume fraction variance against window edge length
     hyperuniform_plot = Plots.plot(window_edge_length_vec, 
                 Measurements.value.(local_volume_fract_variance_vec) .* window_volume_vec, 
                 yerr = Measurements.uncertainty.(local_volume_fract_variance_vec) .* window_volume_vec,
@@ -55,7 +55,7 @@ function plot_hyperuniform_criterion_depreciated(nr_dimensions_data::Int64,
                                 *Fmt.format(Latex.L"^{:d}", nr_dimensions_data) ,
                 legend = false, dpi=250, title=title)
 
-    #if specified by the argument, save the plot
+    # if specified by the argument, save the plot
     if save_plot
         Plots.savefig(save_path*save_filename)
 
@@ -73,14 +73,14 @@ perform the tensor product of two 3d arrays
 """
 function tensor_product_3d(array1::Array, array2::Array)
 
-    #get the sizes of both arrays
+    # get the sizes of both arrays
     size1 = size(array1)
     size2 = size(array2)
 
-    #initialize output array
+    # initialize output array
     array_out = zeros(size1[1]*size2[1], size1[2]*size2[2], size1[3]*size2[3])
 
-    #loop through all dimensions of both arrays and calculate tensor product element-wise
+    # loop through all dimensions of both arrays and calculate tensor product element-wise
     for i in eachindex(array1[:,1,1])
         for j in eachindex(array1[1,:,1])
             for k in eachindex(array1[1,1,:])
@@ -109,7 +109,7 @@ reduce number of array elements along every dimension by a given factor
 """
 function reduce_array(array_to_reduce, reduction_factor)
 
-    #consider only those elements on a grid with the reduction factor as a step size
+    # consider only those elements on a grid with the reduction factor as a step size
     reduced_array = array_to_reduce[1:reduction_factor:end, 
                                     1:reduction_factor:end, 
                                     1:reduction_factor:end]
@@ -129,10 +129,10 @@ function plot_hyperuniform_criterion(nr_dimensions_data::Int64,
     save_path=raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\\",
     save_filename="hyperuniform_test.pdf")
 
-#get vector of window volumes
+# get vector of window volumes
 window_volume_vec = window_edge_length_vec .^ nr_dimensions_data
 
-#plot window volume times local volume fraction variance against window edge length
+# plot window volume times local volume fraction variance against window edge length
 hyperuniform_plot = Plots.plot(window_edge_length_vec, 
 Measurements.value.(local_volume_fract_variance_vec) .* window_volume_vec, 
 ribbon = Measurements.uncertainty.(local_volume_fract_variance_vec) .* window_volume_vec,
@@ -143,7 +143,7 @@ ylabel=Fmt.format(Latex.L"\sigma_\tau^2(L) \cdot L^{:d} / ",
 *Fmt.format(Latex.L"^{:d}", nr_dimensions_data) ,
 legend = false, dpi=250, title=title)
 
-#if specified by the argument, save the plot
+# if specified by the argument, save the plot
 if save_plot
 Plots.savefig(save_path*save_filename)
 
@@ -163,10 +163,10 @@ get a vector with odd measuring window edge lengths
 """
 function get_window_edge_length_vec(mean_edge_length_data::Int64; nr_window_sizes::Int64 = 100 )
 
-    #set maximal window edge length
+    # set maximal window edge length
     max_window_edge_length = Int( round( mean_edge_length_data/4 ) )
 
-    #get vector with odd integer window lengths up to mean_edge_length_data/4
+    # get vector with odd integer window lengths up to mean_edge_length_data/4
     window_edge_length_vec = ( 2 .* Int.( round.( collect(
                                  LinRange(1, max_window_edge_length/2, nr_window_sizes) 
                                  ) ) )  .+ 1 )
@@ -199,22 +199,22 @@ function get_spectral_density_isotrope_by_wavenumber_vec(mean_edge_length_data::
                                             sampling_distance_vec = sampling_distance_vec)[2])
                                      
 
-    #get vector of window edge lengths that will be measured
+    # get vector of window edge lengths that will be measured
     wavenumber_vec = get_wavenumber_vec(sampling_distance_vec; nr_wavenumbers = nr_wavenumbers)
 
-    #create vector where for each wavenumber the spectral density and its
-    #uncertainty will be stored
+    # create vector where for each wavenumber the spectral density and its
+    # uncertainty will be stored
     spectral_density_vec = Vector{Complex{Measurements.Measurement}}(undef, nr_wavenumbers)
 
-    #for each wavenumber get spectral density and its uncertainty
+    # for each wavenumber get spectral density and its uncertainty
     for i in eachindex(wavenumber_vec)
 
-        #get vector of local volume fractions and the number of independent samples
+        # get vector of local volume fractions and the number of independent samples
         spectral_density_vec[i] = get_spectral_density_isotrope(autocovariance_fct_vec,
                                                                 wavenumber_vec[i];
                                                                 sampling_distance_vec=sampling_distance_vec)
 
-        #print current calculation status
+        # print current calculation status
         println("wavenumber "*string(wavenumber_vec[i])*" done")
 
     end
@@ -242,10 +242,10 @@ function plot_spectral_density(plot_dict_vec::Vector,
                                 save_plot = false,
                                 xlims = nothing)
 
-    #set x label which is the same for all plots
+    # set x label which is the same for all plots
     xlabel = "wavenumber " * Latex.L"k / ( 1/ \mathrm{nm} )"
 
-    #create empty plots for real, imaginary parts and absolute value
+    # create empty plots for real, imaginary parts and absolute value
     re_plot = Plots.plot(xlabel=xlabel,
                                     ylabel=Latex.L"\mathrm{Re}(\tilde{\chi} (k)) ",
                                     legend = true, dpi=250, title=title)
@@ -258,7 +258,7 @@ function plot_spectral_density(plot_dict_vec::Vector,
                                     ylabel=Latex.L"\mathrm{Abs}(\tilde{\chi} (k)) ",
                                     legend = true, dpi=250, title=title)
 
-    #if desired, set xlims
+    # if desired, set xlims
     if xlims !== nothing 
 
         Plots.plot!(re_plot, xlims=xlims)
@@ -267,25 +267,25 @@ function plot_spectral_density(plot_dict_vec::Vector,
 
     end
 
-    #loop through plot dictionaries to add plots
+    # loop through plot dictionaries to add plots
     for plot_dict in plot_dict_vec
 
-        #scale wavenumbers with inverse nanometers
+        # scale wavenumbers with inverse nanometers
         x_vec = plot_dict["wavenumber_vec"] ./ plot_dict["voxel_edge_length"]
 
-        #plot real part of spectral density
+        # plot real part of spectral density
         Plots.plot!(re_plot, x_vec, 
                     real.( Measurements.value.(plot_dict["spectral_density_vec"]) ), 
                     ribbon = real.( Measurements.uncertainty.(plot_dict["spectral_density_vec"]) ),
                     label = plot_dict["label"])
 
-        #plot imaginary part of spectral density
+        # plot imaginary part of spectral density
         Plots.plot!(im_plot, x_vec, 
                     imag.( Measurements.value.(plot_dict["spectral_density_vec"]) ), 
                     ribbon = imag.( Measurements.uncertainty.(plot_dict["spectral_density_vec"]) ),
                     label = plot_dict["label"])
 
-        #plot absolute value of spectral density
+        # plot absolute value of spectral density
         abs_spectral_density_vec = abs.( plot_dict["spectral_density_vec"]  )
 
         Plots.plot!(abs_plot, x_vec, 
@@ -296,7 +296,7 @@ function plot_spectral_density(plot_dict_vec::Vector,
 
     end
 
-    #if specified by the argument, save the plots
+    # if specified by the argument, save the plots
     if save_plot && xlims!== nothing
         Plots.savefig(re_plot, save_path*"_spectral_density_re_zoom.png")
         Plots.savefig(im_plot, save_path*"_spectral_density_im_zoom.png")
@@ -307,7 +307,7 @@ function plot_spectral_density(plot_dict_vec::Vector,
         Plots.savefig(im_plot, save_path*"_spectral_density_im.png")
         Plots.savefig(abs_plot, save_path*"_spectral_density_abs.png")
 
-    #otherwise display the plots
+    # otherwise display the plots
     else
         Plots.display(re_plot)
         Plots.display(im_plot)
@@ -325,22 +325,22 @@ Get array with vectors for which the autocovariance function will be calculated
 """
 function get_sampling_vec_array(size_data::Tuple)
 
-    #determine the maximal sampling distances along the three axes
+    # determine the maximal sampling distances along the three axes
     max_sampling_distances = Int.( floor.( (size_data .- 1) ./ 2 ))
 
-    #determine size of array where sampling vectors will be stored in
-    #along one axis (z direction is chosen here) only positive directions are considered,
-    #because negative ones would yield redundant information
-    #the fourth dimension contains the 3 vector entries
+    # determine size of array where sampling vectors will be stored in
+    # along one axis (z direction is chosen here) only positive directions are considered,
+    # because negative ones would yield redundant information
+    # the fourth dimension contains the 3 vector entries
     sampling_vec_array_size = (2*max_sampling_distances[1] + 1 , 
                                 2*max_sampling_distances[2] + 1, 
                                 max_sampling_distances[3] + 1,
                                 3 )
 
-    #initialize array where sampling vectors will be stored in
+    # initialize array where sampling vectors will be stored in
     sampling_vec_array = Array{Int64}(undef, sampling_vec_array_size...)
 
-    #fill array with sampling vectors
+    # fill array with sampling vectors
     for i in -max_sampling_distances[1]:max_sampling_distances[1]
         for j in -max_sampling_distances[2]:max_sampling_distances[2]
             for k in 0:max_sampling_distances[3]
@@ -366,11 +366,11 @@ Get vector of vectors of sampled wavenumbers
 """
 function get_sampled_wavenumbers_vec_vec(autocovariance_fct_array_values::Array)
 
-    #get vectors of wavenumbers along all three dimensions
+    # get vectors of wavenumbers along all three dimensions
     sampled_wavenumbers_vec_vec = collect( FFTW.rfftfreq.( 
                                             size(autocovariance_fct_array_values) ) )
 
-    #convert to Float64
+    # convert to Float64
     sampled_wavenumbers_vec_vec_float = []
 
     for sampled_wavenumbers_vec in sampled_wavenumbers_vec_vec
@@ -398,17 +398,17 @@ function get_spectral_density(size_data::Tuple,
                             sampling_vec_array = sampling_vec_array,
                             nr_measurements_per_direction = nr_measurements_per_direction)[3])
     
-    #get values of autocovariance function
+    # get values of autocovariance function
     autocovariance_fct_array_values = Measurements.value.( autocovariance_fct_array )
 
-    #determine fourier transform of autocovariance function values
+    # determine fourier transform of autocovariance function values
     spectral_density_array = FFTW.rfft(autocovariance_fct_array_values)
 
-    #get tuple of vectors of sampled wavenumbers
+    # get tuple of vectors of sampled wavenumbers
     sampled_wavenumbers_vec_vec = get_sampled_wavenumbers_vec_vec(
                             autocovariance_fct_array_values)
 
-    #get array of sampled sampled wavevectors 
+    # get array of sampled sampled wavevectors 
     sampled_wavevectors_array = get_vector_array(sampled_wavenumbers_vec_vec)
 
     return[sampled_wavenumbers_vec_vec, sampled_wavevectors_array, spectral_density_array]
@@ -422,13 +422,13 @@ get vector of sampled wavenumbers
 """
 function get_sampled_wavenumbers_vec(direction_vec::Vector{Int64}, autocovariance_fct_vec)
 
-    #determine geometrical length of direction vector
+    # determine geometrical length of direction vector
     sampling_distance = sqrt(sum( direction_vec .^2 ))
 
-    #determine sampled wavenumbers vec, where the sampling rate is the inverse of the sampling distance
+    # determine sampled wavenumbers vec, where the sampling rate is the inverse of the sampling distance
     sampled_wavenumbers_vec = FFTW.rfftfreq( length( autocovariance_fct_vec ), 1/sampling_distance )
 
-    #convert to float before returning
+    # convert to float before returning
     return Float64.( sampled_wavenumbers_vec )
 end
 
@@ -449,17 +449,17 @@ function get_spectral_density_along_direction(size_data::Tuple,
                             sampling_vec_array = sampling_vec_array,
                             nr_measurements_per_direction = nr_measurements_per_direction)[3])
     
-    #extract autocovariance function vector along given direction
+    # extract autocovariance function vector along given direction
     autocovariance_fct_vec = get_autocovariance_fct_along_direction_vec(direction_vec, autocovariance_fct_array)
 
-    #determine fourier transform of autocovariance function values along direction
+    # determine fourier transform of autocovariance function values along direction
     spectral_density_value_vec = FFTW.rfft( Measurements.value.(autocovariance_fct_vec) )
 
-    #determine uncertainty of spectral_density. Since Fourier transform is linear,
-    #the output's uncertainty is the Fourier transform of the input's uncertainty
+    # determine uncertainty of spectral_density. Since Fourier transform is linear,
+    # the output's uncertainty is the Fourier transform of the input's uncertainty
     spectral_density_uncertainty_vec  = FFTW.rfft( Measurements.uncertainty.(autocovariance_fct_vec) )
 
-    #combine values and uncertainties into measurement type
+    # combine values and uncertainties into measurement type
     spectral_density_vec = complex.(Measurements.measurement.( 
                                         real.(spectral_density_value_vec), 
                                         real.(spectral_density_uncertainty_vec)), 
@@ -467,7 +467,7 @@ function get_spectral_density_along_direction(size_data::Tuple,
                                         imag.(spectral_density_value_vec), 
                                         imag.(spectral_density_uncertainty_vec)))
  
-    #get vector of sampled wavenumbers
+    # get vector of sampled wavenumbers
     sampled_wavenumbers_vec = get_sampled_wavenumbers_vec(direction_vec,
                                             autocovariance_fct_vec)
 
@@ -490,21 +490,21 @@ function plot_spectral_density_heatmap(plot_dict::Dict,
     wavevector_component_to_fix::Int64 = 3,
     wavevector_value_fixed = 0)
 
-    #discriminate between different wavevector components that are fixed
+    # discriminate between different wavevector components that are fixed
     if wavevector_component_to_fix == 1
 
-        #set vectors of x and y axes
+        # set vectors of x and y axes
         wavenumber_vec_x = plot_dict["sampled_wavenumbers_vec_vec"][2]
         wavenumber_vec_y = plot_dict["sampled_wavenumbers_vec_vec"][3]
 
-        #find index of fixed wavenumber value
+        # find index of fixed wavenumber value
         wavevector_fixed_index = argmin( abs.( 
                                         plot_dict["sampled_wavenumbers_vec_vec"][1]
                                     .- wavevector_value_fixed ) )
 
         spectral_density_2d_array = plot_dict["spectral_density_array"][wavevector_fixed_index,:,:] 
         
-        #set labels and title for the plot
+        # set labels and title for the plot
         xlabel = Latex.L"k_y / ( 1/ \mathrm{nm} )" 
         ylabel = Latex.L"k_z / ( 1/ \mathrm{nm} )"
         title = (title*", "
@@ -517,11 +517,11 @@ function plot_spectral_density_heatmap(plot_dict::Dict,
 
     elseif wavevector_component_to_fix == 2
         
-        #set vectors of x and y axes
+        # set vectors of x and y axes
         wavenumber_vec_x = plot_dict["sampled_wavenumbers_vec_vec"][1]
         wavenumber_vec_y = plot_dict["sampled_wavenumbers_vec_vec"][3]
 
-        #find index of fixed wavenumber value
+        # find index of fixed wavenumber value
         wavevector_fixed_value, wavevector_fixed_index = findmin( abs.( 
                                     plot_dict["sampled_wavenumbers_vec_vec"][2]
                                     .- wavevector_value_fixed ) )
@@ -529,7 +529,7 @@ function plot_spectral_density_heatmap(plot_dict::Dict,
         spectral_density_2d_array = plot_dict["spectral_density_array"][:,wavevector_fixed_index,:] 
 
         
-        #set labels and title for the plot
+        # set labels and title for the plot
         xlabel = Latex.L"k_x / ( 1/ \mathrm{nm} )" 
         ylabel = Latex.L"k_z / ( 1/ \mathrm{nm} )"
         title = (title*", "
@@ -541,18 +541,18 @@ function plot_spectral_density_heatmap(plot_dict::Dict,
 
     elseif wavevector_component_to_fix == 3
         
-        #set vectors of x and y axes
+        # set vectors of x and y axes
         wavenumber_vec_x = plot_dict["sampled_wavenumbers_vec_vec"][1]
         wavenumber_vec_y = plot_dict["sampled_wavenumbers_vec_vec"][2]
 
-        #find index of fixed wavenumber value
+        # find index of fixed wavenumber value
         wavevector_fixed_value, wavevector_fixed_index = findmin( abs.( 
                                     plot_dict["sampled_wavenumbers_vec_vec"][3] 
                                     .- wavevector_value_fixed ) )
 
         spectral_density_2d_array = plot_dict["spectral_density_array"][:,:,wavevector_fixed_index] 
 
-        #set labels and title for the plot
+        # set labels and title for the plot
         xlabel = Latex.L"k_x / ( 1/ \mathrm{nm} )" 
         ylabel = Latex.L"k_y / ( 1/ \mathrm{nm} )"
         title = (title*", "
@@ -567,14 +567,14 @@ function plot_spectral_density_heatmap(plot_dict::Dict,
                 be 1, 2 or 3, but is "*string(wavevector_component_to_fix))
     end
 
-    #scale x and y axes in units of 1/nm
+    # scale x and y axes in units of 1/nm
     x_axis = FFTW.fftshift( wavenumber_vec_x ) / plot_dict["voxel_edge_length"]
     y_axis = FFTW.fftshift(wavenumber_vec_y ) / plot_dict["voxel_edge_length"]
 
-    #permute dimensions of spectral density array, such that they match the axes
+    # permute dimensions of spectral density array, such that they match the axes
     spectral_density_2d_permuted_array = FFTW.fftshift(permutedims(spectral_density_2d_array) )
 
-    #create plots
+    # create plots
     abs_plot = Plots.heatmap(x_axis,
                                 y_axis,
                                 abs.(spectral_density_2d_permuted_array),
@@ -605,20 +605,20 @@ function plot_spectral_density_heatmap(plot_dict::Dict,
                                 c = :bluesreds,
                                 aspect_ratio = :equal)
 
-    #set clims if desired
+    # set clims if desired
     if clims !== nothing
         Plots.heatmap!(abs_plot, clims = clims)
         Plots.heatmap!(re_plot, clims = clims)
         Plots.heatmap!(im_plot, clims = clims)
     end
 
-    #if specified by the argument, save the plot
+    # if specified by the argument, save the plot
     if  save_plot
         Plots.savefig(abs_plot, save_path*"_spectral_density_abs.png")
         Plots.savefig(re_plot, save_path*"_spectral_density_re.png")
         Plots.savefig(im_plot, save_path*"_spectral_density_im.png")
 
-    #otherwise display the plot
+    # otherwise display the plot
     else
         Plots.display(abs_plot)
 
@@ -636,15 +636,15 @@ properly based on the sampled distances
 function get_wavenumber_vec(sampling_distance_vec::Vector;
                                 nr_wavenumbers::Int64 = 200)
 
-    #determine maximal wavenumber based on the Nyquist–Shannon sampling theorem
-    #(Nyquist frequency, https://en.wikipedia.org/wiki/Nyquist%E2%80%93Shannon_sampling_theorem)
+    # determine maximal wavenumber based on the Nyquist–Shannon sampling theorem
+    # (Nyquist frequency, https://en.wikipedia.org/wiki/Nyquist%E2%80%93Shannon_sampling_theorem)
     wavenumber_max = 1 / ( 2 * Statistics.mean( sampling_distance_vec[2:end] 
                                                     .- sampling_distance_vec[1:end-1] ) )
 
-    #get minimal wavenumber from maximal sampled distance
+    # get minimal wavenumber from maximal sampled distance
     wavenumber_min = 2 * pi / maximum(sampling_distance_vec)
 
-    #get vector of float wavenumbers
+    # get vector of float wavenumbers
     wavenumber_vec = collect(LinRange(wavenumber_min, wavenumber_max, nr_wavenumbers))
 
     return wavenumber_vec
@@ -658,16 +658,16 @@ get vector of sampled wavenumbers
 function get_sampled_wavenumbers_vec(direction_vec::Vector, 
                                     autocovariance_fct_along_direction_vec::Vector)
 
-    #determine geometrical length of direction vector
+    # determine geometrical length of direction vector
     sampling_distance = sqrt(sum( direction_vec .^2 ))
 
-    #determine nr of sampling distances
+    # determine nr of sampling distances
     nr_sampling_distances = length(autocovariance_fct_along_direction_vec)
 
-    #determine fundamental wavenumber
+    # determine fundamental wavenumber
     fundamental_wavenumber = 2*pi/(sampling_distance*nr_sampling_distances)
 
-    #determine sampled wavenumbers vec
+    # determine sampled wavenumbers vec
     sampled_wavenumbers_vec = collect(1:floor(nr_sampling_distances/2)) .* fundamental_wavenumber
 
     return sampled_wavenumbers_vec
@@ -694,37 +694,37 @@ function get_spectral_density_array_by_fft(size_data::Tuple,
                 voxel_edge_length = 10,
                 label = "some structure")
 
-    #save autocovariance_fct array and sampling distances to dictionary
+    # save autocovariance_fct array and sampling distances to dictionary
     autocovariance_fct_direction_dict = Dict("sampling_vec_array" => sampling_vec_array,
                                             "sampling_distance_vec_vec" => sampling_distance_vec_vec,
                                             "autocovariance_fct_array" => autocovariance_fct_array,
                                             "voxel_edge_length" => voxel_edge_length,
                                             "label" => label)
 
-    #autocovariance fct was only calculated for half space with z>0 which, due to its mirror
-    #symmetry, is sufficient. For the FFT it is however necessary (I think?) to get the values
-    #for the entire space, which is calculated here
+    # autocovariance fct was only calculated for half space with z>0 which, due to its mirror
+    # symmetry, is sufficient. For the FFT it is however necessary (I think?) to get the values
+    # for the entire space, which is calculated here
     (complete_sampling_distance_vec_vec, 
         complete_sampling_vec_array, 
         complete_autocovariance_fct_array) = mirror_autoautocovariance_fct_by_sampling_vec_array(
                                                 autocovariance_fct_direction_dict)
 
-    #get values of autocovariance function
+    # get values of autocovariance function
     complete_autocovariance_fct_array_values = Measurements.value.( complete_autocovariance_fct_array )
 
-    #determine fourier transform of autocovariance function values
+    # determine fourier transform of autocovariance function values
     spectral_density_array = FFTW.rfft(complete_autocovariance_fct_array_values)
 
-    #get tuple of vectors of sampled wavenumbers
+    # get tuple of vectors of sampled wavenumbers
     wavenumber_vec_vec = get_wavenumber_vec_vec(complete_autocovariance_fct_array_values)
 
-    #get array of sampled sampled wavevectors 
+    # get array of sampled sampled wavevectors 
     wavevector_array = get_vector_array(wavenumber_vec_vec)
 
-    #save results if desired
+    # save results if desired
     if save_result
         
-        #create dict to save
+        # create dict to save
         plot_dict = Dict("wavevector_array" => wavevector_array,
                             "wavenumber_vec_vec" => wavenumber_vec_vec,
                             "spectral_density_array" => spectral_density_array,
@@ -747,10 +747,10 @@ load voxel size corrected data from h5 file
 """
 function load_binary_data(data_path_h5::String)
 
-    #load data dictionary (this is how h5 files are structured)
+    # load data dictionary (this is how h5 files are structured)
     data_binary_dict = FileIO.load(data_path_h5)
 
-    #get data from dictionary. It is expected under the "data" key
+    # get data from dictionary. It is expected under the "data" key
     data_binary = data_binary_dict["data_binary"]
 
     return data_binary
@@ -766,12 +766,12 @@ Update bond stretching energy for a given bond
 """
 function update_local_bond_stretching_energy_keating(graph_dict::Dict, bond::Tuple{Int64, Int64})
 
-    #get bond stretching energy
+    # get bond stretching energy
     bond_stretching_energy = (3/16 * ( 
             graph_dict["spatial_network"][bond...]["distance_squared"] - 1 
                                             )^2 ) 
 
-    #save to dict
+    # save to dict
     graph_dict["spatial_network"][bond...]["bond_stretching_energy"] = bond_stretching_energy
     
     return graph_dict
@@ -784,13 +784,13 @@ Update bond bending energy for a given vertex
 """
 function update_local_bond_bending_energy_keating!(graph_dict::Dict, vertex_label::Int64)
 
-    #get vector of neighbor labels
+    # get vector of neighbor labels
     neighbor_label_vec = collect(MetaGraphsNext.neighbor_labels(graph_dict["spatial_network"], vertex_label))
 
-    #initialize bond bending sum
+    # initialize bond bending sum
     bond_bending_sum = 0
 
-    #loop through all bond combinations
+    # loop through all bond combinations
     for j in 1:graph_dict["coordination_nr"]
 
         for k in j+1:graph_dict["coordination_nr"]
@@ -806,10 +806,10 @@ function update_local_bond_bending_energy_keating!(graph_dict::Dict, vertex_labe
 
     end
 
-    #calculate bond bending energy
+    # calculate bond bending energy
     bond_bending_energy = 3/8 * graph_dict["bond_bending_const"] * bond_bending_sum
     
-    #save to dict
+    # save to dict
     graph_dict["spatial_network"][vertex_label]["bond_bending_energy"] = bond_bending_energy
 
     return graph_dict
@@ -824,13 +824,13 @@ function total_energy_keating(graph_dict::Dict)
 
     total_energy = 0
 
-    #loop through all vertices and sum bond bending energies
+    # loop through all vertices and sum bond bending energies
     for vertex in MetaGraphsNext.labels(graph_dict["spatial_network"])
 
         total_energy += graph_dict["spatial_network"][vertex]["bond_bending_energy"]
     end
 
-    #loop through all bonds and sum bond stretching energies
+    # loop through all bonds and sum bond stretching energies
     for edge in MetaGraphsNext.edge_labels(graph_dict["spatial_network"])
 
         total_energy += graph_dict["spatial_network"][edge...]["bond_stretching_energy"]
@@ -848,11 +848,11 @@ considering its bonds and not sharing their energy between the two vertices
 """
 function local_energy_keating(vertex_label::Int64, graph_dict::Dict)
 
-    #initialize local energy
+    # initialize local energy
     local_energy = graph_dict["spatial_network"][vertex_label]["bond_bending_energy"]
 
-    #sum bond stretching energy contributions by considering that each bond
-    #is shared by two vertices
+    # sum bond stretching energy contributions by considering that each bond
+    # is shared by two vertices
     for neighbor in MetaGraphsNext.neighbor_labels(graph_dict["spatial_network"], vertex_label)
 
         local_energy += graph_dict["spatial_network"][vertex_label, neighbor]["bond_stretching_energy"]
@@ -872,11 +872,11 @@ considering the bonds as shared and using half their bond energies
 """
 function local_energy_keating_shared_bonds(vertex_label::Int64, graph_dict::Dict)
 
-    #initialize local energy
+    # initialize local energy
     local_energy = graph_dict["spatial_network"][vertex]["bond_bending_energy"]
 
-    #sum bond stretching energy contributions by considering that each bond
-    #is shared by two vertices
+    # sum bond stretching energy contributions by considering that each bond
+    # is shared by two vertices
     for neighbor in MetaGraphsNext.neighbor_labels(graph_dict["spatial_network"], vertex_label)
 
         local_energy += 1/2 * graph_dict["spatial_network"][vertex_label, neighbor]["bond_stretching_energy"]
@@ -895,21 +895,21 @@ function add_energies_to_spatial_network!(graph_dict;
     update_local_bond_energy_fct! = update_local_bond_stretching_energy_keating!,
     total_energy_fct = total_energy_keating)
 
-    #add bond bending energies to vertices
+    # add bond bending energies to vertices
     for vertex in MetaGraphsNext.labels(graph_dict["spatial_network"])
 
         graph_dict = update_local_vertex_energy_fct!(graph_dict, vertex)
 
     end
 
-    #add bond stretching energies to bonds
+    # add bond stretching energies to bonds
     for edge in MetaGraphsNext.edge_labels(graph_dict["spatial_network"])
 
         graph_dict = update_local_bond_energy_fct!(graph_dict, edge)
 
     end
 
-    #add total energy to graph dict
+    # add total energy to graph dict
     graph_dict["total_energy"] = total_energy_fct(graph_dict)
 
     return graph_dict
@@ -925,26 +925,26 @@ energy of a given network graph
 """
 function total_bending_and_stretching_energy_keating(graph_dict::Dict)
 
-    #first calculate bond stretching energy by looping through edges
+    # first calculate bond stretching energy by looping through edges
     bond_stretching_sum = 0
 
     for edge in MetaGraphsNext.edge_labels(graph_dict["spatial_network"])
 
-        #get current edge length
+        # get current edge length
         edge_length = graph_dict["spatial_network"][edge...]["distance"]
 
-        #add bond stretching energy of current bond to sum
+        # add bond stretching energy of current bond to sum
         bond_stretching_sum += (edge_length^2 - 1 )^2
 
     end
 
-    #multiply sum with prefactors to determine bond stretching energy
+    # multiply sum with prefactors to determine bond stretching energy
     bond_stretching_energy = 3/16 * bond_stretching_sum
 
-    #calculate bond-bending energy
+    # calculate bond-bending energy
 
     
-    #get iterator of bond combinations
+    # get iterator of bond combinations
     bond_combinations_iter = Combinatorics.combinations(
                         collect(1:graph_dict["coordination_nr"]), 2)
 
@@ -952,23 +952,23 @@ function total_bending_and_stretching_energy_keating(graph_dict::Dict)
 
     for current_vertex in MetaGraphsNext.labels(graph_dict["spatial_network"])
 
-        #get list of neighbors
+        # get list of neighbors
         neighbors_vec = collect(MetaGraphsNext.neighbor_labels(graph_dict["spatial_network"], current_vertex))
 
-        #get vectors pointing to neighbors_vec
+        # get vectors pointing to neighbors_vec
         bond_vectors_mat = Matrix{Float64}(undef, graph_dict["nr_dimensions"], graph_dict["coordination_nr"])
 
         for i in eachindex(neighbors_vec)
 
-            #get vector pointing from the current vertex to neighbor
-            #where the direction needs to be flipped if the vertex code of
-            #the current vertex is inferior to the one of its neighbor
+            # get vector pointing from the current vertex to neighbor
+            # where the direction needs to be flipped if the vertex code of
+            # the current vertex is inferior to the one of its neighbor
             bond_vectors_mat[:,i] = (sign(neighbors_vec[i] - current_vertex)
                         .* graph_dict["spatial_network"][current_vertex, neighbors_vec[i]]["vector"])
 
         end
 
-        #loop through all bond combinations to determine corresponding bond-bending energy
+        # loop through all bond combinations to determine corresponding bond-bending energy
         for bond_combination in bond_combinations_iter
 
             bond_bending_sum += ( LinearAlgebra.dot(bond_vectors_mat[:,bond_combination[1]], 
@@ -979,10 +979,10 @@ function total_bending_and_stretching_energy_keating(graph_dict::Dict)
 
     end
 
-    #multiply sum with prefactors to determine bond bending energy
+    # multiply sum with prefactors to determine bond bending energy
     bond_bending_energy = 3/8 * graph_dict["bond_bending_const"]  * bond_bending_sum
 
-    #get total energy
+    # get total energy
     total_energy = bond_stretching_energy + bond_bending_energy
 
     return [total_energy, bond_stretching_energy, bond_bending_energy]
@@ -996,28 +996,28 @@ which is the edge type of the MetaGraphsNext package
 """
 function switch_bond_wrong!(graph_dict::Dict, switched_bond::Tuple{Int64, Int64} )
 
-    #break the original bond
+    # break the original bond
     MetaGraphsNext.rem_edge!(graph_dict["spatial_network"], switched_bond...)
 
-    #find the other vertex's neighbors that are the closest to the current vertex
+    # find the other vertex's neighbors that are the closest to the current vertex
     closest_other_vertices_neighbor_vec = Vector{Int64}(undef, 2)
     vector_to_closest_other_vertices_neighbor_vec = Vector{Vector{Float64}}(undef, 2)
     distance_to_closest_other_vertices_neighbor_vec = Vector{Float64}(undef, 2)
 
     for i in 1:2
 
-        #get the other vertex's neighbors
+        # get the other vertex's neighbors
         other_vertex_neighbors_vec = MetaGraphsNext.neighbor_labels(graph_dict["spatial_network"], switched_bond[(3-i)])
 
-        #get the vertexic position of bond vertex and store it three times
+        # get the vertexic position of bond vertex and store it three times
         vertexic_position_vec = graph_dict["spatial_network"][switched_bond[i]]["position"]
 
-        #determine the closest one of the other vertex's neighbors
+        # determine the closest one of the other vertex's neighbors
         closest_distance = Inf
 
         for neighbor in other_vertex_neighbors_vec
 
-            #determine vector to current neighbor
+            # determine vector to current neighbor
             if switched_bond[i] < neighbor
                 vector_to_neighbor =  get_distance_vector_pbc(
                         vertexic_position_vec,
@@ -1030,10 +1030,10 @@ function switch_bond_wrong!(graph_dict::Dict, switched_bond::Tuple{Int64, Int64}
                         graph_dict["supercell_edge_length"] )
             end
 
-            #determine length of vector to neighbor
+            # determine length of vector to neighbor
             distance_to_neighbor = LinearAlgebra.norm(vector_to_neighbor)
 
-            #store current neighbor if its closer than the previous neighbors
+            # store current neighbor if its closer than the previous neighbors
             if distance_to_neighbor < closest_distance
                 closest_other_vertices_neighbor_vec[i] = neighbor
                 vector_to_closest_other_vertices_neighbor_vec[i] = vector_to_neighbor
@@ -1044,7 +1044,7 @@ function switch_bond_wrong!(graph_dict::Dict, switched_bond::Tuple{Int64, Int64}
 
     end
 
-    #create the two new bonds
+    # create the two new bonds
     for i in 1:2
 
         graph_dict["spatial_network"][switched_bond[i], closest_other_vertices_neighbor_vec[i]] = Dict(
@@ -1065,14 +1065,14 @@ that is one vertex on each side of the bond
 function get_four_vertices_around_bond(graph_dict::Dict, 
                                 switched_bond::Tuple{Int64, Int64})
 
-    #store four vertices that sit in one line with the switched bond in the center
+    # store four vertices that sit in one line with the switched bond in the center
     vertices_in_line = zeros(Int64, 4)
     vertices_in_line[2:3] = collect(switched_bond)
 
-    #loop through bond vertices
+    # loop through bond vertices
     for i in 1:2
 
-        #pick a random neighbor to which the bond will be cut        
+        # pick a random neighbor to which the bond will be cut        
         vertices_in_line[-2+3*i] = setdiff(collect(MetaGraphsNext.neighbor_labels(
                                 graph_dict["spatial_network"], switched_bond[i]
                             )) , vertices_in_line)[rand(1:graph_dict["coordination_nr"])]
@@ -1095,16 +1095,16 @@ function relax_single_vertex_keating_efficiently!(graph_dict::Dict,
     relaxation_optimization_parameter_l::Real = 1,
     update_total_energy::Bool = false)
 
-    #get energy gradient at current vertexic position
+    # get energy gradient at current vertexic position
     gradient = gradient_keating_efficient(graph_dict, vertex_to_relax)
 
-    #get energy hessian at current vertexic position
+    # get energy hessian at current vertexic position
     hessian = hessian_keating_efficient(graph_dict, vertex_to_relax)
 
-    #calculate translation vector to approximate energy minimum
+    # calculate translation vector to approximate energy minimum
     translation_vector = .- LinearAlgebra.inv(hessian)*gradient
 
-    #move vertex 
+    # move vertex 
     graph_dict = move_vertex!(graph_dict, 
                             vertex_to_relax, 
                             translation_vector;
@@ -1123,28 +1123,28 @@ function get_mesh_from_network(graph_dict::Dict; bond_radius::Real = 0.05)
 
     cylinders_merged = nothing
 
-    #loop through bonds
+    # loop through bonds
     for bond in MetaGraphsNext.edge_labels(graph_dict["spatial_network"])
 
-        #get bond's start and target positions and its direction vector
+        # get bond's start and target positions and its direction vector
         start_pos = graph_dict["spatial_network"][bond[1]]["position"]
         target_pos = graph_dict["spatial_network"][bond[2]]["position"]
-        #direction_vec = graph_dict["spatial_network"][bond...]["vector"]
+        # direction_vec = graph_dict["spatial_network"][bond...]["vector"]
 
-        #create cylinder surface object
+        # create cylinder surface object
         cylinder_surface = Meshes.CylinderSurface(start_pos, target_pos, bond_radius)
         
 
         if cylinders_merged == 0
             cylinders_merged = cylinder_surface
         else
-            #merge current cylinder surface with previous ones
+            # merge current cylinder surface with previous ones
             cylinders_merged = Meshes.merge(cylinders_merged, cylinder_surface)
         end
 
     end
 
-    #discretize object of merged cylinders
+    # discretize object of merged cylinders
     cylinder_mesh = Meshes.discretize(cylinders_merged)
 
     return cylinder_mesh
@@ -1166,15 +1166,15 @@ function relax_cluster_keating!(graph_dict::Dict,
     update_total_energy::Bool = false,
     track_cluster_energy::Bool = false)
 
-    #track cluster energy during relaxatio if desired
+    # track cluster energy during relaxatio if desired
     if track_cluster_energy
         cluster_energy_vec = [cluster_dict["cluster_energy"]]
     end
 
-    #perform the given number of relaxation cycles
+    # perform the given number of relaxation cycles
     for cycle_nr in 1:nr_max_relaxation_cycles
 
-        #store previous cluster energy
+        # store previous cluster energy
         previous_cluster_energy = cluster_dict["cluster_energy"]
 
         graph_dict, cluster_dict = relax_cluster_one_cycle_keating!(graph_dict, 
@@ -1184,12 +1184,12 @@ function relax_cluster_keating!(graph_dict::Dict,
         relaxation_optimization_parameter_l = relaxation_optimization_parameter_l,
         update_cluster_energy = true )
 
-        #save cluster energy if desired
+        # save cluster energy if desired
         if track_cluster_energy
             push!(cluster_energy_vec, cluster_dict["cluster_energy"]) 
         end
 
-        #break if cluster energy changes less than the given threshold
+        # break if cluster energy changes less than the given threshold
         relative_cluster_energy_change = (
             abs((previous_cluster_energy - cluster_dict["cluster_energy"])
                     /cluster_dict["cluster_energy"]))
@@ -1200,17 +1200,17 @@ function relax_cluster_keating!(graph_dict::Dict,
             break
         end
 
-        #if cycle nr is above the given threshold, check if the relaxation can 
-        #be rejected before full relaxation by estimating the final energy
+        # if cycle nr is above the given threshold, check if the relaxation can 
+        # be rejected before full relaxation by estimating the final energy
         if cycle_nr > reject_during_relaxation_cycle_threshold
 
-            #to be implemented
+            # to be implemented
 
         end
 
     end
 
-    #update total energy if desired
+    # update total energy if desired
     if update_total_energy
         graph_dict["total_energy"] = (graph_dict["total_energy"] 
                                     + cluster_dict["cluster_energy"]
@@ -1234,42 +1234,42 @@ Pick a random bond that has not been declined since the last accepted move
 """
 function get_random_bond(graph_dict::Dict; declined_bonds = [], seed = Nothing)
 
-    #set seed if desired
+    # set seed if desired
     if seed !== Nothing
         Random.seed!(seed)
     end
 
-    #determine nr of bonds
+    # determine nr of bonds
     nr_bonds = graph_dict["nr_vertices"] * graph_dict["coordination_nr"] / 2 
 
-    #check if all bonds have been attempted already
+    # check if all bonds have been attempted already
     if length(declined_bonds) == nr_bonds
             @warn "All bonds have been attempted without success"
         random_bond = []
 
-    #if the list of declined bonds is already very long
-    #pick one of the remaining ones
+    # if the list of declined bonds is already very long
+    # pick one of the remaining ones
     elseif length(declined_bonds) > nr_bonds/2
         all_bonds_vec = collect(
                 MetaGraphsNext.edge_labels(graph_dict["spatial_network"]))
 
         random_bond = rand(all_bonds_vec)
 
-    #otherwise get random bond without listing all bonds
+    # otherwise get random bond without listing all bonds
     else
 
-        #pick a random vertex
+        # pick a random vertex
         vertex_1 = rand(1:graph_dict["nr_vertices"])
 
-        #pick a random neighbor
+        # pick a random neighbor
         vertex_2 = collect(MetaGraphsNext.neighbor_labels(
                             graph_dict["spatial_network"], vertex_1)
                             )[rand(1:graph_dict["coordination_nr"])]
 
-        #create bond
+        # create bond
         random_bond = Tuple(sort([vertex_1, vertex_2]))
 
-        #find new bond if current one was already declined
+        # find new bond if current one was already declined
         if random_bond in declined_bonds
             random_bond = get_random_bond(graph_dict; declined_bonds = declined_bonds)
         end
@@ -1287,12 +1287,12 @@ which is the edge type of the MetaGraphsNext package
 function switch_bond!(graph_dict::Dict,
     switched_bond::Tuple{Int64, Int64} )
 
-    #find the other vertex's neighbors that are the closest to the current vertex
+    # find the other vertex's neighbors that are the closest to the current vertex
     new_bond_vertex_vec = Vector{Int64}(undef, 2)
     vector_to_new_bond_vertex_vec = Vector{Vector{Float64}}(undef, 2)
     distance_to_new_bond_vertex_vec = Vector{Float64}(undef, 2)
 
-    #get vectors of original neighbors
+    # get vectors of original neighbors
     original_neighbors_vec_vec = [collect(MetaGraphsNext.neighbor_labels(
         graph_dict["spatial_network"], switched_bond[1]) ),
         collect(MetaGraphsNext.neighbor_labels(
@@ -1300,26 +1300,26 @@ function switch_bond!(graph_dict::Dict,
 
     for i in 1:2
 
-        #get the vertex position of bond vertex
+        # get the vertex position of bond vertex
         vertex_position_vec = graph_dict["spatial_network"][switched_bond[i]]["position"]
 
-        #get the other bond vertex's neighbors excluding 
-        #the bond vertex and the bond vertex's neighbors
+        # get the other bond vertex's neighbors excluding 
+        # the bond vertex and the bond vertex's neighbors
         considered_new_bond_vertices_vec = setdiff(original_neighbors_vec_vec[3-i], 
                                             switched_bond[i], 
                                             original_neighbors_vec_vec[i])
 
-        #break if there are no possible new bond vertices
+        # break if there are no possible new bond vertices
         if considered_new_bond_vertices_vec == []
             new_bond_vec = []
             return [graph_dict, new_bond_vec]
         
-        #otherwise, pick a random new bond vertex
+        # otherwise, pick a random new bond vertex
         else
             new_bond_vertex_vec[i] = rand(considered_new_bond_vertices_vec)
         end
 
-        #determine vector to new bond vertex
+        # determine vector to new bond vertex
         if switched_bond[i] < new_bond_vertex_vec[i]
             vector_to_new_bond_vertex_vec[i] = get_distance_vector_pbc(
                     vertex_position_vec,
@@ -1332,16 +1332,16 @@ function switch_bond!(graph_dict::Dict,
                     graph_dict["supercell_edge_length"] )
         end
 
-        #determine length of vector to new bond vertex
+        # determine length of vector to new bond vertex
         distance_to_new_bond_vertex_vec[i] = LinearAlgebra.norm(vector_to_new_bond_vertex_vec[i])
 
     end
 
-    #create vector to save new bonds
+    # create vector to save new bonds
     new_bond_vec = Vector{Tuple{Int64, Int64}}(undef, 2)
 
-    #for each bond vertex, break bond to one neighbor and reconnect to
-    #random neighbor of the other vertex
+    # for each bond vertex, break bond to one neighbor and reconnect to
+    # random neighbor of the other vertex
     for i in 1:2
 
         MetaGraphsNext.rem_edge!(graph_dict["spatial_network"],
@@ -1354,7 +1354,7 @@ function switch_bond!(graph_dict::Dict,
             "distance_squared" => distance_to_new_bond_vertex_vec[i]^2 )
     end
 
-    #note, that total energy is not up to date any more
+    # note, that total energy is not up to date any more
     graph_dict["total_energy_up_to_date"] = false
 
     return [graph_dict, new_bond_vec]
@@ -1370,34 +1370,34 @@ as defined in equation 251 in 10.1016/j.physrep.2018.03.001
 """
 function get_effective_hyperuniformity_parameter(structure_factor_dict::Dict)
 
-    #locate first peak of structure factor
+    # locate first peak of structure factor
     pks, vals = Peaks.findmaxima(structure_factor_dict["structure_factor_vec"])
 
-    #cut structure factor data at momentum just above first peak
+    # cut structure factor data at momentum just above first peak
     structure_factor_cut_vec = structure_factor_dict["structure_factor_vec"][1:pks[1]+1]
     wavenumber_cut_vec = structure_factor_dict["wavenumber_vec"][1:pks[1]+1]
 
-    #set the order of the fitted polynomial
+    # set the order of the fitted polynomial
     polynomial_order = 3
 
-    #fit polynomial of given order to cut data
+    # fit polynomial of given order to cut data
     polynomial_fit = Polynomials.fit(wavenumber_cut_vec, 
                                     structure_factor_cut_vec,
                                     polynomial_order)
 
-    #get extrapolated structure factor at zero momentum
+    # get extrapolated structure factor at zero momentum
     structure_factor_zero_momentum = polynomial_fit(0)
 
-    #get the two critical momenta where the fitted structure factor is extremal
+    # get the two critical momenta where the fitted structure factor is extremal
     critical_momenta = (
     ((-polynomial_fit[2]) 
         .+ [-1, +1 ] .* (sqrt(polynomial_fit[2]^2-3*polynomial_fit[3]*polynomial_fit[1])) )
     ./ (3*polynomial_fit[3]) )
 
-    #get fitted structure factor at (first) peak
+    # get fitted structure factor at (first) peak
     structure_factor_first_peak = maximum( polynomial_fit.(critical_momenta) )
 
-    #get hyperuniformity parameter
+    # get hyperuniformity parameter
     hyperuniformity_parameter = structure_factor_zero_momentum/structure_factor_first_peak
 
     return [hyperuniformity_parameter, polynomial_fit]

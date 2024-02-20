@@ -1,6 +1,6 @@
 include("structure_analysis_modules.jl")
 
-#import my module that contains all functions for the generation and analysis of networks
+# import my module that contains all functions for the generation and analysis of networks
 import .NetworkGeneration as NG
 import .NetworkAnalysis as NA
 import .GeneralUtilities as GU
