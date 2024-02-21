@@ -150,3 +150,124 @@ Plots.plot(x_vec, (3/8 * 0.285) .* (cosd.(x_vec) .+ 1/3).^2  )
 Plots.plot!(y_vec, (0.095 .* (y_vec .* pi ./ 180 .- acos(-1/3)).^2 ) , linestyle=:dash  )
 Plots.plot!(xlabel="bond angle", ylabel="energy", right_margin = 5Plots.mm, ylims=(0,0.4), xlims=(0,180), legend=false)
 Plots.savefig(path*"bond_bending_energy.png")
+
+
+# get structure factor dicts
+dict_path_1 = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_1_quenched_structure_factor_isotrope.h5"
+dict_path_4 = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_4_quenched_structure_factor_isotrope.h5"
+
+structure_factor_dict_1 = GU.load_h5_dict(dict_path_1)
+structure_factor_dict_4 = GU.load_h5_dict(dict_path_4)
+
+# get effective hyperuniformity parameter and fit parameters for T=1 and T=4
+hyperuniformity_parameter_1, polynomial_fit_1 = NA.get_hyperuniformity_metric(structure_factor_dict_1)
+hyperuniformity_parameter_4, polynomial_fit_4 = NA.get_hyperuniformity_metric(structure_factor_dict_4)
+
+# plot structure factor
+x_vec = collect(0:10/200:10)
+fit_1_vec = polynomial_fit_1.(x_vec)
+fit_4_vec = polynomial_fit_4.(x_vec)
+
+Plots.plot(structure_factor_dict_4["wavenumber_vec"], structure_factor_dict_4["structure_factor_vec"], linecolor=Plots.palette(:tab10)[2], label = Latex.L"kT=4" )
+Plots.plot!(structure_factor_dict_1["wavenumber_vec"], structure_factor_dict_1["structure_factor_vec"], linecolor=Plots.palette(:tab10)[1], label = Latex.L"kT=1" )
+Plots.plot!(x_vec, fit_4_vec, linecolor="sienna", ls=:dash, label = "fit "*Latex.L"kT=4")
+Plots.plot!(x_vec, fit_1_vec, linecolor="cyan2", ls=:dash, label = "fit "*Latex.L"kT=1")
+Plots.plot!(xlabel="wavenumber", ylabel = "structure factor", xlims=(0,22.5), ylims=(0,20), size = (500, 600), bottom_margin = 0Plots.mm)
+
+Plots.savefig(path*"structure_factor_T_1_4_fits.png")
+
+
+Plots.plot(structure_factor_dict_4["wavenumber_vec"], structure_factor_dict_4["structure_factor_vec"], linecolor=Plots.palette(:tab10)[2], label = Latex.L"kT=4" )
+Plots.plot!(structure_factor_dict_1["wavenumber_vec"], structure_factor_dict_1["structure_factor_vec"], linecolor=Plots.palette(:tab10)[1], label = Latex.L"kT=1" )
+Plots.plot!(xlabel="wavenumber", ylabel = "structure factor", xlims=(0,22.5), ylims=(0,20), size = (500, 600), bottom_margin = 0Plots.mm)
+
+Plots.savefig(path*"structure_factor_T_1_4_stretched.png")
+
+
+# load structure factor dictionaries
+dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\\"
+
+filenames = ["1000_vertices_T_1_quenched_high_sampling_rate_structure_factor_isotrope.h5",
+    "512_vertices_T_1_quenched_high_sampling_rate_structure_factor_isotrope.h5",
+    "216_vertices_T_1_quenched_high_sampling_rate_structure_factor_isotrope.h5"]
+
+structure_factor_dict_1 = GU.load_h5_dict(dict_path*filenames[1])
+structure_factor_dict_5 = GU.load_h5_dict(dict_path*filenames[2])
+structure_factor_dict_2 = GU.load_h5_dict(dict_path*filenames[3])
+
+
+# plot structure factors 
+Plots.plot(
+    structure_factor_dict_2["wavenumber_vec"][6:end],
+    structure_factor_dict_2["structure_factor_vec"][6:end],
+    label = "216 vertices"
+)
+Plots.plot!(
+    structure_factor_dict_5["wavenumber_vec"][6:end],
+    structure_factor_dict_5["structure_factor_vec"][6:end], ls=:dash,
+    label = "512 vertices"
+)
+Plots.plot!(
+    structure_factor_dict_1["wavenumber_vec"][6:end],
+    structure_factor_dict_1["structure_factor_vec"][6:end], ls=:dash,
+    label = "1000 vertices"
+)
+Plots.plot!(
+    xlabel = "wavenumber",
+    ylabel = "structure factor",
+    legend = true,
+    xlims=(0,22.5), ylims=(0,10)
+)
+
+# save plot
+Plots.savefig(path*"structure_factor_T_1_size_comparison.png")
+
+
+# load structure factor dictionaries
+dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\\"
+
+filenames = ["1000_vertices_T_1_quenched_high_sampling_rate_structure_factor_bartlett_isotrope.h5",
+    "1000_vertices_T_4_quenched_high_sampling_rate_structure_factor_bartlett_isotrope.h5",
+    "1000_vertices_T_1_quenched_structure_factor_isotrope.h5",
+    "1000_vertices_T_4_quenched_structure_factor_isotrope.h5"]
+
+structure_factor_bartlett_dict_1 = GU.load_h5_dict(dict_path*filenames[1])
+structure_factor_bartlett_dict_4 = GU.load_h5_dict(dict_path*filenames[2])
+structure_factor_dict_1 = GU.load_h5_dict(dict_path*filenames[3])
+structure_factor_dict_4 = GU.load_h5_dict(dict_path*filenames[4])
+
+
+window_size = length(structure_factor_dict_1["wavenumber_vec"])/100.0
+
+# plot structure factors 
+Plots.plot(
+    structure_factor_bartlett_dict_1["wavenumber_vec"],
+    structure_factor_bartlett_dict_1["structure_factor_vec"],
+    label = "Bartlett "*Latex.L"kT=1"
+)
+Plots.plot!(
+    structure_factor_bartlett_dict_4["wavenumber_vec"],
+    structure_factor_bartlett_dict_4["structure_factor_vec"],
+    label ="Bartlett "*Latex.L"kT=4"
+)
+Plots.plot!(
+    structure_factor_dict_1["wavenumber_vec"],
+    NaNStatistics.movmean(structure_factor_dict_1["structure_factor_vec"], window_size),
+    ls = :dash,
+    label = "S. I. "*Latex.L"kT=1"
+)
+Plots.plot!(
+    structure_factor_dict_4["wavenumber_vec"],
+    NaNStatistics.movmean(structure_factor_dict_4["structure_factor_vec"], window_size),
+    ls = :dash,
+    label = "S. I. "*Latex.L"kT=4"
+)
+Plots.plot!(
+    xlabel = "wavenumber",
+    ylabel = "structure factor",
+    legend = true,
+    xlims=(0,22.5), ylims=(0,10)
+)
+
+# save plot
+Plots.savefig(path*"structure_factor_scattering_intensity_bartlett_comparison.png")

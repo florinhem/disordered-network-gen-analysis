@@ -7,62 +7,93 @@ import .NetworkGeneration as NG
 import .NetworkAnalysis as NA
 import .GeneralUtilities as GU
 import Plots
+import LaTeXStrings as Latex # to display latex symbols in plot labels
+import NaNStatistics
 
 # possible choices of nr_vertices for diamond: 64, 216, 512, 1000, that is (2*n)^3 with natural nr natural
 
-
-evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 ,temperature_vec = [1, 0],
-nr_monte_carlo_steps_per_temperature_vec = [1, 50], min_ring_size = 4)
-
-graph_dict = NG.get_periodic_network(evolution_dict)
-
-graph_dict, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_sequence!(graph_dict,
-        evolution_dict; 
-    print_progress = true,
-    print_every_nr_attempted_bond_switches = 500)
-
-evolution_dict["total_energy_vec"] = total_energy_vec
-evolution_dict["move_accepted_vec"] = move_accepted_vec
-
-NG.plot_network(graph_dict)
-
-filename = "216_vertices_T_1_quenched"
-
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\with_ring_size_limitation\\"
-
-NG.save_mesh_from_network(graph_dict, filename; save_path = save_path)
-
-NG.save_graph_to_h5_and_MGformat(graph_dict,
-    filename;
-    evolution_dict = evolution_dict,
-    save_path 
-        = save_path)
+# the supercell edge lengths are 
+# 1000 vertices: supercell_edge_length = 11.547005383792516
+# 512 vertices: supercell_edge_length = 9.237604307034013
+# 216 vertices: supercell_edge_length = 6.9282032302755105
 
 
-evolution_dict = NA.get_evolution_dict(;nr_vertices = 512 ,temperature_vec = [1, 0],
-nr_monte_carlo_steps_per_temperature_vec = [1, 50], min_ring_size = 4)
+# path where structures are stored
+load_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
 
-graph_dict = NG.get_periodic_network(evolution_dict)
 
-graph_dict, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_sequence!(graph_dict,
-        evolution_dict; 
-    print_progress = true,
-    print_every_nr_attempted_bond_switches = 500)
+# load graph with 216 vertices
+#graph_dict_2 = NG.load_graph_from_h5_and_MGformat(load_path*"216_vertices_T_1_quenched")
+#
+## determine structure factor
+#structure_factor_dict_2 = NA.get_structure_factor_isotrope_by_wavenumber_vec(
+#    graph_dict_2;
+#    sampling_distance_step_length = 0.025,
+#    maximal_sampling_distance = 4*graph_dict_2["supercell_edge_length"],
+#    nr_wavevector_samples = 10000,
+#    save_result = true,
+#    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\216_vertices_T_1_quenched",
+#    label = "216_vertices_T_1_quenched")
+#
+#
+## load graph with 512 vertices
+#graph_dict_5 = NG.load_graph_from_h5_and_MGformat(load_path*"512_vertices_T_1_quenched")
 
-evolution_dict["total_energy_vec"] = total_energy_vec
-evolution_dict["move_accepted_vec"] = move_accepted_vec
+# determine structure factor
+#structure_factor_dict_5 = NA.get_structure_factor_isotrope_by_wavenumber_vec(
+#    graph_dict_5;
+#    sampling_distance_step_length = 0.025,
+#    maximal_sampling_distance = 4*graph_dict_5["supercell_edge_length"],
+#    nr_wavevector_samples = 5000,
+#    save_result = true,
+#    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\512_vertices_T_1_quenched",
+#    label = "512_vertices_T_1_quenched")
 
-NG.plot_network(graph_dict)
 
-filename = "512_vertices_T_1_quenched"
+## load graph with 1000 vertices
+#graph_dict_5 = NG.load_graph_from_h5_and_MGformat(load_path*"1000_vertices_T_1_quenched")
+#
+## determine structure factor
+#structure_factor_dict_1 = NA.get_structure_factor_isotrope_by_wavenumber_vec(
+#    graph_dict_1;
+#    sampling_distance_step_length = 0.025,
+#    maximal_sampling_distance = 4*graph_dict_5["supercell_edge_length"],
+#    nr_wavevector_samples = 5000,
+#    save_result = true,
+#    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_1_quenched",
+#    label = "1000_vertices_T_1_quenched")
+#
+## load graph with 1000 vertices for T=4
+graph_dict_1_4 = NG.load_graph_from_h5_and_MGformat(load_path*"1000_vertices_T_4_quenched")
 
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\with_ring_size_limitation\\"
+# determine structure factor
+structure_factor_dict_1_4 = NA.get_structure_factor_isotrope_by_wavenumber_vec(
+    graph_dict_1_4;
+    sampling_distance_step_length = 0.025,
+    maximal_sampling_distance = 4*graph_dict_5["supercell_edge_length"],
+    nr_wavevector_samples = 5000,
+    save_result = true,
+    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_4_quenched",
+    label = "1000_vertices_T_4_quenched")
 
-NG.save_mesh_from_network(graph_dict, filename; save_path = save_path)
 
-NG.save_graph_to_h5_and_MGformat(graph_dict,
-    filename;
-    evolution_dict = evolution_dict,
-    save_path 
-        = save_path)
+# plot structure factors 
 
+window_size = length(structure_factor_dict_1["wavenumber_vec"])/50.0
+
+Plots.plot(
+    structure_factor_dict_1["wavenumber_vec"],
+    NaNStatistics.movmean(structure_factor_dict_1_4["structure_factor_vec"], window_size),
+    label = Latex.L"kT=4"
+)
+Plots.plot!(
+    structure_factor_dict_1["wavenumber_vec"],
+    NaNStatistics.movmean(structure_factor_dict_1["structure_factor_vec"], window_size),
+    label = Latex.L"kT=1"
+)
+Plots.plot!(
+    xlabel = "wavenumber",
+    ylabel = "structure factor",
+    legend = true,
+    xlims=(0,32.5), ylims=(0,10)
+)

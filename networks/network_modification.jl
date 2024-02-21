@@ -614,7 +614,7 @@ function evolve_network!(graph_dict::Dict,
 
         # get remaining chains if list of declined chains is long and
         # remaining have not been determined yet
-        if (length(declined_chains) > 0.7*nr_chains && remaining_chains == [])
+        if (length(declined_chains) > 0.4*nr_chains && remaining_chains == [])
 
             remaining_chains = get_remaining_chains(graph_dict,
             declined_chains;
