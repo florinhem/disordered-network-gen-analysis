@@ -28,34 +28,91 @@ bottom_margin = 3Plots.mm,
 linewidth=3, 
 thickness_scaling = 1)
 
+# functions to have pi ticks
+function pitick(start, stop, denom; mode=:text)
+    a = Int(cld(start, 2*π/denom))
+    b = Int(fld(stop, 2*π/denom))
+    tick = range(a*2*π/denom, b*2*π/denom; step=2*π/denom)
+    ticklabel = piticklabel.( 2 .* (a:b) .// denom, Val(mode))
+    tick, ticklabel
+end
 
-# get structure factor dicts
-dict_path_1 = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_1_quenched_high_sampling_rate_structure_factor_bartlett_isotrope.h5"
-dict_path_4 = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_4_quenched_high_sampling_rate_structure_factor_bartlett_isotrope.h5"
+function piticklabel(x::Rational, ::Val{:text})
+    iszero(x) && return "0"
+    S = x < 0 ? "-" : ""
+    n, d = abs(numerator(x)), denominator(x)
+    N = n == 1 ? "" : repr(n)
+    d == 1 && return S * N * "π"
+    S * N * "π/" * repr(d)
+end
 
-structure_factor_dict_1 = GU.load_h5_dict(dict_path_1)
-structure_factor_dict_4 = GU.load_h5_dict(dict_path_4)
+function piticklabel(x::Rational, ::Val{:latex})
+    iszero(x) && return Latex.L"0"
+    S = x < 0 ? "-" : ""
+    n, d = abs(numerator(x)), denominator(x)
+    N = n == 1 ? "" : repr(n)
+    d == 1 && return Latex.L"%$S%$N\pi"
+    Latex.L"%$S\frac{%$N\pi}{%$d}"
+end
 
-# get effective hyperuniformity parameter and fit parameters for T=1 and T=4
-#hyperuniformity_parameter_1, polynomial_fit_1 = NA.get_hyperuniformity_metric(structure_factor_dict_1)
-#hyperuniformity_parameter_4, polynomial_fit_4 = NA.get_hyperuniformity_metric(structure_factor_dict_4)
-#
-## plot structure factor
-#x_vec = collect(0:10/200:10)
-#fit_1_vec = polynomial_fit_1.(x_vec)
-#fit_4_vec = polynomial_fit_4.(x_vec)
-#
-#Plots.plot(structure_factor_dict_4["wavenumber_vec"], structure_factor_dict_4["structure_factor_vec"], linecolor=Plots.palette(:tab10)[2], label = Latex.L"kT=4" )
-#Plots.plot!(structure_factor_dict_1["wavenumber_vec"], structure_factor_dict_1["structure_factor_vec"], linecolor=Plots.palette(:tab10)[1], label = Latex.L"kT=1" )
-#Plots.plot!(x_vec, fit_4_vec, linecolor="sienna", ls=:dash, label = "fit "*Latex.L"kT=4")
-#Plots.plot!(x_vec, fit_1_vec, linecolor="cyan2", ls=:dash, label = "fit "*Latex.L"kT=1")
-#Plots.plot!(xlabel="wavenumber", ylabel = "structure factor", xlims=(0,22.5), ylims=(0,20), size = (500, 600), bottom_margin = 0Plots.mm)
-#
-#Plots.savefig(path*"structure_factor_T_1_4_fits.png")
-#
-#
-Plots.plot(structure_factor_dict_4["wavenumber_vec"][10:end], structure_factor_dict_4["structure_factor_vec"][10:end], linecolor=Plots.palette(:tab10)[2], label = Latex.L"kT=4" )
-Plots.plot!(structure_factor_dict_1["wavenumber_vec"][10:end], structure_factor_dict_1["structure_factor_vec"][10:end], linecolor=Plots.palette(:tab10)[1], label = Latex.L"kT=1" )
-Plots.plot!(xlabel="wavenumber", ylabel = "structure factor", xlims=(0,22.5), ylims=(0,10), size = (500, 600), bottom_margin = 0Plots.mm)
 
-Plots.savefig(path*"structure_factor_T_1_4_stretched_high_sampling_rate.png")
+
+dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\216_vertices_T_"
+
+temperatures = [0.125, 0.25, 0.5, 0.0625]
+
+my_plot = Plots.plot()
+
+
+bond_angle_std_vec = zeros(length(temperatures))
+
+for i in eachindex(temperatures)
+
+    structure_factor_dict = GU.load_h5_dict(dict_path*string(temperatures[i])*"_quenched_structure_factor_bartlett_isotrope.h5")
+
+    my_plot = Plots.plot!(structure_factor_dict["wavenumber_vec"], structure_factor_dict["structure_factor_vec"], label = Latex.L"kT="*string(temperatures[i]) )
+end
+
+my_plot = Plots.plot!(xlabel="wavenumber", ylabel = "structure factor", xlims=(0,27.5), ylims=(0,5), xtick=pitick(0, 32, 1; mode=:latex))
+
+Plots.savefig(path*"structure_factor_bartlett_216_vertices_T_0.125_0.5.png")
+
+
+
+temperatures = [1, 2, 4, 0.0625]
+
+my_plot = Plots.plot()
+
+
+bond_angle_std_vec = zeros(length(temperatures))
+
+for i in eachindex(temperatures)
+
+    structure_factor_dict = GU.load_h5_dict(dict_path*string(temperatures[i])*"_quenched_structure_factor_bartlett_isotrope.h5")
+
+    my_plot = Plots.plot!(structure_factor_dict["wavenumber_vec"], structure_factor_dict["structure_factor_vec"], label = Latex.L"kT="*string(temperatures[i]) )
+end
+
+my_plot = Plots.plot!(xlabel="wavenumber", ylabel = "structure factor", xlims=(0,27.5), ylims=(0,5), xtick=pitick(0, 32, 1; mode=:latex))
+
+Plots.savefig(path*"structure_factor_bartlett_216_vertices_T_1_4.png")
+
+
+
+temperatures = [4, 6, 8, 0.0625]
+
+my_plot = Plots.plot()
+
+
+bond_angle_std_vec = zeros(length(temperatures))
+
+for i in eachindex(temperatures)
+
+    structure_factor_dict = GU.load_h5_dict(dict_path*string(temperatures[i])*"_quenched_structure_factor_bartlett_isotrope.h5")
+
+    my_plot = Plots.plot!(structure_factor_dict["wavenumber_vec"], structure_factor_dict["structure_factor_vec"], label = Latex.L"kT="*string(temperatures[i]) )
+end
+
+my_plot = Plots.plot!(xlabel="wavenumber", ylabel = "structure factor", xlims=(0,27.5), ylims=(0,5), xtick=pitick(0, 32, 1; mode=:latex))
+
+Plots.savefig(path*"structure_factor_bartlett_216_vertices_T_4_8.png")

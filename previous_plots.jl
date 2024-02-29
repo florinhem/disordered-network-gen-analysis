@@ -24,6 +24,33 @@ bottom_margin = 3Plots.mm,
 linewidth=3, 
 thickness_scaling = 1)
 
+# functions to have pi ticks
+function pitick(start, stop, denom; mode=:text)
+    a = Int(cld(start, 2*π/denom))
+    b = Int(fld(stop, 2*π/denom))
+    tick = range(a*2*π/denom, b*2*π/denom; step=2*π/denom)
+    ticklabel = piticklabel.( 2 .* (a:b) .// denom, Val(mode))
+    tick, ticklabel
+end
+
+function piticklabel(x::Rational, ::Val{:text})
+    iszero(x) && return "0"
+    S = x < 0 ? "-" : ""
+    n, d = abs(numerator(x)), denominator(x)
+    N = n == 1 ? "" : repr(n)
+    d == 1 && return S * N * "π"
+    S * N * "π/" * repr(d)
+end
+
+function piticklabel(x::Rational, ::Val{:latex})
+    iszero(x) && return Latex.L"0"
+    S = x < 0 ? "-" : ""
+    n, d = abs(numerator(x)), denominator(x)
+    N = n == 1 ? "" : repr(n)
+    d == 1 && return Latex.L"%$S%$N\pi"
+    Latex.L"%$S\frac{%$N\pi}{%$d}"
+end
+
 x = collect(0:0.01:10)
 plot_1 = 1/2 * exp.( .- x ./2 )
 plot_2 = 1/4 * exp.( .- x ./4 )
@@ -70,10 +97,10 @@ bond_length_std_4, bond_length_vec_4 = NA.get_bond_length_std(graph_dict_4)
 
 b_range = range(0.4, 1.8, length=71)
 
-my_plot = Plots.stephist(bond_length_vec_4, bins=b_range, label = Latex.L"kT=4", linecolor=Plots.palette(:tab10)[2])
-my_plot = Plots.stephist!(bond_length_vec_1, bins=b_range, label = Latex.L"kT=1", linecolor=Plots.palette(:tab10)[1])
+my_plot = Plots.stephist(bond_length_vec_4, bins=b_range, label = Latex.L"kT=4", normalize=:probability, linecolor=Plots.palette(:tab10)[2])
+my_plot = Plots.stephist!(bond_length_vec_1, bins=b_range, label = Latex.L"kT=1", normalize=:probability, linecolor=Plots.palette(:tab10)[1])
 my_plot = Plots.plot!(xlabel="bond length",
-ylabel = "frequency")
+ylabel = "relative frequency")
 
 Plots.savefig(path*"bond_length_T_1_4.png")
 
@@ -83,10 +110,10 @@ bond_angle_std_4, bond_angle_vec_4 = NA.get_bond_angle_std(graph_dict_4)
 
 b_range = range(0, 180, length=61)
 
-my_plot = Plots.stephist(bond_angle_vec_4 ./pi .* 180, bins=b_range, label = Latex.L"kT=4", linecolor=Plots.palette(:tab10)[2])
-my_plot = Plots.stephist!(bond_angle_vec_1 ./pi .* 180, bins=b_range, label = Latex.L"kT=1", linecolor=Plots.palette(:tab10)[1])
+my_plot = Plots.stephist(bond_angle_vec_4 ./pi .* 180, bins=b_range, label = Latex.L"kT=4", normalize=:probability, linecolor=Plots.palette(:tab10)[2])
+my_plot = Plots.stephist!(bond_angle_vec_1 ./pi .* 180, bins=b_range, label = Latex.L"kT=1", normalize=:probability, linecolor=Plots.palette(:tab10)[1])
 my_plot = Plots.plot!(xlabel="bond angle",
-ylabel = "frequency")
+ylabel = "relative frequency")
 
 Plots.savefig(path*"bond_angle_T_1_4.png")
 
@@ -113,21 +140,6 @@ ylabel = Latex.L"q_6")
 Plots.savefig(path*"steinhardt_order_parameter_T_1_4.png")
 
 
-dict_path_1 = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_1_quenched_structure_factor_isotrope.h5"
-
-dict_path_4 = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_4_quenched_structure_factor_isotrope.h5"
-
-structure_factor_dict_1 = GU.load_h5_dict(dict_path_1)
-structure_factor_dict_4 = GU.load_h5_dict(dict_path_4)
-
-my_plot = Plots.plot(structure_factor_dict_4["wavenumber_vec"], structure_factor_dict_4["structure_factor_vec"], linecolor=Plots.palette(:tab10)[2], label = Latex.L"kT=4" )
-my_plot = Plots.plot!(structure_factor_dict_1["wavenumber_vec"], structure_factor_dict_1["structure_factor_vec"], linecolor=Plots.palette(:tab10)[1], label = Latex.L"kT=1" )
-my_plot = Plots.plot!(xlabel="wavenumber",
-ylabel = "structure factor", xlims=(0,32.5), ylims=(0,2.75))
-
-Plots.savefig(path*"structure_factor_T_1_4.png")
-
-
 x_vec = collect(0:0.01:4)
 plot_1 = (0.8 .* sinc.(( 2 .* (x_vec .- 2.5)) .^2) .+ 0.2) .* exp.( .-(x_vec .- 2.5).^2)
 Plots.plot(x_vec, plot_1, linecolor="black", ylims=(0,1), xlims=(0,4), framestyle = :box, legend=false)
@@ -152,9 +164,24 @@ Plots.plot!(xlabel="bond angle", ylabel="energy", right_margin = 5Plots.mm, ylim
 Plots.savefig(path*"bond_bending_energy.png")
 
 
+dict_path_1 = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_1_quenched_structure_factor_bartlett_isotrope.h5"
+
+dict_path_4 = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_4_quenched_structure_factor_bartlett_isotrope.h5"
+
+structure_factor_dict_1 = GU.load_h5_dict(dict_path_1)
+structure_factor_dict_4 = GU.load_h5_dict(dict_path_4)
+
+my_plot = Plots.plot(structure_factor_dict_4["wavenumber_vec"], structure_factor_dict_4["structure_factor_vec"], linecolor=Plots.palette(:tab10)[2], label = Latex.L"kT=4" )
+my_plot = Plots.plot!(structure_factor_dict_1["wavenumber_vec"], structure_factor_dict_1["structure_factor_vec"], linecolor=Plots.palette(:tab10)[1], label = Latex.L"kT=1" )
+my_plot = Plots.plot!(xlabel="wavenumber",
+ylabel = "structure factor", xlims=(0,32.5), ylims=(0,2.75), xtick=pitick(0, 32, 1; mode=:latex))
+
+Plots.savefig(path*"structure_factor_T_1_4.png")
+
+
 # get structure factor dicts
-dict_path_1 = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_1_quenched_structure_factor_isotrope.h5"
-dict_path_4 = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_4_quenched_structure_factor_isotrope.h5"
+dict_path_1 = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_1_quenched_structure_factor_bartlett_isotrope.h5"
+dict_path_4 = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_4_quenched_structure_factor_bartlett_isotrope.h5"
 
 structure_factor_dict_1 = GU.load_h5_dict(dict_path_1)
 structure_factor_dict_4 = GU.load_h5_dict(dict_path_4)
@@ -172,14 +199,14 @@ Plots.plot(structure_factor_dict_4["wavenumber_vec"], structure_factor_dict_4["s
 Plots.plot!(structure_factor_dict_1["wavenumber_vec"], structure_factor_dict_1["structure_factor_vec"], linecolor=Plots.palette(:tab10)[1], label = Latex.L"kT=1" )
 Plots.plot!(x_vec, fit_4_vec, linecolor="sienna", ls=:dash, label = "fit "*Latex.L"kT=4")
 Plots.plot!(x_vec, fit_1_vec, linecolor="cyan2", ls=:dash, label = "fit "*Latex.L"kT=1")
-Plots.plot!(xlabel="wavenumber", ylabel = "structure factor", xlims=(0,22.5), ylims=(0,20), size = (500, 600), bottom_margin = 0Plots.mm)
+Plots.plot!(xlabel="wavenumber", ylabel = "structure factor", xlims=(0,22.5), ylims=(0,20), size = (500, 600), bottom_margin = 0Plots.mm, xtick=pitick(0, 32, 1; mode=:latex))
 
 Plots.savefig(path*"structure_factor_T_1_4_fits.png")
 
 
 Plots.plot(structure_factor_dict_4["wavenumber_vec"], structure_factor_dict_4["structure_factor_vec"], linecolor=Plots.palette(:tab10)[2], label = Latex.L"kT=4" )
 Plots.plot!(structure_factor_dict_1["wavenumber_vec"], structure_factor_dict_1["structure_factor_vec"], linecolor=Plots.palette(:tab10)[1], label = Latex.L"kT=1" )
-Plots.plot!(xlabel="wavenumber", ylabel = "structure factor", xlims=(0,22.5), ylims=(0,20), size = (500, 600), bottom_margin = 0Plots.mm)
+Plots.plot!(xlabel="wavenumber", ylabel = "structure factor", xlims=(0,22.5), ylims=(0,20), size = (500, 600), bottom_margin = 0Plots.mm, xtick=pitick(0, 32, 1; mode=:latex))
 
 Plots.savefig(path*"structure_factor_T_1_4_stretched.png")
 
@@ -187,9 +214,9 @@ Plots.savefig(path*"structure_factor_T_1_4_stretched.png")
 # load structure factor dictionaries
 dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\\"
 
-filenames = ["1000_vertices_T_1_quenched_high_sampling_rate_structure_factor_isotrope.h5",
-    "512_vertices_T_1_quenched_high_sampling_rate_structure_factor_isotrope.h5",
-    "216_vertices_T_1_quenched_high_sampling_rate_structure_factor_isotrope.h5"]
+filenames = ["1000_vertices_T_1_quenched_high_sampling_rate_structure_factor_bartlett_isotrope.h5",
+    "512_vertices_T_1_quenched_high_sampling_rate_structure_factor_bartlett_isotrope.h5",
+    "216_vertices_T_1_quenched_high_sampling_rate_structure_factor_bartlett_isotrope.h5"]
 
 structure_factor_dict_1 = GU.load_h5_dict(dict_path*filenames[1])
 structure_factor_dict_5 = GU.load_h5_dict(dict_path*filenames[2])
@@ -216,7 +243,7 @@ Plots.plot!(
     xlabel = "wavenumber",
     ylabel = "structure factor",
     legend = true,
-    xlims=(0,22.5), ylims=(0,10)
+    xlims=(0,22.5), ylims=(0,10), xtick=pitick(0, 32, 1; mode=:latex)
 )
 
 # save plot
@@ -266,8 +293,88 @@ Plots.plot!(
     xlabel = "wavenumber",
     ylabel = "structure factor",
     legend = true,
-    xlims=(0,22.5), ylims=(0,10)
+    xlims=(0,22.5), ylims=(0,10), xtick=pitick(0, 32, 1; mode=:latex)
 )
 
 # save plot
 Plots.savefig(path*"structure_factor_scattering_intensity_bartlett_comparison.png")
+
+
+# get structure factor dicts
+dict_path_1 = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_1_quenched_high_sampling_rate_structure_factor_bartlett_isotrope.h5"
+dict_path_4 = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_4_quenched_high_sampling_rate_structure_factor_bartlett_isotrope.h5"
+
+structure_factor_dict_1 = GU.load_h5_dict(dict_path_1)
+structure_factor_dict_4 = GU.load_h5_dict(dict_path_4)
+
+Plots.plot(structure_factor_dict_4["wavenumber_vec"][10:end], structure_factor_dict_4["structure_factor_vec"][10:end], linecolor=Plots.palette(:tab10)[2], label = Latex.L"kT=4" )
+Plots.plot!(structure_factor_dict_1["wavenumber_vec"][10:end], structure_factor_dict_1["structure_factor_vec"][10:end], linecolor=Plots.palette(:tab10)[1], label = Latex.L"kT=1" )
+Plots.plot!(xlabel="wavenumber", ylabel = "structure factor", xlims=(0,22.5), ylims=(0,10), size = (500, 600), bottom_margin = 0Plots.mm, xtick=pitick(0, 32, 1; mode=:latex))
+
+Plots.savefig(path*"structure_factor_T_1_4_stretched_high_sampling_rate.png")
+
+
+# get structure factor dicts
+dict_path_1 = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_1_quenched_high_sampling_rate_structure_factor_bartlett_isotrope.h5"
+dict_path_4 = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_4_quenched_high_sampling_rate_structure_factor_bartlett_isotrope.h5"
+
+structure_factor_dict_1 = GU.load_h5_dict(dict_path_1)
+structure_factor_dict_4 = GU.load_h5_dict(dict_path_4)
+
+Plots.plot(structure_factor_dict_4["wavenumber_vec"][10:end], structure_factor_dict_4["structure_factor_vec"][10:end], linecolor=Plots.palette(:tab10)[2], label = Latex.L"kT=4" )
+Plots.plot!(structure_factor_dict_1["wavenumber_vec"][10:end], structure_factor_dict_1["structure_factor_vec"][10:end], linecolor=Plots.palette(:tab10)[1], label = Latex.L"kT=1" )
+Plots.plot!(xlabel="wavenumber", ylabel = "structure factor", xlims=(0,22.5), ylims=(0,5), xtick=pitick(0, 32, 1; mode=:latex))
+
+Plots.savefig(path*"structure_factor_T_1_4_high_sampling_rate.png")
+
+
+dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+
+temperatures = [0.125, 0.25, 0.5, 1, 2, 4, 8]
+
+b_range = range(0.4, 1.8, length=71)
+
+my_plot = Plots.stephist()
+
+
+bond_length_std_vec = zeros(length(temperatures))
+
+for i in eachindex(temperatures)
+
+    graph_dict = NG.load_graph_from_h5_and_MGformat(dict_path*"216_vertices_T_"*string(temperatures[i])*"_quenched")
+
+    bond_length_std_vec[i], bond_length_vec = NA.get_bond_length_std(graph_dict)
+
+    my_plot = Plots.stephist!(bond_length_vec, bins=b_range, label = Latex.L"kT="*string(temperatures[i]), normalize=:probability)
+end
+
+my_plot = Plots.plot!(xlabel="bond length",
+ylabel = "relative frequency")
+
+Plots.savefig(path*"bond_length_216_vertices_T_0.125_8.png")
+
+
+dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+
+temperatures = [0.125, 0.25, 0.5, 1, 2, 4, 8]
+
+b_range = range(0, 180, length=61)
+my_plot = Plots.stephist()
+
+
+bond_angle_std_vec = zeros(length(temperatures))
+
+for i in eachindex(temperatures)
+
+    graph_dict = NG.load_graph_from_h5_and_MGformat(dict_path*"216_vertices_T_"*string(temperatures[i])*"_quenched")
+
+    bond_angle_std_vec[i], bond_angle_vec = NA.get_bond_angle_std(graph_dict)
+
+
+    my_plot = Plots.stephist!(bond_angle_vec./pi .* 180, bins=b_range, label = Latex.L"kT="*string(temperatures[i]), normalize=:probability)
+end
+
+my_plot = Plots.plot!(xlabel="bond angle",
+ylabel = "relative frequency", xlims=(0, 180), legend = :topleft)
+
+Plots.savefig(path*"bond_angle_216_vertices_T_0.125_8.png")

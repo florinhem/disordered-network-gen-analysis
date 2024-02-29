@@ -61,6 +61,45 @@ end
 
 
 """
+Get temperature sequence for immediate heating and maximal temperature and then
+cooling at a constant temperature decrease
+"""
+function get_temperature_sequence_cooling_gradient(start_temperature::Real = 2;
+    end_temperature::Real = 0,
+    temperature_decrease_per_monte_carlo_step::Real = 0.5, 
+    nr_monte_carlo_steps_per_temperature::Real = 0.01,
+    quench::Bool = true )
+
+    # calculate number of monte carlo steps during temperature decrease
+    nr_monte_carlo_steps_during_temperature_decrease = ((start_temperature - end_temperature)
+    /temperature_decrease_per_monte_carlo_step)
+
+    # create the vector of temperatures
+    temperature_vec = (start_temperature 
+        .- temperature_decrease_per_monte_carlo_step 
+            .* collect(0
+                :nr_monte_carlo_steps_per_temperature
+                :nr_monte_carlo_steps_during_temperature_decrease))
+
+    # create vector of monte carlo steps per temperature
+    nr_monte_carlo_steps_per_temperature_vec = vcat([2], ones(length(temperature_vec)-1) .* nr_monte_carlo_steps_per_temperature )
+
+    # add long quenching time in the end if desired
+    if quench
+        if end_temperature == 0
+            nr_monte_carlo_steps_per_temperature_vec[end] = 50
+        else
+            push!(temperature_vec, 0)
+            push!(nr_monte_carlo_steps_per_temperature_vec, 50)
+        end
+    end
+
+    return temperature_vec
+
+end
+
+
+"""
 Evolve a given network and calculate several order metrics
 """
 

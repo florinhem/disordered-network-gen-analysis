@@ -18,82 +18,32 @@ import NaNStatistics
 # 216 vertices: supercell_edge_length = 6.9282032302755105
 
 
-# path where structures are stored
-load_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
 
 
-# load graph with 216 vertices
-#graph_dict_2 = NG.load_graph_from_h5_and_MGformat(load_path*"216_vertices_T_1_quenched")
-#
-## determine structure factor
-#structure_factor_dict_2 = NA.get_structure_factor_isotrope_by_wavenumber_vec(
-#    graph_dict_2;
-#    sampling_distance_step_length = 0.025,
-#    maximal_sampling_distance = 4*graph_dict_2["supercell_edge_length"],
-#    nr_wavevector_samples = 10000,
-#    save_result = true,
-#    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\216_vertices_T_1_quenched",
-#    label = "216_vertices_T_1_quenched")
-#
-#
-## load graph with 512 vertices
-#graph_dict_5 = NG.load_graph_from_h5_and_MGformat(load_path*"512_vertices_T_1_quenched")
+start_temperature = 2
+end_temperature = 1
+temperature_decrease_per_monte_carlo_step = 0.5
+nr_monte_carlo_steps_per_temperature = 0.01
+quench = true 
 
-# determine structure factor
-#structure_factor_dict_5 = NA.get_structure_factor_isotrope_by_wavenumber_vec(
-#    graph_dict_5;
-#    sampling_distance_step_length = 0.025,
-#    maximal_sampling_distance = 4*graph_dict_5["supercell_edge_length"],
-#    nr_wavevector_samples = 5000,
-#    save_result = true,
-#    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\512_vertices_T_1_quenched",
-#    label = "512_vertices_T_1_quenched")
+nr_monte_carlo_steps_during_temperature_decrease = ((start_temperature - end_temperature)
+    /temperature_decrease_per_monte_carlo_step)
 
+temperature_vec = (start_temperature 
+    .- temperature_decrease_per_monte_carlo_step 
+        .* collect(0
+            :nr_monte_carlo_steps_per_temperature
+            :nr_monte_carlo_steps_during_temperature_decrease))
 
-## load graph with 1000 vertices
-#graph_dict_5 = NG.load_graph_from_h5_and_MGformat(load_path*"1000_vertices_T_1_quenched")
-#
-## determine structure factor
-#structure_factor_dict_1 = NA.get_structure_factor_isotrope_by_wavenumber_vec(
-#    graph_dict_1;
-#    sampling_distance_step_length = 0.025,
-#    maximal_sampling_distance = 4*graph_dict_5["supercell_edge_length"],
-#    nr_wavevector_samples = 5000,
-#    save_result = true,
-#    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_1_quenched",
-#    label = "1000_vertices_T_1_quenched")
-#
-## load graph with 1000 vertices for T=4
-graph_dict_1_4 = NG.load_graph_from_h5_and_MGformat(load_path*"1000_vertices_T_4_quenched")
+# create temperature sequence
+nr_monte_carlo_steps_per_temperature_vec = vcat([2], ones(length(temperature_vec)-1) .* nr_monte_carlo_steps_per_temperature )
 
-# determine structure factor
-structure_factor_dict_1_4 = NA.get_structure_factor_isotrope_by_wavenumber_vec(
-    graph_dict_1_4;
-    sampling_distance_step_length = 0.025,
-    maximal_sampling_distance = 4*graph_dict_5["supercell_edge_length"],
-    nr_wavevector_samples = 5000,
-    save_result = true,
-    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_4_quenched",
-    label = "1000_vertices_T_4_quenched")
-
-
-# plot structure factors 
-
-window_size = length(structure_factor_dict_1["wavenumber_vec"])/50.0
-
-Plots.plot(
-    structure_factor_dict_1["wavenumber_vec"],
-    NaNStatistics.movmean(structure_factor_dict_1_4["structure_factor_vec"], window_size),
-    label = Latex.L"kT=4"
-)
-Plots.plot!(
-    structure_factor_dict_1["wavenumber_vec"],
-    NaNStatistics.movmean(structure_factor_dict_1["structure_factor_vec"], window_size),
-    label = Latex.L"kT=1"
-)
-Plots.plot!(
-    xlabel = "wavenumber",
-    ylabel = "structure factor",
-    legend = true,
-    xlims=(0,32.5), ylims=(0,10)
-)
+if quench
+    if end_temperature == 0
+        nr_monte_carlo_steps_per_temperature_vec[end] = 50
+    else
+        push!(temperature_vec, 0)
+        push!(nr_monte_carlo_steps_per_temperature_vec, 50)
+    end
+end
