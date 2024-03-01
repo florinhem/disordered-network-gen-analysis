@@ -56,63 +56,31 @@ function piticklabel(x::Rational, ::Val{:latex})
 end
 
 
+dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
 
-dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\216_vertices_T_"
+function heaviside(t)
+    0.5 * (sign(t) + 1)
+ end
+ 
+temperatures = [0.1, 0.125, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5]
 
-temperatures = [0.125, 0.25, 0.5, 0.0625]
+temperature = temperatures[1]
 
-my_plot = Plots.plot()
-
-
-bond_angle_std_vec = zeros(length(temperatures))
-
-for i in eachindex(temperatures)
-
-    structure_factor_dict = GU.load_h5_dict(dict_path*string(temperatures[i])*"_quenched_structure_factor_bartlett_isotrope.h5")
-
-    my_plot = Plots.plot!(structure_factor_dict["wavenumber_vec"], structure_factor_dict["structure_factor_vec"], label = Latex.L"kT="*string(temperatures[i]) )
-end
-
-my_plot = Plots.plot!(xlabel="wavenumber", ylabel = "structure factor", xlims=(0,27.5), ylims=(0,5), xtick=pitick(0, 32, 1; mode=:latex))
-
-Plots.savefig(path*"structure_factor_bartlett_216_vertices_T_0.125_0.5.png")
+mc_step_vec = collect(0:0.1:20)
+temperature_vec = (heaviside.(- (mc_step_vec .- 2)) .* temperature 
+.+ (0.3 .- 0.1 .* mc_step_vec ).* heaviside.(- (mc_step_vec .- 3)) .* heaviside.( (mc_step_vec .- 2)))
 
 
+Plots.plot(mc_step_vec, 
+temperature_vec, label=Latex.L"kT_\mathrm{max}="*string(temperature), ls= :dash)
 
-temperatures = [1, 2, 4, 0.0625]
+temperature = temperatures[3]
+temperature_vec = (heaviside.(- (mc_step_vec .- 2)) .* temperature 
+.+ (0.35 .- 0.1 .* mc_step_vec) .* heaviside.(- (mc_step_vec .- 3.5)) .* heaviside.( (mc_step_vec .- 2)))
 
-my_plot = Plots.plot()
+Plots.plot!(mc_step_vec, 
+temperature_vec, label=Latex.L"kT_\mathrm{max}="*string(temperature), ls= :dash )
 
+Plots.plot!(xlabel="Monte Carlo step", ylabel=Latex.L"kT", xlims=(0, 20), right_margin = 3Plots.mm)
 
-bond_angle_std_vec = zeros(length(temperatures))
-
-for i in eachindex(temperatures)
-
-    structure_factor_dict = GU.load_h5_dict(dict_path*string(temperatures[i])*"_quenched_structure_factor_bartlett_isotrope.h5")
-
-    my_plot = Plots.plot!(structure_factor_dict["wavenumber_vec"], structure_factor_dict["structure_factor_vec"], label = Latex.L"kT="*string(temperatures[i]) )
-end
-
-my_plot = Plots.plot!(xlabel="wavenumber", ylabel = "structure factor", xlims=(0,27.5), ylims=(0,5), xtick=pitick(0, 32, 1; mode=:latex))
-
-Plots.savefig(path*"structure_factor_bartlett_216_vertices_T_1_4.png")
-
-
-
-temperatures = [4, 6, 8, 0.0625]
-
-my_plot = Plots.plot()
-
-
-bond_angle_std_vec = zeros(length(temperatures))
-
-for i in eachindex(temperatures)
-
-    structure_factor_dict = GU.load_h5_dict(dict_path*string(temperatures[i])*"_quenched_structure_factor_bartlett_isotrope.h5")
-
-    my_plot = Plots.plot!(structure_factor_dict["wavenumber_vec"], structure_factor_dict["structure_factor_vec"], label = Latex.L"kT="*string(temperatures[i]) )
-end
-
-my_plot = Plots.plot!(xlabel="wavenumber", ylabel = "structure factor", xlims=(0,27.5), ylims=(0,5), xtick=pitick(0, 32, 1; mode=:latex))
-
-Plots.savefig(path*"structure_factor_bartlett_216_vertices_T_4_8.png")
+Plots.savefig(path*"temperature_T_0.1_0.15_cool_0.1_per_mc_quenched.png")

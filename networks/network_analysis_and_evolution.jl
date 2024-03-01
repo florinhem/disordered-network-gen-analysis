@@ -94,7 +94,50 @@ function get_temperature_sequence_cooling_gradient(start_temperature::Real = 2;
         end
     end
 
-    return temperature_vec
+    return [temperature_vec, nr_monte_carlo_steps_per_temperature_vec]
+
+end
+
+
+"""
+Get temperature sequence for heating and then cooling at
+a constant temperature gradient
+"""
+function get_temperature_sequence_heating_cooling_gradient(maximal_temperature::Real = 2;
+    temperature_increase_per_monte_carlo_step::Real = 0.5, 
+    nr_monte_carlo_steps_per_temperature::Real = 0.01,
+    quench::Bool = true )
+
+    # calculate number of monte carlo steps during temperature increase
+    nr_monte_carlo_steps_during_temperature_increase = (maximal_temperature
+    /temperature_increase_per_monte_carlo_step)
+
+    # create the vector of temperatures for the temperature increase
+    temperature_increase_vec = ( temperature_increase_per_monte_carlo_step 
+            .* collect(0
+                :nr_monte_carlo_steps_per_temperature
+                :nr_monte_carlo_steps_during_temperature_increase))
+
+    # create the vector of temperatures for the temperature decrease
+    temperature_decrease_vec = ( maximal_temperature 
+        .- temperature_increase_per_monte_carlo_step 
+            .* collect(0
+                :nr_monte_carlo_steps_per_temperature
+                :nr_monte_carlo_steps_during_temperature_increase))[2:end]
+
+    # create total temperatre vector
+    temperature_vec = vcat(temperature_increase_vec, temperature_decrease_vec)
+
+    # create vector of monte carlo steps per temperature
+    nr_monte_carlo_steps_per_temperature_vec = (
+        ones(length(temperature_vec)) .* nr_monte_carlo_steps_per_temperature )
+
+    # add long quenching time in the end if desired
+    if quench
+        nr_monte_carlo_steps_per_temperature_vec[end] = 50
+    end
+
+    return [temperature_vec, nr_monte_carlo_steps_per_temperature_vec]
 
 end
 
