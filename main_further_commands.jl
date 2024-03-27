@@ -3306,3 +3306,22 @@ for temperature in temperatures
             = save_path)
 
 end
+
+
+evolution_dict = NA.get_evolution_dict(nr_vertices = 64, network_type = "diamond")
+graph_dict_diamond = NG.get_periodic_network(evolution_dict)
+
+evolution_dict = NA.get_evolution_dict(nr_vertices = 64, network_type = "simple cubic")
+graph_dict_sc = NG.get_periodic_network(evolution_dict)
+
+central_vertex = 10
+
+l_max = 8
+
+single_vertex_q_l_sc = NA.get_q_l_averaged_single_vertex_dict(graph_dict_sc,
+central_vertex,
+l_max)
+
+single_vertex_q_l_diamond = NA.get_q_l_averaged_single_vertex_dict(graph_dict_diamond,
+central_vertex,
+l_max)

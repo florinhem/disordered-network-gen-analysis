@@ -4,10 +4,10 @@ These functions generate geometric graphs
 
 
 """
-generate matrix of vertex positions in a simple cubic lattice, 
+generate matrix of vertex positions in a primitive cubic lattice, 
 where each column is a position vector
 """
-function get_simple_cubic_vertex_position_mat(nr_vertices_per_dimension::Int64, 
+function get_primitive_cubic_vertex_position_mat(nr_vertices_per_dimension::Int64, 
                                             nr_dimensions::Int64)
 
     # generate empty matrix for vertexic positions
@@ -28,13 +28,13 @@ end
 
 
 """
-generate a simple cubic network using the graphs package
+generate a primitive cubic network using the graphs package
 """
-function get_simple_cubic_network(nr_vertices; 
+function get_primitive_cubic_network(nr_vertices::Int64; 
                                     nr_dimensions::Int64 = 3 )
 
     # calculate actual nr vertices from given nr vertices such that it can build 
-    # a simple cubic lattice inside a cubic box without defects
+    # a primitive cubic lattice inside a cubic box without defects
     nr_vertices_per_dimension = Int(round( nr_vertices^(1/nr_dimensions) ))
     nr_vertices = nr_vertices_per_dimension^nr_dimensions
 
@@ -42,7 +42,7 @@ function get_simple_cubic_network(nr_vertices;
     supercell_edge_length = nr_vertices_per_dimension
 
     # get matrix of vertex positions, where each column is a position vector
-    vertex_position_mat = get_simple_cubic_vertex_position_mat(nr_vertices_per_dimension, 
+    vertex_position_mat = get_primitive_cubic_vertex_position_mat(nr_vertices_per_dimension, 
                                                             nr_dimensions)
 
     # generate a graph by connecting all vertices of specified vertexic positions that are closer
@@ -70,12 +70,195 @@ end
 
 
 """
+generate matrix of vertex positions in the bcc structure,
+where each column is a position vector.
+Inside a unit cell, the vertexic positions in units of the nearest
+neighbor distance are
+(1/(2*sqrt(3))) .* [[1, 1, 1], [3, 3, 3]]
+"""
+function get_bcc_vertex_position_mat(nr_unit_cells_per_dimension::Int64, 
+                                    nr_vertices::Int64,
+                                    edge_length_unit_cell)
+
+    # generate empty matrix for vertexic positions
+    vertex_position_mat = Matrix{Float64}(undef, 3, nr_vertices)
+
+    # set the coordinates inside a unit cell in units of the equilibrium bond length
+    coordinates_inside_unit_cell_vec = ( (1/(2*sqrt(3))) .* [[1, 1, 1], [3, 3, 3]] )
+
+    # set counter of current vertex
+    current_vertex_nr = 1
+
+    # loop through all three dimensions
+    for i in 0:nr_unit_cells_per_dimension-1
+        for j in 0:nr_unit_cells_per_dimension-1
+            for k in 0:nr_unit_cells_per_dimension-1
+
+                for nr_vertex_inside_unit_cell in 1:2
+
+                    # calculate position of the current vertex
+                    vertex_position_mat[:, current_vertex_nr] = ( [i,j,k] .* edge_length_unit_cell
+                                    .+ coordinates_inside_unit_cell_vec[nr_vertex_inside_unit_cell]  )
+
+                    # increase vertex counter
+                    current_vertex_nr += 1
+
+                end
+
+            end
+        end
+    end
+
+    return vertex_position_mat
+end
+
+
+"""
+generate a bcc network using the graphs package.
+This algorithm is based on the information that the unit cell contains 2 vertices
+"""
+function get_bcc_network(nr_vertices )
+
+    # determine the edge length of a unit cell
+    edge_length_unit_cell = 2/sqrt(3)
+
+    # calculate the actual nr vertices, given that we require a 
+    # cubic supercell and using the fact that the unit cell contains 2 vertices 
+    nr_unit_cells_per_dimension = max(1, Int(round( (nr_vertices/2)^(1/3) )) )
+    nr_vertices = 2 * nr_unit_cells_per_dimension^3
+
+    # calculate edge length of supercell
+    supercell_edge_length = nr_unit_cells_per_dimension*edge_length_unit_cell
+
+
+    # get matrix of vertex positions, where each column is a position vector
+    vertex_position_mat = get_bcc_vertex_position_mat(nr_unit_cells_per_dimension, 
+                                                            nr_vertices,
+                                                            edge_length_unit_cell)
+
+    # generate a graph by connecting all vertices of specified vertexic positions that are closer
+    # to each other than the distance cutoff
+    # p=2 is the Euclidean distance
+    original_graph, edge_length_vec = Graphs.euclidean_graph(vertex_position_mat, 
+                                            L= supercell_edge_length,
+                                            p=2, 
+                                            cutoff=1.05,
+                                            bc=:periodic)
+
+    # create dictionary out of original graph and its properties
+    original_graph_dict = Dict("original_graph" => original_graph,
+                    "edge_length_vec" => edge_length_vec,
+                    "coordination_nr" => 8,
+                    "nr_vertices" => nr_vertices,
+                    "nr_dimensions" => 3,
+                    "supercell_edge_length" => supercell_edge_length,
+                    "vertex_position_mat" => vertex_position_mat
+                    )
+    
+    return original_graph_dict
+
+end
+
+
+"""
+generate matrix of vertex positions in the fcc structure,
+where each column is a position vector.
+Inside a unit cell, the vertexic positions in units of the nearest
+neighbor distance are
+(sqrt(2)/4) .* [[1, 1, 1], [1, 3, 3], [3, 1, 3], [3, 3, 1]]
+"""
+function get_fcc_vertex_position_mat(nr_unit_cells_per_dimension::Int64, 
+                                    nr_vertices::Int64,
+                                    edge_length_unit_cell)
+
+    # generate empty matrix for vertexic positions
+    vertex_position_mat = Matrix{Float64}(undef, 3, nr_vertices)
+
+    # set the coordinates inside a unit cell in units of the equilibrium bond length
+    coordinates_inside_unit_cell_vec = ( (sqrt(2)/4) 
+                                    .* [[1, 1, 1], [1, 3, 3], [3, 1, 3], [3, 3, 1]] )
+
+    # set counter of current vertex
+    current_vertex_nr = 1
+
+    # loop through all three dimensions
+    for i in 0:nr_unit_cells_per_dimension-1
+        for j in 0:nr_unit_cells_per_dimension-1
+            for k in 0:nr_unit_cells_per_dimension-1
+
+                for nr_vertex_inside_unit_cell in 1:4
+
+                    # calculate position of the current vertex
+                    vertex_position_mat[:, current_vertex_nr] = ( [i,j,k] .* edge_length_unit_cell
+                                    .+ coordinates_inside_unit_cell_vec[nr_vertex_inside_unit_cell]  )
+
+                    # increase vertex counter
+                    current_vertex_nr += 1
+
+                end
+
+            end
+        end
+    end
+
+    return vertex_position_mat
+end
+
+
+"""
+generate a fcc network using the graphs package.
+This algorithm is based on the information that the unit cell contains 4 vertices
+"""
+function get_fcc_network(nr_vertices )
+
+    # determine the edge length of a unit cell
+    edge_length_unit_cell = sqrt(2)
+
+    # calculate the actual nr vertices, given that we require a 
+    # cubic supercell and using the fact that the unit cell contains 4 vertices 
+    nr_unit_cells_per_dimension = max(1, Int(round( (nr_vertices/4)^(1/3) )) )
+    nr_vertices = 4 * nr_unit_cells_per_dimension^3
+
+    # calculate edge length of supercell
+    supercell_edge_length = nr_unit_cells_per_dimension*edge_length_unit_cell
+
+
+    # get matrix of vertex positions, where each column is a position vector
+    vertex_position_mat = get_fcc_vertex_position_mat(nr_unit_cells_per_dimension, 
+                                                            nr_vertices,
+                                                            edge_length_unit_cell)
+
+    # generate a graph by connecting all vertices of specified vertexic positions that are closer
+    # to each other than the distance cutoff
+    # p=2 is the Euclidean distance
+    original_graph, edge_length_vec = Graphs.euclidean_graph(vertex_position_mat, 
+                                            L= supercell_edge_length,
+                                            p=2, 
+                                            cutoff=1.05,
+                                            bc=:periodic)
+
+    # create dictionary out of original graph and its properties
+    original_graph_dict = Dict("original_graph" => original_graph,
+                    "edge_length_vec" => edge_length_vec,
+                    "coordination_nr" => 12,
+                    "nr_vertices" => nr_vertices,
+                    "nr_dimensions" => 3,
+                    "supercell_edge_length" => supercell_edge_length,
+                    "vertex_position_mat" => vertex_position_mat
+                    )
+    
+    return original_graph_dict
+
+end
+
+
+"""
 generate matrix of vertex positions in the cubic diamond structure,
 where each column is a position vector.
-Inside a unit cells, the vertexic positions in units of the nearest
+Inside a unit cell, the vertexic positions in units of the nearest
 neighbor distance are
-1/sqrt(3) .* [(0,0,0), (0,2,2), (2,0,2), (2,2,0),
-    (3,3,3), (3,1,1), (1,3,1), (1,1,3)]
+1/sqrt(3) .* [[0,0,0], [0,2,2], [2,0,2], [2,2,0],
+    [3,3,3], [3,1,1], [1,3,1], [1,1,3]]
 """
 function get_diamond_vertex_position_mat(nr_unit_cells_per_dimension::Int64, 
                                     nr_vertices,
@@ -231,11 +414,31 @@ function get_periodic_network(evolution_dict)
     # depending on the network structure, create an original graph that does not
     # contain vertexic positions and bond information
 
-    # simple cubic which is defined for any dimensionality
-    if cmp(evolution_dict["network_type"], "simple cubic") == 0
+    # primitive cubic which is defined for any dimensionality
+    if cmp(evolution_dict["network_type"], "primitive cubic") == 0
 
-        original_graph_dict = get_simple_cubic_network(evolution_dict["nr_vertices"];
+        original_graph_dict = get_primitive_cubic_network(evolution_dict["nr_vertices"];
                                     nr_dimensions = evolution_dict["nr_dimensions"]) 
+
+    # bcc which is only defined for 3d
+    elseif cmp(evolution_dict["network_type"], "bcc") == 0
+
+        if evolution_dict["nr_dimensions"] == 3
+
+            original_graph_dict = get_bcc_network(evolution_dict["nr_vertices"] ) 
+        else
+            @error "The bcc network is only defined in 3d."
+        end
+
+    # fcc which is only defined for 3d
+    elseif cmp(evolution_dict["network_type"], "fcc") == 0
+
+        if evolution_dict["nr_dimensions"] == 3
+
+            original_graph_dict = get_fcc_network(evolution_dict["nr_vertices"] ) 
+        else
+            @error "The fcc network is only defined in 3d."
+        end
 
     # diamond which is only defined for 3d
     elseif cmp(evolution_dict["network_type"], "diamond") == 0
@@ -248,7 +451,7 @@ function get_periodic_network(evolution_dict)
         end
 
     else
-        @error "Only simple cubic and diamond networks are implemented so far."
+        @error "Only primitive cubic and diamond networks are implemented so far."
 
     end
 
@@ -298,7 +501,7 @@ function get_poisson_random_network(evolution_dict::Dict)
         end
 
     else
-        @error "Only simple cubic and diamond networks are implemented so far."
+        @error "Only primitive cubic and diamond networks are implemented so far."
 
     end
 
