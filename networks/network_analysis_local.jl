@@ -163,35 +163,34 @@ function get_dihedral_angle_std(graph_dict::Dict)
 end
 
 
-
-
 """
-Get Steinhardt order parameters / local bond order parameter, for a 
-single vertex and for all parameters l up to l_max where l is the index of 
-the spherical harmonic Y_{lm}. The equations are taken from references
-10.1103/PhysRevB.28.784 and 10.1063/1.2977970
+Get dictionary of q_lm averaged over bonds to neighbors for a single vertex
+(also called Steinhardt local bond order parameters) 
+as in equation 2.1 of 10.1103/PhysRevB.28.784 which is not rotationally
+invariant
 """
-function get_steinhardt_order_parameter_single_vertex_vec(graph_dict::Dict,
-    cental_vertex::Int64,
+function get_q_lm_averaged_bonds_to_neighbors_dict_single_vertex(graph_dict::Dict,
+    central_vertex::Int64,
     l_max::Int64)
 
     # initialize vector for spherical harmonics of all neighbors
     y_spherical_harmonic_arr_vec = Vector{SphericalHarmonics.SHVector{
-            ComplexF64, 
-            Vector{ComplexF64}, 
-            Tuple{SphericalHarmonics.ML{SphericalHarmonics.ZeroTo{false}, 
-                SphericalHarmonics.FullRange{true}}}
-        }}(undef, graph_dict["coordination_nr"])
+        ComplexF64, 
+        Vector{ComplexF64}, 
+        Tuple{SphericalHarmonics.ML{SphericalHarmonics.ZeroTo{false}, 
+            SphericalHarmonics.FullRange{true}}}
+    }}(undef, graph_dict["coordination_nr"])
 
+    # neighbor counter
     neighbor_count = 1
 
-    # loop through neighbors
+    # loop through bonds to neighbors
     for neighbor in MetaGraphsNext.neighbor_labels(
-                        graph_dict["spatial_network"], cental_vertex)
+                        graph_dict["spatial_network"], central_vertex)
 
         # get vector from vertex to neighbor
-        vertex_to_neighbor_vec = (sign(neighbor - cental_vertex) 
-                * graph_dict["spatial_network"][cental_vertex, neighbor]["vector"] )
+        vertex_to_neighbor_vec = (sign(neighbor - central_vertex) 
+                * graph_dict["spatial_network"][central_vertex, neighbor]["vector"] )
 
         # get vector's spherical coordinates
         r_length, theta, phi = convert_cartesian_to_spherical(vertex_to_neighbor_vec)
@@ -203,23 +202,21 @@ function get_steinhardt_order_parameter_single_vertex_vec(graph_dict::Dict,
         neighbor_count += 1
     end
 
-    # initialize vector of Steinhardt order parameters for values of l
-    # from 0 to l_max
-    steinhardt_order_parameter_vec = Vector{Float64}(undef, l_max+1)
+    # average over bonds to neighbors
 
-    # loop through values of L
+    # initialize dict of Steinhardt order parameters
+    q_lm_averaged_bonds_to_neighbors_dict = Dict{Tuple{Int64, Int64}, Complex{Float64}}()
+
+    # loop through values of l
     for l in 0:l_max
-
-        # initialize steinhardt order parameter for current l
-        q_l_sum = 0
 
         # loop through values of m
         for m in -l:l
 
-            # initialize q_lm
+            # initialize current average steinhardt order parameter
             q_lm = 0
 
-            # sum over neighbors
+            # average over neighbors
             for neighbor_count in 1:graph_dict["coordination_nr"]
 
                 q_lm += (1/graph_dict["coordination_nr"]
@@ -229,53 +226,96 @@ function get_steinhardt_order_parameter_single_vertex_vec(graph_dict::Dict,
 
             end
 
-            q_l_sum += abs2(q_lm)
+            # save current average steinhardt order parameter
+            q_lm_averaged_bonds_to_neighbors_dict[(l,m)] = q_lm
         end
-
-        # calculate steinhardt order parameter for current l
-        steinhardt_order_parameter_vec[l+1] = sqrt( 4*pi / (2*l + 1) * q_l_sum )
 
     end
 
-    return steinhardt_order_parameter_vec
+    return q_lm_averaged_bonds_to_neighbors_dict
+
 end
 
 
 """
-Get Steinhardt order parameters / local bond order parameter, for the entire
-network and for all parameters l up to l_max where l is the index of 
-the spherical harmonic Y_{lm}.
+Get vector of mean values of q_l (rotationally invariant Steinhardt local 
+bond order parameters) for a 
+single vertex and for all parameters l up to l_max where l is the index of 
+the spherical harmonic Y_{lm}. The equations are taken from references
+10.1103/PhysRevB.28.784 and 10.1063/1.2977970
 """
-function get_steinhardt_order_parameter_dict(graph_dict::Dict,
+function get_q_l_averaged_single_vertex_dict(graph_dict::Dict,
+    central_vertex::Int64,
     l_max::Int64)
 
-    # initialize dictionary of steinhardt order parameters for all values of l
-    steinhardt_order_parameter_sum_vec = zeros(l_max+1)
+    # get average steinhardt order parameter dict for current vertex
+    # this quantity is nor yet rotationally invariant
+    q_lm_averaged_bonds_to_neighbors_dict = (
+        get_q_lm_averaged_bonds_to_neighbors_dict_single_vertex(graph_dict,
+                                                                central_vertex,
+                                                                l_max))
 
-    # loop through l
+    # initialize dict of Steinhardt order parameters 
+    q_l_averaged_single_vertex_dict = Dict{Int64, Float64}()
+
+    # loop through values of l
+    for l in 0:l_max
+
+        # initialize sum over m
+        q_lm_squared_sum = 0
+
+        # loop through values of m
+        for m in -l:l
+
+            # add absolute value squared of q_lm to sum
+            q_lm_squared_sum += abs2(q_lm_averaged_bonds_to_neighbors_dict[(l,m)])
+        end
+
+        # calculate steinhardt order parameter for current l
+        q_l_averaged_single_vertex_dict[l] = sqrt( 4*pi / (2*l + 1) * q_lm_squared_sum )
+
+    end
+
+    return q_l_averaged_single_vertex_dict
+end
+
+
+"""
+Get vector of mean values of q_l (rotationally invariant Steinhardt local 
+bond order parameters) for the entire network and for all parameters l up 
+to l_max where l is the index of the spherical harmonic Y_{lm}.
+"""
+function get_q_l_total_network_mean_dict(graph_dict::Dict,
+    l_max::Int64)
+
+    # initialize dictionary of q_l averaged over entire network with all values
+    # set to 0
+    q_l_total_network_mean_dict = Dict{Int64, Float64}()
+
+    for l in 0:l_max
+        q_l_total_network_mean_dict[l] = 0.0
+
+    end
+
+    # loop through vertices
     for vertex in MetaGraphsNext.labels(graph_dict["spatial_network"])
 
         # get vector of steinhardt order parameters for current vertex
-        steinhardt_order_parameter_single_vertex_vec = (
-            get_steinhardt_order_parameter_single_vertex_vec(
+        q_l_averaged_single_vertex_dict = (
+            get_q_l_averaged_single_vertex_dict(
                 graph_dict,
                 vertex,
                 l_max))
 
-        # add current vertex' contribution to sum of all vertices
-        steinhardt_order_parameter_sum_vec .+= steinhardt_order_parameter_single_vertex_vec
+        # for each l, add current vertex' contribution to sum of all vertices
+        for l in 0:l_max
+            q_l_total_network_mean_dict[l] += (1/graph_dict["nr_vertices"] 
+                                        * q_l_averaged_single_vertex_dict[l])
+    
+        end
 
     end
 
-    # loop through l and calculate steinhardt oder parameter
-    steinhardt_order_parameter_dict = Dict()
-
-    for l in 0:l_max
-        steinhardt_order_parameter_dict[l] = (1/graph_dict["nr_vertices"] 
-                                    * steinhardt_order_parameter_sum_vec[l+1])
-
-    end
-
-    return steinhardt_order_parameter_dict
+    return q_l_total_network_mean_dict
 end
 

@@ -81,11 +81,11 @@ import GraphMakie   # additions to GLMakie for graph plotting
 import FileIO   # for file loading and saving
 import Random   # to access more features for random number generation like seeds
 import Statistics   # for statistical operations like mean()
-import CoordinateTransformations    # to convert between coordinate systems
 import GeometryBasics   # to create meshes out of networks
 import Plots    # for plotting
 import LaTeXStrings as Latex # to display latex symbols in plot labels
 import Formatting as Fmt    # for python-like string formatting
+# import CoordinateTransformations    # to convert between coordinate systems
 
 # set path to files
 load_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\code_photonic_structures\networks\\"

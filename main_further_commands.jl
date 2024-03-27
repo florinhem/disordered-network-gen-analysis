@@ -3175,3 +3175,134 @@ for temperature in temperatures
             = save_path)
 
 end
+
+
+
+temperatures = [0.1, 0.125, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5]
+
+for temperature in temperatures
+
+    evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 ,temperature_vec = [temperature, 0],
+    nr_monte_carlo_steps_per_temperature_vec = [0.01, 50], min_ring_size = 3)
+
+    graph_dict = NG.get_periodic_network(evolution_dict)
+
+    graph_dict, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_sequence!(graph_dict,
+            evolution_dict; 
+        print_progress = true,
+        print_every_nr_attempted_bond_switches = 500)
+
+    evolution_dict["total_energy_vec"] = total_energy_vec
+    evolution_dict["move_accepted_vec"] = move_accepted_vec
+
+    NG.plot_network(graph_dict)
+
+    filename = "216_vertices_T_"*string(temperature)*"_heated_for_0.01_steps_quenched"
+
+    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+
+    NG.save_graph_to_h5_and_MGformat(graph_dict,
+        filename;
+        evolution_dict = evolution_dict,
+        save_path 
+            = save_path)
+
+end
+
+
+temperatures = [0.1, 0.125, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5]
+
+for temperature in temperatures
+
+    evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 ,temperature_vec = [temperature, 0],
+    nr_monte_carlo_steps_per_temperature_vec = [0.05, 50], min_ring_size = 3)
+
+    graph_dict = NG.get_periodic_network(evolution_dict)
+
+    graph_dict, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_sequence!(graph_dict,
+            evolution_dict; 
+        print_progress = true,
+        print_every_nr_attempted_bond_switches = 500)
+
+    evolution_dict["total_energy_vec"] = total_energy_vec
+    evolution_dict["move_accepted_vec"] = move_accepted_vec
+
+    NG.plot_network(graph_dict)
+
+    filename = "216_vertices_T_"*string(temperature)*"_heated_for_0.05_steps_quenched"
+
+    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+
+    NG.save_graph_to_h5_and_MGformat(graph_dict,
+        filename;
+        evolution_dict = evolution_dict,
+        save_path 
+            = save_path)
+
+end
+
+
+
+temperatures = [0.1, 0.125, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5]
+
+for temperature in temperatures
+
+    evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 ,temperature_vec = [temperature, 0],
+    nr_monte_carlo_steps_per_temperature_vec = [5, 50], min_ring_size = 3)
+
+    graph_dict = NG.get_periodic_network(evolution_dict)
+
+    graph_dict, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_sequence!(graph_dict,
+            evolution_dict; 
+        print_progress = true,
+        print_every_nr_attempted_bond_switches = 500)
+
+    evolution_dict["total_energy_vec"] = total_energy_vec
+    evolution_dict["move_accepted_vec"] = move_accepted_vec
+
+    NG.plot_network(graph_dict)
+
+    filename = "216_vertices_T_"*string(temperature)*"_heated_for_5.0_steps_quenched"
+
+    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+
+    NG.save_graph_to_h5_and_MGformat(graph_dict,
+        filename;
+        evolution_dict = evolution_dict,
+        save_path 
+            = save_path)
+
+end
+
+
+
+temperatures = [0.1, 0.125, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5]
+
+for temperature in temperatures
+
+    evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 ,temperature_vec = [temperature, 0],
+    nr_monte_carlo_steps_per_temperature_vec = [10, 50], min_ring_size = 3)
+
+    graph_dict = NG.get_periodic_network(evolution_dict)
+
+    graph_dict, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_sequence!(graph_dict,
+            evolution_dict; 
+        print_progress = true,
+        print_every_nr_attempted_bond_switches = 500)
+
+    evolution_dict["total_energy_vec"] = total_energy_vec
+    evolution_dict["move_accepted_vec"] = move_accepted_vec
+
+    NG.plot_network(graph_dict)
+
+    filename = "216_vertices_T_"*string(temperature)*"_heated_for_10.0_steps_quenched"
+
+    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+
+    NG.save_graph_to_h5_and_MGformat(graph_dict,
+        filename;
+        evolution_dict = evolution_dict,
+        save_path 
+            = save_path)
+
+end

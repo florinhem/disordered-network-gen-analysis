@@ -15,8 +15,8 @@ function convert_cartesian_to_spherical(cartesian_vec::Vector)
 
     # calculate r, theta and phi 
     r_length = LinearAlgebra.norm(cartesian_vec)
-    theta = acos(cartesian_vec[3]/r_length)
-    phi = acos(cartesian_vec[1]/(r_length*sin(theta)) )
+    theta = atan( sqrt(cartesian_vec[1]^2 + cartesian_vec[2]^2), cartesian_vec[3] )
+    phi = atan(cartesian_vec[2], cartesian_vec[1] )
 
     return [r_length, theta, phi]
 end
