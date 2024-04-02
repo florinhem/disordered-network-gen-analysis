@@ -81,7 +81,7 @@ function get_structure_factor_bartlett_isotrope_by_wavenumber_vec(
     sampling_distance_step_length::Real = 0.1,
     maximal_sampling_distance::Real = graph_dict["supercell_edge_length"]/2,
     save_result::Bool = false,
-    save_path::String = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\sample_name",
+    save_path::String = raw"..\analysis_data\random_networks\sample_name",
     label = nothing)
 
     # get vector of wavenumbers
@@ -184,7 +184,7 @@ function get_structure_factor_isotrope_by_wavenumber_vec(
     maximal_sampling_distance::Real = graph_dict["supercell_edge_length"]/2,
     nr_wavevector_samples::Int = 10000,
     save_result::Bool = false,
-    save_path::String = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\sample_name",
+    save_path::String = raw"..\analysis_data\random_networks\sample_name",
     print_progress::Bool = false,
     label = nothing)
 
@@ -277,7 +277,7 @@ function get_local_nr_variance_by_window_radius_vec(
     window_radius_step_length::Real = 0.2,
     maximal_window_radius::Real = graph_dict["supercell_edge_length"]/2,
     save_result::Bool = false,
-    save_path::String = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\sample_name",
+    save_path::String = raw"..\analysis_data\random_networks\sample_name",
     label = nothing)
 
     # get vector of winow radii

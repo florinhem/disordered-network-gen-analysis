@@ -9,7 +9,7 @@ import Plots
 import LaTeXStrings as Latex
 
 
-path = raw"C:\Users\HemmannF\switchdrive\presentations\material\\"
+path = raw"..\..\presentations\material\\"
 
 Plots.gr()
 Plots.default(grid=false, 
@@ -86,7 +86,7 @@ legend = false, dpi=400, xlims=(0,1), ylims=(0,1))
 Plots.savefig(path*"poisson_process.png")
 
 
-dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+dict_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
 graph_dict_1 = NG.load_graph_from_h5_and_MGformat(dict_path*"1000_vertices_T_1_quenched")
 graph_dict_4 = NG.load_graph_from_h5_and_MGformat(dict_path*"1000_vertices_T_4_quenched")
@@ -164,9 +164,9 @@ Plots.plot!(xlabel="bond angle", ylabel="energy", right_margin = 5Plots.mm, ylim
 Plots.savefig(path*"bond_bending_energy.png")
 
 
-dict_path_1 = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_1_quenched_structure_factor_bartlett_isotrope.h5"
+dict_path_1 = raw"..\analysis_data\random_networks\1000_vertices_T_1_quenched_structure_factor_bartlett_isotrope.h5"
 
-dict_path_4 = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_4_quenched_structure_factor_bartlett_isotrope.h5"
+dict_path_4 = raw"..\analysis_data\random_networks\1000_vertices_T_4_quenched_structure_factor_bartlett_isotrope.h5"
 
 structure_factor_dict_1 = GU.load_h5_dict(dict_path_1)
 structure_factor_dict_4 = GU.load_h5_dict(dict_path_4)
@@ -180,8 +180,8 @@ Plots.savefig(path*"structure_factor_T_1_4.png")
 
 
 # get structure factor dicts
-dict_path_1 = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_1_quenched_structure_factor_bartlett_isotrope.h5"
-dict_path_4 = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_4_quenched_structure_factor_bartlett_isotrope.h5"
+dict_path_1 = raw"..\analysis_data\random_networks\1000_vertices_T_1_quenched_structure_factor_bartlett_isotrope.h5"
+dict_path_4 = raw"..\analysis_data\random_networks\1000_vertices_T_4_quenched_structure_factor_bartlett_isotrope.h5"
 
 structure_factor_dict_1 = GU.load_h5_dict(dict_path_1)
 structure_factor_dict_4 = GU.load_h5_dict(dict_path_4)
@@ -212,7 +212,7 @@ Plots.savefig(path*"structure_factor_T_1_4_stretched.png")
 
 
 # load structure factor dictionaries
-dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\\"
+dict_path = raw"..\analysis_data\random_networks\\"
 
 filenames = ["1000_vertices_T_1_quenched_high_sampling_rate_structure_factor_bartlett_isotrope.h5",
     "512_vertices_T_1_quenched_high_sampling_rate_structure_factor_bartlett_isotrope.h5",
@@ -251,7 +251,7 @@ Plots.savefig(path*"structure_factor_T_1_size_comparison.png")
 
 
 # load structure factor dictionaries
-dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\\"
+dict_path = raw"..\analysis_data\random_networks\\"
 
 filenames = ["1000_vertices_T_1_quenched_high_sampling_rate_structure_factor_bartlett_isotrope.h5",
     "1000_vertices_T_4_quenched_high_sampling_rate_structure_factor_bartlett_isotrope.h5",
@@ -301,8 +301,8 @@ Plots.savefig(path*"structure_factor_scattering_intensity_bartlett_comparison.pn
 
 
 # get structure factor dicts
-dict_path_1 = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_1_quenched_high_sampling_rate_structure_factor_bartlett_isotrope.h5"
-dict_path_4 = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_4_quenched_high_sampling_rate_structure_factor_bartlett_isotrope.h5"
+dict_path_1 = raw"..\analysis_data\random_networks\1000_vertices_T_1_quenched_high_sampling_rate_structure_factor_bartlett_isotrope.h5"
+dict_path_4 = raw"..\analysis_data\random_networks\1000_vertices_T_4_quenched_high_sampling_rate_structure_factor_bartlett_isotrope.h5"
 
 structure_factor_dict_1 = GU.load_h5_dict(dict_path_1)
 structure_factor_dict_4 = GU.load_h5_dict(dict_path_4)
@@ -315,8 +315,8 @@ Plots.savefig(path*"structure_factor_T_1_4_stretched_high_sampling_rate.png")
 
 
 # get structure factor dicts
-dict_path_1 = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_1_quenched_high_sampling_rate_structure_factor_bartlett_isotrope.h5"
-dict_path_4 = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_4_quenched_high_sampling_rate_structure_factor_bartlett_isotrope.h5"
+dict_path_1 = raw"..\analysis_data\random_networks\1000_vertices_T_1_quenched_high_sampling_rate_structure_factor_bartlett_isotrope.h5"
+dict_path_4 = raw"..\analysis_data\random_networks\1000_vertices_T_4_quenched_high_sampling_rate_structure_factor_bartlett_isotrope.h5"
 
 structure_factor_dict_1 = GU.load_h5_dict(dict_path_1)
 structure_factor_dict_4 = GU.load_h5_dict(dict_path_4)
@@ -328,7 +328,7 @@ Plots.plot!(xlabel="wavenumber", ylabel = "structure factor", xlims=(0,22.5), yl
 Plots.savefig(path*"structure_factor_T_1_4_high_sampling_rate.png")
 
 
-dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+dict_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
 temperatures = [0.125, 0.25, 0.5, 1, 2, 4, 8]
 
@@ -354,7 +354,7 @@ ylabel = "relative frequency")
 Plots.savefig(path*"bond_length_216_vertices_T_0.125_8.png")
 
 
-dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+dict_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
 temperatures = [0.125, 0.25, 0.5, 1, 2, 4, 8]
 
@@ -382,7 +382,7 @@ Plots.savefig(path*"bond_angle_216_vertices_T_0.125_8.png")
 
 
 
-dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\216_vertices_T_"
+dict_path = raw"..\analysis_data\random_networks\216_vertices_T_"
 
 temperatures = [0.125, 0.25, 0.5, 0.0625]
 
@@ -444,7 +444,7 @@ Plots.savefig(path*"structure_factor_bartlett_216_vertices_T_4_8.png")
 
 
 
-dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+dict_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
 temperatures = [0.1, 0.125, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5]
 
@@ -499,7 +499,7 @@ Plots.plot!(xlabel="Monte Carlo step", ylabel="energy per vertex", xlims=(0, 20)
 
 Plots.savefig(path*"total_energy_216_vertices_T_0.1_0.15_quenched.png")
 
-dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+dict_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
 function heaviside(t)
     0.5 * (sign(t) + 1)
@@ -529,7 +529,7 @@ Plots.savefig(path*"temperature_T_0.1_0.15_quenched.png")
 
 
 
-dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+dict_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
 function heaviside(t)
     0.5 * (sign(t) + 1)

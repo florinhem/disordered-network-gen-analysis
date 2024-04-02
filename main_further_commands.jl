@@ -4,7 +4,7 @@ These are the calculations for the pachy weevil from the 10.1002advs.202202145 p
 """
 
 # set raw data path
-data_path_raw = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy_10.1002advs.202202145\3Dvolumes\SD_ff04_a51_box5_vox1.tif"
+data_path_raw = raw"..\structures\pachy_10.1002advs.202202145\3Dvolumes\SD_ff04_a51_box5_vox1.tif"
 
 
 # load data, correct voxel size anisotropy and save data
@@ -15,10 +15,10 @@ data_binary = BDA.get_binary_data_from_colorscale(data_path_raw;
 
 
 # set path to voxel size corrected data
-data_path_corrected = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy_10.1002advs.202202145\pachy_blue.h5"
+data_path_corrected = raw"..\structures\pachy_10.1002advs.202202145\pachy_blue.h5"
       
 # compare hyperuniformity criterion for red and blue patches
-data_path_corrected_vec = [raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy_10.1002advs.202202145\pachy_blue.h5"]
+data_path_corrected_vec = [raw"..\structures\pachy_10.1002advs.202202145\pachy_blue.h5"]
 
 # set labels for plotting 
 label_vec = ["blue patch"] # , "red patch", "simple diamond"
@@ -66,9 +66,9 @@ BDA.plot_volume_fraction_variance_times_window_volume(nr_dimensions_data,
 
 
 # compare hyperuniformity criterion for red and blue patches
-data_path_corrected_vec = [raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy_10.1002advs.202202145\pachy_blue.h5",
-                        raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy_10.1002advs.202202145\pachy_red.h5",
-                        raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy_10.1002advs.202202145\simple_diamond.h5"]
+data_path_corrected_vec = [raw"..\structures\pachy_10.1002advs.202202145\pachy_blue.h5",
+                        raw"..\structures\pachy_10.1002advs.202202145\pachy_red.h5",
+                        raw"..\structures\pachy_10.1002advs.202202145\simple_diamond.h5"]
 
 # set labels for plotting 
 label_vec = ["blue patch", "red patch", "simple diamond"] # , "red patch", "simple diamond"
@@ -123,9 +123,9 @@ BDA.plot_volume_fraction_variance(plot_dict_vec,
 
 
 # compare hyperuniformity criterion for red and blue patches
-data_path_vec = [raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy_volume_fraction_variance_random_spherical_blue patch.h5",
-                raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy_volume_fraction_variance_random_spherical_red patch.h5",
-                raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\volume_fraction_variance_random_spherical_D_surface.h5"]
+data_path_vec = [raw"..\analysis_data\pachy_volume_fraction_variance_random_spherical_blue patch.h5",
+                raw"..\analysis_data\pachy_volume_fraction_variance_random_spherical_red patch.h5",
+                raw"..\analysis_data\volume_fraction_variance_random_spherical_D_surface.h5"]
 
 # set labels for plotting 
 label_vec = ["blue patch", "red patch", "perfect diamond"] # , "red patch", "simple diamond"
@@ -208,14 +208,14 @@ end
 BDA.plot_autocovariance_fct(plot_dict_vec;
                         title="Autocovariance function",
                         save_plot = true,
-                        save_path=raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\\",
+                        save_path=raw"..\plots\\",
                         save_filename="pachy_autocovariance_fct_blue_red_sd")
 
 
 # compare hyperuniformity criterion for red and blue patches
-data_path_vec = [raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy_autocovariance_fct_blue patch.h5",
-                raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy_autocovariance_fct_red patch.h5",
-                raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\autocovariance_fct_D_surface.h5"]
+data_path_vec = [raw"..\analysis_data\pachy_autocovariance_fct_blue patch.h5",
+                raw"..\analysis_data\pachy_autocovariance_fct_red patch.h5",
+                raw"..\analysis_data\autocovariance_fct_D_surface.h5"]
 
 # set labels for plotting 
 label_vec = ["blue patch", "red patch", "perfect diamond"] # , "red patch", "simple diamond"
@@ -250,7 +250,7 @@ end
 BDA.plot_autocovariance_fct(plot_dict_vec;
                             title="Autocovariance function",
                             save_plot = true,
-                            save_path=raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\\",
+                            save_path=raw"..\plots\\",
                             save_filename="pachy_autocovariance_fct_blue_red_sd_zoom")
 
 
@@ -290,14 +290,14 @@ end
 BDA.plot_spectral_density(plot_dict_vec;
                         title="Spectral density",
                         save_plot = true,
-                        save_path=raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\\",
+                        save_path=raw"..\plots\\",
                         save_filename="pachy_spectral_density_blue_red_sd")
 
 
 # compare hyperuniformity criterion for red and blue patches
-data_path_vec = [raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy_spectral_density_fct_blue patch.h5",
-                raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy_spectral_density_fct_red patch.h5",
-                raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\spectral_density_D_surface.h5"]
+data_path_vec = [raw"..\analysis_data\pachy_spectral_density_fct_blue patch.h5",
+                raw"..\analysis_data\pachy_spectral_density_fct_red patch.h5",
+                raw"..\analysis_data\spectral_density_D_surface.h5"]
 
 # set labels for plotting 
 label_vec = ["blue patch", "red patch", "perfect diamond"] # , "red patch", "simple diamond"
@@ -333,15 +333,15 @@ end
 BDA.plot_spectral_density(plot_dict_vec;
                         title="Spectral density",
                         save_plot = true,
-                        save_path=raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\\",
+                        save_path=raw"..\plots\\",
                         save_filename="pachy_spectral_density_blue_red_sd")
 
 
 # path of original data
-data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_blue.h5"
+data_path = raw"..\structures\pachy\pachy_blue.h5"
 
 # path where analysis data will be saved
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_blue"
+save_path = raw"..\analysis_data\pachy\pachy_blue"
     
 # calculate and save all statistical measures
 BDA.save_statistical_measures(data_path, 
@@ -351,10 +351,10 @@ BDA.save_statistical_measures(data_path,
 
 
 # path of original data
-data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_red.h5"
+data_path = raw"..\structures\pachy\pachy_red.h5"
 
 # path where analysis data will be saved
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red"
+save_path = raw"..\analysis_data\pachy\pachy_red"
     
 # calculate and save all statistical measures
 BDA.save_statistical_measures(data_path, 
@@ -365,12 +365,12 @@ BDA.save_statistical_measures(data_path,
                     
 
 # set paths where statistical data is stored
-data_path_vec = [raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_blue",
-raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red",
-raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\nodal_surfaces\D_surface"]
+data_path_vec = [raw"..\analysis_data\pachy\pachy_blue",
+raw"..\analysis_data\pachy\pachy_red",
+raw"..\analysis_data\nodal_surfaces\D_surface"]
 
 # set path where plot will be stored
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\pachy\pachy_blue_red_d"
+save_path = raw"..\plots\pachy\pachy_blue_red_d"
 
 # plot all statistical measures
 BDA.plot_statistical_measures(data_path_vec,
@@ -381,10 +381,10 @@ BDA.plot_statistical_measures(data_path_vec,
 
 
 # path of original data
-data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_blue.h5"
+data_path = raw"..\structures\pachy\pachy_blue.h5"
 
 # path where analysis data will be saved
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_blue"
+save_path = raw"..\analysis_data\pachy\pachy_blue"
     
 # calculate and save all statistical measures
 BDA.save_statistical_measures(data_path, 
@@ -396,10 +396,10 @@ BDA.save_statistical_measures(data_path,
 
 
 # path of original data
-data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_red.h5"
+data_path = raw"..\structures\pachy\pachy_red.h5"
 
 # path where analysis data will be saved
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red"
+save_path = raw"..\analysis_data\pachy\pachy_red"
     
 # calculate and save all statistical measures
 BDA.save_statistical_measures(data_path, 
@@ -412,11 +412,11 @@ BDA.save_statistical_measures(data_path,
 
 
 # set data path
-data_path_vec = [raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_blue",
-                raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red"]
+data_path_vec = [raw"..\analysis_data\pachy\pachy_blue",
+                raw"..\analysis_data\pachy\pachy_red"]
 
 # set path to save plot
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\pachy\\"
+save_path = raw"..\plots\pachy\\"
 
 BDA.plot_statistical_measures(data_path_vec,
             save_path;
@@ -428,14 +428,14 @@ BDA.plot_statistical_measures(data_path_vec,
 
 
 
-data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_red.h5"
+data_path = raw"..\structures\pachy\pachy_red.h5"
 
 
 # load data and get all its essential information
 data_binary, volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(data_path )
 
 # set data path
-dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red_autocovariance_fct_direction.h5"
+dict_path = raw"..\analysis_data\pachy\pachy_red_autocovariance_fct_direction.h5"
 
 # load dict
 data_dict = BDA.load_h5_dict(dict_path)
@@ -449,7 +449,7 @@ sampled_wavenumbers_vec_vec, sampled_wavevectors_array, spectral_density_array =
                                                 autocovariance_fct_array = data_dict["autocovariance_fct_array"])
 
 # path where spectral density is saved
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red_spectral_density_direction.h5"
+save_path = raw"..\analysis_data\pachy\pachy_red_spectral_density_direction.h5"
 
 # create dict to save
 saving_dict = Dict("sampled_wavevectors_array" => sampled_wavevectors_array,
@@ -463,11 +463,11 @@ BDA.save_dict_to_h5(saving_dict; save_path)
 
 
 # path where spectral density data is saved
-dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red_spectral_density_direction.h5"
+dict_path = raw"..\analysis_data\pachy\pachy_red_spectral_density_direction.h5"
 
 
 # path where plot is saved
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\pachy\pachy_red_"
+save_path = raw"..\plots\pachy\pachy_red_"
 
 spectral_density_dict = BDA.load_h5_dict(dict_path)
 
@@ -481,13 +481,13 @@ BDA.plot_spectral_density_heatmap(spectral_density_dict,
 
 
 # path of original data
-data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_red.h5"
+data_path = raw"..\structures\pachy\pachy_red.h5"
 
 # load data and get all its essential information
 data_binary, volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(data_path )
 
 # set data path
-dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red_autocovariance_fct_direction.h5"
+dict_path = raw"..\analysis_data\pachy\pachy_red_autocovariance_fct_direction.h5"
 
 # load dict
 data_dict = BDA.load_h5_dict(dict_path)
@@ -511,7 +511,7 @@ for i in 1:3
                 autocovariance_fct_array = data_dict["autocovariance_fct_array"])
     
     # path where spectral density is saved
-    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\\"* label_vec[i] *"_spectral_density_direction.h5"
+    save_path = raw"..\analysis_data\pachy\\"* label_vec[i] *"_spectral_density_direction.h5"
 
     # create dict to save
     saving_dict = Dict("wavenumber_vec" => sampled_wavenumbers_vec,
@@ -524,13 +524,13 @@ end
 
 
 # path of original data
-data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_red.h5"
+data_path = raw"..\structures\pachy\pachy_red.h5"
 
 # load data and get all its essential information
 data_binary, volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(data_path )
 
 # set data path
-dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red_autocovariance_fct_direction.h5"
+dict_path = raw"..\analysis_data\pachy\pachy_red_autocovariance_fct_direction.h5"
 
 # load dict
 data_dict = BDA.load_h5_dict(dict_path)
@@ -559,7 +559,7 @@ for i in 1:3
                 autocovariance_fct_array = data_dict["autocovariance_fct_array"])
     
     # path where spectral density is saved
-    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\\"* naming_vec[i] *"_spectral_density_direction.h5"
+    save_path = raw"..\analysis_data\pachy\\"* naming_vec[i] *"_spectral_density_direction.h5"
 
     # create dict to save
     saving_dict = Dict("wavenumber_vec" => sampled_wavenumbers_vec,
@@ -580,7 +580,7 @@ plot_dict_vec = []
 for i in 1:3
     
     # path where spectral density is saved
-    load_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\\"* naming_vec[i] *"_spectral_density_direction.h5"
+    load_path = raw"..\analysis_data\pachy\\"* naming_vec[i] *"_spectral_density_direction.h5"
     
     # load dict
     data_dict = BDA.load_h5_dict(load_path)
@@ -590,7 +590,7 @@ for i in 1:3
 end
 
 # path where plot will be saved
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\pachy\pachy_red_direction_rotated_axes"
+save_path = raw"..\plots\pachy\pachy_red_direction_rotated_axes"
 
 # plot the spectral densities
 BDA.plot_spectral_density(plot_dict_vec,
@@ -601,10 +601,10 @@ BDA.plot_spectral_density(plot_dict_vec,
 
                     
 # path of original data
-data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_blue.h5"
+data_path = raw"..\structures\pachy\pachy_blue.h5"
 
 # path where analysis data will be saved
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_blue"
+save_path = raw"..\analysis_data\pachy\pachy_blue"
     
 # calculate and save all statistical measures
 BDA.save_statistical_measures(data_path, 
@@ -619,10 +619,10 @@ BDA.save_statistical_measures(data_path,
 
 
 # path of original data
-data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_red.h5"
+data_path = raw"..\structures\pachy\pachy_red.h5"
 
 # path where analysis data will be saved
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red"
+save_path = raw"..\analysis_data\pachy\pachy_red"
     
 # calculate and save all statistical measures
 BDA.save_statistical_measures(data_path, 
@@ -637,11 +637,11 @@ BDA.save_statistical_measures(data_path,
 
 
 # set paths where statistical data is stored
-data_path_vec = [raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red",
-raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_blue"]
+data_path_vec = [raw"..\analysis_data\pachy\pachy_red",
+raw"..\analysis_data\pachy\pachy_blue"]
 
 # set path where plot will be stored
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\pachy\\"
+save_path = raw"..\plots\pachy\\"
 
 # plot all statistical measures
 BDA.plot_statistical_measures(data_path_vec,
@@ -655,20 +655,20 @@ BDA.plot_statistical_measures(data_path_vec,
             )
 
 
-data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_red.h5"
+data_path = raw"..\structures\pachy\pachy_red.h5"
 
 # load data and get all its essential information
 data_binary, volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(data_path )
 
 # set data path
-dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red_autocovariance_fct_direction.h5"
+dict_path = raw"..\analysis_data\pachy\pachy_red_autocovariance_fct_direction.h5"
 
 # load dict
 data_dict = BDA.load_h5_dict(dict_path)
 
 
 # path where spectral density is saved
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red_spectral_density_direction.h5"
+save_path = raw"..\analysis_data\pachy\pachy_red_spectral_density_direction.h5"
 
 # calculate spectral density
 wavenumber_vec_vec, wavevector_array, spectral_density_array = BDA.get_spectral_density_by_wavevector_array(size_data, 
@@ -679,17 +679,17 @@ wavenumber_vec_vec, wavevector_array, spectral_density_array = BDA.get_spectral_
                                                 sampling_vec_array = data_dict["sampling_vec_array"],
                                                 autocovariance_fct_array = data_dict["autocovariance_fct_array"],
                                                 save_result = false,
-                save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red",
+                save_path = raw"..\analysis_data\pachy\pachy_red",
                 voxel_edge_length = 9,
                 label = "P. c. mirabilis red")
 
 
 
 # set paths for structure dict, autocovariance fct dict and where spectral_density along direction is saved 
-structure_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_blue_structure.h5"
-autocovariance_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_blue_autocovariance_fct.h5"
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_blue"
-plot_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\pachy\pachy_blue"
+structure_path = raw"..\structures\pachy\pachy_blue_structure.h5"
+autocovariance_path = raw"..\analysis_data\pachy\pachy_blue_autocovariance_fct.h5"
+save_path = raw"..\analysis_data\pachy\pachy_blue"
+plot_path = raw"..\plots\pachy\pachy_blue"
 
 # load structure dict
 structure_dict = BDA.load_h5_dict(structure_path)
@@ -715,10 +715,10 @@ BDA.plot_spectral_density([spectral_density_dict],
 
 
 # set paths for structure dict, autocovariance fct dict and where spectral_density along direction is saved 
-structure_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_red_structure.h5"
-autocovariance_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red_autocovariance_fct_direction.h5"
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red"
-plot_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\pachy\pachy_red"
+structure_path = raw"..\structures\pachy\pachy_red_structure.h5"
+autocovariance_path = raw"..\analysis_data\pachy\pachy_red_autocovariance_fct_direction.h5"
+save_path = raw"..\analysis_data\pachy\pachy_red"
+plot_path = raw"..\plots\pachy\pachy_red"
 
 # load structure dict
 structure_dict = BDA.load_h5_dict(structure_path)
@@ -750,14 +750,14 @@ BDA.plot_spectral_density_heatmap(spectral_density_dict,
     wavevector_value_fixed = 0)
 
 
-data_path_raw = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\3Dvolumes\Blue_SI.tif"
+data_path_raw = raw"..\structures\pachy\3Dvolumes\Blue_SI.tif"
 
 
 structure_dict = BDA.get_structure_dict_from_colorscale(data_path_raw; 
     voxel_size=(10,12,10), 
     label = "P. c. mirabilis blue",
     save_result=true, 
-    save_path=raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_blue")
+    save_path=raw"..\structures\pachy\pachy_blue")
 
 
 """
@@ -793,7 +793,7 @@ end
 
 
 # compare hyperuniformity criterion for red and blue patches
-data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\nodal_surfaces\\"
+data_path = raw"..\structures\nodal_surfaces\\"
 
 # set surfaces that are analyzed
 label_vec = ["D", "G", "P", "I-WP"] 
@@ -938,11 +938,11 @@ BDA.plot_spectral_density(plot_dict_vec;
 
 
 # set paths where statistical data is stored
-data_path_vec = (raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\nodal_surfaces\\"
+data_path_vec = (raw"..\analysis_data\nodal_surfaces\\"
                     .* ["D", "I-WP", "P", "G"] .* "_surface" )
 
 # set path where plot will be stored
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\nodal_surfaces\nodal_surfaces"
+save_path = raw"..\plots\nodal_surfaces\nodal_surfaces"
 
 # plot all statistical measures
 BDA.plot_statistical_measures(data_path_vec,
@@ -951,17 +951,17 @@ BDA.plot_statistical_measures(data_path_vec,
 
 
 # get data essentials of stervi data
-data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_green.h5"
+data_path = raw"..\structures\stervi\stervi_green.h5"
 data_binary, volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(data_path )
 nr_sampling_distances = BDA.get_nr_sampling_distances(mean_edge_length_data)
 
 
 # now analyze I-WP with the nr of sampling distances of the stervi weevil
 # path of original data
-data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\nodal_surfaces\I-WP_surface.h5"
+data_path = raw"..\structures\nodal_surfaces\I-WP_surface.h5"
 
 # path where analysis data will be saved
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\nodal_surfaces\I-WP_surface_fewer_sampling_distances"
+save_path = raw"..\analysis_data\nodal_surfaces\I-WP_surface_fewer_sampling_distances"
     
 
 # calculate and save all statistical measures
@@ -979,10 +979,10 @@ label_vec = ["D", "I-WP", "P", "G"]
 for label in label_vec
 
     # path of original data
-    data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\nodal_surfaces\\"*label*"_surface.h5"
+    data_path = raw"..\structures\nodal_surfaces\\"*label*"_surface.h5"
 
     # path where analysis data will be saved
-    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\nodal_surfaces\\"*label*"_surface"
+    save_path = raw"..\analysis_data\nodal_surfaces\\"*label*"_surface"
 
     # calculate and save all statistical measures
     BDA.save_statistical_measures(data_path, 
@@ -1025,11 +1025,11 @@ end
 label_vec = ["D", "G", "P", "I-WP"] 
 
 # set data path
-data_path_vec = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\nodal_surfaces\single_unit_cell_" .* label_vec .* "_surface.h5" 
+data_path_vec = raw"..\structures\nodal_surfaces\single_unit_cell_" .* label_vec .* "_surface.h5" 
 
 
 # set path where autocovariance dict will be stored
-save_path_vec = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\nodal_surfaces\single_unit_cell_" .* label_vec .* "_surface"
+save_path_vec = raw"..\analysis_data\nodal_surfaces\single_unit_cell_" .* label_vec .* "_surface"
 
 
 for i in eachindex(data_path_vec)
@@ -1058,9 +1058,9 @@ end
 label_vec = ["D", "G", "P", "I-WP"] 
 
 # set path where autocovariance dict of single unit cell is stored
-suc_path_vec = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\nodal_surfaces\single_unit_cell_" .* label_vec .* "_surface_autocovariance_fct_direction.h5"
+suc_path_vec = raw"..\analysis_data\nodal_surfaces\single_unit_cell_" .* label_vec .* "_surface_autocovariance_fct_direction.h5"
 
-save_path_vec = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\nodal_surfaces\\" .* label_vec .* "_surface"
+save_path_vec = raw"..\analysis_data\nodal_surfaces\\" .* label_vec .* "_surface"
 
 
 for i in eachindex(suc_path_vec)
@@ -1085,10 +1085,10 @@ label_vec = ["D", "G", "P", "I-WP"]
 
 
 # path where analysis data will be saved
-data_path_vec = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\nodal_surfaces\\" .* label_vec .* "_surface.h5"
+data_path_vec = raw"..\structures\nodal_surfaces\\" .* label_vec .* "_surface.h5"
 
 # path where analysis data will be saved
-save_path_vec = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\nodal_surfaces\\" .* label_vec .* "_surface"
+save_path_vec = raw"..\analysis_data\nodal_surfaces\\" .* label_vec .* "_surface"
 
 for i in eachindex(data_path_vec)
     
@@ -1108,7 +1108,7 @@ end
 
 
 # set paths where statistical data is stored
-plot_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\nodal_surfaces\\"
+plot_path = raw"..\plots\nodal_surfaces\\"
 
 # plot all statistical measures
 BDA.plot_statistical_measures(save_path_vec,
@@ -1124,7 +1124,7 @@ BDA.plot_statistical_measures(save_path_vec,
 
 
 # compare hyperuniformity criterion for red and blue patches
-data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\nodal_surfaces\\"
+data_path = raw"..\structures\nodal_surfaces\\"
 
 # set surfaces that are analyzed
 label_vec = ["D", "G", "P", "I-WP"] 
@@ -1158,7 +1158,7 @@ for i in eachindex(structure_dict_path_vec)
 end
 
 # compare hyperuniformity criterion for red and blue patches
-data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\nodal_surfaces\\single_unit_cell_"
+data_path = raw"..\structures\nodal_surfaces\\single_unit_cell_"
 
 structure_dict_path_vec = data_path .* label_vec .* "_surface"
 
@@ -1201,7 +1201,7 @@ for label in label_vec
                                                 nr_unit_cells,
                                                 label;
     save_result=true, 
-    save_path=raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\nodal_surfaces\\"*label*"_surface_structure.h5")
+    save_path=raw"..\structures\nodal_surfaces\\"*label*"_surface_structure.h5")
 
     println(label*" done")
     
@@ -1215,10 +1215,10 @@ The data was sent by Viola and is not directly taken from Zenodo
 
 
 # set raw data path
-data_path_raw_prefix = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\2d_images_green\slice_"
+data_path_raw_prefix = raw"..\structures\stervi\2d_images_green\slice_"
 data_path_raw_suffix = "_max11.tif"
 
-data_path_corrected = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_green.h5"
+data_path_corrected = raw"..\structures\stervi\stervi_green.h5"
 
 # load data, correct voxel size anisotropy and save data
 data_binary = BDA.get_binary_data_from_colorscale_stack(data_path_raw_prefix,
@@ -1230,10 +1230,10 @@ data_binary = BDA.get_binary_data_from_colorscale_stack(data_path_raw_prefix,
 
                                         
 # set raw data path
-data_path_raw_prefix = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\2d_images_blue\slice_"
+data_path_raw_prefix = raw"..\structures\stervi\2d_images_blue\slice_"
 data_path_raw_suffix = "_max11.tif"
 
-data_path_corrected = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_blue.h5"
+data_path_corrected = raw"..\structures\stervi\stervi_blue.h5"
 
 # load data, correct voxel size anisotropy and save data
 data_binary = BDA.get_binary_data_from_colorscale_stack(data_path_raw_prefix,
@@ -1317,8 +1317,8 @@ end
 
 
 # compare hyperuniformity criterion for red and blue patches
-data_path_vec = [raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi_volume_fraction_variance_random_spherical_green.h5",
-                raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\volume_fraction_variance_random_spherical_I-WP_surface.h5"]
+data_path_vec = [raw"..\analysis_data\stervi_volume_fraction_variance_random_spherical_green.h5",
+                raw"..\analysis_data\volume_fraction_variance_random_spherical_I-WP_surface.h5"]
 
 # set surfaces that are analyzed
 label_vec = ["S. virescens green", "perfect I-WP"]
@@ -1357,8 +1357,8 @@ BDA.plot_volume_fraction_variance(plot_dict_vec,
 
 
 # compare hyperuniformity criterion for red and blue patches
-data_path_vec = [raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi_spectral_density_green.h5",
-                raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\spectral_density_I-WP_surface.h5"]
+data_path_vec = [raw"..\analysis_data\stervi_spectral_density_green.h5",
+                raw"..\analysis_data\spectral_density_I-WP_surface.h5"]
 
 # set surfaces that are analyzed
 label_vec = ["S. virescens green", "perfect I-WP"]
@@ -1398,10 +1398,10 @@ BDA.plot_spectral_density(plot_dict_vec;
 
 
 # path of original data
-data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_green.h5"
+data_path = raw"..\structures\stervi\stervi_green.h5"
 
 # path where analysis data will be saved
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_green"
+save_path = raw"..\analysis_data\stervi\stervi_green"
     
 # calculate and save all statistical measures
 BDA.save_statistical_measures(data_path, 
@@ -1410,12 +1410,12 @@ BDA.save_statistical_measures(data_path,
                                 save_path)
 
 # set paths where statistical data is stored
-data_path_vec = [raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_blue",
-raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\nodal_surfaces\I-WP_surface",
-raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_green"]
+data_path_vec = [raw"..\analysis_data\stervi\stervi_blue",
+raw"..\analysis_data\nodal_surfaces\I-WP_surface",
+raw"..\analysis_data\stervi\stervi_green"]
 
 # set path where plot will be stored
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\stervi\stervi_blue_green_i_wp"
+save_path = raw"..\plots\stervi\stervi_blue_green_i_wp"
 
 # plot all statistical measures
 BDA.plot_statistical_measures(data_path_vec,
@@ -1427,10 +1427,10 @@ BDA.plot_statistical_measures(data_path_vec,
 
 
 # path of original data
-data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_green.h5"
+data_path = raw"..\structures\stervi\stervi_green.h5"
 
 # path where analysis data will be saved
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_green"
+save_path = raw"..\analysis_data\stervi\stervi_green"
     
 # calculate and save all statistical measures
 BDA.save_statistical_measures(data_path, 
@@ -1442,10 +1442,10 @@ BDA.save_statistical_measures(data_path,
 
 
 # path of original data
-data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_blue.h5"
+data_path = raw"..\structures\stervi\stervi_blue.h5"
 
 # path where analysis data will be saved
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_blue"
+save_path = raw"..\analysis_data\stervi\stervi_blue"
     
 # calculate and save all statistical measures
 BDA.save_statistical_measures(data_path, 
@@ -1458,9 +1458,9 @@ BDA.save_statistical_measures(data_path,
 
 
 # path of original data
-data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_blue.h5"
+data_path = raw"..\structures\stervi\stervi_blue.h5"
 
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_autocovariance_fct_direction_blue_small_sampling.h5"
+save_path = raw"..\analysis_data\stervi\stervi_autocovariance_fct_direction_blue_small_sampling.h5"
 
 # get essential information
 data_binary, volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(data_path )
@@ -1481,7 +1481,7 @@ save_dict_to_h5(saving_dict; save_path)
 
 
 # path where autocovariance fct data is saved
-dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_autocovariance_fct_direction_blue_small_sampling.h5"
+dict_path = raw"..\analysis_data\stervi\stervi_autocovariance_fct_direction_blue_small_sampling.h5"
 
 # load dict
 data_dict = BDA.load_h5_dict(dict_path)
@@ -1498,7 +1498,7 @@ sampled_wavevectors_array, spectral_density_array = get_spectral_density(size_da
                                                 autocovariance_fct_array)
 
 # path where spectral density is saved
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_spectral_density_direction_blue_small_sampling.h5"
+save_path = raw"..\analysis_data\stervi\stervi_spectral_density_direction_blue_small_sampling.h5"
 
 # create dict to save
 saving_dict = Dict("sampled_wavevectors_array" => sampled_wavevectors_array,
@@ -1511,14 +1511,14 @@ save_dict_to_h5(saving_dict; save_path)
 
 
 # set data path
-data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_blue.h5"
+data_path = raw"..\structures\stervi\stervi_blue.h5"
 
 # get data and essential information
 data_binary, volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(data_path)
 
 
 # path of dict
-load_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_autocovariance_fct_direction_blue_small_sampling.h5"
+load_path = raw"..\analysis_data\stervi\stervi_autocovariance_fct_direction_blue_small_sampling.h5"
 
 # load dict
 data_dict = BDA.load_h5_dict(load_path)
@@ -1542,7 +1542,7 @@ plot_dict = Dict("sampled_wavenumbers_vec_vec" => sampled_wavenumbers_vec_vec,
 
 
 # path of dict
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_spectral_density_direction_blue_small_sampling.h5"
+save_path = raw"..\analysis_data\stervi\stervi_spectral_density_direction_blue_small_sampling.h5"
 
 # save the plot_dict to a H5 file
 BDA.save_dict_to_h5(copy(plot_dict); save_path=save_path)
@@ -1560,15 +1560,15 @@ readline()
 
 
 
-autocovariance_fct_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_autocovariance_fct_direction_blue_small_sampling.h5"
+autocovariance_fct_path = raw"..\analysis_data\stervi\stervi_autocovariance_fct_direction_blue_small_sampling.h5"
 autocovariance_fct_dict = BDA.load_h5_dict(autocovariance_fct_path)
 
-spectral_density_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_spectral_density_direction_blue_small_sampling.h5"
+spectral_density_path = raw"..\analysis_data\stervi\stervi_spectral_density_direction_blue_small_sampling.h5"
 spectral_density_dict = BDA.load_h5_dict(spectral_density_path)
 
 
 # set data path
-data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_blue.h5"
+data_path = raw"..\structures\stervi\stervi_blue.h5"
 
 # get data and essential information
 data_binary, volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(data_path)
@@ -1585,10 +1585,10 @@ BDA.save_dict_to_h5(copy(autocovariance_fct_dict); save_path=autocovariance_fct_
 
 
 # set data path
-data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_blue.h5"
+data_path = raw"..\structures\stervi\stervi_blue.h5"
 
 # set path where autocovariance dict will be stored
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_autocovariance_fct_direction_blue.h5"
+save_path = raw"..\analysis_data\stervi\stervi_autocovariance_fct_direction_blue.h5"
 
 # get data and essential information
 data_binary, volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(data_path)
@@ -1611,10 +1611,10 @@ BDA.save_dict_to_h5(saving_dict; save_path)
 
 
 # set data path
-data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_blue.h5"
+data_path = raw"..\structures\stervi\stervi_blue.h5"
 
 # set path where autocovariance dict will be stored
-dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_autocovariance_fct_direction_blue.h5"
+dict_path = raw"..\analysis_data\stervi\stervi_autocovariance_fct_direction_blue.h5"
 
 # get data and essential information
 data_binary, volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = BDA.get_data_essentials(data_path)
@@ -1622,7 +1622,7 @@ data_binary, volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_d
 # load autocovariance array
 loaded_dict = BDA.load_h5_dict(dict_path)
 
-plot_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\stervi\stervi_direction_blue"
+plot_path = raw"..\plots\stervi\stervi_direction_blue"
 
 
 BDA.plot_autocovariance_fct_heatmap(loaded_dict,
@@ -1634,17 +1634,17 @@ BDA.plot_autocovariance_fct_heatmap(loaded_dict,
 
     
 # set data path
-data_path_vec = [raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_blue.h5",
-raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_green.h5",
-raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_blue.h5",
-raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_red.h5"
+data_path_vec = [raw"..\structures\stervi\stervi_blue.h5",
+raw"..\structures\stervi\stervi_green.h5",
+raw"..\structures\pachy\pachy_blue.h5",
+raw"..\structures\pachy\pachy_red.h5"
 ]
 
 # set path where autocovariance dict will be stored
-save_path_vec = [raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_blue_autocovariance_fct_direction.h5",
-raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_green_autocovariance_fct_direction.h5",
-raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_blue_autocovariance_fct_direction.h5",
-raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red_autocovariance_fct_direction.h5"
+save_path_vec = [raw"..\analysis_data\stervi\stervi_blue_autocovariance_fct_direction.h5",
+raw"..\analysis_data\stervi\stervi_green_autocovariance_fct_direction.h5",
+raw"..\analysis_data\pachy\pachy_blue_autocovariance_fct_direction.h5",
+raw"..\analysis_data\pachy\pachy_red_autocovariance_fct_direction.h5"
 ]
 
 voxel_edge_length_vec = [11,11,10,9]
@@ -1678,11 +1678,11 @@ end
 
 
 # set data path
-data_path_vec = [raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_blue",
-                raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_green"]
+data_path_vec = [raw"..\analysis_data\stervi\stervi_blue",
+                raw"..\analysis_data\stervi\stervi_green"]
 
 # set path to save plot
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\stervi\\"
+save_path = raw"..\plots\stervi\\"
 
 BDA.plot_statistical_measures(data_path_vec,
             save_path;
@@ -1694,10 +1694,10 @@ BDA.plot_statistical_measures(data_path_vec,
 
             
 # path of original data
-data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_blue.h5"
+data_path = raw"..\structures\stervi\stervi_blue.h5"
 
 # path where analysis data will be saved
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_blue"
+save_path = raw"..\analysis_data\stervi\stervi_blue"
     
 # calculate and save all statistical measures
 BDA.save_statistical_measures(data_path, 
@@ -1711,10 +1711,10 @@ BDA.save_statistical_measures(data_path,
                                 save_spectral_density_along_directions = true)
 
 # path of original data
-data_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_green.h5"
+data_path = raw"..\structures\stervi\stervi_green.h5"
 
 # path where analysis data will be saved
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_green"
+save_path = raw"..\analysis_data\stervi\stervi_green"
     
 # calculate and save all statistical measures
 BDA.save_statistical_measures(data_path, 
@@ -1729,11 +1729,11 @@ BDA.save_statistical_measures(data_path,
 
 
 # set paths where statistical data is stored
-data_path_vec = [raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_green",
-                raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_blue"]
+data_path_vec = [raw"..\analysis_data\stervi\stervi_green",
+                raw"..\analysis_data\stervi\stervi_blue"]
 
 # set path where plot will be stored
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\stervi\\"
+save_path = raw"..\plots\stervi\\"
 
 # plot all statistical measures
 BDA.plot_statistical_measures(data_path_vec,
@@ -1752,24 +1752,24 @@ The following commands targeted multiple samples at the same time
 """
 
 
-data_path_vec = [ raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_red_structure.h5",
-raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\pachy\pachy_blue_structure.h5",
-raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_green_structure.h5",
-raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_blue_structure.h5",
-raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\nodal_surfaces\D_surface_structure.h5",
-raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\nodal_surfaces\G_surface_structure.h5",
-raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\nodal_surfaces\P_surface_structure.h5",
-raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\nodal_surfaces\I-WP_surface_structure.h5"
+data_path_vec = [ raw"..\structures\pachy\pachy_red_structure.h5",
+raw"..\structures\pachy\pachy_blue_structure.h5",
+raw"..\structures\stervi\stervi_green_structure.h5",
+raw"..\structures\stervi\stervi_blue_structure.h5",
+raw"..\structures\nodal_surfaces\D_surface_structure.h5",
+raw"..\structures\nodal_surfaces\G_surface_structure.h5",
+raw"..\structures\nodal_surfaces\P_surface_structure.h5",
+raw"..\structures\nodal_surfaces\I-WP_surface_structure.h5"
 ]
 
-save_path_vec = [ raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red",
-raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_blue",
-raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_green",
-raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_blue",
-raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\nodal_surfaces\D_surface",
-raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\nodal_surfaces\G_surface",
-raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\nodal_surfaces\P_surface",
-raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\nodal_surfaces\I-WP_surface"
+save_path_vec = [ raw"..\analysis_data\pachy\pachy_red",
+raw"..\analysis_data\pachy\pachy_blue",
+raw"..\analysis_data\stervi\stervi_green",
+raw"..\analysis_data\stervi\stervi_blue",
+raw"..\analysis_data\nodal_surfaces\D_surface",
+raw"..\analysis_data\nodal_surfaces\G_surface",
+raw"..\analysis_data\nodal_surfaces\P_surface",
+raw"..\analysis_data\nodal_surfaces\I-WP_surface"
 ]
 
 for i in eachindex(data_path_vec)
@@ -1789,23 +1789,23 @@ for i in eachindex(data_path_vec)
 end
 
 
-data_path_vec_vec =  [ [raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_blue",
-    raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\pachy\pachy_red",
-    raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\nodal_surfaces\D_surface"],
+data_path_vec_vec =  [ [raw"..\analysis_data\pachy\pachy_blue",
+    raw"..\analysis_data\pachy\pachy_red",
+    raw"..\analysis_data\nodal_surfaces\D_surface"],
 [
-raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_blue",
-raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\nodal_surfaces\I-WP_surface",
-raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\stervi\stervi_green"],
-[ raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\nodal_surfaces\P_surface",
-    raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\nodal_surfaces\I-WP_surface",
-    raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\nodal_surfaces\D_surface",
-raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\nodal_surfaces\G_surface"
+raw"..\analysis_data\stervi\stervi_blue",
+raw"..\analysis_data\nodal_surfaces\I-WP_surface",
+raw"..\analysis_data\stervi\stervi_green"],
+[ raw"..\analysis_data\nodal_surfaces\P_surface",
+    raw"..\analysis_data\nodal_surfaces\I-WP_surface",
+    raw"..\analysis_data\nodal_surfaces\D_surface",
+raw"..\analysis_data\nodal_surfaces\G_surface"
 ]
 ] 
 
-save_path_vec = [ raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\pachy\pachy_blue_red_d",
-raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\stervi\stervi_blue_green_i_wp",
-raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\nodal_surfaces\nodal_surfaces"
+save_path_vec = [ raw"..\plots\pachy\pachy_blue_red_d",
+raw"..\plots\stervi\stervi_blue_green_i_wp",
+raw"..\plots\nodal_surfaces\nodal_surfaces"
 ]
 
 voxel_edge_length_vec = [
@@ -1836,10 +1836,10 @@ end
 
 
 # set raw data path
-data_path_raw_prefix = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\2d_images_green\slice_"
+data_path_raw_prefix = raw"..\structures\stervi\2d_images_green\slice_"
 data_path_raw_suffix = "_max11.tif"
 
-data_path_corrected = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_green.h5"
+data_path_corrected = raw"..\structures\stervi\stervi_green.h5"
 
 structure_dict = BDA.get_structure_dict_from_colorscale_stack(data_path_raw_prefix,
     data_path_raw_suffix,
@@ -1847,7 +1847,7 @@ structure_dict = BDA.get_structure_dict_from_colorscale_stack(data_path_raw_pref
     voxel_size=(11,11,11), 
     label = "S. virescens green",
     save_result=true, 
-    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\stervi\stervi_green")
+    save_path = raw"..\structures\stervi\stervi_green")
 
 
 
@@ -2668,7 +2668,7 @@ NG.plot_network(graph_dict)
 
 filename = "64_vertices_T_0.1"
 
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\\"
+save_path = raw"..\structures\random_networks\\"
 
 NG.save_mesh_from_network(graph_dict_to_save, filename; save_path = save_path)
 
@@ -2682,7 +2682,7 @@ NG.save_graph_to_h5_and_MGformat(graph_dict_to_save,
 
 network_names = ["64_vertices_T_0.1", "1000_vertices_T_1_quenched", "1000_vertices_T_2_quenched", "1000_vertices_T_4_quenched"]
 
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\\"
+save_path = raw"..\structures\random_networks\\"
 
 for name in network_names
     graph_dict_to_save = NG.load_graph_from_h5_and_MGformat(save_path*name)
@@ -2713,7 +2713,7 @@ NG.plot_network(graph_dict)
 
 filename = "1000_vertices_T_0.25_quenched"
 
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\\"
+save_path = raw"..\structures\random_networks\\"
 
 NG.save_mesh_from_network(graph_dict, filename; save_path = save_path)
 
@@ -2775,14 +2775,14 @@ graph_dict, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_
     filename = "1000_vertices_T_0.015625",)
 
 
-load_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+load_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
 load_name = "1000_vertices_T_1_quenched"
 
 # load dictionary with 1000 vertices which was heated to T=1 and then quenched
 graph_dict = NG.load_graph_from_h5_and_MGformat(load_path*load_name)
 
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\\"
+save_path = raw"..\structures\random_networks\\"
 
 NG.save_mesh_from_network(graph_dict, load_name*"_thick_bonds"; save_path = load_path, bond_radius = 0.3131)
 
@@ -2791,7 +2791,7 @@ structure_factor_dict = NA.get_structure_factor_isotrope_by_wavenumber_vec(
 
 network_names = [ "1000_vertices_T_1_quenched", "1000_vertices_T_4_quenched"]
 
-load_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+load_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
 graph_dict_1 = NG.load_graph_from_h5_and_MGformat(load_path*network_names[1])
 
@@ -2800,7 +2800,7 @@ structure_factor_dict_1 = NA.get_structure_factor_isotrope_by_wavenumber_vec(
     sampling_distance_step_length = 0.025,
     maximal_sampling_distance = 4*graph_dict_1["supercell_edge_length"],
     save_result = false,
-    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_1_quenched_high_sampling_rate",
+    save_path = raw"..\analysis_data\random_networks\1000_vertices_T_1_quenched_high_sampling_rate",
     label = nothing)
 
 
@@ -2811,7 +2811,7 @@ structure_factor_dict_4 = NA.get_structure_factor_isotrope_by_wavenumber_vec(
     sampling_distance_step_length = 0.025,
     maximal_sampling_distance = 4*graph_dict_4["supercell_edge_length"],
     save_result = false,
-    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_4_quenched_high_sampling_rate",
+    save_path = raw"..\analysis_data\random_networks\1000_vertices_T_4_quenched_high_sampling_rate",
     label = nothing)
 
 
@@ -2832,7 +2832,7 @@ NG.plot_network(graph_dict)
 
 filename = "216_vertices_T_1_quenched"
 
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+save_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
 NG.save_mesh_from_network(graph_dict, filename; save_path = save_path)
 
@@ -2860,7 +2860,7 @@ NG.plot_network(graph_dict)
 
 filename = "512_vertices_T_1_quenched"
 
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+save_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
 NG.save_mesh_from_network(graph_dict, filename; save_path = save_path)
 
@@ -2875,7 +2875,7 @@ Plots.plot(collect(1:length(total_energy_vec)) ./ (512*18), total_energy_vec, xl
 
 
 # path where structures are stored
-load_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+load_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
 # load graph with 512 vertices
 graph_dict_5 = NG.load_graph_from_h5_and_MGformat(load_path*"512_vertices_T_1_quenched")
@@ -2886,7 +2886,7 @@ structure_factor_dict_5 = NA.get_structure_factor_isotrope_by_wavenumber_vec(
     sampling_distance_step_length = 0.025,
     maximal_sampling_distance = 4*graph_dict_5["supercell_edge_length"],
     save_result = true,
-    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\512_vertices_T_1_quenched_high_sampling_rate",
+    save_path = raw"..\analysis_data\random_networks\512_vertices_T_1_quenched_high_sampling_rate",
     label = "512_vertices_T_1_quenched_high_sampling_rate")
 
 
@@ -2899,16 +2899,16 @@ structure_factor_dict_2 = NA.get_structure_factor_isotrope_by_wavenumber_vec(
     sampling_distance_step_length = 0.025,
     maximal_sampling_distance = 4*graph_dict_2["supercell_edge_length"],
     save_result = true,
-    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\216_vertices_T_1_quenched_high_sampling_rate",
+    save_path = raw"..\analysis_data\random_networks\216_vertices_T_1_quenched_high_sampling_rate",
     label = "216_vertices_T_1_quenched_high_sampling_rate")
 
 
 # load structure factor for 1000 vertices
-dict_path_1 = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\1000_vertices_T_1_quenched_high_sampling_rate_structure_factor_isotrope.h5"
+dict_path_1 = raw"..\analysis_data\random_networks\1000_vertices_T_1_quenched_high_sampling_rate_structure_factor_isotrope.h5"
 
 structure_factor_dict_1 = GU.load_h5_dict(dict_path_1)
 
-dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+dict_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
 temperatures = [0.125, 0.25, 0.5, 1, 2, 4, 6, 8]
 
@@ -2931,7 +2931,7 @@ for temperature in temperatures
 
     filename = "216_vertices_T_"*string(temperature)*"_quenched"
 
-    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+    save_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
     NG.save_mesh_from_network(graph_dict, filename; save_path = save_path)
 
@@ -2946,7 +2946,7 @@ end
 
 
 
-dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+dict_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
 temperatures = [0.0625, 0.125, 0.25, 0.5, 1, 2, 4, 6, 8]
 
@@ -2959,7 +2959,7 @@ for i in eachindex(temperatures)
         sampling_distance_step_length = 0.05,
         maximal_sampling_distance = 4*graph_dict["supercell_edge_length"],
         save_result = true,
-        save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\216_vertices_T_"*string(temperatures[i])*"_quenched",
+        save_path = raw"..\analysis_data\random_networks\216_vertices_T_"*string(temperatures[i])*"_quenched",
         label = "T = "*string(temperatures[i]))
 
 end
@@ -2982,7 +2982,7 @@ NG.plot_network(graph_dict)
 
 filename = "64_vertices_slight_disorder"
 
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+save_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
 NG.save_mesh_from_network(graph_dict, filename; save_path = save_path, bond_radius = 0.3131)
 
@@ -2994,7 +2994,7 @@ graph_dict = NG.get_periodic_network(evolution_dict)
 
 filename = "64_vertices_perfect_diamond_thick_bonds"
 
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+save_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
 NG.save_mesh_from_network(graph_dict, filename; save_path = save_path, bond_radius = 0.3131)
 
@@ -3018,7 +3018,7 @@ NG.plot_network(graph_dict)
 
 filename = "64_vertices_T_0.5_quenched_thick_bonds"
 
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+save_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
 NG.save_mesh_from_network(graph_dict, filename; save_path = save_path, bond_radius = 0.3131)
 
@@ -3048,7 +3048,7 @@ NG.plot_network(graph_dict)
 
 filename = "64_vertices_slightly_more_disorder_thick_bonds"
 
-save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+save_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
 NG.save_mesh_from_network(graph_dict, filename; save_path = save_path, bond_radius = 0.3131)
 
@@ -3059,7 +3059,7 @@ NG.save_graph_to_h5_and_MGformat(graph_dict,
             = save_path)
 
 
-dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+dict_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
 temperatures = [0.125, 0.25, 0.5, 1, 2, 4, 8]
 
@@ -3070,7 +3070,7 @@ Plots.plot(collect(1:length(evolution_dict["total_energy_vec"])) ./ (216*18), ev
 
 
 
-dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+dict_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
 temperatures = [0.1, 0.15, 0.2, 0.3, 0.4]
 
@@ -3093,7 +3093,7 @@ for temperature in temperatures
 
     filename = "216_vertices_T_"*string(temperature)*"_quenched"
 
-    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+    save_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
     NG.save_graph_to_h5_and_MGformat(graph_dict,
         filename;
@@ -3129,7 +3129,7 @@ for temperature in temperatures
 
     filename = "216_vertices_T_"*string(temperature)*"_cool_0.1_per_mc_quenched"
 
-    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+    save_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
     NG.save_graph_to_h5_and_MGformat(graph_dict,
         filename;
@@ -3166,7 +3166,7 @@ for temperature in temperatures
 
     filename = "216_vertices_T_"*string(temperature)*"_cool_0.1_per_mc_quenched"
 
-    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+    save_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
     NG.save_graph_to_h5_and_MGformat(graph_dict,
         filename;
@@ -3199,7 +3199,7 @@ for temperature in temperatures
 
     filename = "216_vertices_T_"*string(temperature)*"_heated_for_0.01_steps_quenched"
 
-    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+    save_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
     NG.save_graph_to_h5_and_MGformat(graph_dict,
         filename;
@@ -3231,7 +3231,7 @@ for temperature in temperatures
 
     filename = "216_vertices_T_"*string(temperature)*"_heated_for_0.05_steps_quenched"
 
-    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+    save_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
     NG.save_graph_to_h5_and_MGformat(graph_dict,
         filename;
@@ -3264,7 +3264,7 @@ for temperature in temperatures
 
     filename = "216_vertices_T_"*string(temperature)*"_heated_for_5.0_steps_quenched"
 
-    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+    save_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
     NG.save_graph_to_h5_and_MGformat(graph_dict,
         filename;
@@ -3297,7 +3297,7 @@ for temperature in temperatures
 
     filename = "216_vertices_T_"*string(temperature)*"_heated_for_10.0_steps_quenched"
 
-    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+    save_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
     NG.save_graph_to_h5_and_MGformat(graph_dict,
         filename;
@@ -3308,20 +3308,54 @@ for temperature in temperatures
 end
 
 
-evolution_dict = NA.get_evolution_dict(nr_vertices = 64, network_type = "diamond")
-graph_dict_diamond = NG.get_periodic_network(evolution_dict)
-
-evolution_dict = NA.get_evolution_dict(nr_vertices = 64, network_type = "simple cubic")
-graph_dict_sc = NG.get_periodic_network(evolution_dict)
-
 central_vertex = 10
 
-l_max = 8
+l_max = 12
 
-single_vertex_q_l_sc = NA.get_q_l_averaged_single_vertex_dict(graph_dict_sc,
-central_vertex,
-l_max)
+evolution_dict = NA.get_evolution_dict(nr_vertices = 64, network_type = "diamond")
+graph_dict_diamond = NG.get_periodic_network(evolution_dict)
 
 single_vertex_q_l_diamond = NA.get_q_l_averaged_single_vertex_dict(graph_dict_diamond,
 central_vertex,
 l_max)
+
+for i in 0:l_max
+    Fmt.printfmt("q_{1:d} = {2:.3f}", i, single_vertex_q_l_diamond[i])
+    println()
+end
+
+evolution_dict = NA.get_evolution_dict(nr_vertices = 16, network_type = "bcc")
+graph_dict_bcc = NG.get_periodic_network(evolution_dict)
+
+single_vertex_q_l_bcc = NA.get_q_l_averaged_single_vertex_dict(graph_dict_bcc,
+central_vertex,
+l_max)
+
+for i in 0:l_max
+    Fmt.printfmt("q_{1:d} = {2:.3f}", i, single_vertex_q_l_bcc[i])
+    println()
+end
+
+evolution_dict = NA.get_evolution_dict(nr_vertices = 16, network_type = "fcc")
+graph_dict_fcc = NG.get_periodic_network(evolution_dict)
+
+single_vertex_q_l_fcc = NA.get_q_l_averaged_single_vertex_dict(graph_dict_fcc,
+central_vertex,
+l_max)
+
+for i in 0:l_max
+    Fmt.printfmt("q_{1:d} = {2:.3f}", i, single_vertex_q_l_fcc[i])
+    println()
+end
+
+evolution_dict = NA.get_evolution_dict(nr_vertices = 16, network_type = "primitive cubic")
+graph_dict_primitive_cubic = NG.get_periodic_network(evolution_dict)
+
+single_vertex_q_l_primitive_cubic = NA.get_q_l_averaged_single_vertex_dict(graph_dict_primitive_cubic,
+central_vertex,
+l_max)
+
+for i in 0:l_max
+    Fmt.printfmt("q_{1:d} = {2:.3f}", i, single_vertex_q_l_primitive_cubic[i])
+    println()
+end

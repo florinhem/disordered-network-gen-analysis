@@ -147,7 +147,7 @@ function get_autocovariance_fct_by_sampling_vec_array(structure_dict::Dict;
                 sampling_vec_array = get_vector_array(sampling_distance_vec_vec),
                 nr_measurements_per_direction::Int64 = 1000,
                 save_result = false,
-                save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\sample_name",
+                save_path = raw"..\analysis_data\sample_name",
                 voxel_edge_length = nothing,
                 label = nothing)
 
@@ -207,7 +207,7 @@ Fourier Transform the full data is needed however
 function get_complete_autocovariance_fct_by_sampling_vec_array(
         autocovariance_fct_direction_dict::Dict;
         save_result = false,
-        save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\sample_name")
+        save_path = raw"..\analysis_data\sample_name")
 
     #correct the sampling distance vec along the third dimension, where due to the mirror
     #symmetry of the autocovariance fct only positive z values where considered
@@ -268,7 +268,7 @@ function extrapolate_periodic_data_autocovariance_fct_by_sampling_vec_array(
             size_data_single_unit_cell::Tuple = (50,50,50),
             nr_unit_cells=10,
             save_result = false,
-            save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\sample_name")
+            save_path = raw"..\analysis_data\sample_name")
 
     #get vector of sampling distances along the three coordinate axes for extrapolated data
     extrapolated_sampling_distance_vec_vec = get_sampling_distance_vec_vec(size_data_single_unit_cell 
@@ -437,7 +437,7 @@ function get_spectral_density_along_direction_by_wavenumber_vec(structure_dict::
                                             sampling_vec_array = sampling_vec_array,
                                             nr_measurements_per_direction = nr_measurements_per_direction),
                 save_result = false,
-                save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\sample_name_direction",
+                save_path = raw"..\analysis_data\sample_name_direction",
                 voxel_edge_length = nothing,
                 label = nothing)
     
@@ -552,7 +552,7 @@ function get_spectral_density_by_wavevector_array(
                                             sampling_vec_array = sampling_vec_array,
                                             nr_measurements_per_direction = nr_measurements_per_direction),
                 save_result = false,
-                save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\sample_name",
+                save_path = raw"..\analysis_data\sample_name",
                 voxel_edge_length = nothing,
                 label = nothing)
 
@@ -658,7 +658,7 @@ Transform
 """
 function get_spectral_density_array_by_fft(complete_autocovariance_fct_direction_dict::Dict;
             save_result = false,
-            save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\sample_name",
+            save_path = raw"..\analysis_data\sample_name",
             voxel_edge_length = nothing,
             label = nothing)
 

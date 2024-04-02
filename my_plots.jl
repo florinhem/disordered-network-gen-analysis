@@ -11,7 +11,7 @@ import LaTeXStrings as Latex
 import NaNStatistics
 
 
-path = raw"C:\Users\HemmannF\switchdrive\presentations\material\\"
+path = raw"..\..\presentations\material\\"
 
 fontsize=18
 
@@ -56,7 +56,7 @@ function piticklabel(x::Rational, ::Val{:latex})
 end
 
 
-dict_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+dict_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
 function heaviside(t)
     0.5 * (sign(t) + 1)

@@ -229,7 +229,7 @@ function convergence_analysis_autocovariance_fct_nr_measurements_per_distance(
                     nr_measurements_per_distance_vec = Int.( round.( 10 .^ collect(1:0.1:4) ) ),
                     title="Convergence analysis autocovariance function",
                     save_plot = false,
-                    save_path=raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\\",
+                    save_path=raw"..\plots\\",
                     save_filename="convergence_analysis_nr_measurements_autocovariance_fct.png"  )
 
     #in this array the autocovariance fct at distance 0 will be stored as a function of

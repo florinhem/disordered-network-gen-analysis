@@ -8,7 +8,7 @@ Save the coordinates of start and end of all edges in a graph to a CSV file
 function save_graph_to_csv(graph_dict::Dict,
     filename::String;
     save_path::String 
-        = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\\")
+        = raw"..\structures\random_networks\\")
 
     edges = collect(MetaGraphsNext.edge_labels(graph_dict["spatial_network"]))
 
@@ -44,7 +44,7 @@ function save_graph_to_h5_and_MGformat(graph_dict::Dict,
     filename::String;
     evolution_dict = nothing,
     save_path::String 
-        = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\\")
+        = raw"..\structures\random_networks\\")
 
     # save evolution dict if passed
     if evolution_dict !== nothing
@@ -92,7 +92,7 @@ Get mesh from network
 """
 function save_mesh_from_network(graph_dict::Dict, filename::String;
     bond_radius::Real = 0.05,
-    save_path::String = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\\")
+    save_path::String = raw"..\structures\random_networks\\")
 
     # create graph dict to plot
     plot_dict = deepcopy(graph_dict)

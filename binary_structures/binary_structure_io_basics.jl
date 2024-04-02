@@ -157,7 +157,7 @@ function get_structure_dict_from_colorscale(data_path_raw::String;
     voxel_size::Tuple=(1,1,1), 
     label = "some structure",
     save_result::Bool=false, 
-    save_path::String=raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\binary_data")
+    save_path::String=raw"..\structures\binary_data")
 
     #load colorscale structure data
     data_colorscale = FileIO.load(data_path_raw)
@@ -206,7 +206,7 @@ function get_structure_dict_from_colorscale_stack(data_path_raw_prefix::String,
     voxel_size::Tuple=(1,1,1), 
     label = "some structure",
     save_result::Bool=false, 
-    save_path::String=raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\\binary_data")
+    save_path::String=raw"..\structures\\binary_data")
 
     #load first image to get array dimensions
     image_1_colorscale = FileIO.load(data_path_raw_prefix*string(0)*data_path_raw_suffix)

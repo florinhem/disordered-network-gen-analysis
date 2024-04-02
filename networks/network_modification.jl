@@ -721,7 +721,7 @@ function evolve_network_temperature_sequence!(
     random_evolution_seed::Int64 = -1,
     save_network_after_each_step::Bool = false,
     filename::String = "some_network",
-    save_path::String = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\\")
+    save_path::String = raw"..\structures\random_networks\\")
 
     # set seed for random evolution if desired
     if random_evolution_seed != -1

@@ -152,8 +152,8 @@ Generate and evolve multiple networks and calculate the average
 of several order metrics over these multiple networks
 """
 function get_averaged_order_metrics(;save_result = false,
-    load_path_without_format = raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\random_networks\sample_name",
-    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\analysis_data\random_networks\sample_name",
+    load_path_without_format = raw"..\structures\random_networks\sample_name",
+    save_path = raw"..\analysis_data\random_networks\sample_name",
     label = nothing,
     nr_samples = 5)
 

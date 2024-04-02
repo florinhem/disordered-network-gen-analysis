@@ -98,7 +98,7 @@ function get_binary_data_from_nodal_eqn(unit_cell_length::Real=500,
     voxel_edge_length=10,
     volume_fraction_parameter = 0,
     save_result::Bool=false, 
-    save_path=raw"C:\Users\HemmannF\switchdrive\structure_analysis\structures\nodal_surfaces\\"*surface_type*"_surface_structure.h5")
+    save_path=raw"..\structures\nodal_surfaces\\"*surface_type*"_surface_structure.h5")
 
     #get desired nodal equation
     nodal_eqn = get_nodal_eqn(surface_type)

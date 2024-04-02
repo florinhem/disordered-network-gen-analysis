@@ -542,7 +542,7 @@ function compare_relaxation_methods(original_graph_dict,
     filename;
     nr_max_relaxation_cycles = 25,
     shell_nr::Int64 = 4,
-    save_path = raw"C:\Users\HemmannF\switchdrive\structure_analysis\plots\random_networks\\" )
+    save_path = raw"..\plots\random_networks\\" )
 
     # initialize arrays for vertex positions and cluster energy as a
     # function of relaxation cycle
