@@ -1402,3 +1402,45 @@ function get_effective_hyperuniformity_parameter(structure_factor_dict::Dict)
 
     return [hyperuniformity_parameter, polynomial_fit]
 end
+
+
+
+"""
+Get vector of mean values of q_l (rotationally invariant Steinhardt local 
+bond order parameters) for the entire network and for all parameters l up 
+to l_max where l is the index of the spherical harmonic Y_{lm}.
+"""
+function get_q_l_total_network_mean_dict(graph_dict::Dict,
+    l_max::Int64)
+
+    # initialize dictionary of q_l averaged over entire network with all values
+    # set to 0
+    q_l_total_network_mean_dict = Dict{Int64, Float64}()
+
+    for l in 0:l_max
+        q_l_total_network_mean_dict[l] = 0.0
+
+    end
+
+    # loop through vertices
+    for vertex in MetaGraphsNext.labels(graph_dict["spatial_network"])
+
+        # get vector of steinhardt order parameters for current vertex
+        q_l_averaged_single_vertex_dict = (
+            get_q_l_averaged_single_vertex_dict(
+                graph_dict,
+                vertex,
+                l_max))
+
+        # for each l, add current vertex' contribution to sum of all vertices
+        for l in 0:l_max
+            q_l_total_network_mean_dict[l] += (1/graph_dict["nr_vertices"] 
+                                        * q_l_averaged_single_vertex_dict[l])
+    
+        end
+
+    end
+
+    return q_l_total_network_mean_dict
+end
+

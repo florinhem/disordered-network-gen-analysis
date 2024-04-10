@@ -64,3 +64,24 @@ function get_multiple_graph_average(y_vec::Vector{Real})
 
     return y_average
 end
+
+
+"""
+Convert a dictionary of Steinhardt local bond order parameters q_l with
+0 <= l <= l_max into a vector of length l_max+1
+"""
+function convert_q_l_dict_to_vec(q_l_dict::Dict, 
+                                l_max::Int)
+
+    # initialize vector for q_l values with same data type as dictionary
+    # which could be Measurements.Measurement{Float64} or Float64
+    q_l_vec = Vector{typeof(q_l_dict[1])}(undef, l_max+1)
+
+    # loop through all l values and store q_l values in vector
+    for l in 0:l_max
+
+        q_l_vec[l+1] = q_l_dict[l]
+    end
+
+    return q_l_vec
+end

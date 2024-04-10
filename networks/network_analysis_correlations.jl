@@ -73,8 +73,8 @@ end
 
 """
 Measure structure factor as a function of wavenumber
-averaged over angles according to scattering intensity estimator
-as described in equation 40 of 10.1007/s11222-023-10219-1
+averaged over angles according to Barlett's isotropic estimator
+as described in equation 26 of 10.1007/s11222-023-10219-1
 """
 function get_structure_factor_bartlett_isotrope_by_wavenumber_vec(
     graph_dict::Dict;
@@ -82,6 +82,7 @@ function get_structure_factor_bartlett_isotrope_by_wavenumber_vec(
     maximal_sampling_distance::Real = graph_dict["supercell_edge_length"]/2,
     save_result::Bool = false,
     save_path::String = raw"..\analysis_data\random_networks\sample_name",
+    print_progress::Bool = false,
     label = nothing)
 
     # get vector of wavenumbers
@@ -96,6 +97,11 @@ function get_structure_factor_bartlett_isotrope_by_wavenumber_vec(
     for i in eachindex(wavenumber_vec)
         structure_factor_bartlett_vec[i] = get_structure_factor_bartlett_isotrope(
                                             graph_dict, wavenumber_vec[i])
+
+        # print progress
+        if print_progress
+            println("Progress: ", i/length(wavenumber_vec)*100, "%")
+        end
 
     end
 
@@ -122,11 +128,10 @@ function get_structure_factor_bartlett_isotrope_by_wavenumber_vec(
 end
 
 
-
 """
-Measure structure factor for a given wavenumber,
-averaged over angles according to the scattering intensity estimator
-as described in equation 26 of 10.1007/s11222-023-10219-1
+Measure structure factor as a function of wavenumber
+averaged over angles according to scattering intensity estimator
+as described in equation 40 of 10.1007/s11222-023-10219-1
 """
 function get_structure_factor_isotrope(graph_dict::Dict, wavenumber::Real;
     nr_wavevector_samples::Int = 10000)
@@ -139,7 +144,10 @@ function get_structure_factor_isotrope(graph_dict::Dict, wavenumber::Real;
     # get desired number of wavevector samples
     theta_vec = 2*pi*rand(nr_wavevector_samples)
     phi_vec = acos.(2*rand(nr_wavevector_samples) .- 1)
-    wavevector_mat =  wavenumber .* stack( [sin.(phi_vec).*cos.(theta_vec), sin.(phi_vec).*sin.(theta_vec), cos.(phi_vec)] , dims=1)
+    wavevector_mat =  wavenumber .* stack( [sin.(phi_vec).*cos.(theta_vec), 
+                                            sin.(phi_vec).*sin.(theta_vec), 
+                                            cos.(phi_vec)] , 
+                                            dims=1)
 
     # initialize structure factor sum
     structure_factor = 0
@@ -174,15 +182,14 @@ end
 
 
 """
-Measure structure factor as a function of wavenumber
-averaged over angles according to Barlett's isotropic estimator
+Measure structure factor for a given wavenumber,
+averaged over angles according to the scattering intensity estimator
 as described in equation 26 of 10.1007/s11222-023-10219-1
 """
 function get_structure_factor_isotrope_by_wavenumber_vec(
     graph_dict::Dict;
     sampling_distance_step_length::Real = 0.1,
     maximal_sampling_distance::Real = graph_dict["supercell_edge_length"]/2,
-    nr_wavevector_samples::Int = 10000,
     save_result::Bool = false,
     save_path::String = raw"..\analysis_data\random_networks\sample_name",
     print_progress::Bool = false,
@@ -214,7 +221,6 @@ function get_structure_factor_isotrope_by_wavenumber_vec(
                             "sampling_distance_step_length" => 
                             sampling_distance_step_length,
                             "maximal_sampling_distance" => maximal_sampling_distance,
-                            "nr_wavevector_samples" => nr_wavevector_samples,
                             "label" => label )
 
     # add label to dictionary if label is not nothing

@@ -290,12 +290,8 @@ function get_q_l_total_network_mean_dict(graph_dict::Dict,
 
     # initialize dictionary of q_l averaged over entire network with all values
     # set to 0
-    q_l_total_network_mean_dict = Dict{Int64, Float64}()
+    q_l_total_network_mean_arr = Array{Float64}(undef, graph_dict["nr_vertices"], l_max+1)
 
-    for l in 0:l_max
-        q_l_total_network_mean_dict[l] = 0.0
-
-    end
 
     # loop through vertices
     for vertex in MetaGraphsNext.labels(graph_dict["spatial_network"])
@@ -309,10 +305,21 @@ function get_q_l_total_network_mean_dict(graph_dict::Dict,
 
         # for each l, add current vertex' contribution to sum of all vertices
         for l in 0:l_max
-            q_l_total_network_mean_dict[l] += (1/graph_dict["nr_vertices"] 
-                                        * q_l_averaged_single_vertex_dict[l])
+            q_l_total_network_mean_arr[vertex, l+1] =  q_l_averaged_single_vertex_dict[l]
     
         end
+
+    end
+
+    # calculate mean and standard deviation of q_l for the entire network
+    q_l_total_network_mean_dict = Dict{Int64, Measurements.Measurement{Float64}}()
+
+    # calculate mean and standard deviation for each l individually
+    for l in 0:l_max
+        q_l_total_network_mean_dict[l] = Measurements.measurement(
+            Statistics.mean(q_l_total_network_mean_arr[:, l+1]),
+            Statistics.std(q_l_total_network_mean_arr[:, l+1])
+        )
 
     end
 

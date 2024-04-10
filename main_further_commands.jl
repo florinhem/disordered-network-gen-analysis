@@ -3359,3 +3359,239 @@ for i in 0:l_max
     Fmt.printfmt("q_{1:d} = {2:.3f}", i, single_vertex_q_l_primitive_cubic[i])
     println()
 end
+
+
+dict_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
+
+temperatures = [0.75, 1.0, 2.0, 4.0]
+
+for temperature in temperatures
+
+    for nr_heating_mc_steps in [0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 5.0, 10.0]
+
+        evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 ,temperature_vec = [temperature, 0],
+        nr_monte_carlo_steps_per_temperature_vec = [nr_heating_mc_steps, 50], min_ring_size = 3)
+
+        graph_dict = NG.get_periodic_network(evolution_dict)
+
+        graph_dict, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_sequence!(graph_dict,
+                evolution_dict; 
+            print_progress = true,
+            print_every_nr_attempted_bond_switches = 500)
+
+        evolution_dict["total_energy_vec"] = total_energy_vec
+        evolution_dict["move_accepted_vec"] = move_accepted_vec
+
+        NG.plot_network(graph_dict)
+
+        filename = "216_vertices_T_"*string(temperature)*"_heated_for_"*string(nr_heating_mc_steps)*"_steps_quenched"
+
+        save_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
+
+        NG.save_graph_to_h5_and_MGformat(graph_dict,
+            filename;
+            evolution_dict = evolution_dict,
+            save_path 
+                = save_path)
+
+    end
+
+end
+
+
+temperatures = [0.75, 1.0, 2.0, 4.0]
+
+for temperature in temperatures
+
+    for temperature_increase_per_monte_carlo_step in [0.025, 0.05, 0.1, 0.2]
+
+        temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(temperature;
+        temperature_increase_per_monte_carlo_step = temperature_increase_per_monte_carlo_step, 
+        nr_monte_carlo_steps_per_temperature = 0.01,
+        quench = true )
+
+        evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 ,temperature_vec = temperature_vec,
+        nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3)
+
+        graph_dict = NG.get_periodic_network(evolution_dict)
+
+        graph_dict, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_sequence!(graph_dict,
+                evolution_dict; 
+            print_progress = true,
+            print_every_nr_attempted_bond_switches = 500)
+
+        evolution_dict["total_energy_vec"] = total_energy_vec
+        evolution_dict["move_accepted_vec"] = move_accepted_vec
+
+        NG.plot_network(graph_dict)
+
+        filename = "216_vertices_T_"*string(temperature)*"_heat_cool_"*string(temperature_increase_per_monte_carlo_step)*"_per_mc_quenched"
+
+        save_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
+
+        NG.save_graph_to_h5_and_MGformat(graph_dict,
+            filename;
+            evolution_dict = evolution_dict,
+            save_path 
+                = save_path)
+
+    end
+
+end
+
+
+temperatures = [0.75, 1.0, 2.0, 4.0]
+
+for temperature in temperatures
+
+    temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_cooling_gradient(temperature;
+    temperature_decrease_per_monte_carlo_step = 0.1,
+    quench = true )
+
+    evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 ,temperature_vec = temperature_vec,
+    nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3)
+
+    graph_dict = NG.get_periodic_network(evolution_dict)
+
+    graph_dict, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_sequence!(graph_dict,
+            evolution_dict; 
+        print_progress = true,
+        print_every_nr_attempted_bond_switches = 500)
+
+    evolution_dict["total_energy_vec"] = total_energy_vec
+    evolution_dict["move_accepted_vec"] = move_accepted_vec
+
+    NG.plot_network(graph_dict)
+
+    filename = "216_vertices_T_"*string(temperature)*"_cool_0.1_per_mc_quenched"
+
+    save_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
+
+    NG.save_graph_to_h5_and_MGformat(graph_dict,
+        filename;
+        evolution_dict = evolution_dict,
+        save_path 
+            = save_path)
+
+end
+
+
+
+dict_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
+
+temperatures = [1.0, 2.0, 4.0, 0.75]
+
+
+for nr_heating_mc_steps in [0.5, 1.0, 5.0, 10.0 ]
+    for temperature in temperatures
+
+        evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 ,temperature_vec = [temperature, 0],
+        nr_monte_carlo_steps_per_temperature_vec = [nr_heating_mc_steps, 50], min_ring_size = 3)
+
+        graph_dict = NG.get_periodic_network(evolution_dict)
+
+        graph_dict, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_sequence!(graph_dict,
+                evolution_dict; 
+            print_progress = true,
+            print_every_nr_attempted_bond_switches = 500)
+
+        evolution_dict["total_energy_vec"] = total_energy_vec
+        evolution_dict["move_accepted_vec"] = move_accepted_vec
+
+        NG.plot_network(graph_dict)
+
+        filename = "216_vertices_T_"*string(temperature)*"_heated_for_"*string(nr_heating_mc_steps)*"_steps_quenched"
+
+        save_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
+
+        NG.save_graph_to_h5_and_MGformat(graph_dict,
+            filename;
+            evolution_dict = evolution_dict,
+            save_path 
+                = save_path)
+
+    end
+
+end
+
+
+dict_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
+
+graph_dict_low_t = NG.load_graph_from_h5_and_MGformat(dict_path*"216_vertices_T_0.1_heated_for_0.5_steps_quenched")
+
+graph_dict_high_t = NG.load_graph_from_h5_and_MGformat(dict_path*"216_vertices_T_1.0_heated_for_0.5_steps_quenched")
+
+l_max = 12
+
+q_l_low_t = NA.get_q_l_total_network_mean_dict(graph_dict_low_t, l_max)
+
+q_l_high_t = NA.get_q_l_total_network_mean_dict(graph_dict_high_t, l_max)
+
+for i in 0:l_max
+    Fmt.printfmt("q_{1:d} = {2:.3f}", i, q_l_low_t[i])
+    println()
+end
+
+for i in 0:l_max
+    Fmt.printfmt("q_{1:d} = {2:.3f}", i, q_l_high_t[i])
+    println()
+end
+
+
+dict_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
+
+temperatures = [0.1, 1.0, 2.0]
+
+
+for nr_heating_mc_steps in [0.5]
+    for temperature in temperatures
+
+        evolution_dict = NA.get_evolution_dict(;nr_vertices = 1000 ,temperature_vec = [temperature, 0],
+        nr_monte_carlo_steps_per_temperature_vec = [nr_heating_mc_steps, 50], min_ring_size = 3)
+
+        graph_dict = NG.get_periodic_network(evolution_dict)
+
+        graph_dict, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_sequence!(graph_dict,
+                evolution_dict; 
+            print_progress = true,
+            print_every_nr_attempted_bond_switches = 1000)
+
+        evolution_dict["total_energy_vec"] = total_energy_vec
+        evolution_dict["move_accepted_vec"] = move_accepted_vec
+
+        filename = "1000_vertices_T_"*string(temperature)*"_heated_for_"*string(nr_heating_mc_steps)*"_steps_quenched"
+
+        save_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
+
+        NG.save_graph_to_h5_and_MGformat(graph_dict,
+            filename;
+            evolution_dict = evolution_dict,
+            save_path 
+                = save_path)
+
+    end
+
+end
+
+
+dict_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
+
+temperatures = [0.1, 1.0, 2.0]
+
+for i in eachindex(temperatures)
+
+    graph_dict = NG.load_graph_from_h5_and_MGformat(dict_path*
+    "1000_vertices_T_"
+    *string(temperatures[i])*"_heated_for_0.5_steps_quenched")
+
+    structure_factor_dict = NA.get_structure_factor_bartlett_isotrope_by_wavenumber_vec(
+        graph_dict;
+        sampling_distance_step_length = 0.05,
+        maximal_sampling_distance = 4*graph_dict["supercell_edge_length"],
+        save_result = true,
+        save_path = raw"..\analysis_data\random_networks\1000_vertices_T_"
+        *string(temperatures[i])*"_heated_for_0.5_steps_quenched",
+        print_progress = true,
+        label = "T = "*string(temperatures[i]))
+
+end

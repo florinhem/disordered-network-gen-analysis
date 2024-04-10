@@ -6,9 +6,6 @@ include("structure_analysis_modules.jl")
 import .NetworkGeneration as NG
 import .NetworkAnalysis as NA
 import .GeneralUtilities as GU
-import MetaGraphsNext
-import SphericalHarmonics
-import Formatting as Fmt
 
 # possible choices of nr_vertices for diamond: 64, 216, 512, 1000, that is (2*n)^3 with natural nr natural
 
@@ -20,14 +17,13 @@ import Formatting as Fmt
 
 dict_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
-filename = "216_vertices_T_0.1_heated_for_0.5_steps_quenched"
+temperatures = [0.1]
 
-graph_dict = NG.load_graph_from_h5_and_MGformat(dict_path*filename)
+graph_dict = NG.load_graph_from_h5_and_MGformat(dict_path*
+    "1000_vertices_T_0.1_heated_for_0.5_steps_quenched")
 
-NG.save_mesh_from_network(graph_dict, filename*"_thick_bonds"; save_path = dict_path, bond_radius = 0.3131)
+l_max = 12
 
-filename = "216_vertices_T_0.4_heated_for_0.5_steps_quenched"
+q_l_total_network_mean_dict = NA.get_q_l_total_network_mean_dict(graph_dict, l_max)
 
-graph_dict = NG.load_graph_from_h5_and_MGformat(dict_path*filename)
-
-NG.save_mesh_from_network(graph_dict, filename*"_thick_bonds"; save_path = dict_path, bond_radius = 0.3131)
+q_l_total_network_mean_vec = NA.convert_q_l_dict_to_vec(q_l_total_network_mean_dict, l_max)
