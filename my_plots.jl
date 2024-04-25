@@ -26,7 +26,8 @@ yguidefontsize=fontsize,
 legendfontsize=fontsize,
 bottom_margin = 3Plots.mm,
 linewidth=3, 
-thickness_scaling = 1)
+thickness_scaling = 1,
+framestyle = :box)
 
 # functions to have pi ticks
 function pitick(start, stop, denom; mode=:text)
@@ -57,44 +58,27 @@ end
 
 
 
-l_max = 12
-
-some_vertex = 10
-
-y_vec = collect(0:l_max)
-
 dict_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
-graph_dict_low_t = NG.load_graph_from_h5_and_MGformat(dict_path*
-    "1000_vertices_T_0.1_heated_for_0.5_steps_quenched")
+function heaviside(t)
+    0.5 * (sign(t) + 1)
+ end
 
-graph_dict_high_t = NG.load_graph_from_h5_and_MGformat(dict_path*
-    "1000_vertices_T_1.0_heated_for_0.5_steps_quenched")
+temperature = 1.0
 
-graph_dict_diamond = NG.load_graph_from_h5_and_MGformat(dict_path*
-    "216_vertices_T_0.1_heated_for_0.01_steps_quenched")
+mc_step_vec = collect(0:0.01:20)
+temperature_vec = heaviside.(- (mc_step_vec .- 0.5)) .* temperature
 
-q_l_total_network_mean_dict = NA.get_q_l_total_network_mean_dict(graph_dict_high_t, l_max)
-q_l_total_network_mean_vec = NA.convert_q_l_dict_to_vec(q_l_total_network_mean_dict, l_max)
+Plots.plot(mc_step_vec, 
+temperature_vec, label=Latex.L"kT_\mathrm{max}=1.0", ls= :dash, linecolor=Plots.palette(:tab10)[2])
 
-Plots.scatter(y_vec, Measurements.value.(q_l_total_network_mean_vec),
-        yerr=Measurements.uncertainty.(q_l_total_network_mean_vec), linecolor=Plots.palette(:tab10)[2], label = Latex.L"kT=1.0", markerstrokecolor=Plots.palette(:tab10)[2] , markercolor=Plots.palette(:tab10)[2], markersize=6, markerstrokewidth =2)
+temperature = 0.1
 
+temperature_vec = heaviside.(- (mc_step_vec .- 0.5)) .* temperature
 
-q_l_total_network_mean_dict = NA.get_q_l_total_network_mean_dict(graph_dict_low_t, l_max)
-q_l_total_network_mean_vec = NA.convert_q_l_dict_to_vec(q_l_total_network_mean_dict, l_max)
+Plots.plot!(mc_step_vec, 
+temperature_vec, label=Latex.L"kT_\mathrm{max}=0.1", ls= :dash, linecolor=Plots.palette(:tab10)[1] )
 
-Plots.scatter!(y_vec, Measurements.value.(q_l_total_network_mean_vec),
-    yerr=Measurements.uncertainty.(q_l_total_network_mean_vec), linecolor=Plots.palette(:tab10)[1], label = Latex.L"kT=0.1", markerstrokecolor=Plots.palette(:tab10)[1], markercolor=Plots.palette(:tab10)[1], markersize=6, markerstrokewidth =2)
+Plots.plot!(xlabel="Monte Carlo step", ylabel=Latex.L"kT", xlims=(0, 20), right_margin = 3Plots.mm)
 
-
-q_l_total_network_mean_dict = NA.get_q_l_averaged_single_vertex_dict(graph_dict_diamond, some_vertex, l_max)
-q_l_total_network_mean_vec = NA.convert_q_l_dict_to_vec(q_l_total_network_mean_dict, l_max)
-
-Plots.scatter!(y_vec, Measurements.value.(q_l_total_network_mean_vec), linecolor=Plots.palette(:tab10)[3], label = "diamond", markerstrokecolor=Plots.palette(:tab10)[3], markercolor=Plots.palette(:tab10)[3], markersize=6, markerstrokewidth =2)
-    
-Plots.plot!(xlabel=Latex.L"l", 
-    ylabel=Latex.L"\overline{q}_l", ylims=(0,1.15), xticks=0:2:12)
-
-
-Plots.savefig(path*"q_l_total_network_mean_1000_vertices_T_0.1_1.0_diamond.png")
+Plots.savefig(path*"temperature_T_0.1_1.0_quenched.png")

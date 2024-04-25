@@ -17,13 +17,10 @@ import .GeneralUtilities as GU
 
 dict_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
-temperatures = [0.1]
+evolution_dict_low_t = GU.load_h5_dict(dict_path*"1000_vertices_T_0.1_heated_for_0.5_steps_quenched_evolution.h5")
 
-graph_dict = NG.load_graph_from_h5_and_MGformat(dict_path*
-    "1000_vertices_T_0.1_heated_for_0.5_steps_quenched")
+evolution_dict_high_t = GU.load_h5_dict(dict_path*"1000_vertices_T_1.0_heated_for_0.5_steps_quenched_evolution.h5")
 
-l_max = 12
+println(length(evolution_dict_low_t["move_accepted_vec"])/18000 )
 
-q_l_total_network_mean_dict = NA.get_q_l_total_network_mean_dict(graph_dict, l_max)
-
-q_l_total_network_mean_vec = NA.convert_q_l_dict_to_vec(q_l_total_network_mean_dict, l_max)
+println(length(evolution_dict_high_t["move_accepted_vec"])/18000 )

@@ -22,7 +22,8 @@ yguidefontsize=fontsize,
 legendfontsize=fontsize,
 bottom_margin = 3Plots.mm,
 linewidth=3, 
-thickness_scaling = 1)
+thickness_scaling = 1,
+framestyle = :box)
 
 # functions to have pi ticks
 function pitick(start, stop, denom; mode=:text)
@@ -130,7 +131,7 @@ marker_size = 9
 
 my_plot = Plots.plot([steinhardt_order_parameter_dict_4[4]], [steinhardt_order_parameter_dict_4[6]], seriestype=:scatter, label="kT=4", mc=Plots.palette(:tab10)[2], ms=marker_size)
 my_plot = Plots.plot!([steinhardt_order_parameter_dict_1[4]], [steinhardt_order_parameter_dict_1[6]], seriestype=:scatter, label="kT=1", mc=Plots.palette(:tab10)[1], ms=marker_size)
-my_plot = Plots.plot!([diamond[1]], [diamond[2]], seriestype=:scatter, label="diamond", ms=marker_size)
+my_plot = Plots.plot!([diamond[1]], [diamond[2]], seriestype=:scatter, label="kT=0", ms=marker_size)
 my_plot = Plots.plot!([cubic[1]], [cubic[2]], seriestype=:scatter, label="cubic", ms=marker_size)
 my_plot = Plots.plot!([fcc[1]], [fcc[2]], seriestype=:scatter, label="fcc", ms=marker_size)
 my_plot = Plots.plot!([hcp[1]], [hcp[2]], seriestype=:scatter, label="hcp", ms=marker_size)
@@ -151,7 +152,7 @@ x_vec = collect(0:0.01:2)
 y_vec = collect(0.5:0.01:1.5)
 Plots.plot(x_vec, (3/16) .* (x_vec.^2 .- 1).^2   )
 Plots.plot!(y_vec, (3/4) .* (y_vec .- 1).^2 , linestyle=:dash )
-Plots.plot!(xlabel="bond length", ylabel="energy", right_margin = 3Plots.mm, ylims=(0,0.4), xlims=(0,2), legend=false)
+Plots.plot!(xlabel="bond length / "*Latex.L"d", ylabel="energy", right_margin = 3Plots.mm, ylims=(0,0.4), xlims=(0,2), legend=false)
 
 Plots.savefig(path*"bond_stretching_energy.png")
 
@@ -160,8 +161,24 @@ x_vec = collect(0:0.1:180)
 y_vec = collect(40:0.1:180)
 Plots.plot(x_vec, (3/8 * 0.285) .* (cosd.(x_vec) .+ 1/3).^2  )
 Plots.plot!(y_vec, (0.095 .* (y_vec .* pi ./ 180 .- acos(-1/3)).^2 ) , linestyle=:dash  )
-Plots.plot!(xlabel="bond angle", ylabel="energy", right_margin = 5Plots.mm, ylims=(0,0.4), xlims=(0,180), legend=false)
+Plots.plot!(xlabel="bond angle / °", ylabel="energy", right_margin = 5Plots.mm, ylims=(0,0.4), xlims=(0,180), legend=false)
 Plots.savefig(path*"bond_bending_energy.png")
+
+
+x_vec = collect(0:0.01:2)
+y_vec = collect(0.5:0.01:1.5)
+Plots.plot(x_vec, (3/16) .* (x_vec.^2 .- 1).^2   )
+Plots.plot!(y_vec, (3/4) .* (y_vec .- 1).^2 , linestyle=:dash )
+Plots.plot!(xlabel="bond length / "*Latex.L"d", ylabel="energy", right_margin = 4Plots.mm, bottom_margin = 8Plots.mm, left_margin = 4Plots.mm, ylims=(0,0.15), xlims=(0.7,1.3), legend=false, size = (650, 300), xticks=collect(0.7:0.1:1.3))
+
+Plots.savefig(path*"bond_stretching_energy_zoom.png")
+
+x_vec = collect(40:0.1:180)
+y_vec = collect(40:0.1:180)
+Plots.plot(x_vec, (3/8 * 0.285) .* (cosd.(x_vec) .+ 1/3).^2  )
+Plots.plot!(y_vec, (0.095 .* (y_vec .* pi ./ 180 .- acos(-1/3)).^2 ) , linestyle=:dash  )
+Plots.plot!(xlabel="bond angle / °", ylabel="energy",  right_margin = 5Plots.mm, bottom_margin = 8Plots.mm, left_margin = 4Plots.mm, ylims=(0,0.15), xlims=(40,180), legend=false, size = (650, 300), xticks=collect(40:20:180))
+Plots.savefig(path*"bond_bending_energy_zoom.png")
 
 
 dict_path_1 = raw"..\analysis_data\random_networks\1000_vertices_T_1_quenched_structure_factor_bartlett_isotrope.h5"
@@ -499,6 +516,7 @@ Plots.plot!(xlabel="Monte Carlo step", ylabel="energy per vertex", xlims=(0, 20)
 
 Plots.savefig(path*"total_energy_216_vertices_T_0.1_0.15_quenched.png")
 
+
 dict_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
 function heaviside(t)
@@ -648,12 +666,16 @@ graph_dict_4 = NG.load_graph_from_h5_and_MGformat(dict_path*"1000_vertices_T_1.0
 bond_length_std_1, bond_length_vec_1 = NA.get_bond_length_std(graph_dict_1)
 bond_length_std_4, bond_length_vec_4 = NA.get_bond_length_std(graph_dict_4)
 
-b_range = range(0.4, 1.8, length=71)
+diamond_vec = ones(20)
+
+b_range = range(0.705, 1.305, length=71)
 
 my_plot = Plots.stephist(bond_length_vec_4, bins=b_range, label = Latex.L"kT=1.0", normalize=:probability, linecolor=Plots.palette(:tab10)[2])
 my_plot = Plots.stephist!(bond_length_vec_1, bins=b_range, label = Latex.L"kT=0.1", normalize=:probability, linecolor=Plots.palette(:tab10)[1])
-my_plot = Plots.plot!(xlabel="bond length",
-ylabel = "relative frequency")
+Plots.plot!(vcat([0.9], collect(0.995:0.001:1.005), [1.1]), vcat([0,0], ones(length(collect(0.995:0.001:1.005)) -2 ) .* 0.15, [0,0]), label = Latex.L"kT=0", linecolor=Plots.palette(:tab10)[3])
+#Plots.vline!([1], label = Latex.L"kT=0", linecolor=Plots.palette(:tab10)[3])
+my_plot = Plots.plot!(xlabel="bond length / "*Latex.L"d",
+ylabel = "relative frequency", xlim=(0.7, 1.3), rightmargin=3Plots.mm)
 
 Plots.savefig(path*"bond_length_1000_vertices_T_0.1_1.0.png")
 
@@ -661,12 +683,14 @@ Plots.savefig(path*"bond_length_1000_vertices_T_0.1_1.0.png")
 bond_angle_std_1, bond_angle_vec_1 = NA.get_bond_angle_std(graph_dict_1)
 bond_angle_std_4, bond_angle_vec_4 = NA.get_bond_angle_std(graph_dict_4)
 
-b_range = range(0, 180, length=61)
+b_range = range(40.6, 180.6, length=61)
 
 my_plot = Plots.stephist(bond_angle_vec_4 ./pi .* 180, bins=b_range, label = Latex.L"kT=1.0", normalize=:probability, linecolor=Plots.palette(:tab10)[2])
 my_plot = Plots.stephist!(bond_angle_vec_1 ./pi .* 180, bins=b_range, label = Latex.L"kT=0.1", normalize=:probability, linecolor=Plots.palette(:tab10)[1])
-my_plot = Plots.plot!(xlabel="bond angle",
-ylabel = "relative frequency")
+Plots.plot!(vcat([90], collect(109.5-1:0.01:109.5+1), [130]), vcat([0,0], ones(length(collect(109.5-1:0.01:109.5+1)) -2 ) .* 0.17, [0,0]), label = Latex.L"kT=0", linecolor=Plots.palette(:tab10)[3])
+#Plots.vline!([109.5], label = Latex.L"kT=0", linecolor=Plots.palette(:tab10)[3])
+my_plot = Plots.plot!(xlabel="bond angle / °",
+ylabel = "relative frequency", xlim=(40, 180), rightmargin=5Plots.mm)
 
 Plots.savefig(path*"bond_angle_1000_vertices_T_0.1_1.0.png")
 
@@ -687,18 +711,20 @@ ylabel = "structure factor", xlims=(0,32.5), ylims=(0,2.75), xtick=pitick(0, 32,
 Plots.savefig(path*"structure_factor_bartlett_1000_vertices_T_0.1_1.0.png")
 
 
-
 dict_path_low_t = raw"..\analysis_data\random_networks\1000_vertices_T_0.1_heated_for_0.5_steps_quenched_structure_factor_bartlett_isotrope.h5"
-
 dict_path_high_t = raw"..\analysis_data\random_networks\1000_vertices_T_1.0_heated_for_0.5_steps_quenched_structure_factor_bartlett_isotrope.h5"
+dict_path_diamond = raw"..\analysis_data\random_networks\1000_vertices_perfect_diamond_structure_factor_bartlett_isotrope.h5"
 
 structure_factor_dict_low_t = GU.load_h5_dict(dict_path_low_t)
 structure_factor_dict_high_t = GU.load_h5_dict(dict_path_high_t)
+structure_factor_dict_diamond = GU.load_h5_dict(dict_path_diamond)
+
 
 my_plot = Plots.plot(structure_factor_dict_high_t["wavenumber_vec"], structure_factor_dict_high_t["structure_factor_vec"], linecolor=Plots.palette(:tab10)[2], label = Latex.L"kT=1.0" )
 my_plot = Plots.plot!(structure_factor_dict_low_t["wavenumber_vec"], structure_factor_dict_low_t["structure_factor_vec"], linecolor=Plots.palette(:tab10)[1], label = Latex.L"kT=0.1" )
-my_plot = Plots.plot!(xlabel="wavenumber",
-ylabel = "structure factor", xlims=(0,32.5), ylims=(0,4), size = (500, 600),  xtick=pitick(0, 32, 1; mode=:latex))
+my_plot = Plots.plot!(structure_factor_dict_diamond["wavenumber_vec"], structure_factor_dict_diamond["structure_factor_vec"], linecolor=Plots.palette(:tab10)[3], label = Latex.L"kT=0", alpha=0.5 )
+my_plot = Plots.plot!(xlabel="wavenumber / "*Latex.L"d^{-1}",
+ylabel = "structure factor", xlims=(0,32.5), ylims=(0,4), size = (500, 600),  xtick=pitick(0, 32, 1; mode=:latex), bottommargin = 0Plots.mm)
 
 Plots.savefig(path*"structure_factor_bartlett_1000_vertices_T_0.1_1.0_stretched.png")
 
@@ -714,8 +740,9 @@ first_index = 11
 
 my_plot = Plots.plot(structure_factor_dict_high_t["wavenumber_vec"][first_index:end], structure_factor_dict_high_t["structure_factor_vec"][first_index:end], linecolor=Plots.palette(:tab10)[2], label = Latex.L"kT=1.0" )
 my_plot = Plots.plot!(structure_factor_dict_low_t["wavenumber_vec"][first_index:end], structure_factor_dict_low_t["structure_factor_vec"][first_index:end], linecolor=Plots.palette(:tab10)[1], label = Latex.L"kT=0.1" )
-my_plot = Plots.plot!(xlabel="wavenumber",
-ylabel = "structure factor", xlims=(0,14), ylims=(0,2.75), xtick=pitick(0, 14, 1; mode=:latex))
+my_plot = Plots.plot!(structure_factor_dict_diamond["wavenumber_vec"][first_index:end], structure_factor_dict_diamond["structure_factor_vec"][first_index:end], linecolor=Plots.palette(:tab10)[3], label = Latex.L"kT=0", alpha=0.5 )
+my_plot = Plots.plot!(xlabel="wavenumber / "*Latex.L"d^{-1}",
+ylabel = "structure factor", xlims=(0,14), ylims=(0,3.75), xtick=pitick(0, 14, 1; mode=:latex), legend = :topright)
 
 Plots.savefig(path*"structure_factor_bartlett_small_k_1000_vertices_T_0.1_1.0.png")
 
@@ -727,7 +754,7 @@ plot_1 = (1 .- 2 .* x.^2 + 2 .* x.^4) .* x
 myplot = Plots.plot(x, plot_1)
 
 Plots.plot!(grid=false, xlabel=Latex.L"q", legend = false,
-ylabel = Latex.L"P(q) \cdot q", xlims = (0, 1), ylims = (0, 1),
+ylabel = Latex.L"P(q)", xlims = (0, 1), ylims = (0, 1),
 right_margin = 4Plots.mm,)
 
 Plots.savefig(path*"polynomial_multiple_scattering.png")
@@ -755,23 +782,86 @@ q_l_total_network_mean_dict = NA.get_q_l_total_network_mean_dict(graph_dict_high
 q_l_total_network_mean_vec = NA.convert_q_l_dict_to_vec(q_l_total_network_mean_dict, l_max)
 
 Plots.scatter(y_vec, Measurements.value.(q_l_total_network_mean_vec),
-        yerr=Measurements.uncertainty.(q_l_total_network_mean_vec), linecolor=Plots.palette(:tab10)[2], label = Latex.L"kT=1.0", markerstrokecolor=Plots.palette(:tab10)[2] , markercolor=Plots.palette(:tab10)[2])
+        yerr=Measurements.uncertainty.(q_l_total_network_mean_vec), linecolor=Plots.palette(:tab10)[2], label = Latex.L"kT=1.0", markerstrokecolor=Plots.palette(:tab10)[2] , markercolor=Plots.palette(:tab10)[2], markersize = 6)
 
 
 q_l_total_network_mean_dict = NA.get_q_l_total_network_mean_dict(graph_dict_low_t, l_max)
 q_l_total_network_mean_vec = NA.convert_q_l_dict_to_vec(q_l_total_network_mean_dict, l_max)
 
 Plots.scatter!(y_vec, Measurements.value.(q_l_total_network_mean_vec),
-    yerr=Measurements.uncertainty.(q_l_total_network_mean_vec), linecolor=Plots.palette(:tab10)[1], label = Latex.L"kT=0.1", markerstrokecolor=Plots.palette(:tab10)[1], markercolor=Plots.palette(:tab10)[1])
+    yerr=Measurements.uncertainty.(q_l_total_network_mean_vec), linecolor=Plots.palette(:tab10)[1], label = Latex.L"kT=0.1", markerstrokecolor=Plots.palette(:tab10)[1], markercolor=Plots.palette(:tab10)[1], markersize = 6)
 
 
 q_l_total_network_mean_dict = NA.get_q_l_averaged_single_vertex_dict(graph_dict_diamond, some_vertex, l_max)
 q_l_total_network_mean_vec = NA.convert_q_l_dict_to_vec(q_l_total_network_mean_dict, l_max)
 
-Plots.scatter!(y_vec, Measurements.value.(q_l_total_network_mean_vec), linecolor=Plots.palette(:tab10)[3], label = "diamond", markerstrokecolor=Plots.palette(:tab10)[3], markercolor=Plots.palette(:tab10)[3])
+Plots.scatter!(y_vec, Measurements.value.(q_l_total_network_mean_vec), linecolor=Plots.palette(:tab10)[3], label = Latex.L"kT=0", markerstrokecolor=Plots.palette(:tab10)[3], markercolor=Plots.palette(:tab10)[3], markersize = 6)
+
+Plots.scatter!([3,7,9,11], zeros(4), linecolor=:grey, label = "BCC", markerstrokecolor=:grey, markercolor=:grey, markersize = 6)
     
 Plots.plot!(xlabel=Latex.L"l", 
-    ylabel=Latex.L"\overline{q}_l", ylims=(0,1.15), xticks=0:2:12)
+    ylabel=Latex.L"\overline{q}_l", ylims=(0,1.3), xticks=0:2:12, yticks=0:0.25:1)
 
 
 Plots.savefig(path*"q_l_total_network_mean_1000_vertices_T_0.1_1.0_diamond.png")
+
+
+
+myplot = Plots.plot(collect(0:0.1:0.5), ones(length(collect(0:0.1:0.5))), linecolor=Plots.palette(:tab10)[2] )
+myplot = Plots.plot!(collect(0.5:0.1:40), zeros(length(collect(0.5:0.1:40))), linecolor=Plots.palette(:tab10)[2], ls=:dot  )
+myplot = Plots.plot!(collect(0:0.1:0.5), ones(length(collect(0:0.1:0.5))) .* 0.1, linecolor=Plots.palette(:tab10)[1]  )
+myplot = Plots.plot!(collect(0.5:0.1:40) .+ 0.05, zeros(length(collect(0.5:0.1:40))), linecolor=Plots.palette(:tab10)[1], ls=:dot  )
+
+Plots.plot!(grid=false, xlabel="step", legend = false,
+ylabel = Latex.L"kT", xlims=(0, 2.5), size=(300,300), xticks=[0,1,2], yticks=[0,1])
+
+Plots.savefig(path*"temperature_profile_T_0.1_1.0.png")
+
+
+dict_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
+
+filename = "1000_vertices_T_1.0_heated_for_0.5_steps_quenched"
+
+graph_dict = NG.load_graph_from_h5_and_MGformat(dict_path*filename)
+evolution_dict = GU.load_h5_dict(dict_path*filename*"_evolution.h5")
+
+Plots.plot(collect(1:length(evolution_dict["total_energy_vec"]) ) ./(graph_dict["nr_vertices"]*18), 
+evolution_dict["total_energy_vec"]./graph_dict["nr_vertices"], label=Latex.L"kT_\mathrm{max}=1.0", linecolor=Plots.palette(:tab10)[2])
+
+filename = "1000_vertices_T_0.1_heated_for_0.5_steps_quenched"
+
+graph_dict = NG.load_graph_from_h5_and_MGformat(dict_path*filename)
+evolution_dict = GU.load_h5_dict(dict_path*filename*"_evolution.h5")
+
+Plots.plot!(collect(1:length(evolution_dict["total_energy_vec"]) ) ./(graph_dict["nr_vertices"]*18), 
+evolution_dict["total_energy_vec"] ./graph_dict["nr_vertices"], label=Latex.L"kT_\mathrm{max}=0.1", linecolor=Plots.palette(:tab10)[1] )
+
+Plots.plot!(xlabel="Monte Carlo step", ylabel="energy per vertex", xlims=(0, 20), right_margin = 3Plots.mm)
+
+Plots.savefig(path*"1000_vertices_T_0.1_1.0_heated_for_0.5_steps_quenched.png")
+
+
+dict_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
+
+function heaviside(t)
+    0.5 * (sign(t) + 1)
+ end
+
+temperature = 1.0
+
+mc_step_vec = collect(0:0.01:20)
+temperature_vec = heaviside.(- (mc_step_vec .- 0.5)) .* temperature
+
+Plots.plot(mc_step_vec, 
+temperature_vec, label=Latex.L"kT_\mathrm{max}=1.0", ls= :dash, linecolor=Plots.palette(:tab10)[2])
+
+temperature = 0.1
+
+temperature_vec = heaviside.(- (mc_step_vec .- 0.5)) .* temperature
+
+Plots.plot!(mc_step_vec, 
+temperature_vec, label=Latex.L"kT_\mathrm{max}=0.1", ls= :dash, linecolor=Plots.palette(:tab10)[1] )
+
+Plots.plot!(xlabel="Monte Carlo step", ylabel=Latex.L"kT", xlims=(0, 20), right_margin = 3Plots.mm)
+
+Plots.savefig(path*"temperature_T_0.1_1.0_quenched.png")
