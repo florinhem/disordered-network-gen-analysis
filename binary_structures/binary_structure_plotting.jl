@@ -26,10 +26,10 @@ function plot_volume_fraction_variance_times_window_volume(nr_dimensions_data::I
 
     #create empty plot
     hyperuniform_plot = Plots.plot(xlabel="window edge length "*Latex.L"L"*" / voxel edge length",
-                                    ylabel=Fmt.format(Latex.L"\sigma_\tau^2(L) \cdot L^{:d} / ", 
+                                    ylabel=Format.format(Latex.L"\sigma_\tau^2(L) \cdot L^{:d} / ", 
                                                         nr_dimensions_data)
                                                     *"voxel edge length"
-                                                    *Fmt.format(Latex.L"^{:d}", nr_dimensions_data) ,
+                                                    *Format.format(Latex.L"^{:d}", nr_dimensions_data) ,
                                     legend = true, dpi=250, title=title)
 
     #loop through plot dictionaries to add plots
@@ -318,11 +318,11 @@ function plot_autocovariance_fct_heatmap(plot_dict::Dict,
         xlabel = Latex.L"r_y / \mathrm{nm} " 
         ylabel = Latex.L"r_z / \mathrm{nm}"
         title = (Latex.L"r_x = "
-        *Fmt.format(Latex.L"{1:.1f}",
+        *Format.format(Latex.L"{1:.1f}",
                         (plot_dict["sampling_distance_vec_vec"][1][sampling_vector_fixed_index]
                                         * plot_dict["voxel_edge_length"] ) ) 
         *" "*Latex.L" \mathrm{nm},  \Delta \chi (\vec{r}) ) = "
-        *Fmt.format(Latex.L"{1:.3f}",
+        *Format.format(Latex.L"{1:.3f}",
         Statistics.mean( uncertainty_2d_array) ) )
 
 
@@ -349,11 +349,11 @@ function plot_autocovariance_fct_heatmap(plot_dict::Dict,
         xlabel = Latex.L"r_x / \mathrm{nm} " 
         ylabel = Latex.L"r_z / \mathrm{nm}"
         title = (Latex.L"r_y = "
-        *Fmt.format(Latex.L"{1:.1f}",
+        *Format.format(Latex.L"{1:.1f}",
                         (plot_dict["sampling_distance_vec_vec"][2][sampling_vector_fixed_index]
                                         * plot_dict["voxel_edge_length"] ) ) 
         *" "*Latex.L" \mathrm{nm},  \Delta \chi (\vec{r}) ) = "
-        *Fmt.format(Latex.L"{1:.3f}",
+        *Format.format(Latex.L"{1:.3f}",
         Statistics.mean( uncertainty_2d_array) ) )
 
 
@@ -380,11 +380,11 @@ function plot_autocovariance_fct_heatmap(plot_dict::Dict,
         xlabel = Latex.L"r_x / \mathrm{nm} " 
         ylabel = Latex.L"r_y / \mathrm{nm}"
         title = (Latex.L"r_z = "  
-        *Fmt.format(Latex.L"{1:.1f}",
+        *Format.format(Latex.L"{1:.1f}",
                         (plot_dict["sampling_distance_vec_vec"][3][sampling_vector_fixed_index]
                                         * plot_dict["voxel_edge_length"] ) ) 
         *" "*Latex.L" \mathrm{nm},  \Delta \chi (\vec{r}) ) = "
-        *Fmt.format(Latex.L"{1:.3f}",
+        *Format.format(Latex.L"{1:.3f}",
         Statistics.mean( uncertainty_2d_array) ) )
         
     else
@@ -467,7 +467,7 @@ function plot_spectral_density_heatmap(plot_dict::Dict,
         ylabel = Latex.L"k_z / ( 1/ \mathrm{nm} )"
         title = (title*", "
         * Latex.L"k_x = " 
-        *Fmt.format(Latex.L"{:.2f}", 
+        *Format.format(Latex.L"{:.2f}", 
                     plot_dict["wavenumber_vec_vec"][1][wavevector_fixed_index] 
                         / plot_dict["voxel_edge_length"] )
         *" "*Latex.L"( 1/ \mathrm{nm} )")
@@ -492,7 +492,7 @@ function plot_spectral_density_heatmap(plot_dict::Dict,
         ylabel = Latex.L"k_z / ( 1/ \mathrm{nm} )"
         title = (title*", "
         * Latex.L"k_y = " 
-        *Fmt.format(Latex.L"{:.2f}", 
+        *Format.format(Latex.L"{:.2f}", 
                     plot_dict["wavenumber_vec_vec"][2][wavevector_fixed_index] 
                         / plot_dict["voxel_edge_length"] )
         *" "*Latex.L"( 1/ \mathrm{nm} )")
@@ -515,7 +515,7 @@ function plot_spectral_density_heatmap(plot_dict::Dict,
         ylabel = Latex.L"k_y / ( 1/ \mathrm{nm} )"
         title = (title*", "
         * Latex.L"k_z = " 
-        *Fmt.format(Latex.L"{:.2f}", 
+        *Format.format(Latex.L"{:.2f}", 
                     plot_dict["wavenumber_vec_vec"][3][wavevector_fixed_index] 
                         / plot_dict["voxel_edge_length"] )
         *" "*Latex.L"( 1/ \mathrm{nm} )")

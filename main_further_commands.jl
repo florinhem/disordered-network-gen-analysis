@@ -3595,3 +3595,24 @@ for i in eachindex(temperatures)
         label = "T = "*string(temperatures[i]))
 
 end
+
+
+dict_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
+
+filename = "216_vertices_T_0.2_heated_for_1.0_steps_quenched"
+
+graph_dict = NG.load_graph_from_h5_and_MGformat(dict_path*filename)
+
+NG.save_graph_to_h5_and_gml(graph_dict,
+"my_graph")
+
+dict_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\my_graph"
+
+loaded_graph_dict = NG.load_graph_from_h5_and_gml(dict_path)
+
+NG.plot_network(graph_dict)
+
+
+directory_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
+
+NG.convert_all_files_in_directory_MGformat_to_gml(directory_path)

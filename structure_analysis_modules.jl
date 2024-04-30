@@ -32,7 +32,7 @@ import Measurements    # for handling data with uncertainty and error propagatio
 import FFTW     # to calculate the Fast Fourier Transform
 import Plots    # for plotting
 import LaTeXStrings as Latex # to display latex symbols in plot labels
-import Formatting as Fmt    # for python-like string formatting
+import Format   # for python-like string formatting 
 
 # set path to files
 load_path = raw"..\code_photonic_structures\binary_structures\\"
@@ -84,8 +84,7 @@ import Statistics   # for statistical operations like mean()
 import GeometryBasics   # to create meshes out of networks
 import Plots    # for plotting
 import LaTeXStrings as Latex # to display latex symbols in plot labels
-import Formatting as Fmt    # for python-like string formatting
-# import CoordinateTransformations    # to convert between coordinate systems
+import Format   # for python-like string formatting 
 
 # set path to files
 load_path = raw"..\code_photonic_structures\networks\\"

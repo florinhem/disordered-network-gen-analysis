@@ -1444,3 +1444,203 @@ function get_q_l_total_network_mean_dict(graph_dict::Dict,
     return q_l_total_network_mean_dict
 end
 
+
+
+"""
+Save spatial network to a DOT format file 
+"""
+function save_spatial_network_to_dot(spatial_network::MetaGraphsNext.MetaGraph,
+    filename::String;
+    save_path::String 
+        = raw"..\structures\random_networks\\")
+
+    # open new file
+    open(save_path*filename*".gv", "w") do opened_file
+
+        # write header
+        write(opened_file, "graph T {\n")
+
+        # loop through vertices
+        for vertex in MetaGraphsNext.labels(spatial_network)
+
+            # write vertex
+            write(opened_file, Format.format("    {1} [position = [{2}, {3}, {4}]];\n",
+                vertex,
+                spatial_network[vertex]["position"][1],
+                spatial_network[vertex]["position"][2],
+                spatial_network[vertex]["position"][3]))
+
+        end
+
+        # loop through edges
+        for edge in MetaGraphsNext.edge_labels(spatial_network)
+
+            # write edge
+            write(opened_file, Format.format("    {1} -- {2} [vector = [{3}, {4}, {5}], distance_squared = {6}];\n", 
+            edge[1], edge[2], 
+            spatial_network[edge...]["vector"][1],
+            spatial_network[edge...]["vector"][2],
+            spatial_network[edge...]["vector"][3],
+            spatial_network[edge...]["distance_squared"]))
+
+        end
+
+        # write footer
+        write(opened_file, "}\n")
+
+    end
+
+    return
+end 
+
+
+"""
+Save spatial network to a DOT format file and the rest of graph_dict and
+evolution_dict to an h5 file
+"""
+function save_graph_to_h5_and_dot(graph_dict::Dict,
+    filename::String;
+    evolution_dict = nothing,
+    save_path::String 
+        = raw"..\structures\random_networks\\")
+
+    # save evolution dict if passed
+    if evolution_dict !== nothing
+        GU.save_dict_to_h5(evolution_dict;
+            save_path=save_path*filename*"_evolution.h5")
+    end
+
+    # create copy of graph_dict to not change the original file
+    graph_dict_to_save = deepcopy(graph_dict)
+
+    # save graph to dot format
+    save_spatial_network_to_dot(graph_dict["spatial_network"], filename; save_path=save_path)
+
+    # remove spatial_network from graph_dict
+    delete!(graph_dict_to_save, "spatial_network")
+
+    # save graph dict
+    GU.save_dict_to_h5(graph_dict_to_save; save_path=save_path*filename*".h5")
+
+    return
+end
+
+
+"""
+Load spatial network from a DOT format file 
+"""
+function load_spatial_network_from_dot(dict_path::String)
+
+    # create an empty network graph where vertexic positions and edge vectors will be stored
+    spatial_network = MetaGraphsNext.MetaGraph(Graphs.Graph(); 
+                                        label_type = Int64,
+                                        vertex_data_type = Dict{String, Any},
+                                        edge_data_type = Dict{String, Any} )
+
+    # read file contents, one line at a time 
+    open(dict_path) do opened_file
+
+        # read until end of file
+        while ! eof(opened_file) 
+        
+            # read a new / next line for every iteration		 
+            line_string = readline(opened_file)	
+
+            # save edge to graph
+            if occursin(" -- ", line_string)
+
+                # get start vertex
+                start_vertex_string, rest_string = split(line_string, " -- ")
+                start_vertex = parse(Int64, start_vertex_string)
+
+                # get end vertex
+                end_vertex_string, rest_string = split(rest_string, " [vector = [")
+                end_vertex = parse(Int64, end_vertex_string)
+
+                # get vector and distance squared
+                vector_string, rest_string = split(rest_string, "], distance_squared =")
+                vector = parse.(Float64, split(vector_string, ", "))
+
+                distance_squared = parse(Float64, rest_string[1:end-3])
+
+                # add edge to graph
+                spatial_network[start_vertex, end_vertex] = Dict("vector" => vector, "distance_squared" => distance_squared)
+            
+            # save vertex to graph
+            elseif occursin("position", line_string)
+
+                # get vertex and position
+                vertex_string, rest_string = split(line_string, "[position = [")
+                vertex = parse(Int64, vertex_string)
+                position = parse.(Float64, split( rest_string[1:end-3], ", "))
+
+                # add vertex to graph
+                spatial_network[vertex] = Dict("position" => position)
+            
+            end
+        end
+    end
+    
+    return spatial_network
+end
+
+
+"""
+Load graph and its properties from a DOT file and a h5 dictionary
+"""
+function load_graph_from_h5_and_dot(dict_path_without_format::String)
+
+    # load spatial network in MGformat
+    spatial_network = load_spatial_network_from_dot(
+            dict_path_without_format*".gv")
+
+    # load rest of graph dict
+    graph_dict = GU.load_h5_dict(dict_path_without_format*".h5")
+
+    # add spatial network key to graph dict
+    graph_dict["spatial_network"] = spatial_network
+
+    return graph_dict
+end
+
+
+"""
+Convert a graph in MGformat to a dot format
+"""
+function convert_MGformat_to_dot(
+    filename::String;
+    save_path::String 
+        = raw"..\structures\random_networks\\")
+
+    # load graph dict
+    graph_dict = load_graph_from_h5_and_MGformat(save_path*filename)
+
+    # save graph to dot format
+    save_spatial_network_to_dot(graph_dict["spatial_network"], filename; save_path=save_path)
+
+    return
+end
+
+
+"""
+Convert all files in a directory in MGformat to dot format
+"""
+function convert_all_files_in_directory_MGformat_to_dot(directory_path::String)
+
+    # get all files in directory
+    filenames = readdir(directory_path)
+
+    # loop through files
+    for filename in filenames
+
+        if endswith(filename, ".mg")
+
+            # convert file to dot format
+            convert_MGformat_to_dot(filename[1:end-3]; save_path=directory_path)
+        end
+
+    end
+
+    return
+    
+end

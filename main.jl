@@ -15,12 +15,7 @@ import .GeneralUtilities as GU
 # 216 vertices: supercell_edge_length = 6.9282032302755105
 # 64 vertices: supercell_edge_length = 4.619802153517007
 
-dict_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
-evolution_dict_low_t = GU.load_h5_dict(dict_path*"1000_vertices_T_0.1_heated_for_0.5_steps_quenched_evolution.h5")
+directory_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
 
-evolution_dict_high_t = GU.load_h5_dict(dict_path*"1000_vertices_T_1.0_heated_for_0.5_steps_quenched_evolution.h5")
-
-println(length(evolution_dict_low_t["move_accepted_vec"])/18000 )
-
-println(length(evolution_dict_high_t["move_accepted_vec"])/18000 )
+NG.convert_all_files_in_directory_MGformat_to_gml(directory_path)
