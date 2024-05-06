@@ -613,3 +613,16 @@ function compare_relaxation_methods(original_graph_dict,
 end
 
 
+
+"""
+Get extremum of a quadratic function y= a*x^2 + c given by two points
+(x_vec[1], y_vec[1]) and (x_vec[2], y_vec[2])
+"""
+function get_energy_relaxation_coefficients(x_vec::Vector, y_vec::Vector)
+
+    # get coefficients of quadratic function
+    a = (y_vec[1] - y_vec[2]) / (x_vec[1]^2 - x_vec[2]^2)
+    c = (-x_vec[2]^2 * y_vec[1] + x_vec[1]^2 * y_vec[2])/(x_vec[1]^2 - x_vec[2]^2)
+
+    return [a, c]
+end

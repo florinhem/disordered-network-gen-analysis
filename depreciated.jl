@@ -1644,3 +1644,34 @@ function convert_all_files_in_directory_MGformat_to_dot(directory_path::String)
     return
     
 end
+
+
+"""
+Get extremum of a quadratic function given by three points
+"""
+function get_quadratic_fct_extremum(x_vec::Vector, y_vec::Vector)
+
+    # get coefficients of quadratic function
+    a = (x_vec[3] * (-y_vec[1] + y_vec[2]) 
+    + x_vec[2] * (y_vec[1] - y_vec[3]) 
+    +  x_vec[1] * (-y_vec[2] + y_vec[3])
+    )/((x_vec[1] - x_vec[2]) * (x_vec[1] - x_vec[3]) * (x_vec[2] - x_vec[3]))
+
+    b = (x_vec[3]^2 * (y_vec[1] - y_vec[2]) 
+    + x_vec[1]^2 * (y_vec[2] - y_vec[3]) 
+    + x_vec[2]^2 * (-y_vec[1] + y_vec[3])
+    )/((x_vec[1] - x_vec[2]) * (x_vec[1] - x_vec[3]) * (x_vec[2] - x_vec[3]))
+
+    c = (x_vec[1] * x_vec[3] * (-x_vec[1] + x_vec[3]) * y_vec[2] 
+    + x_vec[2]^2 * (x_vec[3] * y_vec[1] - x_vec[1] * y_vec[3]) 
+    + x_vec[2] * (-x_vec[3]^2 * y_vec[1] + x_vec[1]^2 * y_vec[3])
+    )/((x_vec[1] - x_vec[2]) * (x_vec[1] - x_vec[3]) * (x_vec[2] - x_vec[3]))
+
+    # get extremum of quadratic function
+    x_extremum = -b/(2*a)
+    y_extremum = a*x_extremum^2 + b*x_extremum + c
+
+    return [x_extremum, y_extremum]
+end
+
+

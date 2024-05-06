@@ -192,7 +192,7 @@ function load_spatial_network_from_gml(dict_path::String)
     nodes_string_list = split(nodes_string, "node")
     edges_string_list = split(edges_string, "edge")
 
-    for node_string in nodes_string_list[2:end]
+    for node_string in nodes_string_list
 
         # get vertex and position
         # Regular expressions to extract integer and float values

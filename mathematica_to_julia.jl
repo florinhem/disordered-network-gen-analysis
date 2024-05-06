@@ -1,8 +1,8 @@
+
 using SymPy
 const sympy_parsing_mathematica = SymPy.PyCall.pyimport("sympy.parsing.mathematica")
+mathematica2julia(s::AbstractString, substitutions::Pair{<:AbstractString,<:AbstractString}...) =
+           SymPy.walk_expression(sympy_parsing_mathematica."mathematica"(s, Dict(substitutions...)))
 
-s = "(Sqrt[Pi])/(2*EllipticE[m])"
-ex = sympy_parsing_mathematica.mathematica(s, Dict("EllipticE[x]"=>"elliptic_e(x)"))
-
-
-SymPy.convert_expr(ex, use_julia_code=true) # :(sqrt(pi) ./ (2 * elliptic_e(m)))
+mathematica2julia("((x3 (-y1 + y2) + x2 (y1 - y3) + 
+x1 (-y2 + y3))/((x1 - x2) (x1 - x3) (x2 - x3)))")

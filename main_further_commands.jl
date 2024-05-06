@@ -3616,3 +3616,57 @@ NG.plot_network(graph_dict)
 directory_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\without_ring_size_limitation\\"
 
 NG.convert_all_files_in_directory_MGformat_to_gml(directory_path)
+
+
+# load some network
+dict_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
+filename = "216_vertices_T_0.2_heated_for_0.5_steps_quenched"
+
+graph_dict = NG.load_graph_from_h5_and_gml(dict_path*filename)
+evolution_dict = GU.load_h5_dict(dict_path*filename*"_evolution.h5")
+evolution_dict["reject_during_relaxation_cycle_threshold"] = 5
+
+# perform a bond switch
+switched_chain = NG.get_random_chain(graph_dict; 
+                                min_ring_size = evolution_dict["min_ring_size"], seed=15)
+
+initial_cluster_dict = NG.get_cluster_in_shells_dict(
+                                    graph_dict, 
+                                    switched_chain; 
+                                    shell_nr = evolution_dict["shell_nr"])
+
+NG.switch_chain!(graph_dict,
+    switched_chain )
+
+# fully relax cluster
+
+cluster_dict = NG.get_cluster_in_shells_dict(
+                                    graph_dict, 
+                                    switched_chain; 
+                                    shell_nr = evolution_dict["shell_nr"])
+
+temperature = 50
+threshold_cluster_energy = initial_cluster_dict["cluster_energy"] - temperature * log(rand())
+
+graph_dict, new_cluster_dict = NG.relax_cluster_keating!(graph_dict,
+    cluster_dict, 
+    evolution_dict;
+    threshold_cluster_energy = threshold_cluster_energy,
+    update_total_energy = false,
+    print_progress = true)
+
+
+    
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 1000 ,temperature_vec = [0.5],
+    nr_monte_carlo_steps_per_temperature_vec = [1], min_ring_size = 3)
+
+graph_dict = NG.get_periodic_network(evolution_dict)
+@time graph_dict, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_sequence!(graph_dict,
+        evolution_dict; 
+    print_progress = true,
+    print_every_nr_attempted_bond_switches = 200)
+
+evolution_dict["total_energy_vec"] = total_energy_vec
+evolution_dict["move_accepted_vec"] = move_accepted_vec
+
+NG.plot_network(graph_dict)
