@@ -8,7 +8,7 @@ Measure structure factor for a given wavenumber,
 averaged over angles according to Barlett's isotropic estimator
 as described in equation 40 of 10.1007/s11222-023-10219-1
 """
-function get_structure_factor_bartlett_isotrope(graph_dict::Dict, wavenumber::Real)
+function get_structure_factor_bartlett_isotrope(graph_dict::Dict, wavenumber)
 
     # check if structure is 3d
     if graph_dict["nr_dimensions"] !== 3
@@ -16,7 +16,7 @@ function get_structure_factor_bartlett_isotrope(graph_dict::Dict, wavenumber::Re
     end
 
     # initialize double sum
-    double_sum = 0
+    double_sum = 0.0
 
     # perform sum over all combinations of vertices
     for vertex_1 in MetaGraphsNext.labels(graph_dict["spatial_network"])
@@ -50,8 +50,8 @@ end
 Get vector of wavenumbers, for which the structure factor is calculated
 """
 function get_wavenumber_vec(graph_dict::Dict;
-    sampling_distance_step_length::Real = 0.05,
-    maximal_sampling_distance::Real = graph_dict["supercell_edge_length"]/sqrt(3))
+    sampling_distance_step_length = 0.05,
+    maximal_sampling_distance = graph_dict["supercell_edge_length"]/sqrt(3))
 
     # determine virtual nr of sampling distances
     # (in reality I don't sample in direct space anywhere)
@@ -78,8 +78,8 @@ as described in equation 26 of 10.1007/s11222-023-10219-1
 """
 function get_structure_factor_bartlett_isotrope_by_wavenumber_vec(
     graph_dict::Dict;
-    sampling_distance_step_length::Real = 0.1,
-    maximal_sampling_distance::Real = graph_dict["supercell_edge_length"]/2,
+    sampling_distance_step_length = 0.1,
+    maximal_sampling_distance = graph_dict["supercell_edge_length"]/2,
     save_result::Bool = false,
     save_path::String = raw"..\analysis_data\random_networks\sample_name",
     print_progress::Bool = false,
@@ -133,7 +133,7 @@ Measure structure factor as a function of wavenumber
 averaged over angles according to scattering intensity estimator
 as described in equation 40 of 10.1007/s11222-023-10219-1
 """
-function get_structure_factor_isotrope(graph_dict::Dict, wavenumber::Real;
+function get_structure_factor_isotrope(graph_dict::Dict, wavenumber;
     nr_wavevector_samples::Int = 10000)
 
     # check if structure is 3d
@@ -150,13 +150,13 @@ function get_structure_factor_isotrope(graph_dict::Dict, wavenumber::Real;
                                             dims=1)
 
     # initialize structure factor sum
-    structure_factor = 0
+    structure_factor = 0.0
     
     # perform sum over all wavevector samples
     for wavevector in eachcol(wavevector_mat)
 
         # initialize the sum of the scattering field
-        scattering_field_sum = 0 + 0*im
+        scattering_field_sum = 0.0 + 0.0*im
 
         # perform sum over all vertices
         for vertex in MetaGraphsNext.labels(graph_dict["spatial_network"])
@@ -188,8 +188,8 @@ as described in equation 26 of 10.1007/s11222-023-10219-1
 """
 function get_structure_factor_isotrope_by_wavenumber_vec(
     graph_dict::Dict;
-    sampling_distance_step_length::Real = 0.1,
-    maximal_sampling_distance::Real = graph_dict["supercell_edge_length"]/2,
+    sampling_distance_step_length = 0.1,
+    maximal_sampling_distance = graph_dict["supercell_edge_length"]/2,
     save_result::Bool = false,
     save_path::String = raw"..\analysis_data\random_networks\sample_name",
     print_progress::Bool = false,
@@ -245,7 +245,7 @@ structure factor according to eq 58 in 10.1016/j.physrep.2018.03.001
 """
 function get_local_nr_variance(graph_dict::Dict,
     structure_factor_dict::Dict,
-    window_radius::Real)
+    window_radius)
 
     # check if system is 3d
     if graph_dict["nr_dimensions"] != 3
@@ -280,8 +280,8 @@ from structure factor
 function get_local_nr_variance_by_window_radius_vec(
     graph_dict::Dict;
     structure_factor_dict::Dict = get_structure_factor_isotrope_by_wavenumber_vec(graph_dict),
-    window_radius_step_length::Real = 0.2,
-    maximal_window_radius::Real = graph_dict["supercell_edge_length"]/2,
+    window_radius_step_length = 0.2,
+    maximal_window_radius = graph_dict["supercell_edge_length"]/2,
     save_result::Bool = false,
     save_path::String = raw"..\analysis_data\random_networks\sample_name",
     label = nothing)

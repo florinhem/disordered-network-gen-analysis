@@ -316,7 +316,7 @@ end
 Get mesh from network
 """
 function save_mesh_from_network(graph_dict::Dict, filename::String;
-    bond_radius::Real = 0.05,
+    bond_radius = 0.05,
     save_path::String = raw"..\structures\random_networks\\")
 
     # create graph dict to plot

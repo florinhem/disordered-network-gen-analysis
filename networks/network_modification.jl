@@ -75,7 +75,7 @@ function move_vertex!(graph_dict::Dict,
         # determine new vector, where the direction of the vector (from vertex with lower label
         # to vertex with higher label) has to be taken into account
         graph_dict["spatial_network"][vertex_to_move, neighbor]["vector"] = (
-                    original_distance_vector .- sign(neighbor - vertex_to_move)*translation_vector )
+                    original_distance_vector .- float(sign(neighbor - vertex_to_move)) .* translation_vector )
 
         graph_dict["spatial_network"][vertex_to_move, neighbor]["distance_squared"] = (
             LinearAlgebra.norm(graph_dict["spatial_network"][vertex_to_move, neighbor]["vector"])^2
@@ -195,8 +195,8 @@ Keating strain energy as explained in 10.1142/S0217984987000065
 """
 function get_approximate_translation_vector_keating(gradient::Vector{Float64}, 
                                         bond_bending_const::Float64;
-                                        relaxation_overshoot_factor_r::Real = 1.5,
-                                        relaxation_optimization_parameter_l::Real = 1)
+                                        relaxation_overshoot_factor_r = 1.5,
+                                        relaxation_optimization_parameter_l = 1)
 
     # determine translation vector
     translation_vector = ((- relaxation_overshoot_factor_r/(4 + 5*bond_bending_const 
@@ -215,8 +215,8 @@ the approximated coordinate shift. The corresponding methdo is explained in
 """
 function relax_single_vertex_keating_efficiently!(graph_dict::Dict,
     vertex_to_relax::Int64;
-    relaxation_overshoot_factor_r::Real = 1.5,
-    relaxation_optimization_parameter_l::Real = 1,
+    relaxation_overshoot_factor_r = 1.5,
+    relaxation_optimization_parameter_l = 1,
     update_total_energy::Bool = false)
 
     # get energy gradient at current vertex position
@@ -262,7 +262,7 @@ function relax_cluster_one_cycle_keating!(graph_dict::Dict,
     end
 
     # reset absolute value of total cluster force
-    cluster_dict["cluster_force"] = 0
+    cluster_dict["cluster_force"] = 0.0
 
     # relax each vertex in the given cluster
     for vertex in cluster_dict["cluster_vertices_to_move_vec"]
@@ -321,7 +321,7 @@ Fully relax a cluster of vertices. The cluster energy will always be updated
 function relax_cluster_keating!(graph_dict::Dict,
     cluster_dict::Dict, 
     evolution_dict::Dict;
-    threshold_cluster_energy::Real = Inf,
+    threshold_cluster_energy = Inf,
     update_total_energy::Bool = false,
     print_progress::Bool = false)
 
@@ -426,7 +426,7 @@ Introduce thermal fluctuations to cluster by moving
 each vertex in the cluster according to 10.1063/1.4867897
 """
 function excite_cluster!(graph_dict::Dict, cluster_dict::Dict,
-                        temperature::Real;
+                        temperature;
                         update_total_energy = false,
                         update_cluster_energy = false)
 
@@ -522,7 +522,7 @@ with Metropolis acceptance probability
 """
 function monte_carlo_move!(graph_dict::Dict, 
     evolution_dict::Dict,
-    temperature::Real; 
+    temperature; 
     switched_chain::Tuple{Int64, Int64, Int64, Int64} = get_random_chain(graph_dict),
     print_progress::Bool = false)
 
@@ -636,7 +636,7 @@ Evolve the network with a given number of attempted Monte Carlo moves
 function evolve_network!(graph_dict::Dict,
     evolution_dict::Dict,
     nr_attempted_bond_switches::Int64, 
-    temperature::Real;
+    temperature;
     declined_chains::Vector = [],
     remaining_chains::Vector = [],
     total_energy_vec::Vector{Float64} = Vector{Float64}(undef, 0),

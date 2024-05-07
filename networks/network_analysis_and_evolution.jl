@@ -10,16 +10,16 @@ and evolution of a network
 function get_evolution_dict(;
     nr_vertices::Int64 = 512 , 
     nr_dimensions::Int64 = 3, 
-    network_type = "diamond",
-    bond_bending_const::Real = 0.285,
+    network_type::String = "diamond",
+    bond_bending_const::Float64 = 0.285,
     min_ring_size::Int64 = 3,
     nr_max_relaxation_cycles::Int64 = 25,
     reject_during_relaxation_cycle_threshold::Int64 = 5,
     break_at_relative_cluster_energy_change::Float64 = 0.0001,
     shell_nr::Int64 = 4,
     relax_efficiently::Bool = true,
-    relaxation_overshoot_factor_r::Real = 1.5,
-    relaxation_optimization_parameter_l::Real = 1,
+    relaxation_overshoot_factor_r = 1.5,
+    relaxation_optimization_parameter_l = 1,
     inefficient_optimization_method = "newton",
     random_evolution_seed::Int64 = -1,
     thermal_fluctuations::Bool = false,
@@ -64,10 +64,10 @@ end
 Get temperature sequence for immediate heating and maximal temperature and then
 cooling at a constant temperature decrease
 """
-function get_temperature_sequence_cooling_gradient(start_temperature::Real = 2;
-    end_temperature::Real = 0,
-    temperature_decrease_per_monte_carlo_step::Real = 0.5, 
-    nr_monte_carlo_steps_per_temperature::Real = 0.01,
+function get_temperature_sequence_cooling_gradient(start_temperature = 2;
+    end_temperature = 0,
+    temperature_decrease_per_monte_carlo_step = 0.5, 
+    nr_monte_carlo_steps_per_temperature = 0.01,
     quench::Bool = true )
 
     # calculate number of monte carlo steps during temperature decrease
@@ -103,9 +103,9 @@ end
 Get temperature sequence for heating and then cooling at
 a constant temperature gradient
 """
-function get_temperature_sequence_heating_cooling_gradient(maximal_temperature::Real = 2;
-    temperature_increase_per_monte_carlo_step::Real = 0.5, 
-    nr_monte_carlo_steps_per_temperature::Real = 0.01,
+function get_temperature_sequence_heating_cooling_gradient(maximal_temperature = 2;
+    temperature_increase_per_monte_carlo_step = 0.5, 
+    nr_monte_carlo_steps_per_temperature = 0.01,
     quench::Bool = true )
 
     # calculate number of monte carlo steps during temperature increase

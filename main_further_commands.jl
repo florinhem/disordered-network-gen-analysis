@@ -3670,3 +3670,29 @@ evolution_dict["total_energy_vec"] = total_energy_vec
 evolution_dict["move_accepted_vec"] = move_accepted_vec
 
 NG.plot_network(graph_dict)
+
+
+@ProfileView.profview NG.monte_carlo_move!(graph_dict, 
+evolution_dict,
+temperature;
+print_progress = false)
+
+@ProfileView.profview NG.monte_carlo_move!(graph_dict, 
+evolution_dict,
+temperature;
+print_progress = false)
+
+@time graph_dict, move_accepted = NG.monte_carlo_move!(graph_dict, 
+evolution_dict,
+temperature;
+print_progress = false)
+
+@time graph_dict, move_accepted = NG.monte_carlo_move!(graph_dict, 
+evolution_dict,
+temperature;
+print_progress = false)
+
+@time graph_dict, move_accepted = NG.monte_carlo_move!(graph_dict, 
+evolution_dict,
+temperature;
+print_progress = false)

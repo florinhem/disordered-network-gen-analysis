@@ -457,7 +457,7 @@ end
 determine uncertainty on the local volume fraction using the equation given in this discussion:
 https://math.stackexchange.com/questions/72975/variance-of-sample-variance
 """
-function get_uncertainty_local_volume_fract_variance(nr_measurements::Real,
+function get_uncertainty_local_volume_fract_variance(nr_measurements,
                                                     volume_fract_tot::Float64,
                                                     local_volume_fract_vec::Vector{Float64},
                                                     local_volume_fract_variance::Float64)

@@ -10,7 +10,7 @@ under periodic boundary conditions
 """
 function get_distance_vector_pbc(position_a::Vector,
                                 position_b::Vector,
-                                supercell_edge_length::Real )
+                                supercell_edge_length )
 
     # get vector pointing from position a to b without considering boundary conditions
     distance_vector_without_pbc = (position_b .- position_a)
@@ -39,7 +39,7 @@ have to be taken into account
 """
 function get_virtual_position(central_vertex_position::Vector{Float64},
                                 other_vertex_position::Vector{Float64},
-                                supercell_edge_length::Real )
+                                supercell_edge_length )
 
     # get vector pointing from central vertex to neighbor without considering 
     # boundary conditions
@@ -356,7 +356,7 @@ function introduces_ring_up_to_member(graph_dict::Dict,
 
         # create new trial bond with meaningless data
         graph_dict["spatial_network"][switched_chain[i], switched_chain[2+i]] = Dict(
-            "a" => 1)
+            "a" => 1.0)
     end
 
     # check if new bonds are part of rings 

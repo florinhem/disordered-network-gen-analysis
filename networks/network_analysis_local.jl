@@ -214,7 +214,7 @@ function get_q_lm_averaged_bonds_to_neighbors_dict_single_vertex(graph_dict::Dic
         for m in -l:l
 
             # initialize current average steinhardt order parameter
-            q_lm = 0
+            q_lm = 0.0
 
             # average over neighbors
             for neighbor_count in 1:graph_dict["coordination_nr"]
@@ -262,7 +262,7 @@ function get_q_l_averaged_single_vertex_dict(graph_dict::Dict,
     for l in 0:l_max
 
         # initialize sum over m
-        q_lm_squared_sum = 0
+        q_lm_squared_sum = 0.0
 
         # loop through values of m
         for m in -l:l

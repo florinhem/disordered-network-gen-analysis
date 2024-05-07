@@ -358,8 +358,8 @@ function convert_original_graph_to_spatial_network( original_graph_dict::Dict )
     # create an empty network graph where vertexic positions and edge vectors will be stored
     spatial_network = MetaGraphsNext.MetaGraph(Graphs.Graph(); 
                                         label_type = Int64,
-                                        vertex_data_type = Dict{String, Any},
-                                        edge_data_type = Dict{String, Any} )
+                                        vertex_data_type = Dict{String, Vector{Float64}},
+                                        edge_data_type = Dict{String, Union{Float64, Vector{Float64}}} )
 
     # label each vertex by its code integer and assign it its position vector
     for vertex in Graphs.vertices(original_graph_dict["original_graph"])
@@ -547,7 +547,7 @@ function get_poisson_random_network(evolution_dict::Dict)
                     "coordination_nr" => original_graph_dict["coordination_nr"],
                     "nr_vertices" => original_graph_dict["nr_vertices"],
                     "nr_dimensions" => original_graph_dict["nr_dimensions"],
-                    "supercell_edge_length" => original_graph_dict["supercell_edge_length"]
+                    "supercell_edge_length" => float(original_graph_dict["supercell_edge_length"])
                     )
 
 

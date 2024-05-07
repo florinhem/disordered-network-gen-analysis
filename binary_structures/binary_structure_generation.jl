@@ -92,8 +92,8 @@ end
 obtain binary 3d data array for a given surface.
 The unit cell size and voxel_edge_length are given in nanometers.
 """
-function get_binary_data_from_nodal_eqn(unit_cell_length::Real=500, 
-    nr_unit_cells::Real=10,
+function get_binary_data_from_nodal_eqn(unit_cell_length=500, 
+    nr_unit_cells=10,
     surface_type::String="D";
     voxel_edge_length=10,
     volume_fraction_parameter = 0,

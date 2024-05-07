@@ -495,7 +495,7 @@ function get_spectral_density(wavevector::Vector{Float64},
                                 autocovariance_fct_array::Array)
 
     #initialize complex spectral density
-    spectral_density = 0 + 0im
+    spectral_density = 0.0 + 0.0 * im
 
     #create an autocovariance function array that is mirrored in the first two dimensions
     autocovariance_fct_array_mirrored = reverse( reverse(autocovariance_fct_array, dims=1), dims=2) 
@@ -504,7 +504,7 @@ function get_spectral_density(wavevector::Vector{Float64},
         for j in eachindex(sampling_distance_vec_vec[2])
 
             #initialize complex spectral density sum along z direction
-            spectral_density_z_component_sum = 0 + 0im
+            spectral_density_z_component_sum = 0.0 + 0.0 * im
 
             for k in eachindex(sampling_distance_vec_vec[3])[2:end]
 

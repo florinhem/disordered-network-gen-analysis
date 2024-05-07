@@ -147,7 +147,7 @@ function plot_autocovariance_fct(plot_dict_vec::Vector,
     end
 
     #if specified by the argument, save the plot
-    if save_plot && ylims == nothing
+    if save_plot && ylims === nothing
         Plots.savefig(save_path*"_autocovariance_fct.png")
 
     elseif save_plot
