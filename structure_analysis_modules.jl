@@ -10,7 +10,11 @@ import Measurements    # for handling data with uncertainty and error propagatio
 import FileIO   # for file loading and saving
 
 # set path to files
-load_path = raw"..\code_photonic_structures\general_utilities\\"
+if Sys.iswindows()
+    load_path = raw"..\code_photonic_structures\general_utilities\\"
+else
+    load_path = raw"../code_photonic_structures/general_utilities/"
+end
 
 # include IO utilities
 include(load_path*"utilities_io.jl")
@@ -35,7 +39,11 @@ import LaTeXStrings as Latex # to display latex symbols in plot labels
 import Format   # for python-like string formatting 
 
 # set path to files
-load_path = raw"..\code_photonic_structures\binary_structures\\"
+if Sys.iswindows()
+    load_path = raw"..\code_photonic_structures\binary_structures\\"
+else
+    load_path = raw"../code_photonic_structures/binary_structures/"
+end
 
 # include functions to load binary 3d data, convert and correct it and to extract
 # some basic measures
@@ -87,7 +95,11 @@ import LaTeXStrings as Latex # to display latex symbols in plot labels
 import Format   # for python-like string formatting 
 
 # set path to files
-load_path = raw"..\code_photonic_structures\networks\\"
+if Sys.iswindows()
+    load_path = raw"..\code_photonic_structures\networks\\"
+else
+    load_path = raw"../code_photonic_structures/networks/"
+end
 
 # these functions are utilities for network generation and modification 
 include(load_path*"network_utilities.jl")
@@ -130,7 +142,11 @@ import Combinatorics    # mainly used to get all possible combinations of bonds
 import SphericalHarmonics   # to calculate spherical harmonics
 
 # set path to files
-load_path = raw"..\code_photonic_structures\networks\\"
+if Sys.iswindows()
+    load_path = raw"..\code_photonic_structures\networks\\"
+else
+    load_path = raw"../code_photonic_structures/networks/"
+end
 
 # these functions can be used to characterize networks
 # by means of local order parameters

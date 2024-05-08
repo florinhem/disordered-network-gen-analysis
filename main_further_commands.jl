@@ -3696,3 +3696,13 @@ print_progress = false)
 evolution_dict,
 temperature;
 print_progress = false)
+
+
+evolution_dicts_directory_path = "../structures/random_networks/216_vertices_multiple_runs/test_networks_run_1/"
+save_path = "../structures/random_networks/216_vertices_multiple_runs/test_networks_run_2/"
+
+NG.generate_graphs_from_evolution_dicts_in_directory(
+    evolution_dicts_directory_path,
+    save_path;
+    print_every_nr_attempted_bond_switches = 100,
+    print_progress = true)

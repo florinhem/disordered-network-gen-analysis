@@ -313,6 +313,99 @@ end
 
 
 """
+For each evolution dict in a list of filenames in one directory generate a new graph
+with same evolution in another directory
+"""
+function generate_graphs_from_evolution_dicts_single_thread(filenames,
+    evolution_dicts_directory_path::String,
+    save_path::String;
+    print_every_nr_attempted_bond_switches::Int64 = 100,
+    print_progress::Bool = false,
+    random_evolution_seed::Int64 = -1)
+
+    # loop through files
+    for filename in filenames
+
+        # check that file is evolution dict
+        if endswith(filename, "_evolution.h5")
+
+            # load evolution dict
+            evolution_dict = GU.load_h5_dict(evolution_dicts_directory_path*filename)
+
+            # remove move_accepted_vec and total_energy_vec
+            delete!(evolution_dict, "move_accepted_vec")
+            delete!(evolution_dict, "total_energy_vec")
+
+            # print current thread id and filename if desired
+            if print_progress
+                Format.printfmtln("Thread {1} out of {2} threads is evolving file {3}",
+                    Threads.threadid(), Threads.nthreads(), filename)
+            end
+            
+            # generate initial graph
+            graph_dict = get_periodic_network(evolution_dict)
+
+            # evolve graph
+            graph_dict, total_energy_vec, move_accepted_vec = evolve_network_temperature_sequence!(
+                graph_dict, evolution_dict; 
+                print_progress = print_progress,
+                print_every_nr_attempted_bond_switches = print_every_nr_attempted_bond_switches,
+                random_evolution_seed = random_evolution_seed)
+
+            # save move_accepted_vec and total_energy_vec
+            evolution_dict["total_energy_vec"] = total_energy_vec
+            evolution_dict["move_accepted_vec"] = move_accepted_vec
+
+            # save graph
+            save_graph_to_h5_and_gml(graph_dict,
+                filename[1:end-13];
+                evolution_dict = evolution_dict,
+                save_path = save_path)
+        end
+
+    end
+
+    return
+end
+
+
+"""
+Get all evolution dicts in one directory and for each generate a new graph with
+same evolution in another directory. This is done in a multi-threaded (parallel)
+fashion by splitting all filenames into chunks that are run on different threads
+"""
+function generate_graphs_from_evolution_dicts_in_directory(
+    evolution_dicts_directory_path::String,
+    save_path::String;
+    print_every_nr_attempted_bond_switches::Int64 = 100,
+    print_progress::Bool = false,
+    random_evolution_seed::Int64 = -1)
+
+    # get all files in directory
+    filenames = readdir(evolution_dicts_directory_path)
+
+    # get filenames of all evolution dicts
+    filenames_evolution_dicts = filter(filename -> endswith(filename, "_evolution.h5"), filenames)
+
+    # split filenames into chunks for multi-threading
+    filename_chunks = Iterators.partition(filenames_evolution_dicts, length(filenames_evolution_dicts) ÷ Threads.nthreads())
+
+    # run all filename chunk in parallel in different threads
+    map(filename_chunks) do filename_chunk
+
+        Threads.@spawn generate_graphs_from_evolution_dicts_single_thread(filename_chunk,
+            evolution_dicts_directory_path,
+            save_path;
+            print_every_nr_attempted_bond_switches = print_every_nr_attempted_bond_switches,
+            print_progress = print_progress,
+            random_evolution_seed = random_evolution_seed)
+    end
+    
+    return
+end
+
+
+"""
 Get mesh from network
 """
 function save_mesh_from_network(graph_dict::Dict, filename::String;
