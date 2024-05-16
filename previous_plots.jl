@@ -865,3 +865,55 @@ temperature_vec, label=Latex.L"kT_\mathrm{max}=0.1", ls= :dash, linecolor=Plots.
 Plots.plot!(xlabel="Monte Carlo step", ylabel=Latex.L"kT", xlims=(0, 20), right_margin = 3Plots.mm)
 
 Plots.savefig(path*"temperature_T_0.1_1.0_quenched.png")
+
+
+
+dict_path = raw"..\analysis_data\random_networks\\"
+filename = "216_vertices_T_0.2_heated_for_0.5_steps_quenched"
+
+structure_factor_dict = GU.load_h5_dict(dict_path*filename*"_structure_factor_array.h5")
+
+save_path = raw"..\plots\random_networks\\"*filename*"_y_z"
+
+NA.plot_structure_factor_heatmap(structure_factor_dict,
+    save_path;
+    title="Structure factor",
+    save_plot = true,
+    clims = (0, 4 ),
+    x_y_lims = nothing,
+    wavevector_component_to_fix = 1,
+    wavevector_value_fixed = 0)
+
+
+save_path = raw"..\plots\random_networks\\"*filename*"_x_z"
+
+NA.plot_structure_factor_heatmap(structure_factor_dict,
+    save_path;
+    title="Structure factor",
+    save_plot = true,
+    clims = (0, 4 ),
+    x_y_lims = nothing,
+    wavevector_component_to_fix = 2,
+    wavevector_value_fixed = 0)
+
+save_path = raw"..\plots\random_networks\\"*filename*"_x_y"
+
+NA.plot_structure_factor_heatmap(structure_factor_dict,
+    save_path;
+    title="Structure factor",
+    save_plot = true,
+    clims = (0, 4 ),
+    x_y_lims = nothing,
+    wavevector_component_to_fix = 3,
+    wavevector_value_fixed = 0)
+
+save_path = raw"..\plots\random_networks\\"*filename*"_x_z_offset"
+
+NA.plot_structure_factor_heatmap(structure_factor_dict,
+        save_path;
+        title="Structure factor",
+        save_plot = true,
+        clims = (0, 4 ),
+        x_y_lims = nothing,
+        wavevector_component_to_fix = 3,
+        wavevector_value_fixed = 2*pi)

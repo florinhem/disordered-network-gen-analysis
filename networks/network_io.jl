@@ -340,6 +340,7 @@ function generate_graphs_from_evolution_dicts_single_thread(filenames,
             if print_progress
                 Format.printfmtln("Thread {1} out of {2} threads is evolving file {3}",
                     Threads.threadid(), Threads.nthreads(), filename)
+                
             end
             
             # generate initial graph

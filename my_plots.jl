@@ -56,29 +56,3 @@ function piticklabel(x::Rational, ::Val{:latex})
     Latex.L"%$S\frac{%$N\pi}{%$d}"
 end
 
-
-
-dict_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
-
-function heaviside(t)
-    0.5 * (sign(t) + 1)
- end
-
-temperature = 1.0
-
-mc_step_vec = collect(0:0.01:20)
-temperature_vec = heaviside.(- (mc_step_vec .- 0.5)) .* temperature
-
-Plots.plot(mc_step_vec, 
-temperature_vec, label=Latex.L"kT_\mathrm{max}=1.0", ls= :dash, linecolor=Plots.palette(:tab10)[2])
-
-temperature = 0.1
-
-temperature_vec = heaviside.(- (mc_step_vec .- 0.5)) .* temperature
-
-Plots.plot!(mc_step_vec, 
-temperature_vec, label=Latex.L"kT_\mathrm{max}=0.1", ls= :dash, linecolor=Plots.palette(:tab10)[1] )
-
-Plots.plot!(xlabel="Monte Carlo step", ylabel=Latex.L"kT", xlims=(0, 20), right_margin = 3Plots.mm)
-
-Plots.savefig(path*"temperature_T_0.1_1.0_quenched.png")

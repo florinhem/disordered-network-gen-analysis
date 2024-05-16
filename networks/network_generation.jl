@@ -10,7 +10,7 @@ where each column is a position vector
 function get_primitive_cubic_vertex_position_mat(nr_vertices_per_dimension::Int64, 
                                             nr_dimensions::Int64)
 
-    # generate empty matrix for vertexic positions
+    # generate empty matrix for vertex positions
     vertex_position_mat = Matrix{Float64}(undef, nr_dimensions, nr_vertices_per_dimension^nr_dimensions)
 
     # loop through Cartesian Indices
@@ -45,7 +45,7 @@ function get_primitive_cubic_network(nr_vertices::Int64;
     vertex_position_mat = get_primitive_cubic_vertex_position_mat(nr_vertices_per_dimension, 
                                                             nr_dimensions)
 
-    # generate a graph by connecting all vertices of specified vertexic positions that are closer
+    # generate a graph by connecting all vertices of specified vertex positions that are closer
     # to each other than the distance cutoff
     # p=2 is the Euclidean distance
     original_graph, edge_length_vec = Graphs.euclidean_graph(vertex_position_mat, 
@@ -72,7 +72,7 @@ end
 """
 generate matrix of vertex positions in the bcc structure,
 where each column is a position vector.
-Inside a unit cell, the vertexic positions in units of the nearest
+Inside a unit cell, the vertex positions in units of the nearest
 neighbor distance are
 (1/(2*sqrt(3))) .* [[1, 1, 1], [3, 3, 3]]
 """
@@ -80,7 +80,7 @@ function get_bcc_vertex_position_mat(nr_unit_cells_per_dimension::Int64,
                                     nr_vertices::Int64,
                                     edge_length_unit_cell)
 
-    # generate empty matrix for vertexic positions
+    # generate empty matrix for vertex positions
     vertex_position_mat = Matrix{Float64}(undef, 3, nr_vertices)
 
     # set the coordinates inside a unit cell in units of the equilibrium bond length
@@ -136,7 +136,7 @@ function get_bcc_network(nr_vertices )
                                                             nr_vertices,
                                                             edge_length_unit_cell)
 
-    # generate a graph by connecting all vertices of specified vertexic positions that are closer
+    # generate a graph by connecting all vertices of specified vertex positions that are closer
     # to each other than the distance cutoff
     # p=2 is the Euclidean distance
     original_graph, edge_length_vec = Graphs.euclidean_graph(vertex_position_mat, 
@@ -163,7 +163,7 @@ end
 """
 generate matrix of vertex positions in the fcc structure,
 where each column is a position vector.
-Inside a unit cell, the vertexic positions in units of the nearest
+Inside a unit cell, the vertex positions in units of the nearest
 neighbor distance are
 (sqrt(2)/4) .* [[1, 1, 1], [1, 3, 3], [3, 1, 3], [3, 3, 1]]
 """
@@ -171,7 +171,7 @@ function get_fcc_vertex_position_mat(nr_unit_cells_per_dimension::Int64,
                                     nr_vertices::Int64,
                                     edge_length_unit_cell)
 
-    # generate empty matrix for vertexic positions
+    # generate empty matrix for vertex positions
     vertex_position_mat = Matrix{Float64}(undef, 3, nr_vertices)
 
     # set the coordinates inside a unit cell in units of the equilibrium bond length
@@ -228,7 +228,7 @@ function get_fcc_network(nr_vertices )
                                                             nr_vertices,
                                                             edge_length_unit_cell)
 
-    # generate a graph by connecting all vertices of specified vertexic positions that are closer
+    # generate a graph by connecting all vertices of specified vertex positions that are closer
     # to each other than the distance cutoff
     # p=2 is the Euclidean distance
     original_graph, edge_length_vec = Graphs.euclidean_graph(vertex_position_mat, 
@@ -255,7 +255,7 @@ end
 """
 generate matrix of vertex positions in the cubic diamond structure,
 where each column is a position vector.
-Inside a unit cell, the vertexic positions in units of the nearest
+Inside a unit cell, the vertex positions in units of the nearest
 neighbor distance are
 1/sqrt(3) .* [[0,0,0], [0,2,2], [2,0,2], [2,2,0],
     [3,3,3], [3,1,1], [1,3,1], [1,1,3]]
@@ -264,7 +264,7 @@ function get_diamond_vertex_position_mat(nr_unit_cells_per_dimension::Int64,
                                     nr_vertices,
                                     edge_length_unit_cell)
 
-    # generate empty matrix for vertexic positions
+    # generate empty matrix for vertex positions
     vertex_position_mat = Matrix{Float64}(undef, 3, nr_vertices)
 
     # set the coordinates inside a unit cell in units of the equilibrium bond length
@@ -326,7 +326,7 @@ function get_diamond_network(nr_vertices )
                                                             nr_vertices,
                                                             edge_length_unit_cell)
 
-    # generate a graph by connecting all vertices of specified vertexic positions that are closer
+    # generate a graph by connecting all vertices of specified vertex positions that are closer
     # to each other than the distance cutoff
     # p=2 is the Euclidean distance
     original_graph, edge_length_vec = Graphs.euclidean_graph(vertex_position_mat, 
@@ -351,11 +351,11 @@ end
 
 
 """
-add information about vertexic positions and edge vectors to the original graph
+add information about vertex positions and edge vectors to the original graph
 """
 function convert_original_graph_to_spatial_network( original_graph_dict::Dict )
 
-    # create an empty network graph where vertexic positions and edge vectors will be stored
+    # create an empty network graph where vertex positions and edge vectors will be stored
     spatial_network = MetaGraphsNext.MetaGraph(Graphs.Graph(); 
                                         label_type = Int64,
                                         vertex_data_type = Dict{String, Vector{Float64}},
@@ -412,7 +412,7 @@ create a network graph representing the given network structure
 function get_periodic_network(evolution_dict)
 
     # depending on the network structure, create an original graph that does not
-    # contain vertexic positions and bond information
+    # contain vertex positions and bond information
 
     # primitive cubic which is defined for any dimensionality
     if cmp(evolution_dict["network_type"], "primitive cubic") == 0
@@ -505,7 +505,7 @@ function get_poisson_random_network(evolution_dict::Dict)
 
     end
 
-    # create an empty network graph where vertexic positions and edge vectors will be stored
+    # create an empty network graph where vertex positions and edge vectors will be stored
     spatial_network = MetaGraphsNext.MetaGraph(Graphs.Graph(); 
                                         label_type = Int64,
                                         vertex_data_type = Dict{String, Any},

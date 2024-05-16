@@ -240,6 +240,135 @@ end
 
 
 """
+Get array of wavevectors along positive z direction for which the structure factor is calculated
+when isotropy is not assumed.
+Each wavevector coordinate is spanned by k_j = 2*pi*n_j/L_j where n_j is an integer within
+-maximal_wavevector_int*supercell_edge_length <= n_j <= maximal_wavevector_int*supercell_edge_length
+for j = 1,2 and
+0 <= n_j <= maximal_wavevector_int*supercell_edge_length for j = 3
+"""
+function get_wavevector_array_positive_z(graph_dict::Dict;
+    maximal_wavevector_int::Int64 = 5)
+
+    # get nr of wavevectors per positive direction
+    nr_wavevectors_per_pos_direction = Int(ceil(maximal_wavevector_int*graph_dict["supercell_edge_length"]))
+
+    # generate empty array for wavevectors positions
+    wavevector_array_positive_z = Array{Float64}(undef, 
+                                        2*nr_wavevectors_per_pos_direction + 1,
+                                        2*nr_wavevectors_per_pos_direction + 1,
+                                        nr_wavevectors_per_pos_direction + 1,
+                                        graph_dict["nr_dimensions"])
+
+    # loop through Cartesian Indices
+    for i in CartesianIndices(wavevector_array_positive_z)
+
+        # fill wavevector array depending on dimension of current index
+        wavevector_array_positive_z[i] =  2*pi/graph_dict["supercell_edge_length"]*(
+            (i[1] - nr_wavevectors_per_pos_direction - 1)* ==(i[4], 1) 
+            + (i[2] - nr_wavevectors_per_pos_direction - 1)* ==(i[4], 2) 
+            + (i[3] - 1)* ==(i[4], 3)
+           ) 
+
+    end
+
+    return wavevector_array_positive_z
+end
+
+
+"""
+Measure structure factor as a function of wavevector
+using the scattering intensity estimator
+as described in equation 24 of 10.1007/s11222-023-10219-1
+"""
+function get_structure_factor(wavevector::Vector{Float64},
+    graph_dict::Dict)
+
+    # initialize the sum of the scattering field
+    scattering_field_sum = 0.0 + 0.0*im
+    
+    # perform sum over all vertices
+    for vertex in MetaGraphsNext.labels(graph_dict["spatial_network"])
+
+        # get vertex position
+        vertex_pos = graph_dict["spatial_network"][vertex]["position"]
+    
+        # calculate structure factor contribution of current vertex and wavevector
+        scattering_field_sum += exp(-im*LinearAlgebra.dot(wavevector, vertex_pos))
+
+    end
+
+    # calculate structure factor
+    structure_factor = 1/graph_dict["nr_vertices"] * abs2(scattering_field_sum)
+
+    return structure_factor
+end
+
+
+"""
+Measure structure factor for an array of wavevectors
+using the scattering intensity estimator
+as described in equation 24 of 10.1007/s11222-023-10219-1
+"""
+function get_structure_factor_by_wavevector_array(graph_dict::Dict;
+    maximal_wavevector_int::Int64 = 5,
+    wavevector_array_positive_z::Array{Float64} = 
+        get_wavevector_array_positive_z(graph_dict; maximal_wavevector_int=maximal_wavevector_int),
+    save_result = false,
+    save_path = raw"..\analysis_data\sample_name",
+    label = nothing)
+
+    # initialize structure factor array
+    structure_factor_array = Array{Float64}(undef, size(wavevector_array_positive_z)[1:3]...)
+
+    # get structure factor for all wavevectors
+    for i in 1:size(wavevector_array_positive_z)[1], j in 1:size(wavevector_array_positive_z)[2], 
+        k in 1:size(wavevector_array_positive_z)[3]
+
+        structure_factor_array[i,j,k] = get_structure_factor(wavevector_array_positive_z[i,j,k,:], graph_dict)
+
+    end
+
+    # extend structure factor to negative z direction
+    structure_factor_array = cat(dims=3, 
+            structure_factor_array[end:-1:1,end:-1:1,end:-1:2,:], structure_factor_array)
+
+    # structure_factor_array = cat(dims=3, 
+    #         reverse(structure_factor_array[:,:,2:end,:], dims=3), structure_factor_array)
+
+    # extend wavevector array to negative z direction
+    wavevector_array_negative_z = reverse(wavevector_array_positive_z[:,:,2:end,:], dims=3)
+    wavevector_array_negative_z[:,:,:,3] .*= (-1)
+    wavevector_array = cat(dims=3, 
+        wavevector_array_negative_z, wavevector_array_positive_z)
+
+    # get vector of vector of wavenumbers along all directions
+    wavenumber_vec_vec = [wavevector_array[:,1,1,1], 
+                        wavevector_array[1,:,1,2], 
+                        wavevector_array[1,1,:,3]]
+
+    # create dict to save
+    structure_factor_dict = Dict("wavevector_array" => wavevector_array, 
+                                "wavenumber_vec_vec" => wavenumber_vec_vec,
+                                "structure_factor_array" => structure_factor_array)
+
+    # add label to dictionary if label is not nothing
+    if label !== nothing
+        structure_factor_dict["label"] = label
+    end
+
+    # save results if desired
+    if save_result
+        GU.save_dict_to_h5(copy(structure_factor_dict);
+                        save_path=save_path*"_structure_factor_array.h5")
+
+    end
+                                            
+    return structure_factor_dict
+end
+
+
+"""
 Get local number variance for a spherical window of given radius from the
 structure factor according to eq 58 in 10.1016/j.physrep.2018.03.001
 """

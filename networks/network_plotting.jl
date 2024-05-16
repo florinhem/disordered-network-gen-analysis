@@ -163,8 +163,8 @@ function plot_network(graph_dict::Dict;
     p.layout = fixed_layout
 
     # hide axes and grid
-    # GLMakie.hidedecorations!(GLMakie.Axis(f)) 
-    # GLMakie.hidespines!(GLMakie.Axis(f))
+    GLMakie.hidedecorations!(GLMakie.Axis(f)) 
+    GLMakie.hidespines!(GLMakie.Axis(f))
 
     return f
 end
@@ -246,8 +246,8 @@ function plot_network_rainbow(graph_dict::Dict)
     p.layout = fixed_layout
 
     # hide axes and grid
-    # GLMakie.hidedecorations!(GLMakie.Axis(f)) 
-    # GLMakie.hidespines!(GLMakie.Axis(f))
+    GLMakie.hidedecorations!(GLMakie.Axis(f)) 
+    GLMakie.hidespines!(GLMakie.Axis(f))
 
     return f
 end

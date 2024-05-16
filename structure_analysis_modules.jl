@@ -113,7 +113,7 @@ include(load_path*"network_energy_calculation.jl")
 # these functions modify networks
 include(load_path*"network_modification.jl")
 
-# functions for graph plotting
+# functions to plot networks
 include(load_path*"network_plotting.jl")
 
 # functions for loading and saving graph data
@@ -140,6 +140,9 @@ import Polynomials  # to curve fit polynomials
 import Peaks    # to locate peaks of a function
 import Combinatorics    # mainly used to get all possible combinations of bonds
 import SphericalHarmonics   # to calculate spherical harmonics
+import Plots    # for plotting
+import LaTeXStrings as Latex # to display latex symbols in plot labels
+import Format   # for python-like string formatting 
 
 # set path to files
 if Sys.iswindows()
@@ -161,6 +164,9 @@ include(load_path*"network_analysis_utilities.jl")
 
 # these functions are used to evolve and eventually analyze networks
 include(load_path*"network_analysis_and_evolution.jl")
+
+# functions to plot network analysis results
+include(load_path*"network_analysis_plotting.jl")
 
 end
 

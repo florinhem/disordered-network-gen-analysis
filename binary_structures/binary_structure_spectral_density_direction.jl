@@ -64,7 +64,6 @@ function get_random_coordinates_at_direction(sampling_vec::Vector,
 end
 
 
-
 """
 Get array vectors out of three different vectors containing the
 x, y and z components
@@ -91,7 +90,6 @@ function get_vector_array(component_vec_vec::Vector)
 
     return vector_array
 end
-
 
 
 """

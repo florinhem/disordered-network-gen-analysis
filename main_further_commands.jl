@@ -3706,3 +3706,15 @@ NG.generate_graphs_from_evolution_dicts_in_directory(
     save_path;
     print_every_nr_attempted_bond_switches = 100,
     print_progress = true)
+
+
+evolution_dicts_directory_path = "../structures/random_networks/216_vertices_multiple_runs/216_vertices_run_1/"
+save_path = "../structures/random_networks/216_vertices_multiple_runs/216_vertices_run_4/"
+
+println("Starting network generation")
+
+NG.generate_graphs_from_evolution_dicts_in_directory(
+    evolution_dicts_directory_path,
+    save_path;
+    print_every_nr_attempted_bond_switches = 500,
+    print_progress = true)

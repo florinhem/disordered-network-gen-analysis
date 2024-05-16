@@ -7,6 +7,8 @@ import .NetworkGeneration as NG
 import .NetworkAnalysis as NA
 import .GeneralUtilities as GU
 
+import ProfileView
+
 # possible choices of nr_vertices for diamond: 64, 216, 512, 1000, that is (2*n)^3 with natural nr natural
 
 # the supercell edge lengths are 
@@ -17,12 +19,12 @@ import .GeneralUtilities as GU
 
 # julia --threads 20
 
+# load some network
+dict_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
+filename = "216_vertices_T_0.2_heated_for_0.5_steps_quenched"
 
-evolution_dicts_directory_path = "../structures/random_networks/216_vertices_multiple_runs/216_vertices_run_1/"
-save_path = "../structures/random_networks/216_vertices_multiple_runs/216_vertices_run_2/"
+save_path = raw"..\analysis_data\random_networks\\"
 
-NG.generate_graphs_from_evolution_dicts_in_directory(
-    evolution_dicts_directory_path,
-    save_path;
-    print_every_nr_attempted_bond_switches = 500,
-    print_progress = true)
+graph_dict = NG.load_graph_from_h5_and_gml(dict_path*filename)
+
+structure_factor_dict = NA.get_structure_factor_by_wavevector_array(graph_dict; save_result = true, save_path= save_path*filename)

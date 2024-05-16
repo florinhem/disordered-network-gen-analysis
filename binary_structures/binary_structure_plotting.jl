@@ -601,7 +601,6 @@ function plot_spectral_density_heatmap(plot_dict::Dict,
 end
 
 
-
 """
 This function plots several statistical measures, that is
 - local volume fraction variance
