@@ -917,3 +917,17 @@ NA.plot_structure_factor_heatmap(structure_factor_dict,
         x_y_lims = nothing,
         wavevector_component_to_fix = 3,
         wavevector_value_fixed = 2*pi)
+
+
+dict_path = raw"..\analysis_data\random_networks\\"
+filename = "216_vertices_T_0.2_heated_for_0.5_steps_quenched"
+
+structure_factor_angle_averaged_dict = GU.load_h5_dict(dict_path*filename*"_structure_factor_angle_averaged.h5")
+
+Plots.plot(structure_factor_angle_averaged_dict["filtered_wavenumber_vec"], 
+                    Measurements.value.(structure_factor_angle_averaged_dict["filtered_structure_factor_angle_averaged_vec"]) , 
+                    ribbon =  Measurements.uncertainty.(structure_factor_angle_averaged_dict["filtered_structure_factor_angle_averaged_vec"]))
+
+Plots.plot!(xlabel="wavenumber / "*Latex.L"d^{-1}", ylabel = "structure factor", xtick=pitick(0, 56, 1; mode=:latex), legend = false, xlims=(0, 53), ylims=(0, 2))
+
+Plots.savefig(raw"..\plots\random_networks\\"*filename*".png")

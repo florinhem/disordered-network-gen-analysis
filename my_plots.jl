@@ -55,4 +55,3 @@ function piticklabel(x::Rational, ::Val{:latex})
     d == 1 && return Latex.L"%$S%$N\pi"
     Latex.L"%$S\frac{%$N\pi}{%$d}"
 end
-

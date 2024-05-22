@@ -331,10 +331,7 @@ function get_structure_factor_by_wavevector_array(graph_dict::Dict;
 
     # extend structure factor to negative z direction
     structure_factor_array = cat(dims=3, 
-            structure_factor_array[end:-1:1,end:-1:1,end:-1:2,:], structure_factor_array)
-
-    # structure_factor_array = cat(dims=3, 
-    #         reverse(structure_factor_array[:,:,2:end,:], dims=3), structure_factor_array)
+            structure_factor_array[end:-1:1,end:-1:1,end:-1:2], structure_factor_array)
 
     # extend wavevector array to negative z direction
     wavevector_array_negative_z = reverse(wavevector_array_positive_z[:,:,2:end,:], dims=3)
@@ -365,6 +362,111 @@ function get_structure_factor_by_wavevector_array(graph_dict::Dict;
     end
                                             
     return structure_factor_dict
+end
+
+
+"""
+Calculate angle averaged structure factor from 3d array of structure factor
+"""
+function get_structure_factor_angle_averaged(structure_factor_dict::Dict;
+    gaussian_filter::Bool = true,
+    gaussian_filter_sigma_x::Float64 = 2*pi/10, 
+    gaussian_filter_filtered_data_x_step_length::Float64 = 2*pi/10,
+    save_result::Bool = false,
+    save_path = raw"..\analysis_data\sample_name",
+    label = nothing)
+
+    # create a dictionary for angle averaged structure factor
+    # with the length squared of the index vector as the key,
+    # because it is proportional to the square of the wavenumber
+    structure_factor_angle_averaged_dict = Dict{Int64, Vector{Float64}}()
+
+    # determine origin vector of cartesian coordinates
+    index_vector_origin = Int.((size(structure_factor_dict["structure_factor_array"]) .+ 1 ) ./ 2)
+
+    # loop through Cartesian Indices
+    for i in CartesianIndices(structure_factor_dict["structure_factor_array"])
+
+        # determine actual index vector
+        index_vector = i.I .- index_vector_origin
+
+        # calculate length squared of index vector
+        index_vector_length_squared = sum(index_vector.^2)
+
+        # check if key exists in dictionary
+        if index_vector_length_squared in keys(structure_factor_angle_averaged_dict)
+
+            # add structure factor to dictionary
+            push!(structure_factor_angle_averaged_dict[index_vector_length_squared], 
+                structure_factor_dict["structure_factor_array"][i])
+
+        else
+
+            # add key and structure factor to dictionary
+            structure_factor_angle_averaged_dict[index_vector_length_squared] = 
+                [structure_factor_dict["structure_factor_array"][i]]
+
+        end
+
+    end
+    
+    # initialize wavenumber vector and structure factor vector
+    wavenumber_vec = Vector{Float64}()
+    structure_factor_angle_averaged_vec = Vector{Measurements.Measurement{Float64}}()
+
+    # get lattice constant of reciprocal lattice
+    reciprocal_lattice_constant = LinearAlgebra.norm(
+        structure_factor_dict["wavevector_array"][(index_vector_origin .+ [1,0,0])...,:])
+
+    # get vector of wavenumbers and angle averaged structure factor including
+    # their uncertainty
+    for key in keys(structure_factor_angle_averaged_dict)
+
+        # get wavenumber from wavevector
+        push!(wavenumber_vec, reciprocal_lattice_constant*sqrt(key))
+
+        # get angle averaged structure factor
+        push!(structure_factor_angle_averaged_vec, 
+            Measurements.measurement(Statistics.mean(structure_factor_angle_averaged_dict[key]),
+            Statistics.std(structure_factor_angle_averaged_dict[key])))
+
+    end
+
+    # sort wavenumber vector and structure factor vector
+    structure_factor_angle_averaged_vec = structure_factor_angle_averaged_vec[sortperm(wavenumber_vec)]
+    sort!(wavenumber_vec)
+
+    # create dict to save
+    structure_factor_angle_averaged_dict = Dict()
+
+    structure_factor_angle_averaged_dict["wavenumber_vec"] = wavenumber_vec
+    structure_factor_angle_averaged_dict["structure_factor_angle_averaged_vec"] = structure_factor_angle_averaged_vec
+
+    # apply gaussian filter if desired
+    if gaussian_filter
+        filtered_data_x, filtered_data_y = GU.gaussian_filter_1d(wavenumber_vec[2:end], 
+            structure_factor_angle_averaged_vec[2:end]; 
+            sigma_x=gaussian_filter_sigma_x, 
+            filtered_data_x_step_length=gaussian_filter_filtered_data_x_step_length)
+
+        structure_factor_angle_averaged_dict["filtered_wavenumber_vec"] = filtered_data_x
+        structure_factor_angle_averaged_dict["filtered_structure_factor_angle_averaged_vec"] = filtered_data_y
+        structure_factor_angle_averaged_dict["gaussian_filter_sigma_x"] = gaussian_filter_sigma_x
+    end
+
+    # add label to dictionary if label is not nothing
+    if label !== nothing
+        structure_factor_angle_averaged_dict["label"] = label
+    end
+
+    # save results if desired
+    if save_result
+        GU.save_dict_to_h5(copy(structure_factor_angle_averaged_dict);
+                        save_path=save_path*"_structure_factor_angle_averaged.h5")
+
+    end
+                                            
+    return structure_factor_angle_averaged_dict
 end
 
 

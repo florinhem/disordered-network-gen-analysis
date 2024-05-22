@@ -3718,3 +3718,29 @@ NG.generate_graphs_from_evolution_dicts_in_directory(
     save_path;
     print_every_nr_attempted_bond_switches = 500,
     print_progress = true)
+
+
+
+evolution_dicts_directory_path = "../structures/random_networks/216_vertices_multiple_runs/216_vertices_run_1/"
+
+for i in 3:5
+
+    save_path = "../structures/random_networks/216_vertices_multiple_runs/216_vertices_run_"*string(i)*"/"
+
+    println("Starting run "*string(i))
+
+    NG.generate_graphs_from_evolution_dicts_in_directory(
+    evolution_dicts_directory_path,
+    save_path;
+    print_every_nr_attempted_bond_switches = 500,
+    print_progress = true)
+
+end
+    
+
+dict_path = raw"..\analysis_data\random_networks\\"
+filename = "216_vertices_T_0.2_heated_for_0.5_steps_quenched"
+
+structure_factor_dict = GU.load_h5_dict(dict_path*filename*"_structure_factor_array.h5")
+
+structure_factor_angle_averaged_dict = NA.get_structure_factor_angle_averaged(structure_factor_dict, save_result = true, save_path= dict_path*filename)
