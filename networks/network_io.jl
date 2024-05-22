@@ -197,7 +197,7 @@ function load_spatial_network_from_gml(dict_path::String)
         # get vertex and position
         # Regular expressions to extract integer and float values
         id_regex = r"id (\d+)"
-        position_regex = r"x (\d+\.\d+) y (\d+\.\d+) z (\d+\.\d+)"
+        position_regex = r"x ([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?) y ([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?) z ([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)"
 
         # Extracting id
         id_match = match(id_regex, node_string)
@@ -220,7 +220,7 @@ function load_spatial_network_from_gml(dict_path::String)
         # Regular expressions to extract integer and float values
         source_regex = r"source (\d+)"
         target_regex = r"target (\d+)"
-        vector_regex = r"x (-?\d+\.\d+) y (-?\d+\.\d+) z (-?\d+\.\d+)"
+        vector_regex = r"x ([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?) y ([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?) z ([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)"
         distance_squared_regex = r"distance_squared (\d+\.\d+)"
 
         # Extracting source

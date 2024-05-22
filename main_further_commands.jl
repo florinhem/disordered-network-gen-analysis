@@ -3744,3 +3744,11 @@ filename = "216_vertices_T_0.2_heated_for_0.5_steps_quenched"
 structure_factor_dict = GU.load_h5_dict(dict_path*filename*"_structure_factor_array.h5")
 
 structure_factor_angle_averaged_dict = NA.get_structure_factor_angle_averaged(structure_factor_dict, save_result = true, save_path= dict_path*filename)
+
+
+dict_path = raw"..\structures\random_networks\216_vertices_multiple_runs\216_vertices_run_4\\"
+filename = "216_vertices_T_0.2_heat_cool_0.2_per_mc_quenched"
+
+graph_dict = NG.load_graph_from_h5_and_gml(dict_path*filename)
+
+NG.plot_network(graph_dict)
