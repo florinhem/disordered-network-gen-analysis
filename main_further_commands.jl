@@ -3752,3 +3752,110 @@ filename = "216_vertices_T_0.2_heat_cool_0.2_per_mc_quenched"
 graph_dict = NG.load_graph_from_h5_and_gml(dict_path*filename)
 
 NG.plot_network(graph_dict)
+
+
+dict_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
+filename = "1000_vertices_T_0.1_heated_for_0.5_steps_quenched"
+
+graph_dict = NG.load_graph_from_h5_and_gml(dict_path*filename)
+
+structure_factor_dict = NA.get_structure_factor_by_wavevector_array(graph_dict;
+save_result = true,
+save_path = raw"..\analysis_data\random_networks\\"*filename,
+label = "1000 vertices, T=0.1, heated for 0.5 steps, quenched")
+
+structure_factor_angle_averaged_dict = NA.get_structure_factor_angle_averaged(structure_factor_dict, save_result = true, save_path = raw"..\analysis_data\random_networks\\"*filename,
+label = "1000 vertices, T=0.1, heated for 0.5 steps, quenched")
+
+
+filename = "1000_vertices_T_1.0_heated_for_0.5_steps_quenched"
+
+graph_dict = NG.load_graph_from_h5_and_gml(dict_path*filename)
+
+structure_factor_dict = NA.get_structure_factor_by_wavevector_array(graph_dict;
+save_result = true,
+save_path = raw"..\analysis_data\random_networks\\"*filename,
+label = "1000 vertices, T=1.0, heated for 0.5 steps, quenched")
+
+structure_factor_angle_averaged_dict = NA.get_structure_factor_angle_averaged(structure_factor_dict, save_result = true, save_path = raw"..\analysis_data\random_networks\\"*filename,
+label = "1000 vertices, T=1.0, heated for 0.5 steps, quenched")
+
+
+filename = "1000_vertices_perfect_diamond"
+
+graph_dict = NG.load_graph_from_h5_and_gml(dict_path*filename)
+
+structure_factor_dict = NA.get_structure_factor_by_wavevector_array(graph_dict;
+save_result = true,
+save_path = raw"..\analysis_data\random_networks\\"*filename,
+label = "1000 vertices, T=1.0, heated for 0.5 steps, quenched")
+
+structure_factor_angle_averaged_dict = NA.get_structure_factor_angle_averaged(structure_factor_dict, save_result = true, save_path = raw"..\analysis_data\random_networks\\"*filename,
+label = "1000 vertices, T=1.0, heated for 0.5 steps, quenched")
+
+dict_path = raw"..\analysis_data\random_networks\\"
+filename = "1000_vertices_T_0.1_heated_for_0.5_steps_quenched"
+
+structure_factor_dict = GU.load_h5_dict(dict_path*filename*"_structure_factor_array.h5")
+
+structure_factor_angle_averaged_dict = NA.get_structure_factor_angle_averaged(structure_factor_dict, save_result = true, save_path = raw"..\analysis_data\random_networks\\"*filename,
+gaussian_filter_sigma_x = 2*pi/20, 
+gaussian_filter_filtered_data_x_step_length = 2*pi/20,
+label = "1000 vertices, T=0.1, heated for 0.5 steps, quenched")
+
+
+filename = "1000_vertices_T_1.0_heated_for_0.5_steps_quenched"
+
+
+structure_factor_dict = GU.load_h5_dict(dict_path*filename*"_structure_factor_array.h5")
+
+structure_factor_angle_averaged_dict = NA.get_structure_factor_angle_averaged(structure_factor_dict, save_result = true, save_path = raw"..\analysis_data\random_networks\\"*filename,
+gaussian_filter_sigma_x = 2*pi/20, 
+gaussian_filter_filtered_data_x_step_length = 2*pi/20,
+label = "1000 vertices, T=1.0, heated for 0.5 steps, quenched")
+
+
+filename = "1000_vertices_perfect_diamond"
+
+
+structure_factor_dict = GU.load_h5_dict(dict_path*filename*"_structure_factor_array.h5")
+
+structure_factor_angle_averaged_dict = NA.get_structure_factor_angle_averaged(structure_factor_dict, save_result = true, save_path = raw"..\analysis_data\random_networks\\"*filename,
+gaussian_filter_sigma_x = 2*pi/20, 
+gaussian_filter_filtered_data_x_step_length = 2*pi/20,
+label = "1000 vertices, T=1.0, heated for 0.5 steps, quenched")
+
+
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_anneal_quench_multiple_runs\evolution_dicts\\"
+
+randomization_temperature_vec = [2., 4., 8.]
+randomization_nr_monte_carlo_steps_vec = [2., 6., 10.]
+annealing_temperature_vec = [0.36, 0.5, 1.]
+
+for randomization_temperature in randomization_temperature_vec
+    for randomization_nr_monte_carlo_steps in randomization_nr_monte_carlo_steps_vec
+        for annealing_temperature in annealing_temperature_vec
+
+            temperature_vec = [randomization_temperature]
+            nr_monte_carlo_steps_per_temperature_vec = [randomization_nr_monte_carlo_steps]
+
+            for i in 1:10
+                append!(temperature_vec, [annealing_temperature, 0])
+                append!(nr_monte_carlo_steps_per_temperature_vec, [6, 50])
+            end
+
+            evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 ,temperature_vec = temperature_vec,
+            nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3)
+
+            filename = "216_vertices_randomization_T_"*string(randomization_temperature)*"_randomization_nr_MC_steps_"*string(randomization_nr_monte_carlo_steps)*"_annealing_T_"*string(annealing_temperature)*"_quenched_evolution.h5"
+
+            GU.save_dict_to_h5(evolution_dict;
+                        save_path=save_path*filename)
+
+        end
+    end
+end
+
+
+

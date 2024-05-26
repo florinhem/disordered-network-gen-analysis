@@ -1,3 +1,4 @@
 {
-    "julia.executablePath": "\"julia.executablePath\":\"/home/hemmannf/julia-1.10.0/bin/julia\""
+    "julia.executablePath": "\"julia.executablePath\":\"/home/hemmannf/julia-1.10.0/bin/julia\"",
+    "terminal.integrated.cwd": "C:\\Users\\HemmannF\\OneDrive - Université de Fribourg\\structure_analysis\\code_photonic_structures"
 }

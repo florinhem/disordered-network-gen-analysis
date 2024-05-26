@@ -9,6 +9,7 @@ import .GeneralUtilities as GU
 import Plots
 import LaTeXStrings as Latex
 import Measurements
+import Polynomials
 
 
 path = raw"..\..\presentations\material\\"
@@ -55,3 +56,21 @@ function piticklabel(x::Rational, ::Val{:latex})
     d == 1 && return Latex.L"%$S%$N\pi"
     Latex.L"%$S\frac{%$N\pi}{%$d}"
 end
+
+
+dict_path = raw"..\analysis_data\random_networks\\"
+filename = "216_vertices_T_0.2_heated_for_0.5_steps_quenched"
+
+structure_factor_angle_averaged_dict = GU.load_h5_dict(dict_path*filename*"_structure_factor_angle_averaged.h5")
+
+hyperuniformity_metric, polynomial_fit = NA.get_hyperuniformity_metric(structure_factor_angle_averaged_dict)
+
+Plots.plot(structure_factor_angle_averaged_dict["wavenumber_vec"], 
+                    Measurements.value.(structure_factor_angle_averaged_dict["structure_factor_vec"]) , 
+                    ribbon =  Measurements.uncertainty.(structure_factor_angle_averaged_dict["structure_factor_vec"]))
+Plots.plot!(Polynomials.Polynomial(Measurements.value.( collect(polynomial_fit) )))
+
+
+Plots.plot!(xlabel="wavenumber / "*Latex.L"d^{-1}", ylabel = "structure factor", xtick=pitick(0, 56, 1; mode=:latex), legend = false, xlims=(0, 53), ylims=(0, 2))
+
+Plots.savefig(raw"..\plots\random_networks\\"*filename*".png")

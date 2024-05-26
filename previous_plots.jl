@@ -924,10 +924,43 @@ filename = "216_vertices_T_0.2_heated_for_0.5_steps_quenched"
 
 structure_factor_angle_averaged_dict = GU.load_h5_dict(dict_path*filename*"_structure_factor_angle_averaged.h5")
 
-Plots.plot(structure_factor_angle_averaged_dict["filtered_wavenumber_vec"], 
-                    Measurements.value.(structure_factor_angle_averaged_dict["filtered_structure_factor_angle_averaged_vec"]) , 
-                    ribbon =  Measurements.uncertainty.(structure_factor_angle_averaged_dict["filtered_structure_factor_angle_averaged_vec"]))
+Plots.plot(structure_factor_angle_averaged_dict["wavenumber_vec"], 
+                    Measurements.value.(structure_factor_angle_averaged_dict["structure_factor_vec"]) , 
+                    ribbon =  Measurements.uncertainty.(structure_factor_angle_averaged_dict["structure_factor_vec"]))
 
 Plots.plot!(xlabel="wavenumber / "*Latex.L"d^{-1}", ylabel = "structure factor", xtick=pitick(0, 56, 1; mode=:latex), legend = false, xlims=(0, 53), ylims=(0, 2))
 
 Plots.savefig(raw"..\plots\random_networks\\"*filename*".png")
+
+
+dict_path = raw"..\analysis_data\random_networks\\"
+
+filename = "1000_vertices_T_1.0_heated_for_0.5_steps_quenched"
+structure_factor_angle_averaged_dict_high_t = GU.load_h5_dict(dict_path*filename*"_structure_factor_angle_averaged.h5")
+
+filename = "1000_vertices_T_0.1_heated_for_0.5_steps_quenched"
+structure_factor_angle_averaged_dict_low_t = GU.load_h5_dict(dict_path*filename*"_structure_factor_angle_averaged.h5")
+
+filename = "1000_vertices_perfect_diamond"
+structure_factor_angle_averaged_dict_diamond = GU.load_h5_dict(dict_path*filename*"_structure_factor_angle_averaged.h5")
+
+
+Plots.plot(structure_factor_angle_averaged_dict_diamond["wavenumber_vec"], 
+                    Measurements.value.(structure_factor_angle_averaged_dict_diamond["structure_factor_vec"]) , 
+                    ribbon =  Measurements.uncertainty.(structure_factor_angle_averaged_dict_diamond["structure_factor_vec"]), linecolor=Plots.palette(:tab10)[3], label = Latex.L"kT=0", fillcolor = Plots.palette(:tab10)[3])
+
+Plots.plot!(structure_factor_angle_averaged_dict_low_t["wavenumber_vec"], 
+                    Measurements.value.(structure_factor_angle_averaged_dict_low_t["structure_factor_vec"]) , 
+                    ribbon =  Measurements.uncertainty.(structure_factor_angle_averaged_dict_low_t["structure_factor_vec"]), linecolor=Plots.palette(:tab10)[1], label = Latex.L"kT=0.1", fillcolor = Plots.palette(:tab10)[1])
+
+Plots.plot!(structure_factor_angle_averaged_dict_high_t["wavenumber_vec"], 
+                    Measurements.value.(structure_factor_angle_averaged_dict_high_t["structure_factor_vec"]) , 
+                    ribbon =  Measurements.uncertainty.(structure_factor_angle_averaged_dict_high_t["structure_factor_vec"]), linecolor=Plots.palette(:tab10)[2], label = Latex.L"kT=1.0", fillcolor = Plots.palette(:tab10)[2])
+
+Plots.plot!(xlabel="wavenumber / "*Latex.L"d^{-1}", ylabel = "structure factor", xlims=(0,32.5), ylims=(0,4), size = (500, 600),  xtick=pitick(0, 32, 1; mode=:latex), leftmargin = 0Plots.mm)
+
+Plots.savefig(raw"..\plots\random_networks\structure_factor_angle_averaged_1000_vertices_T_0.1_1.0_stretched.png")
+
+Plots.plot!(xlabel="wavenumber / "*Latex.L"d^{-1}", ylabel = "structure factor", xlims=(0,32.5), ylims=(0,12), size = (500, 800),  xtick=pitick(0, 32, 1; mode=:latex), leftmargin = 4Plots.mm)
+
+Plots.savefig(raw"..\plots\random_networks\structure_factor_angle_averaged_1000_vertices_T_0.1_1.0_very_stretched.png")

@@ -1,11 +1,6 @@
 """
 These functions are required to load data, convert and correct it and to extract
 some basic measures.
-
-This code requires the following Packages:
-import FileIO   #for file loading and saving
-import Images #for image conversion, in our case from color to grayscale
-import Statistics   #for statistical operations like mean()
 """
 
 
@@ -15,13 +10,13 @@ https://stackoverflow.com/questions/42312319/how-do-i-add-a-dimension-to-an-arra
 """
 function extend_dims(array, dim)
 
-    #get current shape
+    # get current shape
     shape = [size(array)...]
 
-    #set new shape by adding singleton dimension
+    # set new shape by adding singleton dimension
     insert!(shape,dim,1)
 
-    #reshape array
+    # reshape array
     return reshape(array, shape...)
 end
 
@@ -31,59 +26,59 @@ correct voxel size in data array in case of anisotropic voxel size
 """
 function correct_voxel_size!(data_binary::Array{Bool}, voxel_size::Tuple) 
 
-    #determine smallest voxel size
+    # determine smallest voxel size
     min_voxel_size = minimum(voxel_size)
 
-    #get sizes of voxel corrected (stretched) data array
+    # get sizes of voxel corrected (stretched) data array
     compensated_data_size = ( Int( round( size(data_binary)[1]*voxel_size[1]/min_voxel_size ) ),
                             Int( round( size(data_binary)[2]*voxel_size[2]/min_voxel_size ) ),
                             Int( round( size(data_binary)[3]*voxel_size[3]/min_voxel_size ) ) )
 
-    #loop through all dimensions to insert sclices along those directions that
-    #need to be stretched
+    # loop through all dimensions to insert sclices along those directions that
+    # need to be stretched
     for i in 1:3
 
-        #check if array needs to be stretched along this direction
+        # check if array needs to be stretched along this direction
         if min_voxel_size !== voxel_size[i]
             println("dimension to be corrected: "*string(i))
 
-            #find the nr of slices that need to be inserted
+            # find the nr of slices that need to be inserted
             nr_insertion_slices = compensated_data_size[i] - size(data_binary)[i]
 
-            #determine indices of the compensated array that will be duplicates along given direction
+            # determine indices of the compensated array that will be duplicates along given direction
             insertion_indices = Int.( round.( (compensated_data_size[i] / nr_insertion_slices) 
                                             .* (collect(1:nr_insertion_slices) .- 1/2 ) 
                                 ))
 
-            #loop through data array along current direction and insert slices at insertion indices
+            # loop through data array along current direction and insert slices at insertion indices
             for j in insertion_indices
                 println("slice to be inserted: "*string(j))
 
-                #println("shape of insertion slice: "*string(size(insertion_slice)))
+                # println("shape of insertion slice: "*string(size(insertion_slice)))
 
-                #insert slice at index j along current direction
+                # insert slice at index j along current direction
                 if i == 1
-                    #reshape slice that will be inserted by adding a singleton dimension
+                    # reshape slice that will be inserted by adding a singleton dimension
                     insertion_slice = extend_dims(data_binary[j,:,:], i)
 
-                    #insert slice
+                    # insert slice
                     data_binary = cat(data_binary[1:j,:,:], insertion_slice, data_binary[j+1:end,:,:], dims=i )
 
                 elseif i == 2
-                    #reshape slice that will be inserted by adding a singleton dimension
+                    # reshape slice that will be inserted by adding a singleton dimension
                     insertion_slice = extend_dims(data_binary[:,j,:], i)
 
-                    #insert slice
+                    # insert slice
                     data_binary = cat(data_binary[:,1:j,:], insertion_slice, data_binary[:,j+1:end,:], dims=i )
                 else
-                    #reshape slice that will be inserted by adding a singleton dimension
+                    # reshape slice that will be inserted by adding a singleton dimension
                     insertion_slice = extend_dims(data_binary[:,:,j], i)
 
-                    #insert slice
+                    # insert slice
                     data_binary = cat(data_binary[:,:,1:j], insertion_slice, data_binary[:,:,j+1:end], dims=i )
                 end
 
-                #println("shape after insertion: "*string(size(data_binary)))
+                # println("shape after insertion: "*string(size(data_binary)))
 
             end
 
@@ -113,18 +108,18 @@ load data and get all its essential properties
 """
 function get_data_essentials(data_binary::Array{Bool})
 
-    #get total volume fraction
+    # get total volume fraction
     volume_fract_tot = get_volume_fraction(data_binary)
 
-    #get size and mean edge length of data array. Since data array is expected to be roughly 
-    #cubic, mean should yield a sensible window length scale
+    # get size and mean edge length of data array. Since data array is expected to be roughly 
+    # cubic, mean should yield a sensible window length scale
     size_data = size(data_binary)
     mean_edge_length_data = Int(round( Statistics.mean(size_data) )) 
 
-    #get the number of dimensions of data array
+    # get the number of dimensions of data array
     nr_dimensions_data = ndims(data_binary)
 
-    #warn if not 3d, since some functions only work for 3d data
+    # warn if not 3d, since some functions only work for 3d data
     if nr_dimensions_data !== 3
         @warn "Data is not 3D. Most functions thus won't work!"
     end
@@ -139,7 +134,7 @@ Convert a colorscale array to binary data
 """
 function convert_colorscale_to_binary(data_colorscale::Array)
 
-    #convert colorscale data to grayscale, then to float and then to binary data
+    # convert colorscale data to grayscale, then to float and then to binary data
     data_gray = Images.Gray.(data_colorscale)
     data_float = Float64.( data_gray ) 
     data_binary = Array(Bool.(round.( (1 / maximum( data_float ) ) .* data_float )))
@@ -159,13 +154,13 @@ function get_structure_dict_from_colorscale(data_path_raw::String;
     save_result::Bool=false, 
     save_path::String=raw"..\structures\binary_data")
 
-    #load colorscale structure data
+    # load colorscale structure data
     data_colorscale = FileIO.load(data_path_raw)
 
-    #convert colorscale data to grayscale, then to float and then to binary data
+    # convert colorscale data to grayscale, then to float and then to binary data
     data_binary = convert_colorscale_to_binary(data_colorscale)
     
-    #in case of anisotropic voxel size, correct anisotropy by stretching the array
+    # in case of anisotropic voxel size, correct anisotropy by stretching the array
     if voxel_size !== (1,1,1)
         data_binary_corrected_voxel_size = correct_voxel_size!(data_binary, voxel_size)
 
@@ -173,11 +168,11 @@ function get_structure_dict_from_colorscale(data_path_raw::String;
         data_binary_corrected_voxel_size = data_binary
     end
 
-    #get essential information about the structure data
+    # get essential information about the structure data
     volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = get_data_essentials(
                                                                 data_binary_corrected_voxel_size)
 
-    #save everything in dictionary
+    # save everything in dictionary
     structure_dict = Dict("data_binary" => data_binary_corrected_voxel_size, 
                             "volume_fract_tot" => volume_fract_tot, 
                             "size_data" => size_data, 
@@ -186,7 +181,7 @@ function get_structure_dict_from_colorscale(data_path_raw::String;
                             "voxel_edge_length" => minimum(voxel_size) ,
                             "label" => label )
 
-    #if desired, save corrected data
+    # if desired, save corrected data
     if save_result
         GU.save_dict_to_h5(structure_dict; save_path = save_path*"_structure.h5")
 
@@ -208,30 +203,30 @@ function get_structure_dict_from_colorscale_stack(data_path_raw_prefix::String,
     save_result::Bool=false, 
     save_path::String=raw"..\structures\\binary_data")
 
-    #load first image to get array dimensions
+    # load first image to get array dimensions
     image_1_colorscale = FileIO.load(data_path_raw_prefix*string(0)*data_path_raw_suffix)
 
-    #initialize empty array where data will be stored in
+    # initialize empty array where data will be stored in
     data_binary = Array{Bool}(undef, 
                                 size(image_1_colorscale)..., 
                                 nr_images)
 
-    #loop through all images and save them to array
+    # loop through all images and save them to array
     for i in 1:nr_images
 
-        #load colorscale structure data
+        # load colorscale structure data
         data_colorscale = FileIO.load(data_path_raw_prefix
                                     *string(i-1)
                                     *data_path_raw_suffix)
 
-        #convert colorscale data to grayscale, then to float and then to binary data
+        # convert colorscale data to grayscale, then to float and then to binary data
         data_binary[:,:,i] = convert_colorscale_to_binary(data_colorscale)
 
         println("slice "*string(i)*" done")
 
     end
 
-    #in case of anisotropic voxel size, correct anisotropy by stretching the array
+    # in case of anisotropic voxel size, correct anisotropy by stretching the array
     if voxel_size !== (1,1,1)
         data_binary_corrected_voxel_size = correct_voxel_size!(data_binary, voxel_size)
 
@@ -239,11 +234,11 @@ function get_structure_dict_from_colorscale_stack(data_path_raw_prefix::String,
         data_binary_corrected_voxel_size = data_binary
     end
 
-    #get essential information about the structure data
+    # get essential information about the structure data
     volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = get_data_essentials(
                                                                 data_binary_corrected_voxel_size)
 
-    #save everything in dictionary
+    # save everything in dictionary
     structure_dict = Dict("data_binary" => data_binary_corrected_voxel_size, 
                             "volume_fract_tot" => volume_fract_tot, 
                             "size_data" => size_data, 
@@ -252,7 +247,7 @@ function get_structure_dict_from_colorscale_stack(data_path_raw_prefix::String,
                             "voxel_edge_length" => minimum(voxel_size) ,
                             "label" => label )
 
-    #if desired, save corrected data
+    # if desired, save corrected data
     if save_result
         save_dict_to_h5(structure_dict; save_path = save_path*"_structure.h5")
 
@@ -305,10 +300,10 @@ function save_statistical_measures(data_path::String,
                                     save_complete_autocovariance_fct_direction = true,
                                     save_spectral_density_array = true)
 
-    #load structure dictionary which contains all essential information about the structure
+    # load structure dictionary which contains all essential information about the structure
     structure_dict = GU.load_h5_dict(data_path)
 
-    #set voxel edge length and label from structure dict if not specified in the arguments
+    # set voxel edge length and label from structure dict if not specified in the arguments
     if voxel_edge_length === nothing
         voxel_edge_length = structure_dict["voxel_edge_length"]
     end
@@ -316,16 +311,16 @@ function save_statistical_measures(data_path::String,
         label = structure_dict["label"]
     end
 
-    #if not specified, determine nr of sampling distances for autocovariance function
-    #and spectral density
+    # if not specified, determine nr of sampling distances for autocovariance function
+    # and spectral density
     if nr_sampling_distances === nothing
         nr_sampling_distances = get_nr_sampling_distances(structure_dict["mean_edge_length_data"] )
     end
 
-    #save autocovariance function if desired
+    # save autocovariance function if desired
     if save_autocovariance_fct
 
-        #get autocovariance function as a function of sampling distance
+        # get autocovariance function as a function of sampling distance
         autocovariance_fct_isotrope_dict = get_autocovariance_fct_isotrope_by_sampling_distance_vec(
                                                 structure_dict;
                                                 nr_sampling_distances = nr_sampling_distances,
@@ -338,17 +333,17 @@ function save_statistical_measures(data_path::String,
     end
 
 
-    #save spectral density if desired
+    # save spectral density if desired
     if save_spectral_density
 
-        #check if autocovariance fct was calculated within this function
+        # check if autocovariance fct was calculated within this function
         if !save_autocovariance_fct
 
-            #if autocovariance function was not calculated within this function, check if it was
-            #calculated before and if so, load the corresponding dictionary
+            # if autocovariance function was not calculated within this function, check if it was
+            # calculated before and if so, load the corresponding dictionary
             if isfile(save_path*"_autocovariance_fct.h5")
 
-                #load autocovariance function dict
+                # load autocovariance function dict
                 autocovariance_fct_isotrope_dict = GU.load_h5_dict(save_path*"_autocovariance_fct.h5")
 
             else
@@ -363,7 +358,7 @@ function save_statistical_measures(data_path::String,
             end
         end
     
-        #calculate spectral_density
+        # calculate spectral_density
         spectral_density_isotrope_dict = get_spectral_density_isotrope_by_wavenumber_vec(
                 structure_dict;
                 nr_sampling_distances = length(autocovariance_fct_isotrope_dict["sampling_distance_vec"]),
@@ -378,10 +373,10 @@ function save_statistical_measures(data_path::String,
     end
 
 
-    #save local volume fraction if desired
+    # save local volume fraction if desired
     if save_local_volume_fraction_variance
 
-        #determine local volume fraction variance vector by using measuring windows
+        # determine local volume fraction variance vector by using measuring windows
         local_volume_fract_variance_dict = get_local_volume_fract_variance_by_window_vec(
                                                             structure_dict;
                                                             nr_window_sizes = nr_window_sizes,
@@ -395,10 +390,10 @@ function save_statistical_measures(data_path::String,
     end
 
 
-    #save autocovariance function as a function of sampling direction
+    # save autocovariance function as a function of sampling direction
     if save_autocovariance_fct_direction
 
-        #get autocovariance function array
+        # get autocovariance function array
         autocovariance_fct_direction_dict = get_autocovariance_fct_by_sampling_vec_array(
                             structure_dict;
                             nr_measurements_per_direction = nr_measurements_per_direction,
@@ -410,10 +405,10 @@ function save_statistical_measures(data_path::String,
     end
 
 
-    #save spectral density along certain directions if desired
+    # save spectral density along certain directions if desired
     if save_spectral_density_along_directions
 
-        #set vectors along which spectral density will be measured
+        # set vectors along which spectral density will be measured
         direction_vec_vec = [[1,0,0], 
                             [0,1,0],
                             [0,0,1],
@@ -421,7 +416,7 @@ function save_statistical_measures(data_path::String,
                             (1/sqrt(3)) .* [1,1,1],
                             (1/sqrt(6)) .* [1,1,-2]]
 
-        #set vector with names to save the files
+        # set vector with names to save the files
         naming_vec = string.( [[1,0,0], 
                                 [0,1,0],
                                 [0,0,1],
@@ -429,17 +424,17 @@ function save_statistical_measures(data_path::String,
                                 [1,1,1],
                                 [1,1,-2]] )
 
-        #check if autocovariance function was previously calculated in this function
+        # check if autocovariance function was previously calculated in this function
         if !save_autocovariance_fct_direction
 
-            #check if data can be loaded from file
+            # check if data can be loaded from file
             if isfile( save_path*"_autocovariance_fct_direction.h5" )
             
-                #load autocovariance function per direction dict
+                # load autocovariance function per direction dict
                 autocovariance_fct_direction_dict = GU.load_h5_dict(save_path*"_autocovariance_fct_direction.h5")
             
             else
-                #get autocovariance function array
+                # get autocovariance function array
                 autocovariance_fct_direction_dict = get_autocovariance_fct_by_sampling_vec_array(
                     structure_dict;
                     nr_measurements_per_direction = nr_measurements_per_direction,
@@ -453,7 +448,7 @@ function save_statistical_measures(data_path::String,
 
         for i in eachindex(direction_vec_vec)
 
-            #determine spectral density
+            # determine spectral density
             spectral_density_along_direction_dict = get_spectral_density_along_direction_by_wavenumber_vec(
                     structure_dict,
                     direction_vec_vec[i];
@@ -470,21 +465,21 @@ function save_statistical_measures(data_path::String,
     end
 
 
-    #save complete autocovariance function as a function of sampling direction for all spacial directions,
-    #not only the half space considered previously
+    # save complete autocovariance function as a function of sampling direction for all spacial directions,
+    # not only the half space considered previously
     if save_complete_autocovariance_fct_direction
 
-        #check if autocovariance function was previously calculated in this function
+        # check if autocovariance function was previously calculated in this function
         if !save_autocovariance_fct_direction
 
-            #check if data can be loaded from file
+            # check if data can be loaded from file
             if isfile( save_path*"_autocovariance_fct_direction.h5" )
             
-                #load autocovariance function per direction dict
+                # load autocovariance function per direction dict
                 autocovariance_fct_direction_dict = GU.load_h5_dict(save_path*"_autocovariance_fct_direction.h5")
             
             else
-                #get autocovariance function array
+                # get autocovariance function array
                 autocovariance_fct_direction_dict = get_autocovariance_fct_by_sampling_vec_array(
                     structure_dict;
                     nr_measurements_per_direction = nr_measurements_per_direction,
@@ -496,7 +491,7 @@ function save_statistical_measures(data_path::String,
             end
         end
     
-        #calculate complete autocovariance function
+        # calculate complete autocovariance function
         complete_autocovariance_fct_direction_dict = get_complete_autocovariance_fct_by_sampling_vec_array(
             autocovariance_fct_direction_dict;
             save_result = true,
@@ -505,32 +500,32 @@ function save_statistical_measures(data_path::String,
     end
 
 
-    #save complete autocovariance function as a function of sampling direction for all spacial directions,
-    #not only the half space considered previously
+    # save complete autocovariance function as a function of sampling direction for all spacial directions,
+    # not only the half space considered previously
     if save_spectral_density_array
 
-        #check if complete autocovariance function was previously calculated in this function
+        # check if complete autocovariance function was previously calculated in this function
         if save_complete_autocovariance_fct_direction
 
-            #check if data can be loaded from file
+            # check if data can be loaded from file
             if isfile( save_path*"_autocovariance_fct_direction_complete.h5" )
             
-                #load complete autocovariance function per direction dict
+                # load complete autocovariance function per direction dict
                 complete_autocovariance_fct_direction_dict = GU.load_h5_dict(save_path*"_autocovariance_fct_direction_complete.h5")
             
             else
 
-                #check if autocovariance function was previously calculated in this function
+                # check if autocovariance function was previously calculated in this function
                 if !save_autocovariance_fct_direction
                 
-                    #check if data can be loaded from file
+                    # check if data can be loaded from file
                     if isfile( save_path*"_autocovariance_fct_direction.h5" )
                     
-                        #load autocovariance function per direction dict
+                        # load autocovariance function per direction dict
                         autocovariance_fct_direction_dict = GU.load_h5_dict(save_path*"_autocovariance_fct_direction.h5")
                     
                     else
-                        #get autocovariance function array
+                        # get autocovariance function array
                         autocovariance_fct_direction_dict = get_autocovariance_fct_by_sampling_vec_array(
                             structure_dict;
                             nr_measurements_per_direction = nr_measurements_per_direction,
@@ -542,7 +537,7 @@ function save_statistical_measures(data_path::String,
                     end
                 end
 
-                #get complete autocovariance function array
+                # get complete autocovariance function array
                 complete_autocovariance_fct_direction_dict = get_complete_autocovariance_fct_by_sampling_vec_array(
                     autocovariance_fct_direction_dict;
                     save_result = false,
@@ -551,7 +546,7 @@ function save_statistical_measures(data_path::String,
             end
         end
     
-        #calculate spectral_density
+        # calculate spectral_density
         spectral_density_array_dict = get_spectral_density_array_by_fft(complete_autocovariance_fct_direction_dict;
                                                                     save_result = true,
                                                                     save_path = save_path,

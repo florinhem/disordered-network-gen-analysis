@@ -100,22 +100,22 @@ function get_binary_data_from_nodal_eqn(unit_cell_length=500,
     save_result::Bool=false, 
     save_path=raw"..\structures\nodal_surfaces\\"*surface_type*"_surface_structure.h5")
 
-    #get desired nodal equation
+    # get desired nodal equation
     nodal_eqn = get_nodal_eqn(surface_type)
 
-    #determine the unit cell length in units of voxels
+    # determine the unit cell length in units of voxels
     unit_cell_length_in_voxels = unit_cell_length / voxel_edge_length
 
-    #determine the data edge length in units of voxels
+    # determine the data edge length in units of voxels
     data_edge_length = Int( round( unit_cell_length_in_voxels * nr_unit_cells  ) )
 
-    #generate array of zeros where data will be stored in
+    # generate array of zeros where data will be stored in
     data_binary = zeros(Bool, data_edge_length, data_edge_length, data_edge_length)
 
-    #determine the wavenumber
+    # determine the wavenumber
     wavenumber = 2*pi/unit_cell_length_in_voxels
 
-    #loop through data array and check nodal equation
+    # loop through data array and check nodal equation
     for i in 1:data_edge_length
         for j in 1:data_edge_length
             for k in 1:data_edge_length
@@ -131,11 +131,11 @@ function get_binary_data_from_nodal_eqn(unit_cell_length=500,
         end
     end
 
-    #get essential information about the structure data
+    # get essential information about the structure data
     volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = get_data_essentials(
         data_binary)
 
-    #save everything in dictionary
+    # save everything in dictionary
     structure_dict = Dict("data_binary" => data_binary, 
                             "volume_fract_tot" => volume_fract_tot, 
                             "size_data" => size_data, 
@@ -147,7 +147,7 @@ function get_binary_data_from_nodal_eqn(unit_cell_length=500,
                             "nr_unit_cells" => nr_unit_cells,
                             "volume_fraction_parameter" => volume_fraction_parameter )
 
-    #if desired, save corrected data
+    # if desired, save corrected data
     if save_result
         GU.save_dict_to_h5(structure_dict; save_path)
 

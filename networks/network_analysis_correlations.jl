@@ -107,7 +107,7 @@ function get_structure_factor_bartlett_isotrope_by_wavenumber_vec(
 
     # create dictionary for current plot
     structure_factor_bartlett_dict = Dict("wavenumber_vec" => wavenumber_vec,
-                            "structure_factor_vec" => structure_factor_bartlett_vec,
+                            "unfiltered_structure_factor_vec" => structure_factor_bartlett_vec,
                             "sampling_distance_step_length" => 
                             sampling_distance_step_length,
                             "maximal_sampling_distance" => maximal_sampling_distance )
@@ -201,11 +201,11 @@ function get_structure_factor_isotrope_by_wavenumber_vec(
         maximal_sampling_distance = maximal_sampling_distance)
 
     # initialize structure factor vector
-    structure_factor_vec = Vector{Float64}(undef, length(wavenumber_vec))
+    unfiltered_structure_factor_vec = Vector{Float64}(undef, length(wavenumber_vec))
 
     # get vector of structure factor as a function of wavenumber
     for i in eachindex(wavenumber_vec)
-        structure_factor_vec[i] = get_structure_factor_isotrope(
+        unfiltered_structure_factor_vec[i] = get_structure_factor_isotrope(
                                             graph_dict, wavenumber_vec[i])
 
         # print progress
@@ -217,7 +217,7 @@ function get_structure_factor_isotrope_by_wavenumber_vec(
 
     # create dictionary for current plot
     structure_factor_dict = Dict("wavenumber_vec" => wavenumber_vec,
-                            "structure_factor_vec" => structure_factor_vec,
+                            "unfiltered_structure_factor_vec" => unfiltered_structure_factor_vec,
                             "sampling_distance_step_length" => 
                             sampling_distance_step_length,
                             "maximal_sampling_distance" => maximal_sampling_distance,
@@ -345,7 +345,7 @@ function get_structure_factor_by_wavevector_array(graph_dict::Dict;
                         wavevector_array[1,1,:,3]]
 
     # create dict to save
-    structure_factor_dict = Dict("wavevector_array" => wavevector_array, 
+    structure_factor_dict = Dict{String, Any}("wavevector_array" => wavevector_array, 
                                 "wavenumber_vec_vec" => wavenumber_vec_vec,
                                 "structure_factor_array" => structure_factor_array)
 
@@ -411,8 +411,8 @@ function get_structure_factor_angle_averaged(structure_factor_dict::Dict;
     end
     
     # initialize wavenumber vector and structure factor vector
-    wavenumber_vec = Vector{Float64}()
-    structure_factor_angle_averaged_vec = Vector{Measurements.Measurement{Float64}}()
+    unfiltered_wavenumber_vec = Vector{Float64}()
+    unfiltered_structure_factor_vec = Vector{Measurements.Measurement{Float64}}()
 
     # get lattice constant of reciprocal lattice
     reciprocal_lattice_constant = LinearAlgebra.norm(
@@ -423,34 +423,32 @@ function get_structure_factor_angle_averaged(structure_factor_dict::Dict;
     for key in keys(structure_factor_angle_averaged_dict)
 
         # get wavenumber from wavevector
-        push!(wavenumber_vec, reciprocal_lattice_constant*sqrt(key))
+        push!(unfiltered_wavenumber_vec, reciprocal_lattice_constant*sqrt(key))
 
         # get angle averaged structure factor
-        push!(structure_factor_angle_averaged_vec, 
+        push!(unfiltered_structure_factor_vec, 
             Measurements.measurement(Statistics.mean(structure_factor_angle_averaged_dict[key]),
             Statistics.std(structure_factor_angle_averaged_dict[key])))
 
     end
 
     # sort wavenumber vector and structure factor vector
-    structure_factor_angle_averaged_vec = structure_factor_angle_averaged_vec[sortperm(wavenumber_vec)]
-    sort!(wavenumber_vec)
+    unfiltered_structure_factor_vec = unfiltered_structure_factor_vec[sortperm(unfiltered_wavenumber_vec)]
+    sort!(unfiltered_wavenumber_vec)
 
     # create dict to save
-    structure_factor_angle_averaged_dict = Dict()
-
-    structure_factor_angle_averaged_dict["wavenumber_vec"] = wavenumber_vec
-    structure_factor_angle_averaged_dict["structure_factor_angle_averaged_vec"] = structure_factor_angle_averaged_vec
+    structure_factor_angle_averaged_dict = Dict{String, Any}("unfiltered_wavenumber_vec" => unfiltered_wavenumber_vec, 
+                                "unfiltered_structure_factor_vec" => unfiltered_structure_factor_vec)
 
     # apply gaussian filter if desired
     if gaussian_filter
-        filtered_data_x, filtered_data_y = GU.gaussian_filter_1d(wavenumber_vec[2:end], 
-            structure_factor_angle_averaged_vec[2:end]; 
+        filtered_data_x, filtered_data_y = GU.gaussian_filter_1d(unfiltered_wavenumber_vec[2:end], 
+            unfiltered_structure_factor_vec[2:end]; 
             sigma_x=gaussian_filter_sigma_x, 
             filtered_data_x_step_length=gaussian_filter_filtered_data_x_step_length)
 
-        structure_factor_angle_averaged_dict["filtered_wavenumber_vec"] = filtered_data_x
-        structure_factor_angle_averaged_dict["filtered_structure_factor_angle_averaged_vec"] = filtered_data_y
+        structure_factor_angle_averaged_dict["wavenumber_vec"] = filtered_data_x
+        structure_factor_angle_averaged_dict["structure_factor_vec"] = filtered_data_y
         structure_factor_angle_averaged_dict["gaussian_filter_sigma_x"] = gaussian_filter_sigma_x
     end
 
@@ -494,7 +492,7 @@ function get_local_nr_variance(graph_dict::Dict,
     # calculate local nr variance
     local_nr_variance = (vertex_density * 32 * pi^2 * window_radius^2
         * wavenumber_step_length * sum(
-            structure_factor_dict["structure_factor_vec"] 
+            structure_factor_dict["unfiltered_structure_factor_vec"] 
             .* sin.( structure_factor_dict["wavenumber_vec"] .* window_radius) .^2
             ./ structure_factor_dict["wavenumber_vec"].^2
         )    
@@ -562,8 +560,8 @@ function get_hyperuniformity_metric(structure_factor_dict::Dict)
     pks, vals = Peaks.findmaxima(structure_factor_dict["structure_factor_vec"])
 
     # cut structure factor data at momentum just above first peak
-    structure_factor_cut_vec = structure_factor_dict["structure_factor_vec"][1:pks[2]+1]
-    wavenumber_cut_vec = structure_factor_dict["wavenumber_vec"][1:pks[2]+1]
+    structure_factor_cut_vec = structure_factor_dict["structure_factor_vec"][1:pks[2]-1]
+    wavenumber_cut_vec = structure_factor_dict["wavenumber_vec"][1:pks[2]-1]
 
     # set the order of the fitted polynomial
     polynomial_order = 5
@@ -576,9 +574,14 @@ function get_hyperuniformity_metric(structure_factor_dict::Dict)
     # get extrapolated structure factor at zero momentum
     structure_factor_zero_momentum = polynomial_fit(0)
 
-    # get critical momenta which is roots of first derivative of polynomial
+    # get first derivative of polynomial
     polynomial_derivative = Polynomials.derivative(polynomial_fit)
-    critical_momenta = Polynomials.roots(polynomial_derivative)
+
+    # in case the structure factor is provided with uncertainty, obtain the values
+    polynomial_derivative_values = Polynomials.Polynomial(Measurements.value.( collect(polynomial_derivative) ))
+    
+    # get critical momenta which is roots of first derivative of polynomial
+    critical_momenta = Polynomials.roots(polynomial_derivative_values)
 
     # get real critical momenta
     critical_momenta_real = real.(critical_momenta[imag.(critical_momenta) .== 0])

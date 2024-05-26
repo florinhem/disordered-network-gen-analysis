@@ -1,11 +1,6 @@
 """
 Functions to calculate the autocovariance function and the spectral
 density for 3d data as a function of distance vector and momentum vector
-
-This code requires the following Packages:
-import Statistics   #for statistical operations like mean()
-import Measurements    #for handling data with uncertainty and error propagation
-import FFTW     #to calculate the Fast Fourier Transform
 """
 
 
@@ -15,12 +10,12 @@ the autocovariance function will be calculated
 """
 function get_sampling_distance_vec_vec(size_data::Tuple)
 
-    #determine the maximal sampling distances along the three axes
+    # determine the maximal sampling distances along the three axes
     max_sampling_distances = Int.( ceil.( (size_data ) ./ 2 ))
 
-    #get sampling distance vec vec
-    #Along one axis (z direction is chosen here) only positive directions are considered,
-    #because negative ones would yield redundant information
+    # get sampling distance vec vec
+    # Along one axis (z direction is chosen here) only positive directions are considered,
+    # because negative ones would yield redundant information
     sampling_distance_vec_vec = [
                 collect(-max_sampling_distances[1]:max_sampling_distances[1]),
                 collect(-max_sampling_distances[2]:max_sampling_distances[2]),
@@ -39,8 +34,8 @@ other
 function get_random_coordinates_at_direction(sampling_vec::Vector,
                                 size_data::Tuple)
 
-    #get first random coordinate x1 such that second random coordinate at
-    #given direction is still inside array
+    # get first random coordinate x1 such that second random coordinate at
+    # given direction is still inside array
     x1_vec = Vector{Int64}(undef, 3)
 
     for i in 1:3
@@ -53,10 +48,10 @@ function get_random_coordinates_at_direction(sampling_vec::Vector,
 
     end
 
-    #convert vectors to tuples
+    # convert vectors to tuples
     x1 = Tuple(x1_vec)
 
-    #get second coordinate at given direction
+    # get second coordinate at given direction
     x2 = Tuple(x1_vec .+ sampling_vec)
 
     return [x1, x2]
@@ -70,16 +65,16 @@ x, y and z components
 """
 function get_vector_array(component_vec_vec::Vector)
 
-    #initialize array where vectors will be stored
+    # initialize array where vectors will be stored
     vector_array = Array{typeof(component_vec_vec[1][1])}(undef, 
                                     length.(component_vec_vec)..., 3 )
 
-    #save vectors to array
+    # save vectors to array
     for i in eachindex(component_vec_vec[1])
         for j in eachindex(component_vec_vec[2])
             for k in eachindex(component_vec_vec[3])
 
-                #save current vector
+                # save current vector
                 vector_array[i,j,k, :] = [component_vec_vec[1][i],
                                         component_vec_vec[2][j],
                                         component_vec_vec[3][k]]
@@ -99,32 +94,32 @@ function get_autocovariance_fct(sampling_vec::Vector{Int64},
                                 structure_dict::Dict;
                                 nr_measurements_per_direction::Int64 = 1000)
 
-    #initialize vector from which the two point prob. fct. will be calculated later
+    # initialize vector from which the two point prob. fct. will be calculated later
     two_point_prob_fct_summand_vec = Vector{Float64}(undef, nr_measurements_per_direction)
 
-    #generate given number of random vectors to sample 2 point prob. function
+    # generate given number of random vectors to sample 2 point prob. function
     for i in 1:nr_measurements_per_direction
 
-        #get two random coordinates at given sampling distance to each other
+        # get two random coordinates at given sampling distance to each other
         x1, x2 = get_random_coordinates_at_direction(sampling_vec, structure_dict["size_data"])
 
-        #calculate the contribution to the two point prob. fct. from these coodinates
+        # calculate the contribution to the two point prob. fct. from these coodinates
         two_point_prob_fct_summand_vec[i] = structure_dict["data_binary"][x1...] * structure_dict["data_binary"][x2...]
 
     end
 
-    #calculate ensemble averaged 2 point prob. function
-    #the error is calculated according to the equation given at
-    #https://en.wikipedia.org/wiki/Checking_whether_a_coin_is_fair
-    #below the sentence
-    #"In statistics, the estimate of a proportion of a sample "
-    #(denoted by p) has a standard error given by
+    # calculate ensemble averaged 2 point prob. function
+    # the error is calculated according to the equation given at
+    # https://en.wikipedia.org/wiki/Checking_whether_a_coin_is_fair
+    # below the sentence
+    # "In statistics, the estimate of a proportion of a sample "
+    # (denoted by p) has a standard error given by
     two_point_prob_fct = Measurements.measurement( 
                                     Statistics.mean( two_point_prob_fct_summand_vec ),
                                     sqrt( structure_dict["volume_fract_tot"]^2 * (1 - structure_dict["volume_fract_tot"]^2) 
                                             / nr_measurements_per_direction  ) )
 
-    #determine autocovariance function
+    # determine autocovariance function
     autocovariance_fct = two_point_prob_fct - structure_dict["volume_fract_tot"]^2
 
     return autocovariance_fct
@@ -149,14 +144,14 @@ function get_autocovariance_fct_by_sampling_vec_array(structure_dict::Dict;
                 voxel_edge_length = nothing,
                 label = nothing)
 
-    #get size of autocovariance fct array
+    # get size of autocovariance fct array
     autocovariance_fct_array_size = size(sampling_vec_array)[1:3]
 
-    #create vector where for each sampling distance the autocovariance function and its
-    #uncertainty will be stored
+    # create vector where for each sampling distance the autocovariance function and its
+    # uncertainty will be stored
     autocovariance_fct_array = Array{Measurements.Measurement}(undef, autocovariance_fct_array_size...)
 
-    #for each sampling distance get autocovariance function and its uncertainty
+    # for each sampling distance get autocovariance function and its uncertainty
     for i in 1:autocovariance_fct_array_size[1]
         for j in 1:autocovariance_fct_array_size[2]
             for k in 1:autocovariance_fct_array_size[3]
@@ -171,7 +166,7 @@ function get_autocovariance_fct_by_sampling_vec_array(structure_dict::Dict;
 
     end
 ^
-    #create dict
+    # create dict
     autocovariance_fct_dict = Dict("sampling_vec_array" => sampling_vec_array,
                         "sampling_distance_vec_vec" => sampling_distance_vec_vec,
                         "autocovariance_fct_array" => autocovariance_fct_array,
@@ -179,10 +174,10 @@ function get_autocovariance_fct_by_sampling_vec_array(structure_dict::Dict;
                         "voxel_edge_length" => structure_dict["voxel_edge_length"] ,
                         "label" => structure_dict["label"])
                   
-    #if desired, adjust voxel edge length and label
+    # if desired, adjust voxel edge length and label
     autocovariance_fct_dict = modify_keys_in_dict(autocovariance_fct_dict, voxel_edge_length, label)
 
-    #save results if desired
+    # save results if desired
     if save_result
 
         GU.save_dict_to_h5(copy(autocovariance_fct_dict);
@@ -207,8 +202,8 @@ function get_complete_autocovariance_fct_by_sampling_vec_array(
         save_result = false,
         save_path = raw"..\analysis_data\sample_name")
 
-    #correct the sampling distance vec along the third dimension, where due to the mirror
-    #symmetry of the autocovariance fct only positive z values where considered
+    # correct the sampling distance vec along the third dimension, where due to the mirror
+    # symmetry of the autocovariance fct only positive z values where considered
     complete_sampling_distance_vec_vec = [autocovariance_fct_direction_dict["sampling_distance_vec_vec"][1], 
                                             autocovariance_fct_direction_dict["sampling_distance_vec_vec"][2],
                                             vcat(
@@ -216,21 +211,21 @@ function get_complete_autocovariance_fct_by_sampling_vec_array(
                     autocovariance_fct_direction_dict["sampling_distance_vec_vec"][3]
                                                 ) ]
 
-    #create array of sampling vectors out of sampling distances
+    # create array of sampling vectors out of sampling distances
     complete_sampling_vec_array = get_vector_array(complete_sampling_distance_vec_vec)
 
-    #create an autocovariance function array that is mirrored in the first two dimensions
+    # create an autocovariance function array that is mirrored in the first two dimensions
     autocovariance_fct_array_mirrored = reverse( reverse( 
                             reverse(autocovariance_fct_direction_dict["autocovariance_fct_array"], dims=1), 
                                                         dims=2), dims=3) 
 
-    #get mirrored autocovariance function
+    # get mirrored autocovariance function
     complete_autocovariance_fct_array = cat(autocovariance_fct_array_mirrored[:,:,1:end-1],
                                             autocovariance_fct_direction_dict["autocovariance_fct_array"],
                                             dims = 3)
 
     
-    #create dict to save
+    # create dict to save
     complete_autocovariance_fct_dict = Dict("sampling_vec_array" => complete_sampling_vec_array,
                     "sampling_distance_vec_vec" => complete_sampling_distance_vec_vec,
                     "autocovariance_fct_array" => complete_autocovariance_fct_array,
@@ -239,7 +234,7 @@ function get_complete_autocovariance_fct_by_sampling_vec_array(
                     "voxel_edge_length" => autocovariance_fct_direction_dict["voxel_edge_length"],
                     "label" => autocovariance_fct_direction_dict["label"])
 
-    #save results if desired
+    # save results if desired
     if save_result
         GU.save_dict_to_h5(copy(complete_autocovariance_fct_dict);
                         save_path=save_path*"_autocovariance_fct_direction_complete.h5")
@@ -268,49 +263,49 @@ function extrapolate_periodic_data_autocovariance_fct_by_sampling_vec_array(
             save_result = false,
             save_path = raw"..\analysis_data\sample_name")
 
-    #get vector of sampling distances along the three coordinate axes for extrapolated data
+    # get vector of sampling distances along the three coordinate axes for extrapolated data
     extrapolated_sampling_distance_vec_vec = get_sampling_distance_vec_vec(size_data_single_unit_cell 
                                                                             .* nr_unit_cells)
     
-    #get the corresponding array of vectors, where along the fourth dimension the three vector
-    #components are stored
+    # get the corresponding array of vectors, where along the fourth dimension the three vector
+    # components are stored
     extrapolated_sampling_vec_array = get_vector_array(extrapolated_sampling_distance_vec_vec)
 
     
-    #get size of extrapolated autocovariance fct array
+    # get size of extrapolated autocovariance fct array
     extrapolated_autocovariance_fct_array_size = size(extrapolated_sampling_vec_array)[1:3]
 
-    #initialize the extrapolated autocovariance fct array
+    # initialize the extrapolated autocovariance fct array
     extrapolated_autocovariance_fct_array = Array{Measurements.Measurement}(undef, 
                                                         extrapolated_autocovariance_fct_array_size...)
 
     
-    #determine the maximal sampling distances inside the single unit cell along the three axes
+    # determine the maximal sampling distances inside the single unit cell along the three axes
     max_sampling_distances = Int.( ceil.( (size_data_single_unit_cell ) ./ 2 ))
 
-    #loop through the three coordinate axes
+    # loop through the three coordinate axes
     for i in extrapolated_sampling_distance_vec_vec[1]
         for j in extrapolated_sampling_distance_vec_vec[2]
             for k in extrapolated_sampling_distance_vec_vec[3]
 
-                #convert the current vector into a vector within one unit cell
+                # convert the current vector into a vector within one unit cell
                 vector_within_unit_cell = ( mod.( [i,j,k] .+ max_sampling_distances, 
                                                                 size_data_single_unit_cell) 
                                             .- max_sampling_distances )
                 
-                #if the z component of that vector is negative, it needs to be flipped, because
-                #due to its mirror symmetry, the autocovariance function was only calculated for 
-                #positive z components
+                # if the z component of that vector is negative, it needs to be flipped, because
+                # due to its mirror symmetry, the autocovariance function was only calculated for 
+                # positive z components
                 if vector_within_unit_cell[3] < 0
                     vector_within_unit_cell .*= (-1)
                 end
 
-                #find the entries of this vector in the sampling_distance_vec_vec of the single unit cell
+                # find the entries of this vector in the sampling_distance_vec_vec of the single unit cell
                 current_indices_within_unit_cell = findfirst.( .==( vector_within_unit_cell ), 
                                         autocovariance_fct_direction_dict["sampling_distance_vec_vec"]  )
 
-                #save the corresponding autocovariance function values to the array of the extrapolated 
-                #autocovariance function
+                # save the corresponding autocovariance function values to the array of the extrapolated 
+                # autocovariance function
                 extrapolated_autocovariance_fct_array[i + extrapolated_sampling_distance_vec_vec[1][end] + 1,
                                                         j + extrapolated_sampling_distance_vec_vec[2][end] + 1,
                                                         k + 1] = (
@@ -321,7 +316,7 @@ function extrapolate_periodic_data_autocovariance_fct_by_sampling_vec_array(
         end
     end
 
-    #create dict to save
+    # create dict to save
     extrapolated_autocovariance_fct_dict = Dict("sampling_vec_array" => extrapolated_sampling_vec_array,
                     "sampling_distance_vec_vec" => extrapolated_sampling_distance_vec_vec,
                     "autocovariance_fct_array" => extrapolated_autocovariance_fct_array,
@@ -330,7 +325,7 @@ function extrapolate_periodic_data_autocovariance_fct_by_sampling_vec_array(
                     "voxel_edge_length" => autocovariance_fct_direction_dict["voxel_edge_length"],
                     "label" => autocovariance_fct_direction_dict["label"])
 
-    #save results if desired
+    # save results if desired
     if save_result
         GU.save_dict_to_h5(copy(extrapolated_autocovariance_fct_dict);
                         save_path=save_path*"_autocovariance_fct_direction.h5")
@@ -348,29 +343,29 @@ extract autocovariance function vector along given direction
 function get_autocovariance_fct_along_direction_vec(direction_vec::Vector, 
                                             autocovariance_fct_array::Array)
 
-    #if z coordinate is negative, mirror the vector, because autocovariance function
-    #was only measured for positive z coordinates
+    # if z coordinate is negative, mirror the vector, because autocovariance function
+    # was only measured for positive z coordinates
     if direction_vec[3] < 0
         direction_vec = .- direction_vec
     end
 
-    #get size of autocovariance_fct_array
+    # get size of autocovariance_fct_array
     size_autocovariance_fct_array = size(autocovariance_fct_array)
 
-    #set current position to indices of autocovariance_fct_array where autocovariance function
-    #at sampling vector [0,0,0] was measured
+    # set current position to indices of autocovariance_fct_array where autocovariance function
+    # at sampling vector [0,0,0] was measured
     current_position = [ Int.( (size_autocovariance_fct_array[1:2] .+ 1) ./2 ) ..., 1]
 
-    #initialize autocovariance fct vec
+    # initialize autocovariance fct vec
     autocovariance_fct_along_direction_vec = []
 
-    #starting at center, walk through autocovariance_fct_array to get the desired entries
+    # starting at center, walk through autocovariance_fct_array to get the desired entries
     while prod( current_position .<= size_autocovariance_fct_array  )*prod( current_position .>= [1,1,1]  ) == 1
 
-        #add autocovariance function value to vector
+        # add autocovariance function value to vector
         push!(autocovariance_fct_along_direction_vec, autocovariance_fct_array[Int.( round.( current_position ) ) ...] )
 
-        #go one step along given direction
+        # go one step along given direction
         current_position = current_position .+ direction_vec 
     end
 
@@ -385,10 +380,10 @@ get vector of sampling distances along the given direction
 function get_sampling_distance_along_direction_vec(direction_vec, 
                 autocovariance_fct_along_direction_vec::Vector)
     
-    #determine geometrical length of direction vector
+    # determine geometrical length of direction vector
     sampling_distance = sqrt(sum( direction_vec .^2 ))
 
-    #get vector of sampling distances
+    # get vector of sampling distances
     sampling_distance_vec = (collect(0:length(autocovariance_fct_along_direction_vec)-1) 
                                 .* sampling_distance)
 
@@ -404,10 +399,10 @@ function get_spectral_density_along_direction(wavenumber::Float64,
                             sampling_distance_vec::Vector, 
                             autocovariance_fct_along_direction_vec::Vector)
 
-    #determine sampling distance
+    # determine sampling distance
     sampling_distance = sampling_distance_vec[2] - sampling_distance_vec[1]
 
-    #calculate fourier transform for given wavenumber
+    # calculate fourier transform for given wavenumber
     spectral_density = (1/sampling_distance 
                             * ( autocovariance_fct_along_direction_vec[1] 
                                 + 2 * sum( autocovariance_fct_along_direction_vec[2:end] 
@@ -439,21 +434,21 @@ function get_spectral_density_along_direction_by_wavenumber_vec(structure_dict::
                 voxel_edge_length = nothing,
                 label = nothing)
     
-    #extract autocovariance function vector along given direction
+    # extract autocovariance function vector along given direction
     autocovariance_fct_along_direction_vec = get_autocovariance_fct_along_direction_vec(direction_vec, 
                                                                 autocovariance_fct_dict["autocovariance_fct_array"])
 
-    #get sampling distances along given direction
+    # get sampling distances along given direction
     sampling_distance_along_direction_vec = get_sampling_distance_along_direction_vec(direction_vec, 
                                                                 autocovariance_fct_along_direction_vec)
 
-    #get vector of wavenumbers where spectral density will be calculated
+    # get vector of wavenumbers where spectral density will be calculated
     wavenumber_vec = get_wavenumber_vec(sampling_distance_along_direction_vec)
 
-    #initialize spectral density vector
+    # initialize spectral density vector
     spectral_density_vec = Vector{Measurements.Measurement}(undef, length(wavenumber_vec))
 
-    #for each wavenumber, determine spectral density
+    # for each wavenumber, determine spectral density
     for i in eachindex(wavenumber_vec)
         spectral_density_vec[i] = get_spectral_density_along_direction(wavenumber_vec[i], 
                                             sampling_distance_along_direction_vec, 
@@ -461,7 +456,7 @@ function get_spectral_density_along_direction_by_wavenumber_vec(structure_dict::
 
     end
 
-    #create dict to save
+    # create dict to save
     spectral_density_dict = Dict("wavenumber_vec" => wavenumber_vec,
                         "spectral_density_vec" => spectral_density_vec,
                         "nr_measurements_per_direction" => nr_measurements_per_direction,
@@ -469,10 +464,10 @@ function get_spectral_density_along_direction_by_wavenumber_vec(structure_dict::
                         "voxel_edge_length" => autocovariance_fct_dict["voxel_edge_length"],
                         "label" => autocovariance_fct_dict["label"])
 
-    #if desired, adjust voxel edge length and label
+    # if desired, adjust voxel edge length and label
     spectral_density_dict = modify_keys_in_dict(spectral_density_dict, voxel_edge_length, label)
 
-    #save results if desired
+    # save results if desired
     if save_result
         GU.save_dict_to_h5(copy(spectral_density_dict);
                         save_path=save_path*"_spectral_density_direction.h5")
@@ -492,16 +487,16 @@ function get_spectral_density(wavevector::Vector{Float64},
                                 sampling_distance_vec_vec::Vector, 
                                 autocovariance_fct_array::Array)
 
-    #initialize complex spectral density
+    # initialize complex spectral density
     spectral_density = 0.0 + 0.0 * im
 
-    #create an autocovariance function array that is mirrored in the first two dimensions
+    # create an autocovariance function array that is mirrored in the first two dimensions
     autocovariance_fct_array_mirrored = reverse( reverse(autocovariance_fct_array, dims=1), dims=2) 
 
     for i in eachindex(sampling_distance_vec_vec[1])
         for j in eachindex(sampling_distance_vec_vec[2])
 
-            #initialize complex spectral density sum along z direction
+            # initialize complex spectral density sum along z direction
             spectral_density_z_component_sum = 0.0 + 0.0 * im
 
             for k in eachindex(sampling_distance_vec_vec[3])[2:end]
@@ -513,7 +508,7 @@ function get_spectral_density(wavevector::Vector{Float64},
                                     
             end
 
-            #add sum along z direction and other terms to sum along x and y directions
+            # add sum along z direction and other terms to sum along x and y directions
             spectral_density += (exp(-im*wavevector[1]*sampling_distance_vec_vec[1][i]) 
                                     * exp(-im*wavevector[2]*sampling_distance_vec_vec[2][j]) 
                                     * ( autocovariance_fct_array[i,j,1] + spectral_density_z_component_sum )
@@ -525,7 +520,7 @@ function get_spectral_density(wavevector::Vector{Float64},
         println("sampling distance "*string(sampling_distance_vec_vec[1][i])*" along x done")
     end
 
-    #multiply by the inverse of the sampling volume
+    # multiply by the inverse of the sampling volume
     spectral_density *= 1/( (sampling_distance_vec_vec[1][2] - sampling_distance_vec_vec[1][1])
                             * (sampling_distance_vec_vec[2][2] - sampling_distance_vec_vec[2][1])
                             * (sampling_distance_vec_vec[3][2] - sampling_distance_vec_vec[3][1]) )
@@ -554,15 +549,15 @@ function get_spectral_density_by_wavevector_array(
                 voxel_edge_length = nothing,
                 label = nothing)
 
-    #correct the sampling distance vec along the third dimension, where due to the mirror
-    #symmetry of the autocovariance fct only positive z values where considered
+    # correct the sampling distance vec along the third dimension, where due to the mirror
+    # symmetry of the autocovariance fct only positive z values where considered
     corrected_sampling_distance_vec_vec = [
                             autocovariance_fct_dict["sampling_distance_vec_vec"][1], 
                             autocovariance_fct_dict["sampling_distance_vec_vec"][2],
                             vcat(.- reverse(autocovariance_fct_dict["sampling_distance_vec_vec"][3][2:end]),
                                 autocovariance_fct_dict["sampling_distance_vec_vec"][3]) ]
     
-    #get vector of sampled wavenumbers along the three coordinate directions
+    # get vector of sampled wavenumbers along the three coordinate directions
     wavenumber_vec_vec = []
 
     for i in 1:3
@@ -571,16 +566,16 @@ function get_spectral_density_by_wavevector_array(
 
     end
 
-    #create array of wavevectors
+    # create array of wavevectors
     wavevector_array = get_vector_array(wavenumber_vec_vec)
 
-    #determine size of spectral density array
+    # determine size of spectral density array
     spectral_density_array_size = size(wavevector_array)[1:3]
 
-    #initialize spectral density array 
+    # initialize spectral density array 
     spectral_density_array = Array{Complex{Measurements.Measurement}}(undef, spectral_density_array_size...)
 
-    #for each wavevector, determine the spectral density
+    # for each wavevector, determine the spectral density
     for i in eachindex(wavenumber_vec_vec[1])
         for j in eachindex(wavenumber_vec_vec[2])
             for k in eachindex(wavenumber_vec_vec[3])
@@ -596,7 +591,7 @@ function get_spectral_density_by_wavevector_array(
         println("wavenumber "*string(wavenumber_vec_vec[1][i]*" along x done") )
     end
 
-    #create dict to save
+    # create dict to save
     spectral_density_dict = Dict("wavevector_array" => wavevector_array,
                                 "wavenumber_vec_vec" => wavenumber_vec_vec,
                                 "spectral_density_array" => spectral_density_array,
@@ -605,10 +600,10 @@ function get_spectral_density_by_wavevector_array(
                                 "voxel_edge_length" => autocovariance_fct_dict["voxel_edge_length"],
                                 "label" => autocovariance_fct_dict["label"])
 
-    #if desired, adjust voxel edge length and label
+    # if desired, adjust voxel edge length and label
     spectral_density_dict = modify_keys_in_dict(spectral_density_dict, voxel_edge_length, label)
 
-    #save results if desired
+    # save results if desired
     if save_result
         GU.save_dict_to_h5(copy(spectral_density_dict);
                         save_path=save_path*"_spectral_density_array.h5")
@@ -626,10 +621,10 @@ Get vector of vectors of sampled wavenumbers
 """
 function get_wavenumber_vec_vec(complete_autocovariance_fct_array_values::Array)
 
-    #get vectors of wavenumbers along all three dimensions
-    #since a real FFT is performed, the first dimension contains only positve wavenumbers
-    #whereas second and third dimension contain positive and negative wavenumbers.
-    #In order to bring them into a natural order, the fftshift needs to be done
+    # get vectors of wavenumbers along all three dimensions
+    # since a real FFT is performed, the first dimension contains only positve wavenumbers
+    # whereas second and third dimension contain positive and negative wavenumbers.
+    # In order to bring them into a natural order, the fftshift needs to be done
     wavenumber_vec_vec = (2*pi) .* [FFTW.rfftfreq( 
                                     size(complete_autocovariance_fct_array_values)[1] ),
                                     FFTW.fftshift( FFTW.fftfreq( 
@@ -637,7 +632,7 @@ function get_wavenumber_vec_vec(complete_autocovariance_fct_array_values::Array)
                                     FFTW.fftshift( FFTW.fftfreq( 
                                         size(complete_autocovariance_fct_array_values)[3] ) ) ]
 
-    #convert to Float64
+    # convert to Float64
     wavenumber_vec_vec_float = []
 
     for wavenumber_vec in wavenumber_vec_vec
@@ -660,33 +655,33 @@ function get_spectral_density_array_by_fft(complete_autocovariance_fct_direction
             voxel_edge_length = nothing,
             label = nothing)
 
-    #get values of autocovariance function
+    # get values of autocovariance function
     complete_autocovariance_fct_array_values = Measurements.value.( 
                 complete_autocovariance_fct_direction_dict["autocovariance_fct_array"] )
 
-    #determine fourier transform of autocovariance function values
+    # determine fourier transform of autocovariance function values
     spectral_density_array_fft_output = FFTW.rfft(complete_autocovariance_fct_array_values)
 
-    #bring spectral densities into an order from negative to positive wavenumbers 
+    # bring spectral densities into an order from negative to positive wavenumbers 
     spectral_density_array = FFTW.fftshift(spectral_density_array_fft_output, [2, 3])
 
-    #get tuple of vectors of sampled wavenumbers
+    # get tuple of vectors of sampled wavenumbers
     wavenumber_vec_vec = get_wavenumber_vec_vec(complete_autocovariance_fct_array_values)
 
-    #get array of sampled sampled wavevectors 
+    # get array of sampled sampled wavevectors 
     wavevector_array = get_vector_array(wavenumber_vec_vec)
 
-    #create dict to save
+    # create dict to save
     spectral_density_dict = Dict("wavevector_array" => wavevector_array,
         "wavenumber_vec_vec" => wavenumber_vec_vec,
         "spectral_density_array" => spectral_density_array,
         "voxel_edge_length" => complete_autocovariance_fct_direction_dict["voxel_edge_length"],
         "label" => complete_autocovariance_fct_direction_dict["label"])
 
-    #if desired, adjust voxel edge length and label
+    # if desired, adjust voxel edge length and label
     spectral_density_dict = modify_keys_in_dict(spectral_density_dict, voxel_edge_length, label)
 
-    #save results if desired
+    # save results if desired
     if save_result
         GU.save_dict_to_h5(copy(spectral_density_dict);
                         save_path=save_path*"_spectral_density_array.h5")
