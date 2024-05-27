@@ -964,3 +964,18 @@ Plots.savefig(raw"..\plots\random_networks\structure_factor_angle_averaged_1000_
 Plots.plot!(xlabel="wavenumber / "*Latex.L"d^{-1}", ylabel = "structure factor", xlims=(0,32.5), ylims=(0,12), size = (500, 800),  xtick=pitick(0, 32, 1; mode=:latex), leftmargin = 4Plots.mm)
 
 Plots.savefig(raw"..\plots\random_networks\structure_factor_angle_averaged_1000_vertices_T_0.1_1.0_very_stretched.png")
+
+
+filename = "216_vertices_T_0.2_heat_cool_0.2_per_mc_quenched"
+data_path = raw"..\analysis_data\random_networks\\"*filename
+save_path = raw"..\plots\random_networks\\"*filename
+
+plot_dict = GU.load_h5_dict(data_path*"_autocovariance_fct_direction_complete.h5")
+
+BDA.plot_autocovariance_fct_heatmap(plot_dict,
+    save_path;
+    save_plot = true,
+    clims = nothing,
+    x_y_lims = nothing,
+    sampling_vector_component_to_fix = 3,
+    sampling_vector_value_fixed = 0)

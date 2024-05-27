@@ -119,8 +119,8 @@ function get_structure_factor_bartlett_isotrope_by_wavenumber_vec(
 
     # save results if desired
     if save_result
-        GU.save_dict_to_h5(copy(structure_factor_bartlett_dict);
-                        save_path=save_path*"_structure_factor_bartlett_isotrope.h5")
+        GU.save_dict_to_h5(copy(structure_factor_bartlett_dict),
+            save_path*"_structure_factor_bartlett_isotrope.h5")
 
     end
 
@@ -230,8 +230,7 @@ function get_structure_factor_isotrope_by_wavenumber_vec(
 
     # save results if desired
     if save_result
-        GU.save_dict_to_h5(copy(structure_factor_dict);
-                        save_path=save_path*"_structure_factor_isotrope.h5")
+        GU.save_dict_to_h5(copy(structure_factor_dict), save_path*"_structure_factor_isotrope.h5")
 
     end
 
@@ -356,8 +355,7 @@ function get_structure_factor_by_wavevector_array(graph_dict::Dict;
 
     # save results if desired
     if save_result
-        GU.save_dict_to_h5(copy(structure_factor_dict);
-                        save_path=save_path*"_structure_factor_array.h5")
+        GU.save_dict_to_h5(copy(structure_factor_dict), save_path*"_structure_factor_array.h5")
 
     end
                                             
@@ -459,8 +457,8 @@ function get_structure_factor_angle_averaged(structure_factor_dict::Dict;
 
     # save results if desired
     if save_result
-        GU.save_dict_to_h5(copy(structure_factor_angle_averaged_dict);
-                        save_path=save_path*"_structure_factor_angle_averaged.h5")
+        GU.save_dict_to_h5(copy(structure_factor_angle_averaged_dict),
+            save_path*"_structure_factor_angle_averaged.h5")
 
     end
                                             
@@ -540,8 +538,7 @@ function get_local_nr_variance_by_window_radius_vec(
 
     # save results if desired
     if save_result
-        GU.save_dict_to_h5(copy(local_nr_variance_dict);
-                        save_path=save_path*"_local_nr_variance.h5")
+        GU.save_dict_to_h5(copy(local_nr_variance_dict), save_path*"_local_nr_variance.h5")
 
     end
 

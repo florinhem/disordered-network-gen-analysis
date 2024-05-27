@@ -39,8 +39,10 @@ import Statistics   # for statistical operations like mean()
 import Measurements    # for handling data with uncertainty and error propagation
 import FFTW     # to calculate the Fast Fourier Transform
 import Plots    # for plotting
+import GLMakie  # Makie backend for plotting
 import LaTeXStrings as Latex # to display latex symbols in plot labels
 import Format   # for python-like string formatting 
+import MetaGraphsNext   # to convert spatial network to binary data
 
 # set path to files
 if Sys.iswindows()

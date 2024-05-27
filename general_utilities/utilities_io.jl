@@ -16,7 +16,7 @@ function decompose_measurements_in_dict(dict::Dict)
         if typeof(value) in [Vector{Measurements.Measurement},
                             Vector{Measurements.Measurement{Float64}}, 
                             Vector{Complex{Measurements.Measurement{Float64}}},
-                            Array{Measurements.Measurement{Float64}, 3},
+                            Array{Measurements.Measurement, 3},
                             Array{Measurements.Measurement{Float64}, 3}, 
                             Array{Complex{Measurements.Measurement{Float64}}, 3}]
 
@@ -117,8 +117,11 @@ Measurements.Measurement. These need to be decomposed into value and uncertainty
 Also vectors of vectors need to be decomposed and the vectors have to be stored individually,
 tuples need to be converted into vectors and booleans need to be converted to ints (0 and 1)
 """
-function save_dict_to_h5(dict::Dict;
+function save_dict_to_h5(dict::Dict,
                         save_path::String)
+
+    # copy dict to avoid changing the original dict
+    dict = deepcopy(dict)
 
     # decompose those keys of the dict that are of measurement type
     decomposed_measurements_dict = decompose_measurements_in_dict(dict)

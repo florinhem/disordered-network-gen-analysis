@@ -1715,3 +1715,889 @@ function get_hyperuniformity_metric(structure_factor_dict::Dict)
 
     return [hyperuniformity_metric, polynomial_fit]
 end
+
+
+
+"""
+Calculate spectral density from autocovariance fct by means of Fast Fourier
+Transform
+"""
+function get_spectral_density_array_by_fft(complete_autocovariance_fct_direction_dict::Dict;
+            save_result = false,
+            save_path = raw"..\analysis_data\sample_name",
+            voxel_edge_length = nothing,
+            label = nothing)
+
+    # get values of autocovariance function
+    complete_autocovariance_fct_array_values = Measurements.value.( 
+                complete_autocovariance_fct_direction_dict["autocovariance_fct_array"] )
+
+    # determine fourier transform of autocovariance function values
+    spectral_density_array_fft_output = FFTW.rfft(complete_autocovariance_fct_array_values)
+
+    # bring spectral densities into an order from negative to positive wavenumbers 
+    spectral_density_array = FFTW.fftshift(spectral_density_array_fft_output, [2, 3])
+
+    # get tuple of vectors of sampled wavenumbers
+    wavenumber_vec_vec = get_wavenumber_vec_vec(complete_autocovariance_fct_array_values)
+
+    # get array of sampled sampled wavevectors 
+    wavevector_array = get_vector_array(wavenumber_vec_vec)
+
+    # create dict to save
+    spectral_density_dict = Dict("wavevector_array" => wavevector_array,
+        "wavenumber_vec_vec" => wavenumber_vec_vec,
+        "spectral_density_array" => spectral_density_array,
+        "voxel_edge_length" => complete_autocovariance_fct_direction_dict["voxel_edge_length"],
+        "label" => complete_autocovariance_fct_direction_dict["label"])
+
+    # if desired, adjust voxel edge length and label
+    spectral_density_dict = modify_keys_in_dict(spectral_density_dict, voxel_edge_length, label)
+
+    # save results if desired
+    if save_result
+        GU.save_dict_to_h5(copy(spectral_density_dict), save_path*"_spectral_density_array.h5")
+
+    end
+
+    return spectral_density_dict
+    
+end
+
+
+
+"""
+determine spectral density as a function of wavevector.
+Unfortunately in the moment this function takes forever (weeks?).
+Instead, I think I need to use the FFT
+"""
+function get_spectral_density_by_wavevector_array(
+                structure_dict::Dict;
+                nr_measurements_per_direction::Int64 = 1000,
+                sampling_distance_vec_vec = get_sampling_distance_vec_vec(structure_dict["size_data"]),
+                sampling_vec_array = get_vector_array(sampling_distance_vec_vec),
+                autocovariance_fct_direction_dict = get_autocovariance_fct_by_sampling_vec_array(structure_dict;
+                                            sampling_vec_array = sampling_vec_array,
+                                            nr_measurements_per_direction = nr_measurements_per_direction),
+                save_result = false,
+                save_path = raw"..\analysis_data\sample_name",
+                voxel_edge_length = nothing,
+                label = nothing)
+
+    # correct the sampling distance vec along the third dimension, where due to the mirror
+    # symmetry of the autocovariance fct only positive z values where considered
+    corrected_sampling_distance_vec_vec = [
+                            autocovariance_fct_direction_dict["sampling_distance_vec_vec"][1], 
+                            autocovariance_fct_direction_dict["sampling_distance_vec_vec"][2],
+                            vcat(.- reverse(autocovariance_fct_direction_dict["sampling_distance_vec_vec"][3][2:end]),
+                                autocovariance_fct_direction_dict["sampling_distance_vec_vec"][3]) ]
+    
+    # get vector of sampled wavenumbers along the three coordinate directions
+    wavenumber_vec_vec = []
+
+    for i in 1:3
+
+        push!(wavenumber_vec_vec, get_wavenumber_vec(corrected_sampling_distance_vec_vec[i]) )
+
+    end
+
+    # create array of wavevectors
+    wavevector_array = get_vector_array(wavenumber_vec_vec)
+
+    # determine size of spectral density array
+    spectral_density_array_size = size(wavevector_array)[1:3]
+
+    # initialize spectral density array 
+    spectral_density_array = Array{Complex{Measurements.Measurement}}(undef, spectral_density_array_size...)
+
+    # for each wavevector, determine the spectral density
+    for i in eachindex(wavenumber_vec_vec[1])
+        for j in eachindex(wavenumber_vec_vec[2])
+            for k in eachindex(wavenumber_vec_vec[3])
+
+                spectral_density_array[i,j,k] = get_spectral_density(
+                                                    wavevector_array[i,j,k,:], 
+                                                    autocovariance_fct_direction_dict["sampling_distance_vec_vec"], 
+                                                    autocovariance_fct_direction_dict["autocovariance_fct_array"])
+
+            end
+        end
+
+        println("wavenumber "*string(wavenumber_vec_vec[1][i]*" along x done") )
+    end
+
+    # create dict to save
+    spectral_density_dict = Dict("wavevector_array" => wavevector_array,
+                                "wavenumber_vec_vec" => wavenumber_vec_vec,
+                                "spectral_density_array" => spectral_density_array,
+                                "nr_measurements_per_direction" 
+                                        => autocovariance_fct_direction_dict["nr_measurements_per_direction"],
+                                "voxel_edge_length" => autocovariance_fct_direction_dict["voxel_edge_length"],
+                                "label" => autocovariance_fct_direction_dict["label"])
+
+    # if desired, adjust voxel edge length and label
+    spectral_density_dict = modify_keys_in_dict(spectral_density_dict, voxel_edge_length, label)
+
+    # save results if desired
+    if save_result
+        GU.save_dict_to_h5(copy(spectral_density_dict),
+            save_path*"_spectral_density_array.h5")
+
+    end
+
+    return spectral_density_dict
+
+end
+
+
+
+"""
+Calculate spectral density from autocovariance fct along a given direction.
+Somehow this function does not work yet, maybe because the calculation of exponentials for
+Measurement type data simply takes too long.
+"""
+function get_spectral_density_along_direction_by_wavenumber_vec(structure_dict::Dict,
+                direction_vec::Vector;
+                nr_measurements_per_direction::Int64 = 1000,
+                sampling_distance_vec_vec = get_sampling_distance_vec_vec(structure_dict["size_data"]),
+                sampling_vec_array = get_vector_array(sampling_distance_vec_vec),
+                autocovariance_fct_direction_dict = get_autocovariance_fct_by_sampling_vec_array(structure_dict;
+                                            sampling_vec_array = sampling_vec_array,
+                                            nr_measurements_per_direction = nr_measurements_per_direction),
+                save_result = false,
+                save_path = raw"..\analysis_data\sample_name_direction",
+                voxel_edge_length = nothing,
+                label = nothing)
+    
+    # extract autocovariance function vector along given direction
+    autocovariance_fct_along_direction_vec = get_autocovariance_fct_along_direction_vec(direction_vec, 
+                                                                autocovariance_fct_direction_dict["autocovariance_fct_array"])
+
+    # get sampling distances along given direction
+    sampling_distance_along_direction_vec = get_sampling_distance_along_direction_vec(direction_vec, 
+                                                                autocovariance_fct_along_direction_vec)
+
+    # get vector of wavenumbers where spectral density will be calculated
+    wavenumber_vec = get_wavenumber_vec(sampling_distance_along_direction_vec)
+
+    # initialize spectral density vector
+    spectral_density_vec = Vector{Measurements.Measurement}(undef, length(wavenumber_vec))
+
+    # for each wavenumber, determine spectral density
+    for i in eachindex(wavenumber_vec)
+        spectral_density_vec[i] = get_spectral_density_along_direction(wavenumber_vec[i], 
+                                            sampling_distance_along_direction_vec, 
+                                            autocovariance_fct_along_direction_vec)
+
+    end
+
+    # create dict to save
+    spectral_density_dict = Dict("wavenumber_vec" => wavenumber_vec,
+                        "spectral_density_vec" => spectral_density_vec,
+                        "nr_measurements_per_direction" => nr_measurements_per_direction,
+                        "direction_vec" => direction_vec,
+                        "voxel_edge_length" => autocovariance_fct_direction_dict["voxel_edge_length"],
+                        "label" => autocovariance_fct_direction_dict["label"])
+
+    # if desired, adjust voxel edge length and label
+    spectral_density_dict = modify_keys_in_dict(spectral_density_dict, voxel_edge_length, label)
+
+    # save results if desired
+    if save_result
+        GU.save_dict_to_h5(copy(spectral_density_dict),
+            save_path*"_spectral_density_direction.h5")
+
+    end
+
+    return spectral_density_dict
+    
+end
+
+
+"""
+determine spectral density as a function of wavevector.
+Unfortunately this function takes very long (couple of hours for a single wavevector)
+"""
+function get_spectral_density(wavevector::Vector{Float64}, 
+                                sampling_distance_vec_vec::Vector, 
+                                autocovariance_fct_array::Array)
+
+    # initialize complex spectral density
+    spectral_density = 0.0 + 0.0 * im
+
+    # create an autocovariance function array that is mirrored in the first two dimensions
+    autocovariance_fct_array_mirrored = reverse( reverse(autocovariance_fct_array, dims=1), dims=2) 
+
+    for i in eachindex(sampling_distance_vec_vec[1])
+        for j in eachindex(sampling_distance_vec_vec[2])
+
+            # initialize complex spectral density sum along z direction
+            spectral_density_z_component_sum = 0.0 + 0.0 * im
+
+            for k in eachindex(sampling_distance_vec_vec[3])[2:end]
+
+                spectral_density_z_component_sum += (exp(im*wavevector[3]*sampling_distance_vec_vec[3][k])
+                                                            *autocovariance_fct_array_mirrored[i,j,k]
+                                                    + exp(-im*wavevector[3]*sampling_distance_vec_vec[3][k])
+                                                            *autocovariance_fct_array[i,j,k]   )
+                                    
+            end
+
+            # add sum along z direction and other terms to sum along x and y directions
+            spectral_density += (exp(-im*wavevector[1]*sampling_distance_vec_vec[1][i]) 
+                                    * exp(-im*wavevector[2]*sampling_distance_vec_vec[2][j]) 
+                                    * ( autocovariance_fct_array[i,j,1] + spectral_density_z_component_sum )
+                                    )
+
+            println("sampling distance "*string(sampling_distance_vec_vec[2][j])*" along y done")
+        end
+
+        println("sampling distance "*string(sampling_distance_vec_vec[1][i])*" along x done")
+    end
+
+    # multiply by the inverse of the sampling volume
+    spectral_density *= 1/( (sampling_distance_vec_vec[1][2] - sampling_distance_vec_vec[1][1])
+                            * (sampling_distance_vec_vec[2][2] - sampling_distance_vec_vec[2][1])
+                            * (sampling_distance_vec_vec[3][2] - sampling_distance_vec_vec[3][1]) )
+
+
+    return spectral_density
+end
+
+
+
+"""
+get spectral density 
+"""
+function get_spectral_density_along_direction(wavenumber::Float64, 
+                            sampling_distance_vec::Vector, 
+                            autocovariance_fct_along_direction_vec::Vector)
+
+    # determine sampling distance
+    sampling_distance = sampling_distance_vec[2] - sampling_distance_vec[1]
+
+    # calculate fourier transform for given wavenumber
+    spectral_density = (1/sampling_distance 
+                            * ( autocovariance_fct_along_direction_vec[1] 
+                                + 2 * sum( autocovariance_fct_along_direction_vec[2:end] 
+                                                .* cos.( wavenumber .* sampling_distance_vec[2:end] )  ) 
+                                )
+                        )
+
+    return spectral_density
+
+end
+
+
+"""
+get vector of sampling distances along the given direction
+"""
+function get_sampling_distance_along_direction_vec(direction_vec, 
+                autocovariance_fct_along_direction_vec::Vector)
+    
+    # determine geometrical length of direction vector
+    sampling_distance = sqrt(sum( direction_vec .^2 ))
+
+    # get vector of sampling distances
+    sampling_distance_vec = (collect(0:length(autocovariance_fct_along_direction_vec)-1) 
+                                .* sampling_distance)
+
+    return sampling_distance_vec
+
+end
+
+
+
+"""
+function to calculate and save the following measures for a given 3d data set
+- local volume fraction variance
+- autocovariance function as a function of sampling distance (assuming an isotropic medium)
+- spectral density as a function of sampling distance (assuming an isotropic medium)
+- autocovariance function as a function of sampling vector (not assuming an isotropic medium)
+- spectral density along 6 different directions (not assuming an isotropic medium)
+"""
+function save_statistical_measures(data_path::String,
+                                    save_path::String;
+                                    voxel_edge_length = nothing, 
+                                    label = nothing,
+                                    nr_sampling_distances = nothing,
+                                    nr_measurements_per_distance = 10000,
+                                    nr_window_sizes = 100,
+                                    nr_measurements_per_direction = 1000,
+                                    save_autocovariance_fct = true,
+                                    save_spectral_density = true,
+                                    save_local_volume_fraction_variance = true,
+                                    save_autocovariance_fct_direction = true,
+                                    save_spectral_density_along_directions = true,
+                                    save_complete_autocovariance_fct_direction = true,
+                                    save_spectral_density_array = true)
+
+    # load structure dictionary which contains all essential information about the structure
+    structure_dict = GU.load_h5_dict(data_path)
+
+    # set voxel edge length and label from structure dict if not specified in the arguments
+    if voxel_edge_length === nothing
+        voxel_edge_length = structure_dict["voxel_edge_length"]
+    end
+    if label === nothing
+        label = structure_dict["label"]
+    end
+
+    # if not specified, determine nr of sampling distances for autocovariance function
+    # and spectral density
+    if nr_sampling_distances === nothing
+        nr_sampling_distances = get_nr_sampling_distances(structure_dict["mean_edge_length_data"] )
+    end
+
+    # save autocovariance function if desired
+    if save_autocovariance_fct
+
+        # get autocovariance function as a function of sampling distance
+        autocovariance_fct_isotrope_dict = get_autocovariance_fct_isotrope_by_sampling_distance_vec(
+                                                structure_dict;
+                                                nr_sampling_distances = nr_sampling_distances,
+                                                nr_measurements_per_distance = nr_measurements_per_distance,
+                                                save_result = true,
+                                                save_path = save_path,
+                                                voxel_edge_length = voxel_edge_length,
+                                                label = label)
+
+    end
+
+
+    # save spectral density if desired
+    if save_spectral_density
+
+        # check if autocovariance fct was calculated within this function
+        if !save_autocovariance_fct
+
+            # if autocovariance function was not calculated within this function, check if it was
+            # calculated before and if so, load the corresponding dictionary
+            if isfile(save_path*"_autocovariance_fct.h5")
+
+                # load autocovariance function dict
+                autocovariance_fct_isotrope_dict = GU.load_h5_dict(save_path*"_autocovariance_fct.h5")
+
+            else
+                autocovariance_fct_isotrope_dict = get_autocovariance_fct_isotrope_by_sampling_distance_vec(
+                                                structure_dict;
+                                                nr_sampling_distances = nr_sampling_distances,
+                                                nr_measurements_per_distance = nr_measurements_per_distance,
+                                                save_result = false,
+                                                save_path = save_path,
+                                                voxel_edge_length = voxel_edge_length,
+                                                label = label)
+            end
+        end
+    
+        # calculate spectral_density
+        spectral_density_isotrope_dict = get_spectral_density_isotrope_by_wavenumber_vec(
+                structure_dict;
+                nr_sampling_distances = length(autocovariance_fct_isotrope_dict["sampling_distance_vec"]),
+                nr_measurements_per_distance = autocovariance_fct_isotrope_dict["nr_measurements_per_distance"],
+                sampling_distance_vec = autocovariance_fct_isotrope_dict["sampling_distance_vec"],
+                autocovariance_fct_dict = autocovariance_fct_isotrope_dict,
+                save_result = true,
+                save_path = save_path,
+                voxel_edge_length = voxel_edge_length,
+                label = label)
+                    
+    end
+
+
+    # save local volume fraction if desired
+    if save_local_volume_fraction_variance
+
+        # determine local volume fraction variance vector by using measuring windows
+        local_volume_fract_variance_dict = get_local_volume_fract_variance_by_window_vec(
+                                                            structure_dict;
+                                                            nr_window_sizes = nr_window_sizes,
+                                                            window_positioning="random",
+                                                            window_shape="spherical",
+                                                            save_result = true,
+                                                            save_path = save_path,
+                                                            voxel_edge_length = voxel_edge_length,
+                                                            label = label)
+    
+    end
+
+
+    # save autocovariance function as a function of sampling direction
+    if save_autocovariance_fct_direction
+
+        # get autocovariance function array
+        autocovariance_fct_direction_dict = get_autocovariance_fct_by_sampling_vec_array(
+                            structure_dict;
+                            nr_measurements_per_direction = nr_measurements_per_direction,
+                            save_result = true,
+                            save_path = save_path,
+                            voxel_edge_length = voxel_edge_length,
+                            label = label)
+    
+    end
+
+
+    # save spectral density along certain directions if desired
+    if save_spectral_density_along_directions
+
+        # set vectors along which spectral density will be measured
+        direction_vec_vec = [[1,0,0], 
+                            [0,1,0],
+                            [0,0,1],
+                            (1/sqrt(2)) .* [1,-1,0],
+                            (1/sqrt(3)) .* [1,1,1],
+                            (1/sqrt(6)) .* [1,1,-2]]
+
+        # set vector with names to save the files
+        naming_vec = string.( [[1,0,0], 
+                                [0,1,0],
+                                [0,0,1],
+                                [1,-1,0],
+                                [1,1,1],
+                                [1,1,-2]] )
+
+        # check if autocovariance function was previously calculated in this function
+        if !save_autocovariance_fct_direction
+
+            # check if data can be loaded from file
+            if isfile( save_path*"_autocovariance_fct_direction.h5" )
+            
+                # load autocovariance function per direction dict
+                autocovariance_fct_direction_dict = GU.load_h5_dict(save_path*"_autocovariance_fct_direction.h5")
+            
+            else
+                # get autocovariance function array
+                autocovariance_fct_direction_dict = get_autocovariance_fct_by_sampling_vec_array(
+                    structure_dict;
+                    nr_measurements_per_direction = nr_measurements_per_direction,
+                    save_result = false,
+                    save_path = save_path,
+                    voxel_edge_length = voxel_edge_length,
+                    label = label)
+
+            end
+        end
+
+        for i in eachindex(direction_vec_vec)
+
+            # determine spectral density
+            spectral_density_along_direction_dict = get_spectral_density_along_direction_by_wavenumber_vec(
+                    structure_dict,
+                    direction_vec_vec[i];
+                    nr_measurements_per_direction = nr_measurements_per_direction,
+                    sampling_distance_vec_vec = autocovariance_fct_direction_dict["sampling_distance_vec_vec"],
+                    autocovariance_fct_dict = autocovariance_fct_direction_dict,
+                    save_result = true,
+                    save_path = save_path*"_"*naming_vec[i],
+                    voxel_edge_length = voxel_edge_length,
+                    label = label*" "*naming_vec[i])
+
+
+        end
+    end
+
+
+    # save complete autocovariance function as a function of sampling direction for all spacial directions,
+    # not only the half space considered previously
+    if save_complete_autocovariance_fct_direction
+
+        # check if autocovariance function was previously calculated in this function
+        if !save_autocovariance_fct_direction
+
+            # check if data can be loaded from file
+            if isfile( save_path*"_autocovariance_fct_direction.h5" )
+            
+                # load autocovariance function per direction dict
+                autocovariance_fct_direction_dict = GU.load_h5_dict(save_path*"_autocovariance_fct_direction.h5")
+            
+            else
+                # get autocovariance function array
+                autocovariance_fct_direction_dict = get_autocovariance_fct_by_sampling_vec_array(
+                    structure_dict;
+                    nr_measurements_per_direction = nr_measurements_per_direction,
+                    save_result = false,
+                    save_path = save_path,
+                    voxel_edge_length = voxel_edge_length,
+                    label = label)
+
+            end
+        end
+    
+        # calculate complete autocovariance function
+        complete_autocovariance_fct_direction_dict = get_complete_autocovariance_fct_by_sampling_vec_array(
+            autocovariance_fct_direction_dict;
+            save_result = true,
+            save_path = save_path)
+                    
+    end
+
+
+    # save complete autocovariance function as a function of sampling direction for all spacial directions,
+    # not only the half space considered previously
+    if save_spectral_density_array
+
+        # check if complete autocovariance function was previously calculated in this function
+        if save_complete_autocovariance_fct_direction
+
+            # check if data can be loaded from file
+            if isfile( save_path*"_autocovariance_fct_direction_complete.h5" )
+            
+                # load complete autocovariance function per direction dict
+                complete_autocovariance_fct_direction_dict = GU.load_h5_dict(save_path*"_autocovariance_fct_direction_complete.h5")
+            
+            else
+
+                # check if autocovariance function was previously calculated in this function
+                if !save_autocovariance_fct_direction
+                
+                    # check if data can be loaded from file
+                    if isfile( save_path*"_autocovariance_fct_direction.h5" )
+                    
+                        # load autocovariance function per direction dict
+                        autocovariance_fct_direction_dict = GU.load_h5_dict(save_path*"_autocovariance_fct_direction.h5")
+                    
+                    else
+                        # get autocovariance function array
+                        autocovariance_fct_direction_dict = get_autocovariance_fct_by_sampling_vec_array(
+                            structure_dict;
+                            nr_measurements_per_direction = nr_measurements_per_direction,
+                            save_result = false,
+                            save_path = save_path,
+                            voxel_edge_length = voxel_edge_length,
+                            label = label)
+                    
+                    end
+                end
+
+                # get complete autocovariance function array
+                complete_autocovariance_fct_direction_dict = get_complete_autocovariance_fct_by_sampling_vec_array(
+                    autocovariance_fct_direction_dict;
+                    save_result = false,
+                    save_path = save_path)
+
+            end
+        end
+    
+        # calculate spectral_density
+        spectral_density_array_dict = get_spectral_density_array_by_fft(complete_autocovariance_fct_direction_dict;
+                                                                    save_result = true,
+                                                                    save_path = save_path,
+                                                                    voxel_edge_length = voxel_edge_length,
+                                                                    label = label)
+
+        # calculate spectral_density
+        spectral_density_array_dict = get_spectral_density_by_wavevector_array_fft(structure_dict;
+            nr_measurements_per_direction = nr_measurements_per_direction,
+            sampling_distance_vec_vec = get_sampling_distance_vec_vec(structure_dict["size_data"]),
+            sampling_vec_array = get_vector_array(sampling_distance_vec_vec),
+            autocovariance_fct_direction_dict = autocovariance_fct_direction_dict,
+            save_complete_autocovariance_fct_direction = save_complete_autocovariance_fct_direction,
+            complete_autocovariance_fct_direction_dict = complete_autocovariance_fct_direction_dict,
+            save_result = true,
+            save_path = save_path)
+                    
+    end
+
+    return
+    
+end
+
+
+"""
+This function plots several statistical measures, that is
+- local volume fraction variance
+- autocovariance function
+- spectral density
+"""
+function plot_statistical_measures(data_path_vec,
+                                save_path::String;
+                                voxel_edge_length_vec=nothing,
+                                label_vec=nothing,
+                                spectral_density_xlims = nothing,
+                                autocovariance_fct_direction_x_y_lims = nothing,
+                                autocovariance_fct_direction_clims = nothing,
+                                spectral_density_heatmaps_clims = (0, 0.1),
+                                spectral_density_heatmaps_x_y_lims = nothing,
+                                plot_autocovariance_fct_bool = true,
+                                plot_spectral_density_bool = true,
+                                plot_local_volume_fraction_variance_bool = true,
+                                plot_autocovariance_fct_direction_bool = true,
+                                plot_spectral_density_along_directions_bool = true,
+                                plot_spectral_density_heatmaps_bool = true
+                                )
+
+    # if desired plot autocovariance function
+    if plot_autocovariance_fct_bool
+
+        # initialize vector for plot dicts
+        autocovariance_fct_plot_dict_vec = []
+
+        # loop through data that will be plotted
+        for i in eachindex(data_path_vec)
+
+            # load plot dictionary
+            autocovariance_fct_plot_dict = GU.load_h5_dict(data_path_vec[i]*"_autocovariance_fct.h5")
+
+            # if desired adjust label and voxel edge length
+            if  label_vec !== nothing
+                autocovariance_fct_plot_dict["label"] = label_vec[i]
+            end
+
+            # if desired adjust label and voxel edge length
+            if voxel_edge_length_vec !== nothing
+                autocovariance_fct_plot_dict["voxel_edge_length"] = voxel_edge_length_vec[i]
+            end
+                
+            # add current plot dict to vector
+            push!(autocovariance_fct_plot_dict_vec, autocovariance_fct_plot_dict)
+
+        end
+
+        # plot the data
+        plot_autocovariance_fct(autocovariance_fct_plot_dict_vec,
+                        save_path;
+                        title="Autocovariance function",
+                        save_plot = true)
+
+        # plot zoom into the data
+        plot_autocovariance_fct(autocovariance_fct_plot_dict_vec,
+                        save_path;
+                        title="Autocovariance function",
+                        save_plot = true,
+                        ylims = [-0.07, 0.07])
+
+    end
+
+    # if desired plot spectral density
+    if plot_spectral_density_bool
+
+        # initialize vector for plot dicts
+        spectral_density_plot_dict_vec = []
+
+        # loop through data that will be plotted
+        for i in eachindex(data_path_vec)
+
+            # load plot dictionary
+            spectral_density_plot_dict = GU.load_h5_dict(data_path_vec[i]*"_spectral_density.h5")
+
+            # if desired adjust label and voxel edge length
+            if label_vec !== nothing
+                spectral_density_plot_dict["label"] = label_vec[i]
+            end
+
+            # if desired adjust label and voxel edge length
+            if  voxel_edge_length_vec !== nothing
+                spectral_density_plot_dict["voxel_edge_length"] = voxel_edge_length_vec[i]
+            end
+                
+            # add current plot dict to vector
+            push!(spectral_density_plot_dict_vec, spectral_density_plot_dict)
+
+        end
+
+        # plot the data
+        plot_spectral_density(spectral_density_plot_dict_vec,
+                        save_path;
+                        save_plot = true)
+
+        # if specified, plot a zoom into the spectral sensity
+        if spectral_density_xlims !== nothing
+
+            plot_spectral_density(spectral_density_plot_dict_vec,
+                            save_path;
+                            save_plot = true,
+                            xlims = spectral_density_xlims)
+        end
+
+    end
+
+
+    # if desired plot local volume fraction variance
+    if plot_local_volume_fraction_variance_bool
+
+        # initialize vector for plot dicts
+        local_volume_fraction_variance_plot_dict_vec = []
+
+        # loop through data that will be plotted
+        for i in eachindex(data_path_vec)
+
+            # load plot dictionary
+            local_volume_fraction_variance_plot_dict = GU.load_h5_dict(
+                                                            data_path_vec[i]*"_volume_fraction_variance.h5")
+
+            # if desired adjust label and voxel edge length
+            if  label_vec !== nothing
+                local_volume_fraction_variance_plot_dict["label"] = label_vec[i]
+            end
+
+            # if desired adjust label and voxel edge length
+            if voxel_edge_length_vec !== nothing
+                local_volume_fraction_variance_plot_dict["voxel_edge_length"] = voxel_edge_length_vec[i]
+            end
+                
+            # add current plot dict to vector
+            push!(local_volume_fraction_variance_plot_dict_vec, local_volume_fraction_variance_plot_dict)
+
+        end
+
+        # plot the data
+        plot_volume_fraction_variance(local_volume_fraction_variance_plot_dict_vec,
+                        save_path;
+                        save_plot = true)
+
+    end
+
+
+    # if desired plot autocovariance function heatmaps
+    if plot_autocovariance_fct_direction_bool
+
+        # loop through data that will be plotted
+        for i in eachindex(data_path_vec)
+
+            # load plot dictionary
+            autocovariance_fct_direction_plot_dict = GU.load_h5_dict(
+                                                            data_path_vec[i]*"_autocovariance_fct_direction_complete.h5")
+
+            # if desired adjust label and voxel edge length
+            if label_vec  !== nothing
+                autocovariance_fct_direction_plot_dict["label"] = label_vec[i]
+            end
+
+            # if desired adjust label and voxel edge length
+            if voxel_edge_length_vec !== nothing
+                autocovariance_fct_direction_plot_dict["voxel_edge_length"] = voxel_edge_length_vec[i]
+            end
+                
+            # plot autocovariance function heatmaps along x-y, x-z and y-z planes
+            for j in 1:3
+
+                plot_autocovariance_fct_heatmap(autocovariance_fct_direction_plot_dict,
+                        save_path*"_"*autocovariance_fct_direction_plot_dict["label"]*"_"*string(j)*"_fixed";
+                        save_plot = true,
+                        clims = autocovariance_fct_direction_clims,
+                        x_y_lims = autocovariance_fct_direction_x_y_lims,
+                        sampling_vector_component_to_fix = j,
+                        sampling_vector_value_fixed = 0)
+            end
+
+        end
+        
+    end
+
+
+    # if desired plot spectral density along three different directions
+    if plot_spectral_density_along_directions_bool
+
+        # set vector with names to load the files
+        naming_vec = string.( [[1,0,0], 
+                                [0,1,0],
+                                [0,0,1],
+                                [1,-1,0],
+                                [1,1,1],
+                                [1,1,-2]] )
+
+        # set vector with the two collections of directions that will be plotted in two different plots
+        range_vec = [1:3, 4:6]
+
+        # set the names of the two plots
+        plot_name_vec = ["_along_axes", "_rotated_axes"]
+
+        # loop through data that will be plotted
+        for i in eachindex(data_path_vec)
+
+            # create two plots per sample, one along the axes and one along rotated coordinate axes
+            for plot_per_sample_nr in 1:2
+
+                # initialize vector for plot dicts
+                spectral_density_direction_plot_dict_vec = []
+
+                spectral_density_direction_plot_dict = Dict()
+
+                # loop through the three directions either along the axes or along rotated coordinate axes
+                for j in range_vec[plot_per_sample_nr]
+
+                    # load plot dictionary
+                    spectral_density_direction_plot_dict = GU.load_h5_dict(
+                                                data_path_vec[i]*"_"*naming_vec[j]*"_spectral_density_direction.h5")
+
+                    # if desired adjust label
+                    if label_vec  !== nothing
+                        spectral_density_direction_plot_dict["label"] = label_vec[i]*" "*naming_vec[j]
+                    end
+
+                    # if desired adjust voxel edge length
+                    if voxel_edge_length_vec !== nothing
+                        spectral_density_direction_plot_dict["voxel_edge_length"] = voxel_edge_length_vec[i]
+                    end
+
+                    # add current plot dict to vector
+                    push!(spectral_density_direction_plot_dict_vec, spectral_density_direction_plot_dict)
+
+                end
+
+                # set saving path by extracting the current sample name from data path
+                save_path_specific = ( first( save_path, findlast('\\', save_path) )
+                                *SubString(data_path_vec[i], (findlast('\\', data_path_vec[i]) + 1), length(data_path_vec[i]))
+                                *"_direction"
+                                *plot_name_vec[plot_per_sample_nr]
+                                )
+
+                # plot the data
+                plot_spectral_density(spectral_density_direction_plot_dict_vec,
+                                        save_path_specific;
+                                        save_plot = true)
+
+                # if specified, plot a zoom into the spectral sensity
+                if spectral_density_xlims !== nothing
+                
+                    plot_spectral_density(spectral_density_direction_plot_dict_vec,
+                    save_path_specific;
+                                save_plot = true,
+                                xlims = spectral_density_xlims)
+                end
+
+            end
+
+        end
+
+    end
+
+
+    # if desired plot spectral density heatmaps
+    if plot_spectral_density_heatmaps_bool
+
+        # loop through data that will be plotted
+        for i in eachindex(data_path_vec)
+
+            # load plot dictionary
+            spectral_density_array_dict = GU.load_h5_dict(data_path_vec[i]*"_spectral_density_array.h5")
+
+            # if desired adjust label and voxel edge length
+            if label_vec  !== nothing
+                spectral_density_array_dict["label"] = label_vec[i]
+            end
+
+            # if desired adjust label and voxel edge length
+            if voxel_edge_length_vec !== nothing
+                spectral_density_array_dict["voxel_edge_length"] = voxel_edge_length_vec[i]
+            end
+                
+            # plot spectral density heatmaps along x-y, x-z and y-z planes
+            for j in 1:3
+
+                plot_spectral_density_heatmap(spectral_density_array_dict,
+                        save_path*"_"*spectral_density_array_dict["label"]*"_"*string(j)*"_fixed";
+                        save_plot = true,
+                        clims = spectral_density_heatmaps_clims,
+                        x_y_lims = spectral_density_heatmaps_x_y_lims,
+                        wavevector_component_to_fix = j,
+                        wavevector_value_fixed = 0)
+            end
+
+        end
+        
+    end
+
+    return
+
+end

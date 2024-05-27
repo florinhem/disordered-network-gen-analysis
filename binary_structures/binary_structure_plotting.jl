@@ -74,7 +74,7 @@ function plot_volume_fraction_variance(plot_dict_vec::Vector,
     yticks = 10. .^ collect(-6:-1)
 
     # create empty plot
-    volume_fraction_plot = Plots.plot(xlabel= "measuring window diameter " * Latex.L"L / \mathrm{nm}",
+    volume_fraction_plot = Plots.plot(xlabel= "measuring window diameter " * Latex.L"L / d",
                                     ylabel=Latex.L"\sigma_\tau^2(L) " ,
                                     yaxis=:log,  yticks=yticks,
                                     legend = true, dpi=250, title=title)
@@ -121,7 +121,7 @@ function plot_autocovariance_fct(plot_dict_vec::Vector,
                                     ylims=nothing)
 
     # create empty plot
-    autocovariance_fct_plot = Plots.plot(xlabel= "sampling distance " * Latex.L"r / \mathrm{nm}",
+    autocovariance_fct_plot = Plots.plot(xlabel= "sampling distance " * Latex.L"r / d",
                                     ylabel=Latex.L"\chi(r) " ,
                                     legend = true, dpi=250, title=title)
     
@@ -175,7 +175,7 @@ function plot_spectral_density(plot_dict_vec::Vector,
                                 xlims = nothing)
 
     # create empty plot
-    spectral_density_plot = Plots.plot(xlabel="wavenumber " * Latex.L"k / ( 1/ \mathrm{nm} )",
+    spectral_density_plot = Plots.plot(xlabel="wavenumber " * Latex.L"k / ( 1/ d )",
                                     ylabel=Latex.L"\tilde{\chi} (k) ",
                                     legend = true, dpi=250, title=title)
 
@@ -310,13 +310,13 @@ function plot_autocovariance_fct_heatmap(plot_dict::Dict,
                                         )[sampling_vector_fixed_index,:,:] 
         
         # set labels and title for the plot
-        xlabel = Latex.L"r_y / \mathrm{nm} " 
-        ylabel = Latex.L"r_z / \mathrm{nm}"
+        xlabel = Latex.L"r_y / d " 
+        ylabel = Latex.L"r_z / d"
         title = (Latex.L"r_x = "
         *Format.format(Latex.L"{1:.1f}",
                         (plot_dict["sampling_distance_vec_vec"][1][sampling_vector_fixed_index]
                                         * plot_dict["voxel_edge_length"] ) ) 
-        *" "*Latex.L" \mathrm{nm},  \Delta \chi (\vec{r}) ) = "
+        *" "*Latex.L" d,  \Delta \chi (\vec{r}) ) = "
         *Format.format(Latex.L"{1:.3f}",
         Statistics.mean( uncertainty_2d_array) ) )
 
@@ -341,13 +341,13 @@ function plot_autocovariance_fct_heatmap(plot_dict::Dict,
                                         )[:,sampling_vector_fixed_index,:] 
         
         # set labels and title for the plot
-        xlabel = Latex.L"r_x / \mathrm{nm} " 
-        ylabel = Latex.L"r_z / \mathrm{nm}"
+        xlabel = Latex.L"r_x / d " 
+        ylabel = Latex.L"r_z / d"
         title = (Latex.L"r_y = "
         *Format.format(Latex.L"{1:.1f}",
                         (plot_dict["sampling_distance_vec_vec"][2][sampling_vector_fixed_index]
                                         * plot_dict["voxel_edge_length"] ) ) 
-        *" "*Latex.L" \mathrm{nm},  \Delta \chi (\vec{r}) ) = "
+        *" "*Latex.L" d,  \Delta \chi (\vec{r}) ) = "
         *Format.format(Latex.L"{1:.3f}",
         Statistics.mean( uncertainty_2d_array) ) )
 
@@ -372,13 +372,13 @@ function plot_autocovariance_fct_heatmap(plot_dict::Dict,
                                         )[:,:,sampling_vector_fixed_index] 
         
         # set labels and title for the plot
-        xlabel = Latex.L"r_x / \mathrm{nm} " 
-        ylabel = Latex.L"r_y / \mathrm{nm}"
+        xlabel = Latex.L"r_x / d " 
+        ylabel = Latex.L"r_y / d"
         title = (Latex.L"r_z = "  
         *Format.format(Latex.L"{1:.1f}",
                         (plot_dict["sampling_distance_vec_vec"][3][sampling_vector_fixed_index]
                                         * plot_dict["voxel_edge_length"] ) ) 
-        *" "*Latex.L" \mathrm{nm},  \Delta \chi (\vec{r}) ) = "
+        *" "*Latex.L" d,  \Delta \chi (\vec{r}) ) = "
         *Format.format(Latex.L"{1:.3f}",
         Statistics.mean( uncertainty_2d_array) ) )
         
@@ -458,14 +458,14 @@ function plot_spectral_density_heatmap(plot_dict::Dict,
         spectral_density_2d_array = plot_dict["spectral_density_array"][wavevector_fixed_index,:,:] 
         
         # set labels and title for the plot
-        xlabel = Latex.L"k_y / ( 1/ \mathrm{nm} )" 
-        ylabel = Latex.L"k_z / ( 1/ \mathrm{nm} )"
+        xlabel = Latex.L"k_y / ( 1/ d )" 
+        ylabel = Latex.L"k_z / ( 1/ d )"
         title = (title*", "
         * Latex.L"k_x = " 
         *Format.format(Latex.L"{:.2f}", 
                     plot_dict["wavenumber_vec_vec"][1][wavevector_fixed_index] 
                         / plot_dict["voxel_edge_length"] )
-        *" "*Latex.L"( 1/ \mathrm{nm} )")
+        *" "*Latex.L"( 1/ d )")
 
 
     elseif wavevector_component_to_fix == 2
@@ -483,14 +483,14 @@ function plot_spectral_density_heatmap(plot_dict::Dict,
 
         
         # set labels and title for the plot
-        xlabel = Latex.L"k_x / ( 1/ \mathrm{nm} )" 
-        ylabel = Latex.L"k_z / ( 1/ \mathrm{nm} )"
+        xlabel = Latex.L"k_x / ( 1/ d )" 
+        ylabel = Latex.L"k_z / ( 1/ d )"
         title = (title*", "
         * Latex.L"k_y = " 
         *Format.format(Latex.L"{:.2f}", 
                     plot_dict["wavenumber_vec_vec"][2][wavevector_fixed_index] 
                         / plot_dict["voxel_edge_length"] )
-        *" "*Latex.L"( 1/ \mathrm{nm} )")
+        *" "*Latex.L"( 1/ d )")
 
     elseif wavevector_component_to_fix == 3
         
@@ -506,14 +506,14 @@ function plot_spectral_density_heatmap(plot_dict::Dict,
         spectral_density_2d_array = plot_dict["spectral_density_array"][:,:,wavevector_fixed_index] 
 
         # set labels and title for the plot
-        xlabel = Latex.L"k_x / ( 1/ \mathrm{nm} )" 
-        ylabel = Latex.L"k_y / ( 1/ \mathrm{nm} )"
+        xlabel = Latex.L"k_x / ( 1/ d )" 
+        ylabel = Latex.L"k_y / ( 1/ d )"
         title = (title*", "
         * Latex.L"k_z = " 
         *Format.format(Latex.L"{:.2f}", 
                     plot_dict["wavenumber_vec_vec"][3][wavevector_fixed_index] 
                         / plot_dict["voxel_edge_length"] )
-        *" "*Latex.L"( 1/ \mathrm{nm} )")
+        *" "*Latex.L"( 1/ d )")
 
     else
         @error ("Wavevector component to fix must 
@@ -615,7 +615,6 @@ function plot_statistical_measures(data_path_vec,
                                 plot_spectral_density_bool = true,
                                 plot_local_volume_fraction_variance_bool = true,
                                 plot_autocovariance_fct_direction_bool = true,
-                                plot_spectral_density_along_directions_bool = true,
                                 plot_spectral_density_heatmaps_bool = true
                                 )
 
@@ -778,84 +777,6 @@ function plot_statistical_measures(data_path_vec,
     end
 
 
-    # if desired plot spectral density along three different directions
-    if plot_spectral_density_along_directions_bool
-
-        # set vector with names to load the files
-        naming_vec = string.( [[1,0,0], 
-                                [0,1,0],
-                                [0,0,1],
-                                [1,-1,0],
-                                [1,1,1],
-                                [1,1,-2]] )
-
-        # set vector with the two collections of directions that will be plotted in two different plots
-        range_vec = [1:3, 4:6]
-
-        # set the names of the two plots
-        plot_name_vec = ["_along_axes", "_rotated_axes"]
-
-        # loop through data that will be plotted
-        for i in eachindex(data_path_vec)
-
-            # create two plots per sample, one along the axes and one along rotated coordinate axes
-            for plot_per_sample_nr in 1:2
-
-                # initialize vector for plot dicts
-                spectral_density_direction_plot_dict_vec = []
-
-                spectral_density_direction_plot_dict = Dict()
-
-                # loop through the three directions either along the axes or along rotated coordinate axes
-                for j in range_vec[plot_per_sample_nr]
-
-                    # load plot dictionary
-                    spectral_density_direction_plot_dict = GU.load_h5_dict(
-                                                data_path_vec[i]*"_"*naming_vec[j]*"_spectral_density_direction.h5")
-
-                    # if desired adjust label
-                    if label_vec  !== nothing
-                        spectral_density_direction_plot_dict["label"] = label_vec[i]*" "*naming_vec[j]
-                    end
-
-                    # if desired adjust voxel edge length
-                    if voxel_edge_length_vec !== nothing
-                        spectral_density_direction_plot_dict["voxel_edge_length"] = voxel_edge_length_vec[i]
-                    end
-
-                    # add current plot dict to vector
-                    push!(spectral_density_direction_plot_dict_vec, spectral_density_direction_plot_dict)
-
-                end
-
-                # set saving path by extracting the current sample name from data path
-                save_path_specific = ( first( save_path, findlast('\\', save_path) )
-                                *SubString(data_path_vec[i], (findlast('\\', data_path_vec[i]) + 1), length(data_path_vec[i]))
-                                *"_direction"
-                                *plot_name_vec[plot_per_sample_nr]
-                                )
-
-                # plot the data
-                plot_spectral_density(spectral_density_direction_plot_dict_vec,
-                                        save_path_specific;
-                                        save_plot = true)
-
-                # if specified, plot a zoom into the spectral sensity
-                if spectral_density_xlims !== nothing
-                
-                    plot_spectral_density(spectral_density_direction_plot_dict_vec,
-                    save_path_specific;
-                                save_plot = true,
-                                xlims = spectral_density_xlims)
-                end
-
-            end
-
-        end
-
-    end
-
-
     # if desired plot spectral density heatmaps
     if plot_spectral_density_heatmaps_bool
 
@@ -893,4 +814,29 @@ function plot_statistical_measures(data_path_vec,
 
     return
 
+end
+
+
+"""
+Plot binary structure as a 3D scatter plot
+"""
+function plot_binary_structure(data_binary::Array{Bool, 3})
+
+    # create a list of cartesian coordinates for the ones
+    coords = findall(x -> x, data_binary)
+
+    # convert list of coordinates to a matrix
+    coords_vecs = [collect(index.I) for index in coords]
+    coordinates_matrix = hcat(coords_vecs...)
+
+    # create a 3D scatter plot with voxels
+    scene = GLMakie.scatter(coordinates_matrix[1,:],
+                        coordinates_matrix[2,:],
+                        coordinates_matrix[3,:],
+                        marker=:circle,markersize = 2)
+
+    # display the plot
+    GLMakie.display(scene)
+
+    return
 end

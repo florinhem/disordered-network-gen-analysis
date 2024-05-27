@@ -121,7 +121,7 @@ end
 """
 Plot a network in 2d or 3d
 """
-function plot_network(graph_dict::Dict;
+function plot_spatial_network(graph_dict::Dict;
     highlight_nodes::Tuple = (),
     highlight_edges::Vector = [])
 

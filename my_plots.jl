@@ -57,20 +57,16 @@ function piticklabel(x::Rational, ::Val{:latex})
     Latex.L"%$S\frac{%$N\pi}{%$d}"
 end
 
+filename = "216_vertices_T_0.2_heat_cool_0.2_per_mc_quenched"
+data_path = raw"..\analysis_data\random_networks\\"*filename
+save_path = raw"..\plots\random_networks\\"*filename
 
-dict_path = raw"..\analysis_data\random_networks\\"
-filename = "216_vertices_T_0.2_heated_for_0.5_steps_quenched"
+plot_dict = GU.load_h5_dict(data_path*"_spectral_density_array.h5")
 
-structure_factor_angle_averaged_dict = GU.load_h5_dict(dict_path*filename*"_structure_factor_angle_averaged.h5")
-
-hyperuniformity_metric, polynomial_fit = NA.get_hyperuniformity_metric(structure_factor_angle_averaged_dict)
-
-Plots.plot(structure_factor_angle_averaged_dict["wavenumber_vec"], 
-                    Measurements.value.(structure_factor_angle_averaged_dict["structure_factor_vec"]) , 
-                    ribbon =  Measurements.uncertainty.(structure_factor_angle_averaged_dict["structure_factor_vec"]))
-Plots.plot!(Polynomials.Polynomial(Measurements.value.( collect(polynomial_fit) )))
-
-
-Plots.plot!(xlabel="wavenumber / "*Latex.L"d^{-1}", ylabel = "structure factor", xtick=pitick(0, 56, 1; mode=:latex), legend = false, xlims=(0, 53), ylims=(0, 2))
-
-Plots.savefig(raw"..\plots\random_networks\\"*filename*".png")
+BDA.plot_spectral_density_heatmap(plot_dict,
+    save_path;
+    save_plot = true,
+    clims = (0,0.1),
+    x_y_lims = nothing,
+    wavevector_component_to_fix = 3,
+    wavevector_value_fixed = 0)

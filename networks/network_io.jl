@@ -48,8 +48,7 @@ function save_graph_to_h5_and_MGformat(graph_dict::Dict,
 
     # save evolution dict if passed
     if evolution_dict !== nothing
-        GU.save_dict_to_h5(evolution_dict;
-            save_path=save_path*filename*"_evolution.h5")
+        GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
     end
 
     # create copy of graph_dict to not change the original file
@@ -62,7 +61,7 @@ function save_graph_to_h5_and_MGformat(graph_dict::Dict,
     delete!(graph_dict_to_save, "spatial_network")
 
     # save graph dict
-    GU.save_dict_to_h5(graph_dict_to_save; save_path=save_path*filename*".h5")
+    GU.save_dict_to_h5(graph_dict_to_save, save_path*filename*".h5")
 
     return
 end
@@ -150,8 +149,7 @@ function save_graph_to_h5_and_gml(graph_dict::Dict,
 
     # save evolution dict if passed
     if evolution_dict !== nothing
-        GU.save_dict_to_h5(evolution_dict;
-            save_path=save_path*filename*"_evolution.h5")
+        GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
     end
 
     # create copy of graph_dict to not change the original file
@@ -164,7 +162,7 @@ function save_graph_to_h5_and_gml(graph_dict::Dict,
     delete!(graph_dict_to_save, "spatial_network")
 
     # save graph dict
-    GU.save_dict_to_h5(graph_dict_to_save; save_path=save_path*filename*".h5")
+    GU.save_dict_to_h5(graph_dict_to_save, save_path*filename*".h5")
 
     return
 end
@@ -409,8 +407,8 @@ end
 """
 Get mesh from network
 """
-function save_mesh_from_network(graph_dict::Dict, filename::String;
-    bond_radius = 0.05,
+function save_mesh_from_spatial_network(graph_dict::Dict, filename::String;
+    bond_radius::Float64 = 0.3131,
     save_path::String = raw"..\structures\random_networks\\")
 
     # create graph dict to plot

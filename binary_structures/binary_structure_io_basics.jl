@@ -183,7 +183,7 @@ function get_structure_dict_from_colorscale(data_path_raw::String;
 
     # if desired, save corrected data
     if save_result
-        GU.save_dict_to_h5(structure_dict; save_path = save_path*"_structure.h5")
+        GU.save_dict_to_h5(structure_dict, save_path*"_structure.h5")
 
     end
 
@@ -249,7 +249,7 @@ function get_structure_dict_from_colorscale_stack(data_path_raw_prefix::String,
 
     # if desired, save corrected data
     if save_result
-        save_dict_to_h5(structure_dict; save_path = save_path*"_structure.h5")
+        save_dict_to_h5(structure_dict, save_path*"_structure.h5")
 
     end
 
@@ -282,7 +282,6 @@ function to calculate and save the following measures for a given 3d data set
 - autocovariance function as a function of sampling distance (assuming an isotropic medium)
 - spectral density as a function of sampling distance (assuming an isotropic medium)
 - autocovariance function as a function of sampling vector (not assuming an isotropic medium)
-- spectral density along 6 different directions (not assuming an isotropic medium)
 """
 function save_statistical_measures(data_path::String,
                                     save_path::String;
@@ -296,7 +295,6 @@ function save_statistical_measures(data_path::String,
                                     save_spectral_density = true,
                                     save_local_volume_fraction_variance = true,
                                     save_autocovariance_fct_direction = true,
-                                    save_spectral_density_along_directions = true,
                                     save_complete_autocovariance_fct_direction = true,
                                     save_spectral_density_array = true)
 
@@ -405,66 +403,6 @@ function save_statistical_measures(data_path::String,
     end
 
 
-    # save spectral density along certain directions if desired
-    if save_spectral_density_along_directions
-
-        # set vectors along which spectral density will be measured
-        direction_vec_vec = [[1,0,0], 
-                            [0,1,0],
-                            [0,0,1],
-                            (1/sqrt(2)) .* [1,-1,0],
-                            (1/sqrt(3)) .* [1,1,1],
-                            (1/sqrt(6)) .* [1,1,-2]]
-
-        # set vector with names to save the files
-        naming_vec = string.( [[1,0,0], 
-                                [0,1,0],
-                                [0,0,1],
-                                [1,-1,0],
-                                [1,1,1],
-                                [1,1,-2]] )
-
-        # check if autocovariance function was previously calculated in this function
-        if !save_autocovariance_fct_direction
-
-            # check if data can be loaded from file
-            if isfile( save_path*"_autocovariance_fct_direction.h5" )
-            
-                # load autocovariance function per direction dict
-                autocovariance_fct_direction_dict = GU.load_h5_dict(save_path*"_autocovariance_fct_direction.h5")
-            
-            else
-                # get autocovariance function array
-                autocovariance_fct_direction_dict = get_autocovariance_fct_by_sampling_vec_array(
-                    structure_dict;
-                    nr_measurements_per_direction = nr_measurements_per_direction,
-                    save_result = false,
-                    save_path = save_path,
-                    voxel_edge_length = voxel_edge_length,
-                    label = label)
-
-            end
-        end
-
-        for i in eachindex(direction_vec_vec)
-
-            # determine spectral density
-            spectral_density_along_direction_dict = get_spectral_density_along_direction_by_wavenumber_vec(
-                    structure_dict,
-                    direction_vec_vec[i];
-                    nr_measurements_per_direction = nr_measurements_per_direction,
-                    sampling_distance_vec_vec = autocovariance_fct_direction_dict["sampling_distance_vec_vec"],
-                    autocovariance_fct_dict = autocovariance_fct_direction_dict,
-                    save_result = true,
-                    save_path = save_path*"_"*naming_vec[i],
-                    voxel_edge_length = voxel_edge_length,
-                    label = label*" "*naming_vec[i])
-
-
-        end
-    end
-
-
     # save complete autocovariance function as a function of sampling direction for all spacial directions,
     # not only the half space considered previously
     if save_complete_autocovariance_fct_direction
@@ -500,21 +438,19 @@ function save_statistical_measures(data_path::String,
     end
 
 
-    # save complete autocovariance function as a function of sampling direction for all spacial directions,
-    # not only the half space considered previously
+    # save spectral density array along all directions if desired
     if save_spectral_density_array
 
         # check if complete autocovariance function was previously calculated in this function
-        if save_complete_autocovariance_fct_direction
+        if !save_complete_autocovariance_fct_direction
 
             # check if data can be loaded from file
             if isfile( save_path*"_autocovariance_fct_direction_complete.h5" )
-            
+
                 # load complete autocovariance function per direction dict
                 complete_autocovariance_fct_direction_dict = GU.load_h5_dict(save_path*"_autocovariance_fct_direction_complete.h5")
             
             else
-
                 # check if autocovariance function was previously calculated in this function
                 if !save_autocovariance_fct_direction
                 
@@ -537,21 +473,22 @@ function save_statistical_measures(data_path::String,
                     end
                 end
 
-                # get complete autocovariance function array
+                # calculate complete autocovariance function
                 complete_autocovariance_fct_direction_dict = get_complete_autocovariance_fct_by_sampling_vec_array(
                     autocovariance_fct_direction_dict;
-                    save_result = false,
+                    save_result = true,
                     save_path = save_path)
-
             end
         end
-    
+
         # calculate spectral_density
-        spectral_density_array_dict = get_spectral_density_array_by_fft(complete_autocovariance_fct_direction_dict;
-                                                                    save_result = true,
-                                                                    save_path = save_path,
-                                                                    voxel_edge_length = voxel_edge_length,
-                                                                    label = label)
+        spectral_density_array_dict = get_spectral_density_by_wavevector_array_fft(structure_dict;
+            nr_measurements_per_direction = nr_measurements_per_direction,
+            save_complete_autocovariance_fct_direction_dict = false,
+            save_result = true,
+            save_path = save_path,
+            complete_autocovariance_fct_direction_dict = complete_autocovariance_fct_direction_dict)
+
                     
     end
 
