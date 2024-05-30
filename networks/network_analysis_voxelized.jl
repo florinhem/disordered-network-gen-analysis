@@ -1,0 +1,543 @@
+"""
+Functions to calculate the autocovariance function and the spectral
+density for voxelized networks with periodic boundary conditions
+"""
+
+
+"""
+Get binary data for a spatial network where the bonds are represented by
+a single line of voxels without a 'finite' bond radius
+"""
+function get_binary_data_from_spatial_network_bonds_only(graph_dict::Dict;
+    voxel_edge_length::Float64 = 0.1)
+
+    # generate array of zeros where data will be stored in
+    data_binary = zeros(Bool, Int(round(graph_dict["supercell_edge_length"] / voxel_edge_length)), 
+                            Int(round(graph_dict["supercell_edge_length"] / voxel_edge_length)), 
+                            Int(round(graph_dict["supercell_edge_length"] / voxel_edge_length)))
+
+    # loop through bonds in spatial network and set those voxels to 1 that lie
+    # closer to the bond than the bond radius
+    for bond in MetaGraphsNext.edge_labels(graph_dict["spatial_network"])
+
+        # get the bond vector
+        direction_vec = graph_dict["spatial_network"][bond...]["vector"]
+
+        # get the bond length
+        bond_length = sqrt(graph_dict["spatial_network"][bond...]["distance_squared"])
+
+        # get the number of voxels that are needed to represent the bond
+        nr_voxels = Int( round( bond_length / voxel_edge_length ) )
+
+        # get the voxel vector
+        voxel_vector = direction_vec ./ nr_voxels
+
+        # loop through voxels and set them to 1
+        for i in 1:nr_voxels
+
+            # get the position of the voxel by accounting for periodic boundary conditions
+            voxel_position = (graph_dict["spatial_network"][bond[1]]["position"] 
+                            .+ i * voxel_vector 
+                            .+ graph_dict["supercell_edge_length"]) .% graph_dict["supercell_edge_length"]
+
+            # get the index of the voxel
+            voxel_index = (Int.( round.( voxel_position ./ voxel_edge_length .+ (1.000001/2) ) )
+                            .- 1) .% size(data_binary) .+ 1
+
+            # set the voxel to 1
+            data_binary[voxel_index[1], voxel_index[2], voxel_index[3]] = 1
+
+        end
+
+    end
+
+    return data_binary
+
+end
+
+
+"""
+For a network whose bonds are represented by a single line of voxels,
+give volume to the bonds by setting all voxels that lie within the bond radius to 1
+"""
+function add_volume_to_bonds(data_binary_bonds_only::Array{Bool,3};
+    bond_radius::Float64 = 0.35 ,
+    voxel_edge_length::Float64 = 0.1)
+
+    # give volume to the bonds by setting all voxels that lie within the bond radius to 1
+    data_binary = zeros(Bool, size(data_binary_bonds_only)...)
+
+    for i in 1:size(data_binary_bonds_only)[1]
+        for j in 1:size(data_binary_bonds_only)[2]
+            for k in 1:size(data_binary_bonds_only)[3]
+
+                if data_binary_bonds_only[i,j,k] == 1
+
+                    # check window around current voxel
+                    for l in (-Int( round( bond_radius / voxel_edge_length ) )
+                                :Int( round( bond_radius / voxel_edge_length ) ))
+                        for m in (-Int( round( bond_radius / voxel_edge_length ) )
+                                    :Int( round( bond_radius / voxel_edge_length ) ))
+                            for n in (-Int( round( bond_radius / voxel_edge_length ) )
+                                        :Int( round( bond_radius / voxel_edge_length ) ))
+
+                                # check if voxel is within bond radius
+                                if  sqrt(l^2 + m^2 + n^2) * voxel_edge_length <= bond_radius
+
+                                    # get index of current voxel by accounting for periodic boundary conditions
+                                    cartesian_index_pbc = ( [i+l,j+m,k+n] .+ size(data_binary) .- 1 
+                                                            ) .% size(data_binary) .+ 1
+
+                                    # set voxel to 1
+                                    data_binary[cartesian_index_pbc...] = 1
+
+                                end
+
+                            end
+                        end
+                    end
+
+                end
+
+            end
+        end
+    end
+
+    return data_binary
+
+end
+
+
+"""
+load data and get all its essential properties
+"""
+function get_binary_data_essentials(data_binary::Array{Bool})
+
+    # get total volume fraction
+    volume_fract_tot = Statistics.mean(data_binary)
+
+    # get size and mean edge length of data array. Since data array is expected to be roughly 
+    # cubic, mean should yield a sensible window length scale
+    size_data = size(data_binary)
+    mean_edge_length_data = Int(round( Statistics.mean(size_data) )) 
+
+    # get the number of dimensions of data array
+    nr_dimensions_data = ndims(data_binary)
+
+    # warn if not 3d, since some functions only work for 3d data
+    if nr_dimensions_data !== 3
+        @warn "Data is not 3D. Most functions thus won't work!"
+    end
+
+    return [volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data]
+
+end
+
+
+"""
+Get binary data for a spatial network with a given bond radius
+"""
+function get_binary_data_from_spatial_network(graph_dict::Dict;
+    bond_radius::Float64 = 0.35,
+    voxel_edge_length::Float64 = 0.1,
+    save_path::String = raw"..\structures\random_networks\binary_structures\\",
+    filename::String = "some_structure",
+    save_result::Bool=false)
+
+    # get binary data for for only the bonds without a finite bond radius
+    data_binary_bonds_only = get_binary_data_from_spatial_network_bonds_only(graph_dict; 
+        voxel_edge_length = voxel_edge_length)
+
+    # give volume to the bonds by setting all voxels that lie within the bond radius to 1
+    data_binary = add_volume_to_bonds(data_binary_bonds_only; 
+        bond_radius = bond_radius, 
+        voxel_edge_length = voxel_edge_length)
+
+    # get essential information about the structure data
+    volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = get_binary_data_essentials(
+        data_binary)
+
+    # save everything in structure dictionary
+    structure_dict = Dict("data_binary" => data_binary, 
+                            "volume_fract_tot" => volume_fract_tot, 
+                            "size_data" => size_data, 
+                            "mean_edge_length_data" => graph_dict["supercell_edge_length"], 
+                            "nr_dimensions_data" => graph_dict["nr_dimensions"],
+                            "voxel_edge_length" => voxel_edge_length ,
+                            "label" => filename,
+                            "coordination_nr" => graph_dict["coordination_nr"],
+                            "nr_vertices" => graph_dict["nr_vertices"],
+                            "bond_radius" => bond_radius )
+
+    # if desired, save corrected data
+    if save_result
+        GU.save_dict_to_h5(structure_dict, save_path*filename*"_structure.h5")
+
+    end
+
+    return structure_dict
+
+end
+
+
+"""
+Get vector of vectors containing the vector components at which 
+the autocovariance function will be calculated
+"""
+function get_sampling_indices_vec_vec(size_data::Tuple)
+
+    # determine the maximal sampling distances along the three axes
+    max_sampling_distances = Int.( floor.( (size_data ) ./ 2 ))
+
+    # get sampling distance vec vec
+    # Along one axis (z direction is chosen here) only positive directions are considered,
+    # because negative ones would yield redundant information
+    sampling_indices_vec_vec = [
+                collect(-max_sampling_distances[1]:max_sampling_distances[1]),
+                collect(-max_sampling_distances[2]:max_sampling_distances[2]),
+                collect(0:max_sampling_distances[3])]
+
+    return sampling_indices_vec_vec
+
+end
+
+
+"""
+Get array vectors out of three different vectors containing the
+x, y and z components
+"""
+function get_vector_array(component_vec_vec::Vector)
+
+    # initialize array where vectors will be stored
+    vector_array = Array{typeof(component_vec_vec[1][1])}(undef, 
+                                    length.(component_vec_vec)..., 3 )
+
+    # save vectors to array
+    for i in eachindex(component_vec_vec[1])
+        for j in eachindex(component_vec_vec[2])
+            for k in eachindex(component_vec_vec[3])
+
+                # save current vector
+                vector_array[i,j,k, :] = [component_vec_vec[1][i],
+                                        component_vec_vec[2][j],
+                                        component_vec_vec[3][k]]
+
+            end
+        end
+    end
+
+    return vector_array
+end
+
+
+"""
+Get vector of vectors of sampled wavenumbers from fast fourier transform of
+complete autocovariance function array
+"""
+function get_wavenumber_vec_vec(autocovariance_fct_direction_dict::Dict)
+
+    # get vectors of wavenumbers along all three dimensions
+    # since a real FFT is performed, the first dimension contains only positve wavenumbers
+    # whereas second and third dimension contain positive and negative wavenumbers.
+    # In order to bring them into a natural order, the fftshift needs to be done
+    wavenumber_vec_vec = (2*pi/autocovariance_fct_direction_dict["voxel_edge_length"]) .* [
+                                    FFTW.fftshift( FFTW.fftfreq( 
+                size(autocovariance_fct_direction_dict["autocovariance_fct_array"])[1] ) ),
+                                    FFTW.fftshift( FFTW.fftfreq( 
+                size(autocovariance_fct_direction_dict["autocovariance_fct_array"])[2] ) ),
+                                    FFTW.fftshift( FFTW.fftfreq( 
+                size(autocovariance_fct_direction_dict["autocovariance_fct_array"])[3] ) ) ]
+
+    # convert to Float64
+    wavenumber_vec_vec_float = []
+
+    for wavenumber_vec in wavenumber_vec_vec
+        push!(wavenumber_vec_vec_float, Float64.( wavenumber_vec ))
+
+    end
+
+    return  wavenumber_vec_vec_float
+    
+end
+
+
+"""
+Get the autocovariance function for 3d media with periodic
+boundary conditions
+"""
+function get_autocovariance_fct(sampling_vec::Vector{Int64},
+    structure_dict::Dict)
+
+    # initialize vector from which the two point prob. fct. will be calculated later
+    two_point_prob_fct_summand_vec = Vector{Float64}(undef, prod(structure_dict["size_data"]) )
+    current_index = 1
+
+    # loop through all voxels
+    for i in 1:structure_dict["size_data"][1]
+        for j in 1:structure_dict["size_data"][2]
+            for k in 1:structure_dict["size_data"][3]
+
+                # get indices of current voxel and the one at given sampling vector to it
+                x1 = (i,j,k)
+                x2 = (mod.(x1 .+ sampling_vec .- 1, structure_dict["size_data"]) .+ 1)
+
+                # calculate the contribution to the two point prob. fct. from these coodinates
+                two_point_prob_fct_summand_vec[current_index] = structure_dict["data_binary"][x1...] * structure_dict["data_binary"][x2...]
+
+                current_index += 1
+
+            end
+        end
+    end
+
+    # calculate 2 point prob. function
+    two_point_prob_fct = Statistics.mean( two_point_prob_fct_summand_vec )
+
+    # determine autocovariance function
+    autocovariance_fct = two_point_prob_fct - structure_dict["volume_fract_tot"]^2
+
+    return autocovariance_fct
+end
+
+
+"""
+Determine autocovariance function as a function of sampling direction for a 3d medium
+with periodic boundary conditions
+"""
+function get_autocovariance_fct_by_sampling_indices_array(structure_dict::Dict;
+                save_result = false,
+                save_path = raw"..\analysis_data\sample_name",
+                print_progress = false)
+
+    # get array of sampling vectors
+    sampling_indices_vec_vec = get_sampling_indices_vec_vec(structure_dict["size_data"])
+    sampling_indices_array = get_vector_array(sampling_indices_vec_vec)
+
+    # get size of autocovariance fct array
+    autocovariance_fct_array_size = size(sampling_indices_array)[1:3]
+
+    # create vector where for each sampling distance the autocovariance function and its
+    # uncertainty will be stored
+    autocovariance_fct_array = Array{Float64}(undef, autocovariance_fct_array_size...)
+
+    # for each sampling distance get autocovariance function and its uncertainty
+    for i in 1:autocovariance_fct_array_size[1]
+        for j in 1:autocovariance_fct_array_size[2]
+            for k in 1:autocovariance_fct_array_size[3]
+
+                autocovariance_fct_array[i,j,k] = get_autocovariance_fct(sampling_indices_array[i,j,k,:],
+                                        structure_dict)
+            end
+
+            if print_progress
+                println("Autocovariance calculation: layer "*string(j)*" along y direction done" )
+            end
+        end
+
+        if print_progress
+            println("Autocovariance calculation: layer "*string(i)*" along x direction done" )
+        end
+
+    end
+
+    # extend the sampling distance vec along the third dimension, where due to the mirror
+    # symmetry of the autocovariance fct only positive z values where considered
+    complete_sampling_indices_vec_vec = [sampling_indices_vec_vec[1], 
+                                            sampling_indices_vec_vec[2],
+                                            vcat( .- sampling_indices_vec_vec[3][end:-1:2],
+                                                sampling_indices_vec_vec[3]) ]
+
+    # create array of sampling vectors out of sampling distances
+    complete_sampling_indices_array = get_vector_array(complete_sampling_indices_vec_vec)
+
+    # point mirror autocovariance fct to sampling distances with negative z component
+    complete_autocovariance_fct_array = cat(dims=3, 
+                                        autocovariance_fct_array[end:-1:1,end:-1:1,end:-1:2], 
+                                        autocovariance_fct_array)
+
+    
+    # if the voxelized structure has an even number of voxels along any direction
+    # one layer of the autocovariance function is redundant and needs to be removed
+    if iseven(structure_dict["size_data"][1])
+        complete_sampling_indices_vec_vec[1] = complete_sampling_indices_vec_vec[1][2:end]
+        complete_sampling_indices_array = complete_sampling_indices_array[2:end,:,:,:]
+        complete_autocovariance_fct_array = complete_autocovariance_fct_array[2:end,:,:]
+    end
+    if iseven(structure_dict["size_data"][2])
+        complete_sampling_indices_vec_vec[2] = complete_sampling_indices_vec_vec[2][2:end]
+        complete_sampling_indices_array = complete_sampling_indices_array[:,2:end,:,:]
+        complete_autocovariance_fct_array = complete_autocovariance_fct_array[:,2:end,:]
+    end
+    if iseven(structure_dict["size_data"][3])
+        complete_sampling_indices_vec_vec[3] = complete_sampling_indices_vec_vec[3][2:end]
+        complete_sampling_indices_array = complete_sampling_indices_array[:,:,2:end,:]
+        complete_autocovariance_fct_array = complete_autocovariance_fct_array[:,:,2:end]
+    end
+^
+    # create dict
+    autocovariance_fct_direction_dict = Dict("sampling_index_array" => complete_sampling_indices_array,
+                        "sampling_index_vec_vec" => complete_sampling_indices_vec_vec,
+                        "sampling_distance_array" => complete_sampling_indices_array .* structure_dict["voxel_edge_length"] ,
+                        "sampling_distance_vec_vec" => complete_sampling_indices_vec_vec .* structure_dict["voxel_edge_length"] ,
+                        "autocovariance_fct_array" => complete_autocovariance_fct_array,
+                        "voxel_edge_length" => structure_dict["voxel_edge_length"] ,
+                        "label" => structure_dict["label"])
+
+    # save results if desired
+    if save_result
+
+        GU.save_dict_to_h5(autocovariance_fct_direction_dict, save_path*"_autocovariance_fct_direction.h5")
+
+    end
+
+    return autocovariance_fct_direction_dict
+    
+end
+
+
+"""
+Calculate spectral density from autocovariance fct for a 3d medium with 
+periodic boundary conditions by means of Fast Fourier Transform
+"""
+function get_spectral_density_by_wavevector_array_fft(structure_dict::Dict;
+    save_autocovariance_fct_direction_dict::Bool = false,
+    save_result::Bool = false,
+    save_path::String = raw"..\analysis_data\sample_name",
+    autocovariance_fct_direction_dict::Dict = get_autocovariance_fct_by_sampling_indices_array(structure_dict;
+            save_result = save_autocovariance_fct_direction_dict,
+            save_path = save_path)
+    )
+
+    # determine fourier transform of autocovariance function values
+    spectral_density_array_fft_output = FFTW.rfft(
+            autocovariance_fct_direction_dict["autocovariance_fct_array"])
+
+    # bring spectral densities into an order from negative to positive wavenumbers 
+    spectral_density_array = FFTW.fftshift(spectral_density_array_fft_output, [2, 3])
+
+    # point mirror spectral density to wavenumbers with negative x component
+    spectral_density_array = cat(dims=1, 
+            conj.(spectral_density_array[end:-1:2,end:-1:1,end:-1:1]), spectral_density_array)
+
+    # get tuple of vectors of sampled wavenumbers
+    wavenumber_vec_vec = get_wavenumber_vec_vec(autocovariance_fct_direction_dict)
+
+    # get array of sampled sampled wavevectors 
+    wavevector_array = get_vector_array(wavenumber_vec_vec)
+
+    # create dict to save
+    spectral_density_dict = Dict("wavevector_array" => wavevector_array,
+        "wavenumber_vec_vec" => wavenumber_vec_vec,
+        "spectral_density_array" => spectral_density_array,
+        "voxel_edge_length" => autocovariance_fct_direction_dict["voxel_edge_length"],
+        "label" => autocovariance_fct_direction_dict["label"])
+
+    # save results if desired
+    if save_result
+        GU.save_dict_to_h5(copy(spectral_density_dict), save_path*"_spectral_density_array.h5")
+
+    end
+
+    return spectral_density_dict
+    
+end
+
+
+"""
+Calculate angle averaged structure factor from 3d array of structure factor
+"""
+function get_spectral_density_angle_averaged(spectral_density_dict::Dict;
+    gaussian_filter::Bool = true,
+    gaussian_filter_sigma_x::Float64 = 2*pi/20, 
+    gaussian_filter_filtered_data_x_step_length::Float64 = 2*pi/20,
+    save_result::Bool = false,
+    save_path = raw"..\analysis_data\sample_name")
+
+    # create a dictionary for angle averaged structure factor
+    # with the length squared of the index vector as the key,
+    # because it is proportional to the square of the wavenumber
+    spectral_density_angle_averaged_dict = Dict{Int64, Vector{Float64}}()
+
+    # determine origin vector of cartesian coordinates
+    index_vector_origin = Int.(floor.( (
+                size(spectral_density_dict["spectral_density_array"]) .+ 1 ) ./ 2) )
+
+    # loop through Cartesian Indices
+    for i in CartesianIndices(spectral_density_dict["spectral_density_array"])
+
+        # determine actual index vector
+        index_vector = i.I .- index_vector_origin
+
+        # calculate length squared of index vector
+        index_vector_length_squared = sum(index_vector.^2)
+
+        # check if key exists in dictionary
+        if index_vector_length_squared in keys(spectral_density_angle_averaged_dict)
+
+            # add structure factor to dictionary
+            push!(spectral_density_angle_averaged_dict[index_vector_length_squared], 
+                abs(spectral_density_dict["spectral_density_array"][i]))
+
+        else
+
+            # add key and structure factor to dictionary
+            spectral_density_angle_averaged_dict[index_vector_length_squared] = 
+                [abs(spectral_density_dict["spectral_density_array"][i])]
+
+        end
+
+    end
+    
+    # initialize wavenumber vector and structure factor vector
+    unfiltered_wavenumber_vec = Vector{Float64}()
+    unfiltered_spectral_density_vec = Vector{Measurements.Measurement{Float64}}()
+
+    # get lattice constant of reciprocal lattice
+    reciprocal_lattice_constant = LinearAlgebra.norm(
+        spectral_density_dict["wavevector_array"][(index_vector_origin .+ [1,0,0])...,:])
+
+    # get vector of wavenumbers and angle averaged structure factor including
+    # their uncertainty
+    for key in keys(spectral_density_angle_averaged_dict)
+
+        # get wavenumber from wavevector
+        push!(unfiltered_wavenumber_vec, reciprocal_lattice_constant*sqrt(key))
+
+        # get angle averaged structure factor
+        push!(unfiltered_spectral_density_vec, 
+            Measurements.measurement(Statistics.mean(spectral_density_angle_averaged_dict[key]),
+            Statistics.std(spectral_density_angle_averaged_dict[key])))
+
+    end
+
+    # sort wavenumber vector and structure factor vector
+    unfiltered_spectral_density_vec = unfiltered_spectral_density_vec[sortperm(unfiltered_wavenumber_vec)]
+    sort!(unfiltered_wavenumber_vec)
+
+    # create dict to save
+    spectral_density_angle_averaged_dict = Dict{String, Any}(
+                                "unfiltered_wavenumber_vec" => unfiltered_wavenumber_vec, 
+                                "unfiltered_spectral_density_vec" => unfiltered_spectral_density_vec,
+                                "label" => spectral_density_dict["label"])
+
+    # apply gaussian filter if desired
+    if gaussian_filter
+        filtered_data_x, filtered_data_y = GU.gaussian_filter_1d(unfiltered_wavenumber_vec[2:end], 
+            unfiltered_spectral_density_vec[2:end]; 
+            sigma_x=gaussian_filter_sigma_x, 
+            filtered_data_x_step_length=gaussian_filter_filtered_data_x_step_length)
+
+        spectral_density_angle_averaged_dict["wavenumber_vec"] = filtered_data_x
+        spectral_density_angle_averaged_dict["spectral_density_vec"] = filtered_data_y
+        spectral_density_angle_averaged_dict["gaussian_filter_sigma_x"] = gaussian_filter_sigma_x
+    end
+
+    # save results if desired
+    if save_result
+        GU.save_dict_to_h5(copy(spectral_density_angle_averaged_dict),
+            save_path*"_spectral_density_angle_averaged.h5")
+
+    end
+                                            
+    return spectral_density_angle_averaged_dict
+end

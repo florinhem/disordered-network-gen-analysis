@@ -58,15 +58,7 @@ function piticklabel(x::Rational, ::Val{:latex})
 end
 
 filename = "216_vertices_T_0.2_heat_cool_0.2_per_mc_quenched"
-data_path = raw"..\analysis_data\random_networks\\"*filename
-save_path = raw"..\plots\random_networks\\"*filename
+structure_dict_path = raw"..\structures\random_networks\binary_structures\216_vertices_multiple_runs\run_4\\"
+structure_dict = GU.load_h5_dict(structure_dict_path*filename*"_structure.h5")
 
-plot_dict = GU.load_h5_dict(data_path*"_spectral_density_array.h5")
-
-BDA.plot_spectral_density_heatmap(plot_dict,
-    save_path;
-    save_plot = true,
-    clims = (0,0.1),
-    x_y_lims = nothing,
-    wavevector_component_to_fix = 3,
-    wavevector_value_fixed = 0)
+NA.plot_binary_structure(structure_dict["data_binary"])

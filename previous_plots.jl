@@ -930,7 +930,7 @@ Plots.plot(structure_factor_angle_averaged_dict["wavenumber_vec"],
 
 Plots.plot!(xlabel="wavenumber / "*Latex.L"d^{-1}", ylabel = "structure factor", xtick=pitick(0, 56, 1; mode=:latex), legend = false, xlims=(0, 53), ylims=(0, 2))
 
-Plots.savefig(raw"..\plots\random_networks\\"*filename*".png")
+Plots.savefig(raw"..\plots\random_networks\\"*filename*"_structure_factor_angle_averaged.png")
 
 
 dict_path = raw"..\analysis_data\random_networks\\"
@@ -970,12 +970,37 @@ filename = "216_vertices_T_0.2_heat_cool_0.2_per_mc_quenched"
 data_path = raw"..\analysis_data\random_networks\\"*filename
 save_path = raw"..\plots\random_networks\\"*filename
 
-plot_dict = GU.load_h5_dict(data_path*"_autocovariance_fct_direction_complete.h5")
+plot_dict = GU.load_h5_dict(data_path*"_autocovariance_fct_direction.h5")
 
-BDA.plot_autocovariance_fct_heatmap(plot_dict,
+NA.plot_autocovariance_fct_heatmap(plot_dict,
     save_path;
     save_plot = true,
     clims = nothing,
     x_y_lims = nothing,
     sampling_vector_component_to_fix = 3,
     sampling_vector_value_fixed = 0)
+
+plot_dict = GU.load_h5_dict(data_path*"_spectral_density_array.h5")
+
+NA.plot_spectral_density_heatmap(plot_dict,
+    save_path;
+    save_plot = true,
+    clims = (0,0.1),
+    x_y_lims = nothing,
+    wavevector_component_to_fix = 3,
+    wavevector_value_fixed = 0)
+
+
+filename = "216_vertices_T_0.2_heat_cool_0.2_per_mc_quenched"
+data_path = raw"..\analysis_data\random_networks\\"*filename
+save_path = raw"..\plots\random_networks\\"*filename
+
+spectral_density_angle_averaged_dict = GU.load_h5_dict(data_path*"_spectral_density_angle_averaged.h5")
+
+Plots.plot(spectral_density_angle_averaged_dict["wavenumber_vec"], 
+                    Measurements.value.(spectral_density_angle_averaged_dict["spectral_density_vec"]) , 
+                    ribbon =  Measurements.uncertainty.(spectral_density_angle_averaged_dict["spectral_density_vec"]))
+
+Plots.plot!(xlabel="wavenumber / "*Latex.L"d^{-1}", ylabel = "spectral density", legend = false, xlims=(0,30), ylims=(0,30), xtick=pitick(0, 30, 1; mode=:latex))
+
+Plots.savefig(raw"..\plots\random_networks\\"*filename*"_spectral_density_angle_averaged.png")

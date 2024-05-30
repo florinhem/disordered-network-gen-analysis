@@ -3858,4 +3858,119 @@ for randomization_temperature in randomization_temperature_vec
 end
 
 
+dict_path = raw"..\structures\random_networks\216_vertices_multiple_runs\216_vertices_run_4\\"
+filename = "216_vertices_T_0.2_heat_cool_0.2_per_mc_quenched"
 
+graph_dict = NG.load_graph_from_h5_and_gml(dict_path*filename)
+
+structure_dict = BDA.get_binary_data_from_spatial_network(graph_dict;
+    bond_radius = 0.35,
+    filename = filename,
+    save_result=true)
+
+save_path = raw"..\analysis_data\random_networks\\"*filename
+
+# load dict
+complete_autocovariance_fct_direction_dict = GU.load_h5_dict(save_path*"_autocovariance_fct_direction_complete.h5")
+
+spectral_density_dict = BDA.get_spectral_density_by_wavevector_array_fft(structure_dict;
+    save_complete_autocovariance_fct_direction_dict = false,
+    save_result = true,
+    save_path = save_path,
+    complete_autocovariance_fct_direction_dict = complete_autocovariance_fct_direction_dict)
+
+
+# loop through folders
+for i in 1:5
+
+    graph_dict_path = raw"..\structures\random_networks\216_vertices_multiple_runs\216_vertices_run_"*string(i)*"\\"
+
+    structure_dict_save_path = raw"..\structures\random_networks\binary_structures\216_vertices_multiple_runs\run_"*string(i)*"\\"
+
+    # loop through all files in folder
+    for filename in readdir(graph_dict_path)
+
+        # check if file is a h5 file
+        if endswith(filename, ".gml")
+
+            # load graph dict
+            graph_dict = NG.load_graph_from_h5_and_gml(graph_dict_path*filename[1:end-4])
+
+            # create and save voxelized data array
+            structure_dict = BDA.get_binary_data_from_spatial_network(graph_dict;
+            bond_radius = 0.35,
+            voxel_edge_length = 0.2,
+            save_path = structure_dict_save_path,
+            filename = filename[1:end-4],
+            save_result=true)
+#
+        end
+    end
+
+end
+
+
+graph_dict_path = raw"..\structures\random_networks\216_vertices_multiple_runs\216_vertices_run_4\\"
+filename = "216_vertices_T_0.2_heat_cool_0.2_per_mc_quenched"
+
+#graph_dict = NG.load_graph_from_h5_and_gml(graph_dict_path*filename)
+structure_dict_path = raw"..\structures\random_networks\binary_structures\216_vertices_multiple_runs\run_4\\"
+structure_dict = GU.load_h5_dict(structure_dict_path*filename*"_structure.h5")
+save_path = raw"..\analysis_data\random_networks\\"*filename
+
+# get autocovariance fct for the structure
+autocovariance_fct_direction_dict = GU.load_h5_dict(save_path*"_autocovariance_fct_direction_pbc.h5")
+
+spectral_density_dict = BDA.get_spectral_density_by_wavevector_array_fft_pbc(structure_dict;
+    save_autocovariance_fct_direction_dict = false,
+    save_result = true,
+    save_path = save_path,
+    autocovariance_fct_direction_dict = autocovariance_fct_direction_dict
+    )
+
+
+filename = "216_vertices_T_0.2_heat_cool_0.2_per_mc_quenched"
+
+#graph_dict = NG.load_graph_from_h5_and_gml(graph_dict_path*filename)
+structure_dict_path = raw"..\structures\random_networks\binary_structures\216_vertices_multiple_runs\run_4\\"
+structure_dict = GU.load_h5_dict(structure_dict_path*filename*"_structure.h5")
+save_path = raw"..\analysis_data\random_networks\\"*filename
+
+# get autocovariance fct for the structure
+autocovariance_fct_direction_dict = GU.load_h5_dict(save_path*"_autocovariance_fct_direction_pbc.h5")
+
+# reorganize the autocovariance fct array by shifting all entries by half the length of the array
+autocovariance_fct_array = cat(autocovariance_fct_direction_dict["autocovariance_fct_array"][Int(ceil(size(autocovariance_fct_direction_dict["autocovariance_fct_array"])[1]/2)):end,:,:], autocovariance_fct_direction_dict["autocovariance_fct_array"][1:Int(ceil(size(autocovariance_fct_direction_dict["autocovariance_fct_array"])[1]/2))-1,:,:], dims = 1)
+
+autocovariance_fct_array = cat(autocovariance_fct_array[:,Int(ceil(size(autocovariance_fct_array)[2]/2)):end,:], autocovariance_fct_array[:,1:Int(ceil(size(autocovariance_fct_array)[2]/2))-1,:], dims = 2)
+
+autocovariance_fct_array = cat(autocovariance_fct_array[:,:,Int(ceil(size(autocovariance_fct_array)[3]/2)):end], autocovariance_fct_array[:,:,1:Int(ceil(size(autocovariance_fct_array)[3]/2))-1], dims = 3)
+
+autocovariance_fct_direction_dict["autocovariance_fct_array"] = autocovariance_fct_array
+
+spectral_density_dict = BDA.get_spectral_density_by_wavevector_array_fft_pbc(structure_dict;
+    save_autocovariance_fct_direction_dict = false,
+    save_result = true,
+    save_path = save_path,
+    autocovariance_fct_direction_dict = autocovariance_fct_direction_dict
+    )
+
+
+dict_path = raw"..\structures\random_networks\216_vertices_multiple_runs\216_vertices_run_1\\"
+filename = "216_vertices_T_2.0_heated_for_0.5_steps_quenched"
+
+graph_dict = NG.load_graph_from_h5_and_gml(dict_path*filename)
+
+structure_dict = NA.get_binary_data_from_spatial_network(graph_dict;
+    bond_radius = 0.35,
+    voxel_edge_length = 1/2, 
+    filename = filename,
+    save_result=false)
+
+@ProfileView.profview autocovariance_fct_direction_dict = NA.get_autocovariance_fct_by_sampling_indices_array(structure_dict;
+save_result = false,
+print_progress = true)
+
+@ProfileView.profview autocovariance_fct_direction_dict = NA.get_autocovariance_fct_by_sampling_indices_array(structure_dict;
+save_result = false,
+print_progress = true)

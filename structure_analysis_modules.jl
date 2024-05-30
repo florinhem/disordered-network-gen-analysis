@@ -146,7 +146,9 @@ import Polynomials  # to curve fit polynomials
 import Peaks    # to locate peaks of a function
 import Combinatorics    # mainly used to get all possible combinations of bonds
 import SphericalHarmonics   # to calculate spherical harmonics
+import FFTW     # to calculate the Fast Fourier Transform
 import Plots    # for plotting
+import GLMakie  # Makie backend for plotting
 import LaTeXStrings as Latex # to display latex symbols in plot labels
 import Format   # for python-like string formatting 
 
@@ -170,6 +172,9 @@ include(load_path*"network_analysis_utilities.jl")
 
 # these functions are used to evolve and eventually analyze networks
 include(load_path*"network_analysis_and_evolution.jl")
+
+# these functions generate and analyze voxelized data from networks
+include(load_path*"network_analysis_voxelized.jl")
 
 # functions to plot network analysis results
 include(load_path*"network_analysis_plotting.jl")

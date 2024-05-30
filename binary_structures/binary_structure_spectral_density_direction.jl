@@ -11,7 +11,7 @@ the autocovariance function will be calculated
 function get_sampling_distance_vec_vec(size_data::Tuple)
 
     # determine the maximal sampling distances along the three axes
-    max_sampling_distances = Int.( ceil.( (size_data ) ./ 2 ))
+    max_sampling_distances = Int.( floor.( (size_data ) ./ 2 ))
 
     # get sampling distance vec vec
     # Along one axis (z direction is chosen here) only positive directions are considered,
@@ -24,7 +24,6 @@ function get_sampling_distance_vec_vec(size_data::Tuple)
     return sampling_distance_vec_vec
 
 end
-
 
 
 """
@@ -88,7 +87,7 @@ end
 
 
 """
-Get the autocovariance function for 3d media
+Get the autocovariance function for 3d media without periodic boundary conditions
 """
 function get_autocovariance_fct(sampling_vec::Vector{Int64},
                                 structure_dict::Dict;
@@ -125,7 +124,6 @@ function get_autocovariance_fct(sampling_vec::Vector{Int64},
     return autocovariance_fct
     
 end
-
 
 
 """
@@ -382,18 +380,19 @@ end
 Get vector of vectors of sampled wavenumbers from fast fourier transform of
 complete autocovariance function array
 """
-function get_wavenumber_vec_vec(complete_autocovariance_fct_array_values::Array)
+function get_wavenumber_vec_vec(autocovariance_fct_array::Array)
 
     # get vectors of wavenumbers along all three dimensions
     # since a real FFT is performed, the first dimension contains only positve wavenumbers
     # whereas second and third dimension contain positive and negative wavenumbers.
     # In order to bring them into a natural order, the fftshift needs to be done
-    wavenumber_vec_vec = (2*pi) .* [FFTW.fftshift( FFTW.fftfreq( 
-                                        size(complete_autocovariance_fct_array_values)[1] ) ),
+    wavenumber_vec_vec = (2*pi) .* [
                                     FFTW.fftshift( FFTW.fftfreq( 
-                                        size(complete_autocovariance_fct_array_values)[2] ) ),
+                size(autocovariance_fct_array)[1] ) ),
                                     FFTW.fftshift( FFTW.fftfreq( 
-                                        size(complete_autocovariance_fct_array_values)[3] ) ) ]
+                size(autocovariance_fct_array)[2] ) ),
+                                    FFTW.fftshift( FFTW.fftfreq( 
+                size(autocovariance_fct_array)[3] ) ) ]
 
     # convert to Float64
     wavenumber_vec_vec_float = []
@@ -439,7 +438,7 @@ function get_spectral_density_by_wavevector_array_fft(structure_dict::Dict;
 
     # point mirror spectral density to wavenumbers with negative x component
     spectral_density_array = cat(dims=1, 
-            spectral_density_array[end:-1:2,end:-1:1,end:-1:1], spectral_density_array)
+            conj.(spectral_density_array[end:-1:2,end:-1:1,end:-1:1]), spectral_density_array)
 
     # get tuple of vectors of sampled wavenumbers
     wavenumber_vec_vec = get_wavenumber_vec_vec(complete_autocovariance_fct_array_values)
