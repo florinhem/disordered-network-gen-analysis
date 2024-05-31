@@ -319,7 +319,8 @@ function generate_graphs_from_evolution_dicts_single_thread(filenames,
     save_path::String;
     print_every_nr_attempted_bond_switches::Int64 = 100,
     print_progress::Bool = false,
-    random_evolution_seed::Int64 = -1)
+    random_evolution_seed::Int64 = -1,
+    mean_nr_monte_carlo_steps_for_quenching::Float64 = 13.7)
 
     # loop through files
     for filename in filenames
@@ -336,8 +337,8 @@ function generate_graphs_from_evolution_dicts_single_thread(filenames,
 
             # print current thread id and filename if desired
             if print_progress
-                Format.printfmtln("Thread {1} out of {2} threads is evolving file {3}",
-                    Threads.threadid(), Threads.nthreads(), filename)
+                Format.printfmtln("Thread {1} is evolving file {2}",
+                    Threads.threadid(), filename)
                 
             end
             

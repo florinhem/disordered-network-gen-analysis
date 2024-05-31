@@ -24,7 +24,8 @@ function get_evolution_dict(;
     random_evolution_seed::Int64 = -1,
     thermal_fluctuations::Bool = false,
     temperature_vec::Vector = [2, 1],
-    nr_monte_carlo_steps_per_temperature_vec::Vector = [10,10]
+    nr_monte_carlo_steps_per_temperature_vec::Vector = [10,10],
+    mean_nr_monte_carlo_steps_for_quenching::Float64 = 13.7
     )
 
     # check if the temperature sequence is given correctly
@@ -32,6 +33,16 @@ function get_evolution_dict(;
         length(nr_monte_carlo_steps_per_temperature_vec))
         @error "temperature_vec and nr_monte_carlo_steps_per_temperature_vec
         must have the same length"
+    end
+
+    # estimate the total number of bond switches
+    estimated_nr_bond_switches = 0
+    for i in eachindex(temperature_vec)
+        if temperature_vec[i] == 0 && nr_monte_carlo_steps_per_temperature_vec[i] == 50
+            estimated_nr_bond_switches += mean_nr_monte_carlo_steps_for_quenching * 18 * nr_vertices
+        else
+            estimated_nr_bond_switches += nr_monte_carlo_steps_per_temperature_vec[i] * 18 * nr_vertices
+        end
     end
 
     # store all arguments in a dictionary
@@ -52,7 +63,9 @@ function get_evolution_dict(;
     "random_evolution_seed" => random_evolution_seed,
     "thermal_fluctuations" => thermal_fluctuations,
     "temperature_vec" => temperature_vec,
-    "nr_monte_carlo_steps_per_temperature_vec" => nr_monte_carlo_steps_per_temperature_vec
+    "nr_monte_carlo_steps_per_temperature_vec" => nr_monte_carlo_steps_per_temperature_vec,
+    "mean_nr_monte_carlo_steps_for_quenching" => mean_nr_monte_carlo_steps_for_quenching,
+    "estimated_nr_bond_switches" => estimated_nr_bond_switches
     )
 
     return evolution_dict

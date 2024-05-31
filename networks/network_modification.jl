@@ -708,8 +708,14 @@ function evolve_network!(graph_dict::Dict,
                         *string(graph_dict["total_energy"]))
 
                 elseif i%print_every_nr_attempted_bond_switches == 0
-                    println("Attempted bond switch nr "
-                        *string(i)*" at T="*string(temperature)*" accepted.")
+                    if haskey(evolution_dict, "estimated_nr_bond_switches")
+                        Format.printfmtln("Thread {1}: attempted bond switch nr {2} at T={3} accepted. {4:.3f} % done.",
+                        Threads.threadid(), i, temperature, 
+                        length(move_accepted_vec)/evolution_dict["estimated_nr_bond_switches"]*100 )
+                    else
+                        Format.printfmtln("Thread {1}: attempted bond switch nr {2} at T={3} accepted.",
+                        Threads.threadid(), i, temperature )
+                    end
 
                 end
             end
@@ -724,8 +730,14 @@ function evolve_network!(graph_dict::Dict,
                     println("Chain "*string(switched_chain)*" declined.")
 
                 elseif i%print_every_nr_attempted_bond_switches == 0
-                    println("Attempted bond switch nr "
-                        *string(i)*" at T="*string(temperature)*" declined.")
+                    if haskey(evolution_dict, "estimated_nr_bond_switches")
+                        Format.printfmtln("Thread {1}: attempted bond switch nr {2} at T={3} declined. {4:.3f} % done.",
+                        Threads.threadid(), i, temperature, 
+                        length(move_accepted_vec)/evolution_dict["estimated_nr_bond_switches"]*100 )
+                    else
+                        Format.printfmtln("Thread {1}: attempted bond switch nr {2} at T={3} declined.",
+                        Threads.threadid(), i, temperature )
+                    end
                     
                 end
             end

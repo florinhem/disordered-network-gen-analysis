@@ -3830,7 +3830,7 @@ label = "1000 vertices, T=1.0, heated for 0.5 steps, quenched")
 save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_anneal_quench_multiple_runs\evolution_dicts\\"
 
 randomization_temperature_vec = [2., 4., 8.]
-randomization_nr_monte_carlo_steps_vec = [2., 6., 10.]
+randomization_nr_monte_carlo_steps_vec = [2., 4., 8.]
 annealing_temperature_vec = [0.36, 0.5, 1.]
 
 for randomization_temperature in randomization_temperature_vec
@@ -3840,9 +3840,9 @@ for randomization_temperature in randomization_temperature_vec
             temperature_vec = [randomization_temperature]
             nr_monte_carlo_steps_per_temperature_vec = [randomization_nr_monte_carlo_steps]
 
-            for i in 1:10
+            for i in 1:5
                 append!(temperature_vec, [annealing_temperature, 0])
-                append!(nr_monte_carlo_steps_per_temperature_vec, [6, 50])
+                append!(nr_monte_carlo_steps_per_temperature_vec, [randomization_nr_monte_carlo_steps, 50])
             end
 
             evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 ,temperature_vec = temperature_vec,
@@ -3855,6 +3855,23 @@ for randomization_temperature in randomization_temperature_vec
 
         end
     end
+end
+
+
+evolution_dicts_directory_path = "../structures/random_networks/216_vertices_anneal_quench_multiple_runs/evolution_dicts/"
+
+for i in 1:5
+
+    save_path = "../structures/random_networks/216_vertices_anneal_quench_multiple_runs/run_"*string(i)*"/"
+
+    println("Starting run "*string(i))
+
+    NG.generate_graphs_from_evolution_dicts_in_directory(
+    evolution_dicts_directory_path,
+    save_path;
+    print_every_nr_attempted_bond_switches = 500,
+    print_progress = true)
+
 end
 
 
@@ -3883,7 +3900,7 @@ spectral_density_dict = BDA.get_spectral_density_by_wavevector_array_fft(structu
 # loop through folders
 for i in 1:5
 
-    graph_dict_path = raw"..\structures\random_networks\216_vertices_multiple_runs\216_vertices_run_"*string(i)*"\\"
+    graph_dict_path = raw"..\structures\random_networks\216_vertices_multiple_runs\run_"*string(i)*"\\"
 
     structure_dict_save_path = raw"..\structures\random_networks\binary_structures\216_vertices_multiple_runs\run_"*string(i)*"\\"
 
@@ -3974,3 +3991,50 @@ print_progress = true)
 @ProfileView.profview autocovariance_fct_direction_dict = NA.get_autocovariance_fct_by_sampling_indices_array(structure_dict;
 save_result = false,
 print_progress = true)
+
+
+
+for i in 1:5
+
+    structure_dicts_path = "../structures/random_networks/binary_structures/216_vertices_multiple_runs/run_"*string(i)*"/"
+    save_path = "../analysis_data/random_networks/216_vertices_multiple_runs/run_"*string(i)*"/"
+
+    NA.get_autocovariance_fct_direction_from_filenames_multithreading(structure_dicts_path;
+    print_progress = true,
+    save_path = save_path)
+
+end
+
+
+print_lock = Threads.ReentrantLock()
+graph_dicts_path = "../structures/random_networks/216_vertices_multiple_runs/"
+
+structure_dicts_path = "../structures/random_networks/binary_structures/216_vertices_multiple_runs/"
+
+autocovariance_dicts_path = "../analysis_data/random_networks/216_vertices_multiple_runs/"
+
+NA.get_binary_data_from_spatial_network_multithreading(graph_dicts_path,
+structure_dicts_path;
+print_progress = true,
+print_lock = print_lock,
+nr_runs = 5,
+bond_radius = 0.35,
+voxel_edge_length = 0.1)
+
+
+
+print_lock = Threads.ReentrantLock()
+
+structure_dicts_path = "../structures/random_networks/binary_structures/216_vertices_multiple_runs/"
+
+save_path = "../analysis_data/random_networks/216_vertices_multiple_runs/"
+
+NA.get_autocovariance_fct_direction_from_filenames_multithreading(structure_dicts_path;
+print_progress = true,
+save_path = save_path,
+print_lock = print_lock)
+
+
+evolution_dicts_directory_path = raw"..\structures\random_networks\216_vertices_multiple_runs\\"
+
+nr_monte_carlo_steps_for_quenching_vec = NA.get_monte_carlo_steps_for_quenching_vec(evolution_dicts_directory_path)

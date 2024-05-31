@@ -181,6 +181,96 @@ end
 
 
 """
+For each graph dict in a list of run and filenames, create binary data
+with a given bond radius and voxel edge length
+"""
+function get_binary_data_from_spatial_network_single_thread(run_and_filename_chunk,
+    graph_dicts_path::String,
+    save_path::String;
+    print_progress::Bool = true,
+    print_lock = Threads.ReentrantLock(),
+    bond_radius::Float64 = 0.35,
+    voxel_edge_length::Float64 = 0.1)
+
+    # loop through files
+    for run_and_filename in run_and_filename_chunk
+
+        # print current thread id and run/filename if desired
+        if print_progress
+            lock(print_lock) do
+                Format.printfmtln("Thread {1} is creating structure dict of file {2}",
+                    Threads.threadid(), run_and_filename)
+            end
+        end
+
+        # load graph dict
+        graph_dict = NG.load_graph_from_h5_and_gml(graph_dicts_path*run_and_filename)
+
+        # get binary data for structure dict
+        structure_dict = get_binary_data_from_spatial_network(graph_dict;
+        bond_radius = bond_radius,
+        voxel_edge_length = voxel_edge_length,
+        save_path = save_path*run_and_filename,
+        filename = run_and_filename[7:end],
+        save_result=true)
+            
+    end
+
+    return
+end
+
+
+"""
+For each graph dict in a list of run and filenames, create binary data
+with a given bond radius and voxel edge length
+"""
+function get_binary_data_from_spatial_network_multithreading(graph_dicts_path::String,
+    save_path::String;
+    print_progress::Bool = true,
+    print_lock = Threads.ReentrantLock(),
+    nr_runs::Int64 = 5,
+    bond_radius::Float64 = 0.35,
+    voxel_edge_length::Float64 = 0.1)
+
+    # vector for run and filename
+    run_and_filename_vec = []
+
+    # loop through runs
+    for i in 1:nr_runs
+
+        graph_dicts_path_current_run = graph_dicts_path*"run_"*string(i)*"/"
+
+        # get all filenames of graph dicts
+        filenames = readdir(graph_dicts_path_current_run)
+        filenames_graph_dicts = filter(filename -> endswith(filename, ".gml"), filenames)
+        filenames_graph_dicts = [filename_graph_dict[1:end-4] 
+                            for filename_graph_dict in filenames_graph_dicts]
+
+        # append to list of all graph dict paths
+        append!(run_and_filename_vec, "run_"*string(i)*"/" .* filenames_graph_dicts)
+
+    end
+
+    # split filenames into chunks for multi-threading
+    run_and_filename_chunks = Iterators.partition(run_and_filename_vec, 
+                                    length(run_and_filename_vec) ÷ Threads.nthreads())
+
+    # run all filename chunk in parallel in different threads
+    map(run_and_filename_chunks) do run_and_filename_chunk
+
+        Threads.@spawn get_binary_data_from_spatial_network_single_thread(run_and_filename_chunk,
+        graph_dicts_path,
+        save_path;
+        print_progress = print_progress,
+        print_lock = print_lock,
+        bond_radius = bond_radius,
+        voxel_edge_length = voxel_edge_length)
+    end
+
+end
+
+
+"""
 Get vector of vectors containing the vector components at which 
 the autocovariance function will be calculated
 """
@@ -268,30 +358,15 @@ boundary conditions
 function get_autocovariance_fct(sampling_vec::Vector{Int64},
     structure_dict::Dict)
 
-    # initialize vector from which the two point prob. fct. will be calculated later
-    two_point_prob_fct_summand_vec = Vector{Float64}(undef, prod(structure_dict["size_data"]) )
-    current_index = 1
+    # use periodic boundary conditions to shift all entries of the data array
+    # along the three dimensions as given by the sampling vector
+    data_binary_shifted = circshift(structure_dict["data_binary"], sampling_vec)
 
-    # loop through all voxels
-    for i in 1:structure_dict["size_data"][1]
-        for j in 1:structure_dict["size_data"][2]
-            for k in 1:structure_dict["size_data"][3]
-
-                # get indices of current voxel and the one at given sampling vector to it
-                x1 = (i,j,k)
-                x2 = (mod.(x1 .+ sampling_vec .- 1, structure_dict["size_data"]) .+ 1)
-
-                # calculate the contribution to the two point prob. fct. from these coodinates
-                two_point_prob_fct_summand_vec[current_index] = structure_dict["data_binary"][x1...] * structure_dict["data_binary"][x2...]
-
-                current_index += 1
-
-            end
-        end
-    end
+    # calculate the contribution to the two point prob. fct. from these coodinates
+    data_binary_product = structure_dict["data_binary"] .* data_binary_shifted
 
     # calculate 2 point prob. function
-    two_point_prob_fct = Statistics.mean( two_point_prob_fct_summand_vec )
+    two_point_prob_fct = Statistics.mean( data_binary_product )
 
     # determine autocovariance function
     autocovariance_fct = two_point_prob_fct - structure_dict["volume_fract_tot"]^2
@@ -307,7 +382,9 @@ with periodic boundary conditions
 function get_autocovariance_fct_by_sampling_indices_array(structure_dict::Dict;
                 save_result = false,
                 save_path = raw"..\analysis_data\sample_name",
-                print_progress = false)
+                print_progress = false,
+                thread_nr::Int64 = 0,
+                print_lock = Threads.ReentrantLock())
 
     # get array of sampling vectors
     sampling_indices_vec_vec = get_sampling_indices_vec_vec(structure_dict["size_data"])
@@ -328,14 +405,16 @@ function get_autocovariance_fct_by_sampling_indices_array(structure_dict::Dict;
                 autocovariance_fct_array[i,j,k] = get_autocovariance_fct(sampling_indices_array[i,j,k,:],
                                         structure_dict)
             end
-
-            if print_progress
-                println("Autocovariance calculation: layer "*string(j)*" along y direction done" )
-            end
         end
 
+        # calculate and print progress
         if print_progress
-            println("Autocovariance calculation: layer "*string(i)*" along x direction done" )
+            progress_percentage = i/autocovariance_fct_array_size[1]*100
+
+            lock(print_lock) do
+                Format.printfmtln("Current calculation progress thread nr {1:d}: {2:.1f} %", 
+                    thread_nr, progress_percentage)
+            end
         end
 
     end
@@ -392,6 +471,93 @@ function get_autocovariance_fct_by_sampling_indices_array(structure_dict::Dict;
 
     return autocovariance_fct_direction_dict
     
+end
+
+
+"""
+For each structure dict in a list of run and filenames, calculate the 
+autocovariance function as a function of direction
+"""
+function get_autocovariance_fct_direction_from_filenames_single_thread(run_and_filename_chunk,
+    structure_dicts_path::String,
+    save_path::String;
+    print_progress::Bool = false,
+    print_lock = Threads.ReentrantLock())
+
+    # loop through files
+    for run_and_filename in run_and_filename_chunk
+
+        # check that file is structure dict
+        if endswith(run_and_filename, "_structure.h5")
+
+            # load evolution dict
+            structure_dict = GU.load_h5_dict(structure_dicts_path*run_and_filename)
+
+            # check if autocovariance dict already exists
+            if !isfile(save_path*run_and_filename[1:end-13]*"_autocovariance_fct_direction.h5")
+
+                # print current thread id and run/filename if desired
+                if print_progress
+                    lock(print_lock) do
+                        Format.printfmtln("Thread {1} is handling file {2}",
+                            Threads.threadid(), run_and_filename)
+                    end
+                end
+
+                autocovariance_fct_direction_dict = get_autocovariance_fct_by_sampling_indices_array(
+                    structure_dict;
+                save_result = true,
+                save_path = save_path*run_and_filename[1:end-13],
+                print_progress = print_progress,
+                thread_nr = Threads.threadid() ,
+                print_lock = print_lock)
+            end
+        end
+    end
+
+    return
+end
+
+
+"""
+For all structure dicts in a folder, calculate the autocovariance function as a function
+of direction using multithreading
+"""
+function get_autocovariance_fct_direction_from_filenames_multithreading(structure_dicts_path;
+    print_progress::Bool = false,
+    save_path::String = "../analysis_data/random_networks/",
+    nr_runs::Int64 = 5,
+    print_lock = Threads.ReentrantLock())
+
+    # vector for run and filename
+    run_and_filename_vec = []
+
+    # loop through runs
+    for i in 1:nr_runs
+
+        structure_dicts_path_current_run = structure_dicts_path*"run_"*string(i)*"/"
+
+        filenames = readdir(structure_dicts_path_current_run)
+        filenames_structure_dicts = filter(filename -> endswith(filename, "_structure.h5"), filenames)
+
+        # append to list of all structure dict paths
+        append!(run_and_filename_vec, "run_"*string(i)*"/" .* filenames_structure_dicts)
+
+    end
+
+    # split filenames into chunks for multi-threading
+    run_and_filename_chunks = Iterators.partition(run_and_filename_vec, length(run_and_filename_vec) ÷ Threads.nthreads())
+
+    # run all filename chunk in parallel in different threads
+    map(run_and_filename_chunks) do run_and_filename_chunk
+
+        Threads.@spawn get_autocovariance_fct_direction_from_filenames_single_thread(run_and_filename_chunk,
+        structure_dicts_path,
+        save_path;
+        print_progress = print_progress,
+        print_lock = print_lock)
+    end
+
 end
 
 

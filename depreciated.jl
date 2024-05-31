@@ -2603,3 +2603,41 @@ function plot_statistical_measures(data_path_vec,
 end
 
 
+
+"""
+Get the autocovariance function for 3d media with periodic
+boundary conditions
+"""
+function get_autocovariance_fct(sampling_vec::Vector{Int64},
+    structure_dict::Dict)
+
+    # initialize vector from which the two point prob. fct. will be calculated later
+    two_point_prob_fct_summand_vec = Vector{Float64}(undef, prod(structure_dict["size_data"]) )
+    current_index = 1
+
+    # loop through all voxels
+    for i in 1:structure_dict["size_data"][1]
+        for j in 1:structure_dict["size_data"][2]
+            for k in 1:structure_dict["size_data"][3]
+
+                # get indices of current voxel and the one at given sampling vector to it
+                x1 = (i,j,k)
+                x2 = (mod.(x1 .+ sampling_vec .- 1, structure_dict["size_data"]) .+ 1)
+
+                # calculate the contribution to the two point prob. fct. from these coodinates
+                two_point_prob_fct_summand_vec[current_index] = structure_dict["data_binary"][x1...] * structure_dict["data_binary"][x2...]
+
+                current_index += 1
+
+            end
+        end
+    end
+
+    # calculate 2 point prob. function
+    two_point_prob_fct = Statistics.mean( two_point_prob_fct_summand_vec )
+
+    # determine autocovariance function
+    autocovariance_fct = two_point_prob_fct - structure_dict["volume_fract_tot"]^2
+
+    return autocovariance_fct
+end

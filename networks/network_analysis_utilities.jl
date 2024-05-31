@@ -85,3 +85,57 @@ function convert_q_l_dict_to_vec(q_l_dict::Dict,
 
     return q_l_vec
 end
+
+
+"""
+Calculate the average nr of monte carlo steps for quenching for all evolution dicts.
+I got the result 13.7 +- 6.74 for 216 vertices
+"""
+function get_monte_carlo_steps_for_quenching_vec(evolution_dicts_directory_path::String; nr_runs = 5)
+
+    nr_monte_carlo_steps_for_quenching_vec = Vector{Float64}()
+
+    total_nr_dicts = 5*136
+    counter = 0
+
+    for i in 1:nr_runs
+
+        current_path = evolution_dicts_directory_path*"run_"*string(i)*"\\"
+
+        # get all files in directory
+        filenames = readdir(current_path)
+
+        # get filenames of all evolution dicts
+        filenames_evolution_dicts = filter(filename -> endswith(filename, "_evolution.h5"), filenames)
+
+        for filename in filenames_evolution_dicts
+
+            println("Progress: "*string(counter/total_nr_dicts*100)*" %")
+            counter += 1
+
+            # load evolution dict
+            evolution_dict = GU.load_h5_dict(current_path*filename)
+
+            evolution_dict["nr_monte_carlo_steps_per_temperature_vec"]
+
+            nr_monte_carlo_moves_per_step = 18*evolution_dict["nr_vertices"]
+
+            nr_monte_carlo_moves_before_quenching = nr_monte_carlo_moves_per_step*sum(evolution_dict["nr_monte_carlo_steps_per_temperature_vec"][1:end-1])
+
+            nr_monte_carlo_moves_for_quenching = length(evolution_dict["move_accepted_vec"])-nr_monte_carlo_moves_before_quenching
+
+            nr_monte_carlo_steps_for_quenching = nr_monte_carlo_moves_for_quenching/nr_monte_carlo_moves_per_step
+
+            if nr_monte_carlo_steps_for_quenching > 49
+                println(i, filename)
+            end
+
+            push!(nr_monte_carlo_steps_for_quenching_vec, nr_monte_carlo_steps_for_quenching)
+        end
+
+    end
+
+    sort!(nr_monte_carlo_steps_for_quenching_vec)
+
+    return nr_monte_carlo_steps_for_quenching_vec
+end
