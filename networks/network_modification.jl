@@ -643,7 +643,9 @@ function evolve_network!(graph_dict::Dict,
     move_accepted_vec::Vector{Bool} = Vector{Bool}(undef, 0),
     print_progress::Bool = false,
     print_every_nr_attempted_bond_switches::Int64 = 1,
-    random_evolution_seed::Int64 = -1)
+    random_evolution_seed::Int64 = -1,
+    quench_counter::Int64 = 0,
+    print_lock = Threads.ReentrantLock())
 
     # set seed for random evolution if desired
     if random_evolution_seed != -1
@@ -708,15 +710,16 @@ function evolve_network!(graph_dict::Dict,
                         *string(graph_dict["total_energy"]))
 
                 elseif i%print_every_nr_attempted_bond_switches == 0
-                    if haskey(evolution_dict, "estimated_nr_bond_switches")
-                        Format.printfmtln("Thread {1}: attempted bond switch nr {2} at T={3} accepted. {4:.3f} % done.",
-                        Threads.threadid(), i, temperature, 
-                        length(move_accepted_vec)/evolution_dict["estimated_nr_bond_switches"]*100 )
-                    else
-                        Format.printfmtln("Thread {1}: attempted bond switch nr {2} at T={3} accepted.",
-                        Threads.threadid(), i, temperature )
+                    lock(print_lock) do
+                        if haskey(evolution_dict, "estimated_nr_bond_switches")
+                            Format.printfmtln("Thread {1}: attempted bond switch nr {2} at T={3} accepted. {4:.3f} % done. Finished quenches: {5}",
+                            Threads.threadid(), i, temperature, 
+                            length(move_accepted_vec)/evolution_dict["estimated_nr_bond_switches"]*100, quench_counter )
+                        else
+                            Format.printfmtln("Thread {1}: attempted bond switch nr {2} at T={3} accepted.",
+                            Threads.threadid(), i, temperature )
+                        end
                     end
-
                 end
             end
 
@@ -730,22 +733,26 @@ function evolve_network!(graph_dict::Dict,
                     println("Chain "*string(switched_chain)*" declined.")
 
                 elseif i%print_every_nr_attempted_bond_switches == 0
-                    if haskey(evolution_dict, "estimated_nr_bond_switches")
-                        Format.printfmtln("Thread {1}: attempted bond switch nr {2} at T={3} declined. {4:.3f} % done.",
-                        Threads.threadid(), i, temperature, 
-                        length(move_accepted_vec)/evolution_dict["estimated_nr_bond_switches"]*100 )
-                    else
-                        Format.printfmtln("Thread {1}: attempted bond switch nr {2} at T={3} declined.",
-                        Threads.threadid(), i, temperature )
+                    lock(print_lock) do
+                        if haskey(evolution_dict, "estimated_nr_bond_switches")
+                            Format.printfmtln("Thread {1}: attempted bond switch nr {2} at T={3} declined. {4:.3f} % done. Finished quenches: {5}",
+                            Threads.threadid(), i, temperature, 
+                            length(move_accepted_vec)/evolution_dict["estimated_nr_bond_switches"]*100, quench_counter
+                             )
+                        else
+                            Format.printfmtln("Thread {1}: attempted bond switch nr {2} at T={3} declined.",
+                            Threads.threadid(), i, temperature )
+                        end
                     end
-                    
                 end
             end
 
             # break if network is quenched 
             # (all chains have been attempted without success)
             if length(remaining_chains) == 1
-                println("Network quenched after "*string(i)*"th attempt.")
+                lock(print_lock) do
+                    println("Network quenched after "*string(i)*"th attempt.")
+                end
                 break
 
             # otherwise update remaining chains
@@ -780,7 +787,8 @@ function evolve_network_temperature_sequence!(
     random_evolution_seed::Int64 = -1,
     save_network_after_each_step::Bool = false,
     filename::String = "some_network",
-    save_path::String = raw"..\structures\random_networks\\")
+    save_path::String = raw"..\structures\random_networks\\",
+    print_lock = Threads.ReentrantLock())
 
     # set seed for random evolution if desired
     if random_evolution_seed != -1
@@ -793,6 +801,9 @@ function evolve_network_temperature_sequence!(
         * (graph_dict["coordination_nr"]-1) 
         * (graph_dict["coordination_nr"]-1) /2 ) 
 
+    # count finished quenches
+    quench_counter = 0
+
     # evolve network according to given temperature sequence 
     for i in eachindex(evolution_dict["temperature_vec"])
 
@@ -804,16 +815,25 @@ function evolve_network_temperature_sequence!(
         nr_attempted_bond_switches, 
         evolution_dict["temperature_vec"][i];
         print_progress = print_progress,
-        print_every_nr_attempted_bond_switches = print_every_nr_attempted_bond_switches)
+        print_every_nr_attempted_bond_switches = print_every_nr_attempted_bond_switches,
+        quench_counter = quench_counter,
+        print_lock = print_lock)
+
+        # update quench_counter
+        if evolution_dict["nr_monte_carlo_steps_per_temperature_vec"][i] == 50 && evolution_dict["temperature_vec"][i] == 0
+            quench_counter += 1
+        end
 
         # concatenate new vectors to previous ones 
         total_energy_vec = vcat(total_energy_vec, total_energy_vec_new)
         move_accepted_vec = vcat(move_accepted_vec, move_accepted_vec_new)
 
         # print progress if desired
-        if print_progress
-            println("T="
-                *string(evolution_dict["temperature_vec"][i])*" done")
+        lock(print_lock) do
+            if print_progress
+                println("T="
+                    *string(evolution_dict["temperature_vec"][i])*" done")
+            end
         end
 
         # if desired, save network

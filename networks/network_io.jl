@@ -320,7 +320,7 @@ function generate_graphs_from_evolution_dicts_single_thread(filenames,
     print_every_nr_attempted_bond_switches::Int64 = 100,
     print_progress::Bool = false,
     random_evolution_seed::Int64 = -1,
-    mean_nr_monte_carlo_steps_for_quenching::Float64 = 13.7)
+    print_lock = Threads.ReentrantLock())
 
     # loop through files
     for filename in filenames
@@ -337,9 +337,10 @@ function generate_graphs_from_evolution_dicts_single_thread(filenames,
 
             # print current thread id and filename if desired
             if print_progress
-                Format.printfmtln("Thread {1} is evolving file {2}",
-                    Threads.threadid(), filename)
-                
+                lock(print_lock) do
+                    Format.printfmtln("Thread {1} is evolving file {2}",
+                        Threads.threadid(), filename)
+                end
             end
             
             # generate initial graph
@@ -350,7 +351,8 @@ function generate_graphs_from_evolution_dicts_single_thread(filenames,
                 graph_dict, evolution_dict; 
                 print_progress = print_progress,
                 print_every_nr_attempted_bond_switches = print_every_nr_attempted_bond_switches,
-                random_evolution_seed = random_evolution_seed)
+                random_evolution_seed = random_evolution_seed,
+                print_lock = print_lock)
 
             # save move_accepted_vec and total_energy_vec
             evolution_dict["total_energy_vec"] = total_energy_vec
@@ -379,7 +381,8 @@ function generate_graphs_from_evolution_dicts_in_directory(
     save_path::String;
     print_every_nr_attempted_bond_switches::Int64 = 100,
     print_progress::Bool = false,
-    random_evolution_seed::Int64 = -1)
+    random_evolution_seed::Int64 = -1,
+    print_lock = Threads.ReentrantLock())
 
     # get all files in directory
     filenames = readdir(evolution_dicts_directory_path)
@@ -398,7 +401,8 @@ function generate_graphs_from_evolution_dicts_in_directory(
             save_path;
             print_every_nr_attempted_bond_switches = print_every_nr_attempted_bond_switches,
             print_progress = print_progress,
-            random_evolution_seed = random_evolution_seed)
+            random_evolution_seed = random_evolution_seed,
+            print_lock = print_lock)
     end
     
     return

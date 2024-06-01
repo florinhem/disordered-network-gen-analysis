@@ -18,18 +18,17 @@ import Statistics
 # 64 vertices: supercell_edge_length = 4.619802153517007
 
 # julia --threads 23
+print_lock = Threads.ReentrantLock()
 evolution_dicts_directory_path = "../structures/random_networks/216_vertices_anneal_quench_multiple_runs/evolution_dicts/"
 
-for i in 1:5
+i = 1
 
-    save_path = "../structures/random_networks/216_vertices_anneal_quench_multiple_runs/run_"*string(i)*"/"
+save_path = "../structures/random_networks/216_vertices_anneal_quench_multiple_runs/run_"*string(i)*"/"
+println("Starting run "*string(i))
 
-    println("Starting run "*string(i))
-
-    NG.generate_graphs_from_evolution_dicts_in_directory(
-    evolution_dicts_directory_path,
-    save_path;
-    print_every_nr_attempted_bond_switches = 500,
-    print_progress = true)
-
-end
+NG.generate_graphs_from_evolution_dicts_in_directory(
+evolution_dicts_directory_path,
+save_path;
+print_every_nr_attempted_bond_switches = 500,
+print_progress = true,
+print_lock = print_lock)

@@ -140,7 +140,7 @@ Get binary data for a spatial network with a given bond radius
 function get_binary_data_from_spatial_network(graph_dict::Dict;
     bond_radius::Float64 = 0.35,
     voxel_edge_length::Float64 = 0.1,
-    save_path::String = raw"..\structures\random_networks\binary_structures\\",
+    save_path::String = raw"..\structures\random_networks\binary_structures\sample_name",
     filename::String = "some_structure",
     save_result::Bool=false)
 
@@ -171,7 +171,7 @@ function get_binary_data_from_spatial_network(graph_dict::Dict;
 
     # if desired, save corrected data
     if save_result
-        GU.save_dict_to_h5(structure_dict, save_path*filename*"_structure.h5")
+        GU.save_dict_to_h5(structure_dict, save_path*"_structure.h5")
 
     end
 
@@ -525,7 +525,7 @@ of direction using multithreading
 """
 function get_autocovariance_fct_direction_from_filenames_multithreading(structure_dicts_path;
     print_progress::Bool = false,
-    save_path::String = "../analysis_data/random_networks/",
+    save_path::String = "..\analysis_data\random_networks\\",
     nr_runs::Int64 = 5,
     print_lock = Threads.ReentrantLock())
 

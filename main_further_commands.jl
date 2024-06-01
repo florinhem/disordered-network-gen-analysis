@@ -4038,3 +4038,19 @@ print_lock = print_lock)
 evolution_dicts_directory_path = raw"..\structures\random_networks\216_vertices_multiple_runs\\"
 
 nr_monte_carlo_steps_for_quenching_vec = NA.get_monte_carlo_steps_for_quenching_vec(evolution_dicts_directory_path)
+
+
+print_lock = Threads.ReentrantLock()
+evolution_dicts_directory_path = "../structures/random_networks/216_vertices_anneal_quench_multiple_runs/evolution_dicts/"
+
+i = 1
+
+save_path = "../structures/random_networks/216_vertices_anneal_quench_multiple_runs/run_"*string(i)*"/"
+println("Starting run "*string(i))
+
+NG.generate_graphs_from_evolution_dicts_in_directory(
+evolution_dicts_directory_path,
+save_path;
+print_every_nr_attempted_bond_switches = 500,
+print_progress = true,
+print_lock = print_lock)
