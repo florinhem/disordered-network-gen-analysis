@@ -338,8 +338,23 @@ function relax_cluster_keating!(graph_dict::Dict,
         graph_dict["total_energy"] = get_total_energy_keating(graph_dict)
     end
 
+    # if network is supposed to be relaxed globally, store initial shell nr
+    # and set threshold cycle for global relaxation
+    if haskey(evolution_dict, "relax_globally_after_threshold_cycle")
+        initial_shell_nr = evolution_dict["shell_nr"]
+        threshold_cycle_global_relaxation = (evolution_dict["reject_during_relaxation_cycle_threshold"]*2+1)
+    else
+        threshold_cycle_global_relaxation = evolution_dict["nr_max_relaxation_cycles"] + 1
+    end
+
     # perform the given number of relaxation cycles
     for cycle_nr in 1:evolution_dict["nr_max_relaxation_cycles"]
+
+        # from the threshold cylcle on, relax globally, if desired
+        if cylce_nr == threshold_cycle_global_relaxation
+            # the following gives shell_nr = 8 for 216 vertices
+            evolution_dict["shell_nr"] = Int(ceil(log(graph_dict["nr_vertices"])))+2
+        end
 
         # only update cluster energy, if this is needed to get cluster energy change
         if cycle_nr <= evolution_dict["reject_during_relaxation_cycle_threshold"]-1
@@ -404,6 +419,11 @@ function relax_cluster_keating!(graph_dict::Dict,
 
         end
 
+    end
+
+    # restore initial shell nr in case it was altered during relaxation
+    if haskey(evolution_dict, "relax_globally_after_threshold_cycle")
+        evolution_dict["shell_nr"] = initial_shell_nr
     end
 
     # update total energy if desired
@@ -711,13 +731,20 @@ function evolve_network!(graph_dict::Dict,
 
                 elseif i%print_every_nr_attempted_bond_switches == 0
                     lock(print_lock) do
-                        if haskey(evolution_dict, "estimated_nr_bond_switches")
-                            Format.printfmtln("Thread {1}: attempted bond switch nr {2} at T={3} accepted. {4:.3f} % done. Finished quenches: {5}",
-                            Threads.threadid(), i, temperature, 
-                            length(move_accepted_vec)/evolution_dict["estimated_nr_bond_switches"]*100, quench_counter )
+                        if (haskey(evolution_dict, "mean_nr_monte_carlo_steps_for_quenching")
+                            && temperature == 0 && i == 50*graph_dict["nr_vertices"]*18)
+                            Format.printfmtln("Thread {1}: attempted bond switch nr {2} at T={3} accepted. 
+                                    T={3} is {4:.3f} % done. Finished quenches: {5}",
+                                Threads.threadid(), i, temperature, 
+                                i/(
+                                evolution_dict["mean_nr_monte_carlo_steps_for_quenching"]*graph_dict["nr_vertices"]*18
+                                )*100,
+                                quench_counter )
                         else
-                            Format.printfmtln("Thread {1}: attempted bond switch nr {2} at T={3} accepted.",
-                            Threads.threadid(), i, temperature )
+                            Format.printfmtln("Thread {1}: attempted bond switch nr {2} at T={3} accepted. 
+                                    T={3} is {4:.3f} % done. Finished quenches: {5}",
+                                Threads.threadid(), i, temperature, 
+                                    i/nr_attempted_bond_switches*100, quench_counter )
                         end
                     end
                 end
@@ -734,14 +761,20 @@ function evolve_network!(graph_dict::Dict,
 
                 elseif i%print_every_nr_attempted_bond_switches == 0
                     lock(print_lock) do
-                        if haskey(evolution_dict, "estimated_nr_bond_switches")
-                            Format.printfmtln("Thread {1}: attempted bond switch nr {2} at T={3} declined. {4:.3f} % done. Finished quenches: {5}",
-                            Threads.threadid(), i, temperature, 
-                            length(move_accepted_vec)/evolution_dict["estimated_nr_bond_switches"]*100, quench_counter
-                             )
+                        if (haskey(evolution_dict, "mean_nr_monte_carlo_steps_for_quenching")
+                            && temperature == 0 && i == 50*graph_dict["nr_vertices"]*18)
+                            Format.printfmtln("Thread {1}: attempted bond switch nr {2} at T={3} declined. 
+                                    T={3} is {4:.3f} % done. Finished quenches: {5}",
+                                Threads.threadid(), i, temperature, 
+                                i/(
+                                evolution_dict["mean_nr_monte_carlo_steps_for_quenching"]*graph_dict["nr_vertices"]*18
+                                )*100,
+                                quench_counter )
                         else
-                            Format.printfmtln("Thread {1}: attempted bond switch nr {2} at T={3} declined.",
-                            Threads.threadid(), i, temperature )
+                            Format.printfmtln("Thread {1}: attempted bond switch nr {2} at T={3} declined. 
+                                    T={3} is {4:.3f} % done. Finished quenches: {5}",
+                                Threads.threadid(), i, temperature, 
+                                    i/nr_attempted_bond_switches*100, quench_counter )
                         end
                     end
                 end

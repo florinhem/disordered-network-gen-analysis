@@ -2641,3 +2641,339 @@ function get_autocovariance_fct(sampling_vec::Vector{Int64},
 
     return autocovariance_fct
 end
+
+
+
+"""
+Fully relax a cluster of vertices. The cluster energy will always be updated
+"""
+function relax_cluster_keating!(graph_dict::Dict,
+    cluster_dict::Dict, 
+    evolution_dict::Dict;
+    threshold_cluster_energy = Inf,
+    update_total_energy::Bool = false,
+    print_progress::Bool = false)
+
+    # make sure that cluster energy is up to date
+    if !cluster_dict["cluster_energy_up_to_date"]
+        cluster_dict["cluster_energy"] = get_cluster_energy(graph_dict, cluster_dict)
+    end
+
+    # store initial cluster energy
+    unrelaxed_cluster_energy  = cluster_dict["cluster_energy"]
+
+    # make sure that total energy is up to date if it will be updated later
+    if !graph_dict["total_energy_up_to_date"] && update_total_energy
+        graph_dict["total_energy"] = get_total_energy_keating(graph_dict)
+    end
+
+    # if network is supposed to be relaxed globally, store initial shell nr
+    # and set threshold cycle for global relaxation
+    if haskey(evolution_dict, "relax_globally_after_threshold_cycle")
+        initial_shell_nr = evolution_dict["shell_nr"]
+        threshold_cycle_global_relaxation = (evolution_dict["reject_during_relaxation_cycle_threshold"]*2+1)
+    else
+        threshold_cycle_global_relaxation = evolution_dict["nr_max_relaxation_cycles"] + 1
+    end
+
+    # perform the given number of relaxation cycles
+    for cycle_nr in 1:evolution_dict["nr_max_relaxation_cycles"]
+
+        # from the threshold cylcle on, relax globally, if desired
+        if cylce_nr == threshold_cycle_global_relaxation
+            # the following gives shell_nr = 8 for 216 vertices
+            evolution_dict["shell_nr"] = Int(ceil(log(graph_dict["nr_vertices"])))+2
+        end
+
+        # only update cluster energy, if this is needed to get cluster energy change
+        if cycle_nr <= evolution_dict["reject_during_relaxation_cycle_threshold"]-1
+            update_cluster_energy = false
+        else
+            update_cluster_energy = true
+
+            # store previous cluster force and energy
+            previous_cluster_force = cluster_dict["cluster_force"]
+            previous_cluster_energy = cluster_dict["cluster_energy"]
+        end
+
+        # relax cluster for one cycle
+        graph_dict, cluster_dict = relax_cluster_one_cycle_keating!(graph_dict, 
+        cluster_dict,
+        evolution_dict;
+        update_total_energy = false,
+        update_cluster_energy = update_cluster_energy )
+
+        # if cycle nr is above the given threshold, check if the relaxation can 
+        # be breaked when it becomes clear that the total energy will exceed the threshold
+        # or because of small relative energy change
+        if cycle_nr > evolution_dict["reject_during_relaxation_cycle_threshold"]
+
+            # get vector of last two cluster forces
+            cluster_force_vec = [previous_cluster_force, cluster_dict["cluster_force"]]
+
+            # get vector of last two cluster energies
+            cluster_energy_vec =[previous_cluster_energy, cluster_dict["cluster_energy"]]
+
+            # estimate relaxed cluster energy
+            prefactor_force_squared, relaxed_cluster_energy = get_energy_relaxation_coefficients(
+                cluster_force_vec, cluster_energy_vec)
+
+            if print_progress
+                println("Prefactor force squared: "*string(prefactor_force_squared))
+                println("Relaxed cluster energy: "*string(relaxed_cluster_energy))
+            end
+
+            # break if estimated energy change exceeds the given threshold
+            if (prefactor_force_squared < 1
+                && relaxed_cluster_energy > 1.05*threshold_cluster_energy) 
+                
+                if print_progress
+                    println("Relaxed energy exceeds threshold: breaking at cycle nr "*string(cycle_nr))
+                end
+                break
+            end
+
+            # break if cluster energy changes less than the given threshold
+            relative_cluster_energy_change = (
+                abs((previous_cluster_energy - cluster_dict["cluster_energy"])
+                        /cluster_dict["cluster_energy"]))
+
+            if relative_cluster_energy_change < evolution_dict["break_at_relative_cluster_energy_change"] 
+    
+                if print_progress
+                    println("Negligeable energy change: breaking at cycle nr "*string(cycle_nr))
+                end
+                break
+            end
+
+        end
+
+    end
+
+    # restore initial shell nr in case it was altered during relaxation
+    if haskey(evolution_dict, "relax_globally_after_threshold_cycle")
+        evolution_dict["shell_nr"] = initial_shell_nr
+    end
+
+    # update total energy if desired
+    if update_total_energy
+        graph_dict["total_energy"] = (graph_dict["total_energy"] 
+                                    + cluster_dict["cluster_energy"]
+                                    - unrelaxed_cluster_energy)
+
+        graph_dict["total_energy_up_to_date"] = true
+    else
+        graph_dict["total_energy_up_to_date"] = false
+    end
+    
+    return [graph_dict, cluster_dict]
+end
+
+
+"""
+Introduce thermal fluctuations to cluster by moving
+each vertex in the cluster according to 10.1063/1.4867897
+"""
+function excite_cluster!(graph_dict::Dict, cluster_dict::Dict,
+                        temperature;
+                        update_total_energy = false,
+                        update_cluster_energy = false)
+
+    # if total energy will be updated, store initial cluster energy and make sure
+    # that total energy is up to date
+    if update_total_energy
+        if !graph_dict["total_energy_up_to_date"]
+            graph_dict["total_energy"] = get_total_energy_keating(graph_dict)
+        end
+
+        if cluster_dict["cluster_energy_up_to_date"]
+            initial_cluster_energy  = cluster_dict["cluster_energy"]
+        else
+            initial_cluster_energy = get_cluster_energy(graph_dict, cluster_dict)
+        end
+    end
+
+    # initialize excitation weight
+    cluster_excitation_weight = 1
+
+    # initialize dict where vertex displacements will be stored
+    vertex_excitation_dict = Dict()
+
+    # loop through all vertices that are allowed to move
+    for vertex in cluster_dict["cluster_vertices_to_move_vec"]
+
+        # get hessian matrix of current vertex at relaxed position
+        hessian = hessian_keating_efficient(graph_dict, vertex)
+
+        # get vector of sigmas
+        sigma_vec = sqrt.(temperature ./ LinearAlgebra.diag(hessian) ) 
+
+        # draw vector of displacements from Gaussian distribution with standard
+        # deviations in the sigma vector
+        displacement_vec = sigma_vec .* randn(graph_dict["nr_dimensions"])
+
+        # get excitation weight for current vertex
+        vertex_excitation_weight = prod(displacement_vec)
+
+        # multiply it to cluster excitation weight
+        cluster_excitation_weight *= vertex_excitation_weight
+
+        # store displacement vector
+        vertex_excitation_dict[vertex] = displacement_vec
+    end
+
+    # move vertices according to the given displacements
+    for vertex in cluster_dict["cluster_vertices_to_move_vec"]
+
+        # move vertices according to the previously thermal fluctuations
+        graph_dict = move_vertex!(graph_dict, 
+                            vertex, 
+                            vertex_excitation_dict[vertex];
+                            update_total_energy = false)
+    end
+
+    # update cluster energy if desired
+    if update_cluster_energy
+        cluster_dict["cluster_energy"] = get_cluster_energy(graph_dict, cluster_dict)
+        cluster_dict["cluster_energy_up_to_date"] = true
+    else
+        cluster_dict["cluster_energy_up_to_date"] = false
+    end
+
+    # if desired update total energy
+    if update_total_energy
+
+        # get excited cluster energy
+        if cluster_dict["cluster_energy_up_to_date"]
+            excited_cluster_energy = cluster_dict["cluster_energy"]
+        else
+            excited_cluster_energy = get_cluster_energy(graph_dict, cluster_dict)
+        end
+
+        # update total energy
+        graph_dict["total_energy"] = (graph_dict["total_energy"] 
+                                    + excited_cluster_energy
+                                    - initial_cluster_energy)
+
+        graph_dict["total_energy_up_to_date"] = true
+    else
+        graph_dict["total_energy_up_to_date"] = false
+    end
+
+    return [graph_dict, cluster_dict, cluster_excitation_weight]
+end
+
+
+"""
+Perform a Monte Carlo move without thermal fluctuations
+by switching a bond, relaxing the network and then accepting the network
+with Metropolis acceptance probability
+"""
+function monte_carlo_move!(graph_dict::Dict, 
+    evolution_dict::Dict,
+    temperature; 
+    switched_chain::Tuple{Int64, Int64, Int64, Int64} = get_random_chain(graph_dict),
+    print_progress::Bool = false)
+
+    # save original graph dict 
+    initial_graph_dict = deepcopy(graph_dict)
+
+    # get initial cluster before bond switch
+    initial_cluster_dict = get_cluster_in_shells_dict(
+                                    graph_dict, 
+                                    switched_chain; 
+                                    shell_nr = evolution_dict["shell_nr"])
+
+    # make sure that total energy is up to date
+    if !graph_dict["total_energy_up_to_date"]
+        graph_dict["total_energy"] = get_total_energy_keating(graph_dict)
+        graph_dict["total_energy_up_to_date"] = true
+    end
+
+    # initialize cluster weights which will contribute to the acceptance probability
+    # when thermal fluctuations are included
+    cluster_relaxation_weight = 1
+    cluster_excitation_weight = 1
+
+    # set threshold cluster energy for Metropolis acceptance probability
+    # if there are no thermal fluctuations considered
+    if !evolution_dict["thermal_fluctuations"]
+        threshold_cluster_energy = (initial_cluster_dict["cluster_energy"] 
+                                    - temperature * log(rand()))
+    else
+        threshold_cluster_energy = Inf
+    end
+
+    # if there are thermal fluctuations, relax cluster first and calculate
+    # weights of the corresponding shifts
+    if evolution_dict["thermal_fluctuations"]
+
+        # deep copy initial cluster, such that it does not get modified
+        cluster_dict = deepcopy(initial_cluster_dict)
+
+        # relax cluster
+        graph_dict, cluster_dict = relax_cluster_keating!(graph_dict,
+            cluster_dict,
+            evolution_dict;
+            update_total_energy = false,
+            print_progress = print_progress)
+
+        # get cluster weight corresponding to the relaxation translations
+        cluster_relaxation_weight = get_cluster_fluctuation_weight(initial_graph_dict, 
+                                                            graph_dict, 
+                                                            cluster_dict,
+                                                            temperature)
+    end
+
+    # switch bonds
+    graph_dict = switch_chain!(graph_dict, switched_chain)
+
+    # get cluster after bond switch
+    cluster_dict = get_cluster_in_shells_dict(
+                                    graph_dict, 
+                                    switched_chain; 
+                                    shell_nr = evolution_dict["shell_nr"])
+
+    # relax cluster around switched chain and only update energy when there won't be
+    # thermal fluctuations included afterward
+    graph_dict, cluster_dict = relax_cluster_keating!(graph_dict,
+        cluster_dict,
+        evolution_dict;
+        threshold_cluster_energy = threshold_cluster_energy,
+        update_total_energy = false)
+
+
+    # if desired, include thermal fluctuations by randomly shifting all cluster vertices
+    if evolution_dict["thermal_fluctuations"]
+
+        # excite cluster with thermal fluctuations and get the corresponding excitation
+        # weight
+        graph_dict, cluster_dict, cluster_excitation_weight = excite_cluster!(graph_dict,
+                                                            cluster_dict,
+                                                            temperature;
+                                                            update_total_energy = false,
+                                                            update_cluster_energy = true)
+
+        # set random threshold energy increase for Metropolis acceptance probability
+        threshold_cluster_energy = (initial_cluster_dict["cluster_energy"]
+        - temperature 
+        * (cluster_excitation_weight/cluster_relaxation_weight) * log(rand()))
+
+    end
+
+    # accept move if energy increase is below threshold
+    move_accepted = false
+
+    if cluster_dict["cluster_energy"] <= threshold_cluster_energy
+        # update total energy
+        graph_dict["total_energy"] = (graph_dict["total_energy"] 
+        + cluster_dict["cluster_energy"] - initial_cluster_dict["cluster_energy"])  
+        graph_dict["total_energy_up_to_date"] = true   
+
+        move_accepted = true
+    else
+        graph_dict = initial_graph_dict
+    end
+
+    return [graph_dict, move_accepted]
+end

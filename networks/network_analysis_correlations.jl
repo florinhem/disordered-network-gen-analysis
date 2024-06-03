@@ -553,7 +553,7 @@ as defined in equation 251 in 10.1016/j.physrep.2018.03.001
 """
 function get_hyperuniformity_metric(structure_factor_dict::Dict)
 
-    # locate first peak of structure factor
+    # locate peaks of structure factor
     pks, vals = Peaks.findmaxima(structure_factor_dict["structure_factor_vec"])
 
     # cut structure factor data at momentum just above first peak

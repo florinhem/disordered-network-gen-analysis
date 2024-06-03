@@ -7,7 +7,11 @@ import .NetworkGeneration as NG
 import .NetworkAnalysis as NA
 import .BinaryDataAnalysis as BDA
 import .GeneralUtilities as GU
-import Statistics
+
+import Peaks
+import Measurements
+import Plots
+import LsqFit
 
 # possible choices of nr_vertices for diamond: 64, 216, 512, 1000, that is (2*n)^3 with natural nr natural
 
@@ -18,17 +22,23 @@ import Statistics
 # 64 vertices: supercell_edge_length = 4.619802153517007
 
 # julia --threads 23
-print_lock = Threads.ReentrantLock()
-evolution_dicts_directory_path = "../structures/random_networks/216_vertices_anneal_quench_multiple_runs/evolution_dicts/"
 
-i = 1
+graph_dict_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_anneal_quench_multiple_runs\run_1\\"
 
-save_path = "../structures/random_networks/216_vertices_anneal_quench_multiple_runs/run_"*string(i)*"/"
-println("Starting run "*string(i))
+all_filenames = readdir(graph_dict_path)
+filenames = filter(filename -> endswith(filename, "_evolution.h5"), all_filenames)
+final_energy_vec = Float64[]
 
-NG.generate_graphs_from_evolution_dicts_in_directory(
-evolution_dicts_directory_path,
-save_path;
-print_every_nr_attempted_bond_switches = 500,
-print_progress = true,
-print_lock = print_lock)
+for filename in filenames
+    println(filename)
+
+    evolution_dict = GU.load_h5_dict(graph_dict_path*filename)
+
+    push!(final_energy_vec, evolution_dict["total_energy_vec"][end])
+end
+
+filenames_sorted = filenames[sortperm(final_energy_vec)   ]
+sort!(final_energy_vec)
+
+graph_dict = NG.load_graph_from_h5_and_gml(graph_dict_path*filenames_sorted[26][1:end-13])
+NG.plot_spatial_network(graph_dict)

@@ -25,7 +25,8 @@ function get_evolution_dict(;
     thermal_fluctuations::Bool = false,
     temperature_vec::Vector = [2, 1],
     nr_monte_carlo_steps_per_temperature_vec::Vector = [10,10],
-    mean_nr_monte_carlo_steps_for_quenching::Float64 = 13.7
+    mean_nr_monte_carlo_steps_for_quenching::Float64 = 13.7,
+    relax_globally_after_threshold_cycle::Bool = true,
     )
 
     # check if the temperature sequence is given correctly
@@ -65,7 +66,8 @@ function get_evolution_dict(;
     "temperature_vec" => temperature_vec,
     "nr_monte_carlo_steps_per_temperature_vec" => nr_monte_carlo_steps_per_temperature_vec,
     "mean_nr_monte_carlo_steps_for_quenching" => mean_nr_monte_carlo_steps_for_quenching,
-    "estimated_nr_bond_switches" => estimated_nr_bond_switches
+    "estimated_nr_bond_switches" => estimated_nr_bond_switches,
+    "relax_globally_after_threshold_cycle" => relax_globally_after_threshold_cycle
     )
 
     return evolution_dict

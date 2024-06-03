@@ -707,3 +707,87 @@ function get_spectral_density_angle_averaged(spectral_density_dict::Dict;
                                             
     return spectral_density_angle_averaged_dict
 end
+
+
+"""
+Fit a function to the angle averaged spectral density
+that consists of either two gaussians or a gaussian and an exponential decay
+"""
+function fit_spectral_density_angle_averaged(spectral_density_angle_averaged_dict::Dict)
+
+    # define two possible fit functions that will be used depending on the behavior
+    # of the spectral density at small wavenumbers
+    function two_gaussians(x, p)
+        a2, b2, c2, a3, b3, c3 = p
+        return a2 * exp.(-b2 .* (x .- c2).^2) .+ a3 * exp.(-b3 .* (x .- c3).^2)
+    end
+
+    function exp_gaussian(x, p)
+        a1, b1, a2, b2, c2 = p
+        return a1 * exp.(-b1 .* x) .+ a2 * exp.(-b2 .* (x .- c2).^2)
+    end
+    
+    function exp_decay(x, p)
+        a1, b1 = p
+        return a1 * exp.(-b1 .* x)
+    end
+    
+    
+    # define function to estimate the fit parameters from data
+    function estimate_fit_parameters(x_vec, y_vec)
+    
+        # get first parameters by assuming that the exponential decay is the dominant feature
+        # and linear close to x=0
+        a1 = ( x_vec[2]*y_vec[1] - x_vec[1]*y_vec[2] )/(x_vec[2] - x_vec[1])
+        b1 = 3*(y_vec[1] - y_vec[2])/( x_vec[2]*y_vec[1] - x_vec[1]*y_vec[2] )
+
+        # locate peaks of spectral density
+        pks, vals = Peaks.findmaxima( y_vec )
+
+        # get parameters for two gaussians
+        a2 = vals[1]
+        b2 = 2.
+        c2 = x_vec[pks[1]]
+        a3 = vals[2]
+        b3 = 2.
+        c3 = x_vec[pks[2]]
+
+        # if the exponential decay is not the dominant feature, get parameters for gaussians
+        if a1 < 0
+            return [a2, b2, c2, a3, b3, c3]
+        else
+            # if there is no dominant peak, use only exponential decay
+            if a2 < 0.5
+                return [a1, b1]
+            else
+                return [a1, b1, a2, b2, c2 ]
+            end
+        end
+
+    end
+    
+    # get wavenumber vector and structure factor vector
+    x_vec = spectral_density_angle_averaged_dict["wavenumber_vec"]
+    y_vec = Measurements.value.(spectral_density_angle_averaged_dict["spectral_density_vec"])
+    
+    # estimate fit parameters
+    p0 = estimate_fit_parameters(x_vec, y_vec)
+    
+    # get function to fit
+    if length(p0) == 6
+        fit_function = two_gaussians
+    elseif length(p0) == 5
+        fit_function = exp_decay_gaussian
+    else
+        fit_function = exp_decay
+    end
+
+    # fit function to data
+    fit_result = LsqFit.curve_fit(fit_function, x_vec, y_vec, p0)
+
+    # get fit parameters and their uncertainties
+    fit_param = Measurements.measurement.(fit_result.param, 
+        sqrt.(LinearAlgebra.diag(LsqFit.estimate_covar(fit_result))) )
+
+    return fit_param #  # fit_result 
+end

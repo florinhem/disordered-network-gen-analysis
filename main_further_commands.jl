@@ -4054,3 +4054,249 @@ save_path;
 print_every_nr_attempted_bond_switches = 500,
 print_progress = true,
 print_lock = print_lock)
+
+
+
+dict_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\binary_structures\216_vertices_multiple_runs\\"
+
+for i in 1:5
+
+    current_dict_path = dict_path*"run_"*string(i)*"\\"
+
+    filenames = readdir(current_dict_path)
+    
+    for filename in filenames
+        loaded_dict = GU.load_h5_dict(current_dict_path*filename)
+
+        new_filename = filename[1:Int((length(filename)-13)/2)]*"_structure.h5"
+
+        GU.save_dict_to_h5(loaded_dict, current_dict_path*new_filename)
+
+    end
+
+end
+
+
+function get_spectral_densities(structure_dict_path, analysis_data_path)
+
+    for i in 1:5
+
+        current_structure_dict_path = structure_dict_path*"run_"*string(i)*"\\"
+    
+        current_analysis_data_path = analysis_data_path*"run_"*string(i)*"\\"
+    
+        structure_dict_filenames = readdir(current_structure_dict_path)
+        
+        for structure_dict_filename in structure_dict_filenames
+            structure_dict = GU.load_h5_dict(current_structure_dict_path*structure_dict_filename)
+    
+            autocovariance_fct_direction_dict = GU.load_h5_dict(current_analysis_data_path*structure_dict_filename[1:end-13]*"_autocovariance_fct_direction.h5")
+    
+            spectral_density_dict = NA.get_spectral_density_by_wavevector_array_fft(structure_dict;
+                save_autocovariance_fct_direction_dict = false,
+                save_result = true,
+                save_path = current_analysis_data_path*structure_dict_filename[1:end-13],
+                autocovariance_fct_direction_dict = autocovariance_fct_direction_dict
+                )
+    
+            spectral_density_angle_averaged_dict = NA.get_spectral_density_angle_averaged(spectral_density_dict;
+                gaussian_filter = true,
+                gaussian_filter_sigma_x = 2*pi/25, 
+                gaussian_filter_filtered_data_x_step_length = 2*pi/25,
+                save_result = true,
+            save_path = current_analysis_data_path*structure_dict_filename[1:end-13])
+    
+            println(structure_dict_filename*" done")
+    
+        end
+    
+    end
+end
+
+structure_dict_path = raw"..\structures\random_networks\binary_structures\216_vertices_multiple_runs\\"
+
+analysis_data_path = raw"..\analysis_data\random_networks\216_vertices_multiple_runs\\"
+
+get_spectral_densities(structure_dict_path, analysis_data_path)
+
+
+randomization_temperature = 8.0
+randomization_nr_monte_carlo_steps = 2.0
+annealing_temperature = 1.0
+
+i=1
+
+temperature_vec = [randomization_temperature]
+nr_monte_carlo_steps_per_temperature_vec = [randomization_nr_monte_carlo_steps]
+
+for i in 1:5
+    append!(temperature_vec, [annealing_temperature, 0])
+    append!(nr_monte_carlo_steps_per_temperature_vec, [randomization_nr_monte_carlo_steps, 50])
+end
+
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 ,temperature_vec = temperature_vec,
+nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3)
+
+graph_dict = NG.get_periodic_network(evolution_dict)
+graph_dict, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_sequence!(graph_dict,
+        evolution_dict; 
+    print_progress = true,
+    print_every_nr_attempted_bond_switches = 500)
+
+evolution_dict["total_energy_vec"] = total_energy_vec
+evolution_dict["move_accepted_vec"] = move_accepted_vec
+
+
+filename = "216_vertices_randomization_T_"*string(randomization_temperature)*"_randomization_nr_MC_steps_"*string(randomization_nr_monte_carlo_steps)*"_annealing_T_"*string(annealing_temperature)*"_quenched_evolution.h5"
+
+save_path = "../structures/random_networks/216_vertices_anneal_quench_multiple_runs/run_"*string(i)*"/"
+
+NG.save_graph_to_h5_and_MGformat(graph_dict,
+            filename;
+            evolution_dict = evolution_dict,
+            save_path 
+                = save_path)
+
+
+
+filename_disorder = "216_vertices_T_2.0_heated_for_0.5_steps_quenched"
+filename_order = "216_vertices_T_0.4_heated_for_0.25_steps_quenched"
+
+filename_other = "216_vertices_T_0.25_heated_for_0.05_steps_quenched"
+
+data_path_order = raw"..\analysis_data\random_networks\216_vertices_multiple_runs\run_2\\"*filename_order
+data_path_disorder = raw"..\analysis_data\random_networks\216_vertices_multiple_runs\run_2\\"*filename_disorder
+
+data_path_other = raw"..\analysis_data\random_networks\216_vertices_multiple_runs\run_2\\"*filename_other
+
+spectral_density_angle_averaged_dict = GU.load_h5_dict(data_path_other*"_spectral_density_angle_averaged.h5")
+
+function two_gaussians(x, p)
+    a2, b2, c2, a3, b3, c3 = p
+    return a2 * exp.(-b2 .* (x .- c2).^2) .+ a3 * exp.(-b3 .* (x .- c3).^2)
+end
+
+function exp_gaussian(x, p)
+    a1, b1, a2, b2, c2 = p
+    return a1 * exp.(-b1 .* x) .+ a2 * exp.(-b2 .* (x .- c2).^2)
+end
+
+function exp_decay(x, p)
+    a1, b1 = p
+    return a1 * exp.(-b1 .* x)
+end
+
+
+# define function to estimate the fit parameters from data
+function estimate_fit_parameters(x_vec, y_vec)
+
+    # get first parameters by assuming that the exponential decay is the dominant feature
+    # and linear close to x=0
+    a1 = ( x_vec[2]*y_vec[1] - x_vec[1]*y_vec[2] )/(x_vec[2] - x_vec[1])
+    b1 = 3*(y_vec[1] - y_vec[2])/( x_vec[2]*y_vec[1] - x_vec[1]*y_vec[2] )
+
+    # locate peaks of spectral density
+    pks, vals = Peaks.findmaxima( y_vec )
+
+    # get parameters for two gaussians
+    a2 = vals[1]
+    b2 = 2.
+    c2 = x_vec[pks[1]]
+    a3 = vals[2]
+    b3 = 2.
+    c3 = x_vec[pks[2]]
+
+    # if the exponential decay is not the dominant feature, get parameters for gaussians
+    if a1 < 0
+        return [a2, b2, c2, a3, b3, c3]
+    else
+        # if there is no dominant peak, use only exponential decay
+        if a2 < 0.5
+            return [a1, b1]
+        else
+            return [a1, b1, a2, b2, c2 ]
+        end
+    end
+
+end
+
+# get wavenumber vector and structure factor vector
+x_vec = spectral_density_angle_averaged_dict["wavenumber_vec"]
+y_vec = Measurements.value.(spectral_density_angle_averaged_dict["spectral_density_vec"])
+
+# estimate fit parameters
+p0 = estimate_fit_parameters(x_vec, y_vec)
+
+# get function to fit
+if length(p0) == 6
+    fit_function = two_gaussians
+elseif length(p0) == 5
+    fit_function = exp_decay_gaussian
+else
+    fit_function = exp_decay
+end
+
+# fit function to data
+fit_result = LsqFit.curve_fit(fit_function, x_vec, y_vec, p0)
+
+# get fit parameters and their uncertainties
+fit_param = Measurements.measurement.(fit_result.param, 
+    sqrt.(LinearAlgebra.diag(LsqFit.estimate_covar(fit_result))) )
+
+Plots.plot(x_vec, y_vec, label="data")
+Plots.plot!(x_vec, fit_function(x_vec, p0), label="initial guess", ls=:dot)
+Plots.plot!(x_vec, fit_function(x_vec, Measurements.value.(fit_param)), label="fit", ls=:dash)
+Plots.ylims!(0,100)
+
+
+graph_dict_path = raw"..\structure_analysis\structures\random_networks\216_vertices_anneal_quench_multiple_runs\run_1\\"
+
+
+all_filenames = readdir(graph_dict_path)
+
+filenames_filtered = filter(filename -> endswith(filename, ".gml"), all_filenames)
+
+filenames = [filename[1:end-4] for filename in filenames_filtered]
+
+for filename in filenames
+    println(filename)
+
+    # Use a regular expression to match all numbers (both integers and floating point numbers)
+    regex = r"\d+\.?\d*"
+
+    # Find all matches in the string
+    matches = eachmatch(regex, filename)
+
+    # Convert the matches to numbers (Float64)
+    numbers = [parse(Float64, match.match) for match in matches]
+
+    graph_dict = NG.load_graph_from_h5_and_gml(graph_dict_path*filename)
+
+    new_filename = "216_vertices_rand_T_"*string(numbers[2])*"_rand_nr_MC_steps_"*string(numbers[3])*"_anneal_T_"*string(numbers[4])*"_quenched"
+
+    NG.save_graph_to_h5_and_gml(graph_dict,
+    new_filename;
+    evolution_dict = GU.load_h5_dict(graph_dict_path*filename*"_evolution.h5"),
+    save_path  = graph_dict_path)
+end
+
+
+graph_dict_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_anneal_quench_multiple_runs\run_1\\"
+
+all_filenames = readdir(graph_dict_path)
+filenames = filter(filename -> endswith(filename, "_evolution.h5"), all_filenames)
+final_energy_vec = Float64[]
+
+for filename in filenames
+    println(filename)
+
+    evolution_dict = GU.load_h5_dict(graph_dict_path*filename)
+
+    push!(final_energy_vec, evolution_dict["total_energy_vec"][end])
+end
+
+filenames_sorted = filenames[sortperm(final_energy_vec)   ]
+sort!(final_energy_vec)
+
+graph_dict = NG.load_graph_from_h5_and_gml(graph_dict_path*filenames_sorted[26][1:end-13])
+NG.plot_spatial_network(graph_dict)

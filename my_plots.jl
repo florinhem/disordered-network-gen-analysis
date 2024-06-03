@@ -57,8 +57,32 @@ function piticklabel(x::Rational, ::Val{:latex})
     Latex.L"%$S\frac{%$N\pi}{%$d}"
 end
 
-filename = "216_vertices_T_0.2_heat_cool_0.2_per_mc_quenched"
-structure_dict_path = raw"..\structures\random_networks\binary_structures\216_vertices_multiple_runs\run_4\\"
-structure_dict = GU.load_h5_dict(structure_dict_path*filename*"_structure.h5")
 
-NA.plot_binary_structure(structure_dict["data_binary"])
+graph_dict_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_anneal_quench_multiple_runs\run_1\\"
+
+all_filenames = readdir(graph_dict_path)
+filenames = filter(filename -> endswith(filename, "_evolution.h5"), all_filenames)
+final_energy_vec = Float64[]
+
+for filename in filenames
+    println(filename)
+
+    evolution_dict = GU.load_h5_dict(graph_dict_path*filename)
+
+    push!(final_energy_vec, evolution_dict["total_energy_vec"][end])
+end
+
+filenames_sorted = filenames[sortperm(final_energy_vec)   ]
+sort!(final_energy_vec)
+
+
+evolution_dict_high = GU.load_h5_dict(graph_dict_path*filenames_sorted[end])
+evolution_dict_middle = GU.load_h5_dict(graph_dict_path*filenames_sorted[13])
+evolution_dict_low = GU.load_h5_dict(graph_dict_path*filenames_sorted[1])
+
+Plots.plot(collect(1:length(evolution_dict_high["total_energy_vec"]))./(216*18), evolution_dict_high["total_energy_vec"] ./ 216, ls = :dot, label = "high final energy")
+Plots.plot!(collect(1:length(evolution_dict_middle["total_energy_vec"]))./(216*18), evolution_dict_middle["total_energy_vec"] ./ 216, ls = :dot, label = "middle final energy")
+Plots.plot!(collect(1:length(evolution_dict_low["total_energy_vec"]))./(216*18), evolution_dict_low["total_energy_vec"] ./ 216, ls = :dot, label = "low final energy", yaxis=:log10)
+
+Plots.plot!(xlabel = "Monte Carlo step", ylabel = "energy per vertex", size=(600, 400), legend=:bottomright)
+Plots.savefig(raw"..\plots\random_networks\\216_vertices_anneal_quench_total_energy.png")
