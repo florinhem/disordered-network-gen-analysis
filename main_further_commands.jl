@@ -4300,3 +4300,248 @@ sort!(final_energy_vec)
 
 graph_dict = NG.load_graph_from_h5_and_gml(graph_dict_path*filenames_sorted[26][1:end-13])
 NG.plot_spatial_network(graph_dict)
+
+
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_anneal_quench_multiple_runs\evolution_dicts_2\\"
+
+randomization_temperature_vec = [2., 4., 8.]
+randomization_nr_monte_carlo_steps_vec = [2., 4., 8.]
+annealing_temperature_vec = [0.36, 0.5, 1.]
+
+for randomization_temperature in randomization_temperature_vec
+    for randomization_nr_monte_carlo_steps in randomization_nr_monte_carlo_steps_vec
+        for annealing_temperature in annealing_temperature_vec
+
+            temperature_vec = [randomization_temperature]
+            nr_monte_carlo_steps_per_temperature_vec = [randomization_nr_monte_carlo_steps]
+
+            for i in 1:5
+                append!(temperature_vec, [annealing_temperature, 0])
+                append!(nr_monte_carlo_steps_per_temperature_vec, [6, 50])
+            end
+
+            evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 ,temperature_vec = temperature_vec,
+            nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 4)
+
+            filename = "216_vertices_rand_T_"*string(randomization_temperature)*"_rand_nr_MC_steps_"*string(randomization_nr_monte_carlo_steps)*"_anneal_T_"*string(annealing_temperature)*"_quenched_evolution.h5"
+
+            GU.save_dict_to_h5(evolution_dict, save_path*filename)
+
+        end
+    end
+end
+
+
+
+print_lock = Threads.ReentrantLock()
+evolution_dicts_directory_path = "../structures/random_networks/anneal_quench/evolution_dicts/"
+
+i = 2
+
+save_path = "../structures/random_networks/anneal_quench/run_"*string(i)*"/"
+
+println("Starting run "*string(i))
+
+NG.generate_graphs_from_evolution_dicts_in_directory(
+evolution_dicts_directory_path,
+save_path;
+print_every_nr_attempted_bond_switches = 200,
+print_progress = true,
+print_lock = print_lock)
+
+
+graph_dict_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\anneal_quench\run_2\\"
+
+filename = "216_vertices_rand_T_8.0_rand_nr_MC_steps_4.0_anneal_T_0.36_quenched"
+
+graph_dict = NG.load_graph_from_h5_and_gml(graph_dict_path*filename)
+NG.plot_spatial_network(graph_dict)
+
+evolution_dict = GU.load_h5_dict(graph_dict_path*filename*"_evolution.h5")
+
+Plots.plot(collect(1:length(evolution_dict["total_energy_vec"]))./(216*18), evolution_dict["total_energy_vec"]./216, xlabel="MC steps", ylabel="Energy", label="energy per vertex")
+
+
+temperature_vec = [2,0,2,0]
+nr_monte_carlo_steps_per_temperature_vec = [0.01, 50, 0.01, 50]
+
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 64 ,temperature_vec = temperature_vec,
+nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 4)
+
+graph_dict = NG.get_periodic_network(evolution_dict)
+graph_dict, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_sequence!(graph_dict,
+        evolution_dict; 
+    print_progress = true,
+    print_every_nr_attempted_bond_switches = 50)
+
+evolution_dict["total_energy_vec"] = total_energy_vec
+evolution_dict["move_accepted_vec"] = move_accepted_vec
+
+Plots.plot(collect(1:length(evolution_dict["total_energy_vec"]))./(64*18), evolution_dict["total_energy_vec"]./64, xlabel="MC steps", ylabel="Energy", label="energy per vertex")
+
+
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\anneal_quench\evolution_dicts_3\\"
+
+randomization_temperature = 1.45
+
+randomization_nr_monte_carlo_steps_vec = [4., 6., 8., 10.]
+cooling_nr_monte_carlo_steps_vec = [0.5, 1., 2., 4.]
+
+temperature_vec = vcat(collect(1.45:-0.1:0.35), [0])
+
+for randomization_nr_monte_carlo_steps in randomization_nr_monte_carlo_steps_vec
+    for cooling_nr_monte_carlo_steps in cooling_nr_monte_carlo_steps_vec
+        
+        nr_monte_carlo_steps_per_temperature_vec = vcat([randomization_nr_monte_carlo_steps], cooling_nr_monte_carlo_steps .* ones(11), [50] )
+
+        evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 ,temperature_vec = temperature_vec,
+        nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 4)
+
+        filename = "216_vertices_rand_nr_MC_steps_"*string(randomization_nr_monte_carlo_steps)*"_cool_nr_MC_steps_"*string(cooling_nr_monte_carlo_steps)*"_quenched_evolution.h5"
+
+        GU.save_dict_to_h5(evolution_dict, save_path*filename)
+    end
+end
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\anneal_quench\evolution_dicts_3\\"
+
+randomization_temperature_vec = [1.45]
+randomization_nr_monte_carlo_steps_vec = [4., 6., 8., 10.]
+annealing_temperature_vec = [0.36]
+
+for randomization_temperature in randomization_temperature_vec
+    for randomization_nr_monte_carlo_steps in randomization_nr_monte_carlo_steps_vec
+        for annealing_temperature in annealing_temperature_vec
+
+            temperature_vec = [randomization_temperature]
+            nr_monte_carlo_steps_per_temperature_vec = [randomization_nr_monte_carlo_steps]
+
+            for i in 1:5
+                append!(temperature_vec, [annealing_temperature, 0])
+                append!(nr_monte_carlo_steps_per_temperature_vec, [6, 50])
+            end
+
+            evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 ,temperature_vec = temperature_vec,
+            nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 4)
+
+            filename = "216_vertices_rand_T_"*string(randomization_temperature)*"_rand_nr_MC_steps_"*string(randomization_nr_monte_carlo_steps)*"_anneal_T_"*string(annealing_temperature)*"_quenched_evolution.h5"
+
+            GU.save_dict_to_h5(evolution_dict, save_path*filename)
+
+        end
+    end
+end
+
+
+print_lock = Threads.ReentrantLock()
+
+i = 3
+
+evolution_dicts_directory_path = "../structures/random_networks/anneal_quench/evolution_dicts_3/"
+save_path = "../structures/random_networks/anneal_quench/run_"*string(i)*"/"
+
+
+
+println("Starting run "*string(i))
+
+NG.generate_graphs_from_evolution_dicts_in_directory(
+evolution_dicts_directory_path,
+save_path;
+print_every_nr_attempted_bond_switches = 200,
+print_progress = true,
+print_lock = print_lock)
+
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\anneal_quench\evolution_dicts_4\\"
+
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 ,temperature_vec = [1.45],
+nr_monte_carlo_steps_per_temperature_vec = [10], min_ring_size = 4)
+
+filename = "216_vertices_rand_nr_MC_steps_"*string(10.0)*"_evolution.h5"
+
+GU.save_dict_to_h5(evolution_dict, save_path*filename)
+
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 ,temperature_vec = [1.45, 0],
+nr_monte_carlo_steps_per_temperature_vec = [10, 50], min_ring_size = 4)
+
+filename = "216_vertices_rand_nr_MC_steps_"*string(10.0)*"_quenched_evolution.h5"
+
+GU.save_dict_to_h5(evolution_dict, save_path*filename)
+
+temperature_vec = collect(1.45:-0.05:0)
+nr_monte_carlo_steps_per_temperature_vec = vcat([10], 0.5 .* ones(length(temperature_vec)-2), [50])
+
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 ,temperature_vec = temperature_vec,
+nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 4)
+
+filename = "216_vertices_rand_nr_MC_steps_"*string(10.0)*"_cool_nr_MC_steps_"*string(0.5)*"_quenched_evolution.h5"
+
+GU.save_dict_to_h5(evolution_dict, save_path*filename)
+
+temperature_vec = collect(1.45:-0.05:0)
+nr_monte_carlo_steps_per_temperature_vec = vcat([10], 1.0 .* ones(length(temperature_vec)-2), [50])
+
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 ,temperature_vec = temperature_vec,
+nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 4)
+
+filename = "216_vertices_rand_nr_MC_steps_"*string(10.0)*"_cool_nr_MC_steps_"*string(1.0)*"_quenched_evolution.h5"
+
+GU.save_dict_to_h5(evolution_dict, save_path*filename)
+
+
+print_lock = Threads.ReentrantLock()
+
+i = 4
+
+evolution_dicts_directory_path = "../structures/random_networks/anneal_quench/evolution_dicts_3/"
+save_path = "../structures/random_networks/anneal_quench/run_"*string(i)*"/"
+
+
+println("Starting run "*string(i))
+
+NG.generate_graphs_from_evolution_dicts_in_directory(
+evolution_dicts_directory_path,
+save_path;
+print_every_nr_attempted_bond_switches = 200,
+print_progress = true,
+print_lock = print_lock)
+
+
+
+graph_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_multiple_runs\run_4\\"
+
+evolution_dicts_directory_path = raw"..\structures\random_networks\216_vertices_multiple_runs\evolution_dicts_check\\"
+
+# slight disorder
+filenames = ["216_vertices_T_0.1_cool_0.1_per_mc_quenched", "216_vertices_T_0.5_heated_for_1.0_steps_quenched", "216_vertices_T_0.25_heated_for_5.0_steps_quenched"]
+
+for filename in filenames
+
+    # load evolution dict
+    evolution_dict = GU.load_h5_dict(graph_path * filename * "_evolution.h5")
+
+    # add missing keys to the evolution dict
+    evolution_dict["relax_globally_after_threshold_cycle"] = true
+    evolution_dict["mean_nr_monte_carlo_steps_for_quenching"] = 13.7
+
+    # save the evolution dict to new folder
+    GU.save_dict_to_h5(evolution_dict, evolution_dicts_directory_path * filename * "_evolution.h5")
+
+end
+
+
+print_lock = Threads.ReentrantLock()
+
+
+evolution_dicts_directory_path = "../structures/random_networks/216_vertices_multiple_runs/evolution_dicts_check/"
+save_path = "../structures/random_networks/216_vertices_multiple_runs/run_check/"
+
+
+NG.generate_graphs_from_evolution_dicts_in_directory(
+evolution_dicts_directory_path,
+save_path;
+print_every_nr_attempted_bond_switches = 200,
+print_progress = true,
+print_lock = print_lock)

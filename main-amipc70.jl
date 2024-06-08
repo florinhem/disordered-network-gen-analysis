@@ -23,11 +23,19 @@ import LsqFit
 
 # julia --threads 23
 
+print_lock = Threads.ReentrantLock()
 
-graph_path = raw"..\structures\random_networks\anneal_quench\run_3\\"
+i = 4
 
-filename = "216_vertices_rand_nr_MC_steps_10.0_cool_nr_MC_steps_1.0_quenched"
+evolution_dicts_directory_path = "../structures/random_networks/anneal_quench/evolution_dicts_4/"
+save_path = "../structures/random_networks/anneal_quench/run_"*string(i)*"/"
 
-graph_dict = NG.load_graph_from_h5_and_gml(graph_path*filename)
 
-NG.plot_spatial_network(graph_dict)
+println("Starting run "*string(i))
+
+NG.generate_graphs_from_evolution_dicts_in_directory(
+evolution_dicts_directory_path,
+save_path;
+print_every_nr_attempted_bond_switches = 200,
+print_progress = true,
+print_lock = print_lock)
