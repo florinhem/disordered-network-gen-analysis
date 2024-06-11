@@ -710,6 +710,93 @@ end
 
 
 """
+Calculate the scaled intersection volume of 3d spheres of given radius R and
+distance to the origin r
+"""
+function scaled_intersection_volume_3d(r_distance_to_origin::Float64
+    , sphere_radius::Float64)
+
+    # define heaviside function
+    function heaviside(t)
+        0.5 * (sign(t) + 1)
+     end
+
+    # calculate scaled intersection volume
+    scaled_intersection_volume = ((1- 3/4 * r_distance_to_origin/sphere_radius 
+            + 1/16 * (r_distance_to_origin/sphere_radius)^3) 
+        * heaviside(2*sphere_radius - r_distance_to_origin))
+
+    return scaled_intersection_volume
+end
+
+
+"""
+From the autocovariance function, calculate the volume fraction variance
+from equation 73 in 10.1016/j.physrep.2018.03.001
+"""
+function get_volume_fract_variance(autocovariance_fct_direction_dict::Dict;
+    save_result::Bool = false,
+    save_path = raw"..\analysis_data\sample_name")
+
+    # get array of distances to the origin
+    r_distance_to_origin_array = sqrt.(dropdims(sum(
+        autocovariance_fct_direction_dict["sampling_distance_array"].^2, 
+    dims=4), dims=4))
+
+    # get supercell edge length
+    voxelized_data_edge_length = (
+        LinearAlgebra.norm(autocovariance_fct_direction_dict["sampling_distance_array"][1,1,1,:]
+        .- autocovariance_fct_direction_dict["sampling_distance_array"][1,1,end,:]))
+
+    # get vector of sphere radii
+    sphere_radius_vec = collect(autocovariance_fct_direction_dict["voxel_edge_length"]/2:
+    autocovariance_fct_direction_dict["voxel_edge_length"]/2
+    :voxelized_data_edge_length/4
+        )
+
+    # initialize vector of volume fraction variances
+    volume_fract_variance_vec = Vector{Float64}(undef, length(sphere_radius_vec))
+
+    # initialize vector of volume fraction variances times window volume
+    volume_fract_variance_times_window_volume_vec = Vector{Float64}(undef, length(sphere_radius_vec))
+
+    # for each sphere radius, calculate the volume fraction variance
+    for i in eachindex(sphere_radius_vec)
+
+        # get volume of sphere
+        sphere_volume = 4/3 * pi * sphere_radius_vec[i]^3
+
+        # calculate integral of autocovariance function multiplied
+        # by the scaled intersection volume
+        volume_fract_variance_times_window_volume = sum(
+            autocovariance_fct_direction_dict["autocovariance_fct_array"] .* 
+            scaled_intersection_volume_3d.(r_distance_to_origin_array, sphere_radius_vec[i]))
+
+        volume_fract_variance_times_window_volume_vec[i] = volume_fract_variance_times_window_volume
+
+        # save volume fraction variance
+        volume_fract_variance_vec[i] = 1/sphere_volume * volume_fract_variance_times_window_volume
+    end
+
+    # create dict to save
+    volume_fract_variance_dict = Dict{String, Any}(
+        "sphere_radius_vec" => sphere_radius_vec, 
+        "volume_fract_variance_vec" => volume_fract_variance_vec,
+        "volume_fract_variance_times_window_volume_vec" => volume_fract_variance_times_window_volume_vec,
+        "label" => autocovariance_fct_direction_dict["label"])
+
+    # save results if desired
+    if save_result
+        GU.save_dict_to_h5(copy(volume_fract_variance_dict),
+            save_path*"_volume_fraction_variance.h5")
+
+    end
+
+    return volume_fract_variance_dict
+end
+
+
+"""
 Fit a function to the angle averaged spectral density
 that consists of either two gaussians or a gaussian and an exponential decay
 """

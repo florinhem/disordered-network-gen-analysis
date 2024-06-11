@@ -267,7 +267,8 @@ function plot_spectral_density_heatmap(plot_dict::Dict,
     clims = (0, 0.1 ),
     x_y_lims = nothing,
     wavevector_component_to_fix::Int64 = 3,
-    wavevector_value_fixed = 0)
+    wavevector_value_fixed = 0,
+    plot_im_re::Bool = false)
 
     # discriminate between different wavevector components that are fixed
     if wavevector_component_to_fix == 1
@@ -365,45 +366,54 @@ function plot_spectral_density_heatmap(plot_dict::Dict,
                                 dpi=250, 
                                 size = 500 .* (1.2 , 1 )) 
 
-    re_plot = Plots.heatmap(wavenumber_vec_x,
-                                wavenumber_vec_y,
-                                real.(spectral_density_2d_normalized_array),
-                                xlabel=xlabel,
-                                ylabel=ylabel,
-                                colorbar_title = "\n"*Latex.L"\mathrm{Re}( \tilde{\chi} (\vec{k}) ) / \mathrm{Abs}( \tilde{\chi} )_\mathrm{max}" ,
-                                right_margin = 8Plots.mm,
-                                legend = true, title=title,
-                                c = :bluesreds,
-                                clims = clims,
-                                aspect_ratio = :equal,
-                                dpi=250, 
-                                size = 500 .* (1.2 , 1 ))
+    # create plots for real and imaginary part if desired
+    if plot_im_re                            
+        re_plot = Plots.heatmap(wavenumber_vec_x,
+                                    wavenumber_vec_y,
+                                    real.(spectral_density_2d_normalized_array),
+                                    xlabel=xlabel,
+                                    ylabel=ylabel,
+                                    colorbar_title = "\n"*Latex.L"\mathrm{Re}( \tilde{\chi} (\vec{k}) ) / \mathrm{Abs}( \tilde{\chi} )_\mathrm{max}" ,
+                                    right_margin = 8Plots.mm,
+                                    legend = true, title=title,
+                                    c = :bluesreds,
+                                    clims = clims,
+                                    aspect_ratio = :equal,
+                                    dpi=250, 
+                                    size = 500 .* (1.2 , 1 ))
 
-    im_plot = Plots.heatmap(wavenumber_vec_x,
-                                wavenumber_vec_y,
-                                imag.(spectral_density_2d_normalized_array),
-                                xlabel=xlabel,
-                                ylabel=ylabel,
-                                colorbar_title = "\n"*Latex.L"\mathrm{Im}( \tilde{\chi} (\vec{k}) ) / \mathrm{Abs}( \tilde{\chi} )_\mathrm{max}" ,
-                                right_margin = 8Plots.mm,
-                                legend = true, title=title,
-                                c = :bluesreds,
-                                aspect_ratio = :equal,
-                                dpi=250, 
-                                size = 500 .* (1.2 , 1 ))
+        im_plot = Plots.heatmap(wavenumber_vec_x,
+                                    wavenumber_vec_y,
+                                    imag.(spectral_density_2d_normalized_array),
+                                    xlabel=xlabel,
+                                    ylabel=ylabel,
+                                    colorbar_title = "\n"*Latex.L"\mathrm{Im}( \tilde{\chi} (\vec{k}) ) / \mathrm{Abs}( \tilde{\chi} )_\mathrm{max}" ,
+                                    right_margin = 8Plots.mm,
+                                    legend = true, title=title,
+                                    c = :bluesreds,
+                                    aspect_ratio = :equal,
+                                    dpi=250, 
+                                    size = 500 .* (1.2 , 1 ))
+    end
 
     # set x and y lims if desired
     if x_y_lims !== nothing
         Plots.heatmap!(abs_plot, xlims = x_y_lims, ylims = x_y_lims, size = 500 .* (1 , 1 ))
-        Plots.heatmap!(re_plot, xlims = x_y_lims, ylims = x_y_lims, size = 500 .* (1 , 1 ))
-        Plots.heatmap!(im_plot, xlims = x_y_lims, ylims = x_y_lims, size = 500 .* (1 , 1 ))
+
+        if plot_im_re
+            Plots.heatmap!(re_plot, xlims = x_y_lims, ylims = x_y_lims, size = 500 .* (1 , 1 ))
+            Plots.heatmap!(im_plot, xlims = x_y_lims, ylims = x_y_lims, size = 500 .* (1 , 1 ))
+        end
     end
 
     # if specified by the argument, save the plot
     if  save_plot
         Plots.savefig(abs_plot, save_path*"_spectral_density_abs.png")
-        Plots.savefig(re_plot, save_path*"_spectral_density_re.png")
-        Plots.savefig(im_plot, save_path*"_spectral_density_im.png")
+
+        if plot_im_re
+            Plots.savefig(re_plot, save_path*"_spectral_density_re.png")
+            Plots.savefig(im_plot, save_path*"_spectral_density_im.png")
+        end
 
     # otherwise display the plot
     else

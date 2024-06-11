@@ -4495,7 +4495,7 @@ print_lock = Threads.ReentrantLock()
 
 i = 4
 
-evolution_dicts_directory_path = "../structures/random_networks/anneal_quench/evolution_dicts_3/"
+evolution_dicts_directory_path = "../structures/random_networks/anneal_quench/evolution_dicts_4/"
 save_path = "../structures/random_networks/anneal_quench/run_"*string(i)*"/"
 
 
@@ -4514,7 +4514,6 @@ graph_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_
 
 evolution_dicts_directory_path = raw"..\structures\random_networks\216_vertices_multiple_runs\evolution_dicts_check\\"
 
-# slight disorder
 filenames = ["216_vertices_T_0.1_cool_0.1_per_mc_quenched", "216_vertices_T_0.5_heated_for_1.0_steps_quenched", "216_vertices_T_0.25_heated_for_5.0_steps_quenched"]
 
 for filename in filenames

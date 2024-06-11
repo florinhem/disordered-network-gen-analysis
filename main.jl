@@ -8,10 +8,8 @@ import .NetworkAnalysis as NA
 import .BinaryDataAnalysis as BDA
 import .GeneralUtilities as GU
 
-import Peaks
-import Measurements
 import Plots
-import LsqFit
+import LinearAlgebra
 
 # possible choices of nr_vertices for diamond: 64, 216, 512, 1000, that is (2*n)^3 with natural nr natural
 
@@ -20,14 +18,15 @@ import LsqFit
 # 512 vertices: supercell_edge_length = 9.237604307034013
 # 216 vertices: supercell_edge_length = 6.9282032302755105
 # 64 vertices: supercell_edge_length = 4.619802153517007
+# which is the cube root of the number of vertices times 2/sqrt(3)
 
 # julia --threads 23
 
+data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_multiple_runs\run_2\\"
 
-graph_path = raw"..\structures\random_networks\anneal_quench\run_3\\"
+filename = "216_vertices_T_0.1_heat_cool_0.05_per_mc_quenched"
 
-filename = "216_vertices_rand_nr_MC_steps_10.0_cool_nr_MC_steps_1.0_quenched"
+data_dict = GU.load_h5_dict(data_path*filename*"_autocovariance_fct_direction.h5")
 
-graph_dict = NG.load_graph_from_h5_and_gml(graph_path*filename)
-
-NG.plot_spatial_network(graph_dict)
+supercell_edge_length = LinearAlgebra.norm(autocovariance_fct_direction_dict["sampling_distance_array"][1,1,1,:] .- 
+        autocovariance_fct_direction_dict["sampling_distance_array"][1,1,end,:])

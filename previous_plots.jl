@@ -1039,46 +1039,95 @@ Plots.plot!(xlabel="wavenumber / "*Latex.L"d^{-1}", ylabel = "spectral density",
 Plots.savefig(raw"..\plots\random_networks\\"*filename*"_spectral_density_angle_averaged_unfiltered.png")
 
 
-filename = "216_vertices_T_0.1_heated_for_0.05_steps_quenched"
-data_path = raw"..\analysis_data\random_networks\216_vertices_multiple_runs\run_2\\"*filename
-save_path = raw"..\plots\random_networks\\"*filename
+graph_dict_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_anneal_quench_multiple_runs\run_1\\"
 
-plot_dict = GU.load_h5_dict(data_path*"_autocovariance_fct_direction.h5")
+all_filenames = readdir(graph_dict_path)
+filenames = filter(filename -> endswith(filename, "_evolution.h5"), all_filenames)
+final_energy_vec = Float64[]
 
-NA.plot_autocovariance_fct_heatmap(plot_dict,
-    save_path;
-    save_plot = true,
-    clims = nothing,
-    x_y_lims = nothing,
-    sampling_vector_component_to_fix = 3,
-    sampling_vector_value_fixed = 0)
+for filename in filenames
+    println(filename)
+
+    evolution_dict = GU.load_h5_dict(graph_dict_path*filename)
+
+    push!(final_energy_vec, evolution_dict["total_energy_vec"][end])
+end
+
+filenames_sorted = filenames[sortperm(final_energy_vec)   ]
+sort!(final_energy_vec)
 
 
-plot_dict = GU.load_h5_dict(data_path*"_spectral_density_array.h5")
+evolution_dict_high = GU.load_h5_dict(graph_dict_path*filenames_sorted[end])
+evolution_dict_middle = GU.load_h5_dict(graph_dict_path*filenames_sorted[13])
+evolution_dict_low = GU.load_h5_dict(graph_dict_path*filenames_sorted[1])
 
-NA.plot_spectral_density_heatmap(plot_dict,
-    save_path;
-    save_plot = true,
-    clims = (0,0.1),
-    x_y_lims = nothing,
-    wavevector_component_to_fix = 3,
-    wavevector_value_fixed = 0)
+Plots.plot(collect(1:length(evolution_dict_high["total_energy_vec"]))./(216*18), evolution_dict_high["total_energy_vec"] ./ 216, ls = :dot, label = "high final energy")
+Plots.plot!(collect(1:length(evolution_dict_middle["total_energy_vec"]))./(216*18), evolution_dict_middle["total_energy_vec"] ./ 216, ls = :dot, label = "middle final energy")
+Plots.plot!(collect(1:length(evolution_dict_low["total_energy_vec"]))./(216*18), evolution_dict_low["total_energy_vec"] ./ 216, ls = :dot, label = "low final energy", yaxis=:log10)
 
-spectral_density_dict = GU.load_h5_dict(data_path*"_spectral_density_array.h5")
+Plots.plot!(xlabel = "Monte Carlo step", ylabel = "energy per vertex", size=(600, 400), legend=:bottomright)
+Plots.savefig(raw"..\plots\random_networks\\216_vertices_anneal_quench_total_energy.png")
 
-spectral_density_angle_averaged_dict = GU.load_h5_dict(data_path*"_spectral_density_angle_averaged.h5")
 
-Plots.plot(spectral_density_angle_averaged_dict["wavenumber_vec"], 
-                    Measurements.value.(spectral_density_angle_averaged_dict["spectral_density_vec"]) , 
-                    ribbon =  Measurements.uncertainty.(spectral_density_angle_averaged_dict["spectral_density_vec"]))
+filenames = ["216_vertices_T_0.1_heated_for_1.0_steps_quenched",
+"216_vertices_T_0.2_heat_cool_0.2_per_mc_quenched",
+"216_vertices_T_0.3_heated_for_10.0_steps_quenched",
+"216_vertices_T_0.4_heated_for_0.25_steps_quenched",
+"216_vertices_T_0.25_heated_for_0.05_steps_quenched",
+"216_vertices_T_2.0_heated_for_0.5_steps_quenched"
+]
 
-Plots.plot!(xlabel="wavenumber / "*Latex.L"d^{-1}", ylabel = "spectral density", legend = false, xlims=(0,15), ylims=(0,1000), xtick=pitick(0, 15, 1; mode=:latex))
+for filename in filenames
+    data_path = raw"..\analysis_data\random_networks\216_vertices_multiple_runs\run_2\\"*filename
+    save_path = raw"..\plots\random_networks\\"*filename
 
-Plots.savefig(raw"..\plots\random_networks\\"*filename*"_spectral_density_angle_averaged.png")
+    autocovariance_fct_direction_dict = GU.load_h5_dict(data_path*"_autocovariance_fct_direction.h5")
 
-Plots.plot(spectral_density_angle_averaged_dict["unfiltered_wavenumber_vec"], 
-                    Measurements.value.(spectral_density_angle_averaged_dict["unfiltered_spectral_density_vec"]))
+    NA.plot_autocovariance_fct_heatmap(autocovariance_fct_direction_dict,
+        save_path;
+        save_plot = true,
+        clims = nothing,
+        x_y_lims = nothing,
+        sampling_vector_component_to_fix = 3,
+        sampling_vector_value_fixed = 0)
 
-Plots.plot!(xlabel="wavenumber / "*Latex.L"d^{-1}", ylabel = "spectral density", legend = false, xlims=(0,15), ylims=(0,1000), xtick=pitick(0, 15, 1; mode=:latex))
 
-Plots.savefig(raw"..\plots\random_networks\\"*filename*"_spectral_density_angle_averaged_unfiltered.png")
+    spectral_density_dict = GU.load_h5_dict(data_path*"_spectral_density_array.h5")
+
+    NA.plot_spectral_density_heatmap(spectral_density_dict,
+        save_path;
+        save_plot = true,
+        clims = (0,0.1),
+        x_y_lims = nothing,
+        wavevector_component_to_fix = 3,
+        wavevector_value_fixed = 0)
+
+    spectral_density_dict = GU.load_h5_dict(data_path*"_spectral_density_array.h5")
+
+    spectral_density_angle_averaged_dict = GU.load_h5_dict(data_path*"_spectral_density_angle_averaged.h5")
+
+    Plots.plot(spectral_density_angle_averaged_dict["wavenumber_vec"], 
+                        Measurements.value.(spectral_density_angle_averaged_dict["spectral_density_vec"]) , 
+                        ribbon =  Measurements.uncertainty.(spectral_density_angle_averaged_dict["spectral_density_vec"]))
+
+    Plots.plot!(xlabel="wavenumber / "*Latex.L"d^{-1}", ylabel = "spectral density", legend = false, xlims=(0,15), ylims=(0,minimum([1000.0, maximum(Measurements.value.(spectral_density_angle_averaged_dict["unfiltered_spectral_density_vec"]))])), xtick=pitick(0, 15, 1; mode=:latex))
+
+    Plots.savefig(raw"..\plots\random_networks\\"*filename*"_spectral_density_angle_averaged.png")
+
+    Plots.plot(spectral_density_angle_averaged_dict["unfiltered_wavenumber_vec"], 
+    Measurements.value.(spectral_density_angle_averaged_dict["unfiltered_spectral_density_vec"]),
+    ribbon =  Measurements.uncertainty.(spectral_density_angle_averaged_dict["unfiltered_spectral_density_vec"]))
+
+    Plots.plot!(xlabel="wavenumber / "*Latex.L"d^{-1}", ylabel = "spectral density", legend = false, xlims=(0,15), ylims=(0, minimum([1000.0, maximum(Measurements.value.(spectral_density_angle_averaged_dict["unfiltered_spectral_density_vec"]))])), xtick=pitick(0, 15, 1; mode=:latex))
+
+    Plots.savefig(raw"..\plots\random_networks\\"*filename*"_spectral_density_angle_averaged_unfiltered.png")
+
+
+    volume_fract_variance_dict = NA.get_volume_fract_variance(autocovariance_fct_direction_dict;
+            save_result = false)
+
+    # plot the volume fraction variance
+    Plots.plot(volume_fract_variance_dict["sphere_radius_vec"], volume_fract_variance_dict["volume_fract_variance_times_window_volume_vec"], xlabel="window radius "*Latex.L"R / d", ylabel=Latex.L"\sigma_V^2(R) \cdot v_1(R)", xlims=(0, maximum(volume_fract_variance_dict["sphere_radius_vec"])), ylims=(0, maximum(volume_fract_variance_dict["volume_fract_variance_times_window_volume_vec"])), legend=false)
+
+    Plots.savefig(raw"..\plots\random_networks\\"*filename*"_volume_fraction_variance.png")
+end
