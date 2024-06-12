@@ -10,6 +10,10 @@ import .GeneralUtilities as GU
 
 import Plots
 import LinearAlgebra
+import Measurements
+import MetaGraphsNext
+import StatsBase
+import Peaks
 
 # possible choices of nr_vertices for diamond: 64, 216, 512, 1000, that is (2*n)^3 with natural nr natural
 
@@ -22,11 +26,37 @@ import LinearAlgebra
 
 # julia --threads 23
 
-data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_multiple_runs\run_2\\"
 
-filename = "216_vertices_T_0.1_heat_cool_0.05_per_mc_quenched"
+function get_different_functions(graph_dict_path, structure_dict_path, analysis_data_path)
 
-data_dict = GU.load_h5_dict(data_path*filename*"_autocovariance_fct_direction.h5")
+    for i in 1:5
 
-supercell_edge_length = LinearAlgebra.norm(autocovariance_fct_direction_dict["sampling_distance_array"][1,1,1,:] .- 
-        autocovariance_fct_direction_dict["sampling_distance_array"][1,1,end,:])
+        current_graph_dict_path = graph_dict_path*"run_"*string(i)*"\\"
+
+        current_structure_dict_path = structure_dict_path*"run_"*string(i)*"\\"
+    
+        current_analysis_data_path = analysis_data_path*"run_"*string(i)*"\\"
+    
+        structure_dict_filenames = readdir(current_structure_dict_path)
+        
+        for structure_dict_filename in structure_dict_filenames
+
+            small_scale_order_metrics_dict = NA.get_small_length_scale_order_metrics(structure_dict_filename[1:end-13],
+            current_graph_dict_path,
+            current_analysis_data_path,
+            save_result = true)
+    
+            println(structure_dict_filename*" done")
+    
+        end
+    
+    end
+end
+
+graph_dict_path = raw"..\structures\random_networks\216_vertices_multiple_runs\\"
+
+structure_dict_path = raw"..\structures\random_networks\binary_structures\216_vertices_multiple_runs\\"
+
+analysis_data_path = raw"..\analysis_data\random_networks\216_vertices_multiple_runs\\"
+
+get_different_functions(graph_dict_path, structure_dict_path, analysis_data_path)

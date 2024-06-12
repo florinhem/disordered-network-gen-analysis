@@ -58,12 +58,7 @@ function piticklabel(x::Rational, ::Val{:latex})
 end
 
 
-filenames = ["216_vertices_T_0.1_heated_for_1.0_steps_quenched",
-"216_vertices_T_0.2_heat_cool_0.2_per_mc_quenched",
-"216_vertices_T_0.3_heated_for_10.0_steps_quenched",
-"216_vertices_T_0.4_heated_for_0.25_steps_quenched",
-"216_vertices_T_0.25_heated_for_0.05_steps_quenched",
-"216_vertices_T_2.0_heated_for_0.5_steps_quenched"
+filenames = ["216_vertices_T_0.5_heated_for_10.0_steps_quenched"
 ]
 
 for filename in filenames

@@ -610,7 +610,7 @@ end
 
 
 """
-Calculate angle averaged structure factor from 3d array of structure factor
+Calculate angle averaged spectral density from 3d array of spectral density
 """
 function get_spectral_density_angle_averaged(spectral_density_dict::Dict;
     gaussian_filter::Bool = true,
@@ -619,7 +619,7 @@ function get_spectral_density_angle_averaged(spectral_density_dict::Dict;
     save_result::Bool = false,
     save_path = raw"..\analysis_data\sample_name")
 
-    # create a dictionary for angle averaged structure factor
+    # create a dictionary for angle averaged spectral density
     # with the length squared of the index vector as the key,
     # because it is proportional to the square of the wavenumber
     spectral_density_angle_averaged_dict = Dict{Int64, Vector{Float64}}()
@@ -640,13 +640,13 @@ function get_spectral_density_angle_averaged(spectral_density_dict::Dict;
         # check if key exists in dictionary
         if index_vector_length_squared in keys(spectral_density_angle_averaged_dict)
 
-            # add structure factor to dictionary
+            # add spectral density to dictionary
             push!(spectral_density_angle_averaged_dict[index_vector_length_squared], 
                 abs(spectral_density_dict["spectral_density_array"][i]))
 
         else
 
-            # add key and structure factor to dictionary
+            # add key and spectral density to dictionary
             spectral_density_angle_averaged_dict[index_vector_length_squared] = 
                 [abs(spectral_density_dict["spectral_density_array"][i])]
 
@@ -654,7 +654,7 @@ function get_spectral_density_angle_averaged(spectral_density_dict::Dict;
 
     end
     
-    # initialize wavenumber vector and structure factor vector
+    # initialize wavenumber vector and spectral density vector
     unfiltered_wavenumber_vec = Vector{Float64}()
     unfiltered_spectral_density_vec = Vector{Measurements.Measurement{Float64}}()
 
@@ -662,21 +662,21 @@ function get_spectral_density_angle_averaged(spectral_density_dict::Dict;
     reciprocal_lattice_constant = LinearAlgebra.norm(
         spectral_density_dict["wavevector_array"][(index_vector_origin .+ [1,0,0])...,:])
 
-    # get vector of wavenumbers and angle averaged structure factor including
+    # get vector of wavenumbers and angle averaged spectral density including
     # their uncertainty
     for key in keys(spectral_density_angle_averaged_dict)
 
         # get wavenumber from wavevector
         push!(unfiltered_wavenumber_vec, reciprocal_lattice_constant*sqrt(key))
 
-        # get angle averaged structure factor
+        # get angle averaged spectral density
         push!(unfiltered_spectral_density_vec, 
             Measurements.measurement(Statistics.mean(spectral_density_angle_averaged_dict[key]),
             Statistics.std(spectral_density_angle_averaged_dict[key])))
 
     end
 
-    # sort wavenumber vector and structure factor vector
+    # sort wavenumber vector and spectral density vector
     unfiltered_spectral_density_vec = unfiltered_spectral_density_vec[sortperm(unfiltered_wavenumber_vec)]
     sort!(unfiltered_wavenumber_vec)
 
@@ -706,6 +706,29 @@ function get_spectral_density_angle_averaged(spectral_density_dict::Dict;
     end
                                             
     return spectral_density_angle_averaged_dict
+end
+
+
+"""
+Define a anisotropy metric as the normalized variance of the spectral density at the
+first peak of the spectral density of the diamond lattice
+"""
+function get_anisotropy_metric_from_spectral_density(
+    spectral_density_angle_averaged_dict::Dict,
+    diamond_spectral_density_peak_wavenumber::Float64 = 4.680517,
+    diamond_spectral_density_peak_std::Float64 = 521.88398)
+
+    # find the wavenumber that is the closest to the diamond peak wavenumber
+    diamond_spectral_density_peak_wavenumber_index = argmin(abs.(spectral_density_angle_averaged_dict["wavenumber_vec"] .- diamond_spectral_density_peak_wavenumber))
+
+    # get the spectral density standard deviation around the diamond peak
+    peak_spectral_density_std = Measurements.uncertainty(
+        spectral_density_angle_averaged_dict["spectral_density_vec"][diamond_spectral_density_peak_wavenumber_index])
+
+    # normalize this standard deviation by the spectral density standard deviation of the diamond peak
+    anisotropy_metric_from_spectral_density = peak_spectral_density_std / diamond_spectral_density_peak_std
+
+    return anisotropy_metric_from_spectral_density
 end
 
 
@@ -853,7 +876,7 @@ function fit_spectral_density_angle_averaged(spectral_density_angle_averaged_dic
 
     end
     
-    # get wavenumber vector and structure factor vector
+    # get wavenumber vector and spectral density vector
     x_vec = spectral_density_angle_averaged_dict["wavenumber_vec"]
     y_vec = Measurements.value.(spectral_density_angle_averaged_dict["spectral_density_vec"])
     

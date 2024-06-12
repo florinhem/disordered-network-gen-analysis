@@ -320,6 +320,7 @@ function generate_graphs_from_evolution_dicts_single_thread(filenames,
     print_every_nr_attempted_bond_switches::Int64 = 100,
     print_progress::Bool = false,
     random_evolution_seed::Int64 = -1,
+    save_network_after_each_temperature::Bool = false,
     print_lock = Threads.ReentrantLock())
 
     # loop through files
@@ -352,6 +353,9 @@ function generate_graphs_from_evolution_dicts_single_thread(filenames,
                 print_progress = print_progress,
                 print_every_nr_attempted_bond_switches = print_every_nr_attempted_bond_switches,
                 random_evolution_seed = random_evolution_seed,
+                save_network_after_each_temperature = save_network_after_each_temperature,
+                filename = filename[1:end-13],
+                save_path = save_path,
                 print_lock = print_lock)
 
             # save move_accepted_vec and total_energy_vec
@@ -382,6 +386,7 @@ function generate_graphs_from_evolution_dicts_in_directory(
     print_every_nr_attempted_bond_switches::Int64 = 100,
     print_progress::Bool = false,
     random_evolution_seed::Int64 = -1,
+    save_network_after_each_temperature::Bool = false,
     print_lock = Threads.ReentrantLock())
 
     # get all files in directory
@@ -402,6 +407,7 @@ function generate_graphs_from_evolution_dicts_in_directory(
             print_every_nr_attempted_bond_switches = print_every_nr_attempted_bond_switches,
             print_progress = print_progress,
             random_evolution_seed = random_evolution_seed,
+            save_network_after_each_temperature = save_network_after_each_temperature,
             print_lock = print_lock)
     end
     

@@ -326,3 +326,4 @@ function get_q_l_total_network_mean_dict(graph_dict::Dict,
     return q_l_total_network_mean_dict
 end
 
+

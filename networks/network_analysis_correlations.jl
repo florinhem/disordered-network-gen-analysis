@@ -368,8 +368,8 @@ Calculate angle averaged structure factor from 3d array of structure factor
 """
 function get_structure_factor_angle_averaged(structure_factor_dict::Dict;
     gaussian_filter::Bool = true,
-    gaussian_filter_sigma_x::Float64 = 2*pi/10, 
-    gaussian_filter_filtered_data_x_step_length::Float64 = 2*pi/10,
+    gaussian_filter_sigma_x::Float64 = 2*pi/25, 
+    gaussian_filter_filtered_data_x_step_length::Float64 = 2*pi/25,
     save_result::Bool = false,
     save_path = raw"..\analysis_data\sample_name",
     label = nothing)
@@ -467,8 +467,128 @@ end
 
 
 """
+Calculate pair angle averaged pair correlation function and total correlation
+function from vertex position of spatial network
+"""
+function get_correlation_functions(graph_dict::Dict;
+    distance_histogram_bin_width::Float64 = 0.02,
+    save_result::Bool = false,
+    save_path = raw"..\analysis_data\sample_name",
+    label = nothing)
+
+    # create vector of all vertex positions
+    vertex_position_mat = Matrix{Float64}(undef, 3, graph_dict["nr_vertices"])
+
+    for i in 1:graph_dict["nr_vertices"]
+        vertex_position_mat[:, i] =graph_dict["spatial_network"][i]["position"]
+    end
+
+    # get vector of distance between all pairs of vertices by considering periodic boundary conditions
+    distance_vec = Vector{Float64}(undef, Int(graph_dict["nr_vertices"]*(graph_dict["nr_vertices"]-1)/2))
+
+    current_index = 1
+
+    for i in 1:graph_dict["nr_vertices"]-1
+        for j in i+1:graph_dict["nr_vertices"]
+            distance_vec[current_index] = LinearAlgebra.norm(
+                NG.get_distance_vector_pbc(
+                    vertex_position_mat[:, i], vertex_position_mat[:, j], 
+                    graph_dict["supercell_edge_length"]))
+
+            current_index += 1
+        end
+    end
+
+    # get histogram of distance vector
+    distance_histogram = StatsBase.fit(
+            StatsBase.Histogram, distance_vec, 
+            0.0:distance_histogram_bin_width:graph_dict["supercell_edge_length"]/2, 
+            closed=:left)
+
+            vertex_distance_vec = collect(distance_histogram.edges[1][2:end] .- distance_histogram_bin_width/2)
+    vertex_nr_vec = distance_histogram.weights
+
+    # get_vertex density
+    vertex_density = graph_dict["nr_vertices"] / graph_dict["supercell_edge_length"]^3
+
+    # calculate ripley's K function / cumulative coordination number 
+    # (eq. 5 in 10.1016/j.physrep.2018.03.001)
+    ripley_k_vec = cumsum(vertex_nr_vec) ./(graph_dict["nr_vertices"] * vertex_density)
+
+    # calculate pair correlaion function (eq. 3 in 10.1016/j.physrep.2018.03.001)
+    pair_correlation_fct_vec = ((1/(4*pi*vertex_density * graph_dict["nr_vertices"]) ) 
+        .* vertex_nr_vec ./ vertex_distance_vec.^2) .* (2/distance_histogram_bin_width)
+
+    # calculate total correlation function (eq. 4 in 10.1016/j.physrep.2018.03.001)
+    total_correlation_fct_vec = pair_correlation_fct_vec .- 1
+
+    # create dict to save
+    correlation_functions_dict = Dict{String, Any}("vertex_distance_vec" => vertex_distance_vec, 
+                                "ripley_k_vec" => ripley_k_vec,
+                                "pair_correlation_fct_vec" => pair_correlation_fct_vec,
+                                "total_correlation_fct_vec" => total_correlation_fct_vec)
+
+    # add label to dictionary if label is not nothing
+    if label !== nothing
+        correlation_functions_dict["label"] = label
+    end
+
+    # save results if desired
+    if save_result
+        GU.save_dict_to_h5(copy(correlation_functions_dict),
+            save_path*"_correlation_functions.h5")
+
+    end
+
+    return correlation_functions_dict
+
+end
+
+
+"""
+Define a cluster metric as the average ball radius within which there are 12 vertices,
+which would be the second neighbor shell in a perfect diamond lattice, normalized by the
+second neighbor distance of the diamond lattice.
+For clusters, this metric is typically below 0.7
+"""
+function get_cluster_metric(correlation_functions_dict::Dict)
+
+    # get distance where ripley's K function is 12
+    cluster_metric = correlation_functions_dict["vertex_distance_vec"][findfirst(
+        x -> x > 12, correlation_functions_dict["ripley_k_vec"])]/1.63
+
+    return cluster_metric
+end
+
+
+"""
+Define a anisotropy metric as the normalized variance of the structure factor at the
+first peak of the structure factor of the diamond lattice
+"""
+function get_anisotropy_metric_from_structure_factor(
+    structure_factor_angle_averaged_dict::Dict,
+    diamond_structure_factor_peak_wavenumber::Float64 = 4.676810,
+    diamond_structure_factor_peak_std::Float64 = 8.5573)
+
+    # find the wavenumber that is the closest to the diamond peak wavenumber
+    diamond_structure_factor_peak_wavenumber_index = argmin(abs.(
+        structure_factor_angle_averaged_dict["wavenumber_vec"] 
+        .- diamond_structure_factor_peak_wavenumber))
+
+    # get the structure factor standard deviation around the diamond peak
+    peak_structure_factor_std = Measurements.uncertainty(
+        structure_factor_angle_averaged_dict["structure_factor_vec"][diamond_structure_factor_peak_wavenumber_index])
+
+    # normalize this standard deviation by the structure factor standard deviation of the diamond peak
+    anisotropy_metric_from_structure_factor = peak_structure_factor_std / diamond_structure_factor_peak_std
+
+    return anisotropy_metric_from_structure_factor
+end
+
+
+"""
 Get local number variance for a spherical window of given radius from the
-structure factor according to eq 58 in 10.1016/j.physrep.2018.03.001
+structure factor according to eq 58 and 60 in 10.1016/j.physrep.2018.03.001
 """
 function get_local_nr_variance(graph_dict::Dict,
     structure_factor_dict::Dict,
@@ -490,47 +610,54 @@ function get_local_nr_variance(graph_dict::Dict,
     # calculate local nr variance
     local_nr_variance = (vertex_density * 32 * pi^2 * window_radius^2
         * wavenumber_step_length * sum(
-            structure_factor_dict["unfiltered_structure_factor_vec"] 
+            structure_factor_dict["structure_factor_vec"] 
             .* sin.( structure_factor_dict["wavenumber_vec"] .* window_radius) .^2
             ./ structure_factor_dict["wavenumber_vec"].^2
         )    
     )
     
     return local_nr_variance
+
 end
 
 
 """
 Measure local nr variance as a function of window radius according
-from structure factor
+from structure factor according to equations 47 and d58 in 10.1016/j.physrep.2018.03.001
 """
 function get_local_nr_variance_by_window_radius_vec(
-    graph_dict::Dict;
-    structure_factor_dict::Dict = get_structure_factor_isotrope_by_wavenumber_vec(graph_dict),
-    window_radius_step_length = 0.2,
-    maximal_window_radius = graph_dict["supercell_edge_length"]/2,
+    graph_dict,
+    structure_factor_angle_averaged_dict::Dict;
+    window_radius_step_length::Float64 = 0.1,
     save_result::Bool = false,
     save_path::String = raw"..\analysis_data\random_networks\sample_name",
     label = nothing)
 
-    # get vector of winow radii
-    window_radius_vec = collect(
-        window_radius_step_length:window_radius_step_length:maximal_window_radius)
+    # get vector of sphere radii
+    sphere_radius_vec = collect(window_radius_step_length:
+    window_radius_step_length
+    :graph_dict["supercell_edge_length"]/4
+        )
 
     # initialize local nr variance vector
-    local_nr_variance_vec = Vector{Float64}(undef, length(window_radius_vec))
+    local_nr_variance_vec = Vector{Measurements.Measurement{Float64}}(undef, length(sphere_radius_vec))
 
     # get local nr variance vector as a window radius
-    for i in eachindex(window_radius_vec)
+    for i in eachindex(sphere_radius_vec)
         local_nr_variance_vec[i] = get_local_nr_variance(graph_dict,
-        structure_factor_dict,
-        window_radius_vec[i])
+        structure_factor_angle_averaged_dict,
+        sphere_radius_vec[i])
 
     end
 
+    # get local nr variance over sphere volume which indicates hyperuniformity
+    # at large window radii
+    local_nr_variance_over_sphere_volume_vec = local_nr_variance_vec ./ (4/3*pi*sphere_radius_vec.^3)
+
     # create dictionary for current plot
-    local_nr_variance_dict = Dict("window_radius_vec" => window_radius_vec,
-                            "local_nr_variance_vec" => local_nr_variance_vec )
+    local_nr_variance_dict = Dict("sphere_radius_vec" => sphere_radius_vec,
+                            "local_nr_variance_vec" => local_nr_variance_vec,
+                            "local_nr_variance_over_sphere_volume_vec" => local_nr_variance_over_sphere_volume_vec)
 
     if label !== nothing
         local_nr_variance_dict["label"] = label

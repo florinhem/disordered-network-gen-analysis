@@ -858,7 +858,7 @@ function evolve_network_temperature_sequence!(
     print_progress::Bool = false,
     print_every_nr_attempted_bond_switches::Int64 = 100,
     random_evolution_seed::Int64 = -1,
-    save_network_after_each_step::Bool = false,
+    save_network_after_each_temperature::Bool = false,
     filename::String = "some_network",
     save_path::String = raw"..\structures\random_networks\\",
     print_lock = Threads.ReentrantLock())
@@ -910,14 +910,14 @@ function evolve_network_temperature_sequence!(
         end
 
         # if desired, save network
-        if save_network_after_each_step
+        if save_network_after_each_temperature
 
             # save evolution data to evolution dict
             evolution_dict["total_energy_vec"] = total_energy_vec
             evolution_dict["move_accepted_vec"] = move_accepted_vec
 
             # save network and evolution_dict
-            save_graph_to_h5_and_MGformat(graph_dict,
+            save_graph_to_h5_and_gml(graph_dict,
                 filename*"_"*string(i);
                 evolution_dict = evolution_dict,
                 save_path 

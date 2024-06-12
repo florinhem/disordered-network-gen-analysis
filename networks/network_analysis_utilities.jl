@@ -139,3 +139,86 @@ function get_monte_carlo_steps_for_quenching_vec(evolution_dicts_directory_path:
 
     return nr_monte_carlo_steps_for_quenching_vec
 end
+
+
+"""
+For given data paths and filename, calculate all order metrics, which can be
+calculated from small length scales
+"""
+function get_small_length_scale_order_metrics(filename::String,
+    graph_path::String,
+    analysis_data_path::String;
+    l_max_steinhardt_q_l::Int64 = 12,
+    diamond_structure_factor_peak_wavenumber::Float64 = 4.676810,
+    diamond_structure_factor_peak_std::Float64 = 8.5573,
+    diamond_spectral_density_peak_wavenumber::Float64 = 4.680517,
+    diamond_spectral_density_peak_std::Float64 = 521.88398,
+    save_result = false,
+    )
+
+    # load graph
+    graph_dict = NG.load_graph_from_h5_and_gml(graph_path*filename)
+
+    # get total keating energy of final network
+    total_keating_energy = graph_dict["total_energy"]
+
+    # Measure the standard deviation of bond lengths
+    bond_length_std, bond_length_vec = get_bond_length_std(graph_dict)
+
+    # Measure the standard deviation of bond angles
+    bond_angle_std, bond_angle_vec = get_bond_angle_std(graph_dict)
+
+    # Measure the standard deviation of dihedral angles
+    dihedral_angle_std, dihedral_angle_vec = get_dihedral_angle_std(graph_dict)
+
+    # get Steinhardt local bond order parameters and store them in a vector
+    q_l_total_network_mean_dict = get_q_l_total_network_mean_dict(graph_dict,
+    l_max_steinhardt_q_l)
+
+    q_l_vec = convert_q_l_dict_to_vec(q_l_total_network_mean_dict, 
+        l_max_steinhardt_q_l)
+
+    # load correlation functions
+    correlation_functions_dict = GU.load_h5_dict(analysis_data_path*filename*"_correlation_functions.h5")
+
+    # get cluster metric
+    cluster_metric = get_cluster_metric(correlation_functions_dict)
+
+    # load angle averaged structure factor
+    structure_factor_angle_averaged_dict = GU.load_h5_dict(analysis_data_path*filename*"_structure_factor_angle_averaged.h5")
+
+    # get anisotropy metric from structure factor
+    anisotropy_metric_from_structure_factor = get_anisotropy_metric_from_structure_factor(
+        structure_factor_angle_averaged_dict,
+        diamond_structure_factor_peak_wavenumber,
+        diamond_structure_factor_peak_std
+    )
+
+    # load angle averaged spectral density
+    spectral_density_angle_averaged_dict = GU.load_h5_dict(analysis_data_path*filename*"_spectral_density_angle_averaged.h5")
+
+    # get anisotropy metric from spectral density
+    anisotropy_metric_from_spectral_density = get_anisotropy_metric_from_spectral_density(
+        spectral_density_angle_averaged_dict,
+        diamond_spectral_density_peak_wavenumber,
+        diamond_spectral_density_peak_std
+    )
+
+    # create dict to save
+    small_scale_order_metrics_dict = Dict(
+        "total_keating_energy" => total_keating_energy,
+        "bond_length_std" => bond_length_std,
+        "bond_angle_std" => bond_angle_std,
+        "dihedral_angle_std" => dihedral_angle_std,
+        "q_l_vec" => q_l_vec,
+        "cluster_metric" => cluster_metric,
+        "anisotropy_metric_from_structure_factor" => anisotropy_metric_from_structure_factor,
+        "anisotropy_metric_from_spectral_density" => anisotropy_metric_from_spectral_density
+    )
+
+    if save_result
+        GU.save_dict_to_h5(small_scale_order_metrics_dict, analysis_data_path*filename*"_small_scale_order_metrics.h5")
+    end
+
+    return small_scale_order_metrics_dict
+end

@@ -4544,3 +4544,190 @@ save_path;
 print_every_nr_attempted_bond_switches = 200,
 print_progress = true,
 print_lock = print_lock)
+
+
+graph_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_multiple_runs\run_2\\"
+
+filenames = ["216_vertices_T_0.1_heated_for_0.5_steps_quenched",
+"216_vertices_T_0.2_heated_for_0.5_steps_quenched",
+"216_vertices_T_0.4_heated_for_0.5_steps_quenched",
+"216_vertices_T_0.5_heated_for_0.5_steps_quenched",
+"216_vertices_T_1.0_heated_for_0.5_steps_quenched",
+"216_vertices_T_2.0_heated_for_0.5_steps_quenched",
+"216_vertices_T_0.1_heated_for_1.0_steps_quenched",
+"216_vertices_T_0.1_heated_for_10.0_steps_quenched",
+"216_vertices_T_0.4_heated_for_0.1_steps_quenched",
+"216_vertices_T_0.4_heated_for_0.25_steps_quenched",
+"216_vertices_T_0.5_heated_for_10.0_steps_quenched",
+]
+
+
+evolution_dicts_directory_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\1728_vertices\evolution_dicts\\"
+
+for filename in filenames
+
+    # load evolution dict
+    evolution_dict = GU.load_h5_dict(graph_path * filename * "_evolution.h5")
+
+    # add missing keys to the evolution dict
+    evolution_dict["relax_globally_after_threshold_cycle"] = true
+    evolution_dict["mean_nr_monte_carlo_steps_for_quenching"] = 13.7
+    evolution_dict["nr_vertices"] = 1728
+
+    # save the evolution dict to new folder
+    GU.save_dict_to_h5(evolution_dict, evolution_dicts_directory_path * "1728" *filename[4:end] * "_evolution.h5")
+
+end
+
+
+evolution_dicts_directory_path = raw"../structures/random_networks/1728_vertices/evolution_dicts/"
+
+print_lock = Threads.ReentrantLock()
+
+save_path = "../structures/random_networks/1728_vertices/run_cubic/"
+
+
+NG.generate_graphs_from_evolution_dicts_in_directory(
+evolution_dicts_directory_path,
+save_path;
+print_every_nr_attempted_bond_switches = 200,
+print_progress = true,
+save_network_after_each_temperature = true,
+print_lock = print_lock)
+
+
+function get_different_functions(graph_dict_path, structure_dict_path, analysis_data_path)
+
+    for i in 1:5
+
+        current_graph_dict_path = graph_dict_path*"run_"*string(i)*"\\"
+
+        current_structure_dict_path = structure_dict_path*"run_"*string(i)*"\\"
+    
+        current_analysis_data_path = analysis_data_path*"run_"*string(i)*"\\"
+    
+        structure_dict_filenames = readdir(current_structure_dict_path)
+        
+        for structure_dict_filename in structure_dict_filenames
+
+            structure_dict = GU.load_h5_dict(current_structure_dict_path*structure_dict_filename)
+    
+            autocovariance_fct_direction_dict = GU.load_h5_dict(current_analysis_data_path*structure_dict_filename[1:end-13]*"_autocovariance_fct_direction.h5")
+    
+            volume_fract_variance_dict = NA.get_volume_fract_variance(autocovariance_fct_direction_dict;
+            save_result = true,
+            save_path = current_analysis_data_path*structure_dict_filename[1:end-13])
+            
+            graph_dict = NG.load_graph_from_h5_and_gml(current_graph_dict_path*structure_dict_filename[1:end-13])
+
+            structure_factor_dict = NA.get_structure_factor_by_wavevector_array(graph_dict;
+                save_result = true,
+                save_path = current_analysis_data_path*structure_dict_filename[1:end-13])
+
+            structure_factor_angle_averaged_dict = NA.get_structure_factor_angle_averaged(structure_factor_dict;
+                gaussian_filter = true,
+                gaussian_filter_sigma_x = 2*pi/25, 
+                gaussian_filter_filtered_data_x_step_length = 2*pi/25,
+                save_result = true,
+                save_path = current_analysis_data_path*structure_dict_filename[1:end-13])
+
+            #local_nr_variance_dict = NA.get_local_nr_variance_by_window_radius_vec(
+            #    graph_dict;
+            #    structure_factor_dict = structure_factor_angle_averaged_dict,
+            #    window_radius_step_length = 0.2,
+            #    save_result = true,
+            #    save_path = current_analysis_data_path*structure_dict_filename[1:end-13])
+    
+            println(structure_dict_filename*" done")
+    
+        end
+    
+    end
+end
+
+graph_dict_path = raw"..\structures\random_networks\216_vertices_multiple_runs\\"
+
+structure_dict_path = raw"..\structures\random_networks\binary_structures\216_vertices_multiple_runs\\"
+
+analysis_data_path = raw"..\analysis_data\random_networks\216_vertices_multiple_runs\\"
+
+get_different_functions(graph_dict_path, structure_dict_path, analysis_data_path)
+
+
+graph_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_multiple_runs\run_2\\"
+
+data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_multiple_runs\run_2\\"
+
+filename = "216_vertices_T_0.2_heated_for_0.05_steps_quenched"
+
+graph_dict = NG.load_graph_from_h5_and_gml(graph_path*filename)
+
+structure_factor_angle_averaged_dict = GU.load_h5_dict(data_path*filename*"_structure_factor_angle_averaged.h5")
+
+Plots.plot(structure_factor_angle_averaged_dict["wavenumber_vec"], Measurements.value.(structure_factor_angle_averaged_dict["structure_factor_vec"]) , xlims = (0,10))
+
+
+graph_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_multiple_runs\run_2\\"
+
+data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_multiple_runs\run_2\\"
+
+filename = "216_vertices_T_0.1_heated_for_5.0_steps_quenched"
+
+graph_dict = NG.load_graph_from_h5_and_gml(graph_path*filename)
+
+spectral_density_angle_averaged_dict = GU.load_h5_dict(data_path*filename*"_spectral_density_angle_averaged.h5")
+
+anisotropy_metric_from_spectral_density = NA.get_anisotropy_metric_from_spectral_density(spectral_density_angle_averaged_dict)
+
+
+function get_different_functions(graph_dict_path, structure_dict_path, analysis_data_path)
+
+    for i in 1:5
+
+        current_graph_dict_path = graph_dict_path*"run_"*string(i)*"\\"
+
+        current_structure_dict_path = structure_dict_path*"run_"*string(i)*"\\"
+    
+        current_analysis_data_path = analysis_data_path*"run_"*string(i)*"\\"
+    
+        structure_dict_filenames = readdir(current_structure_dict_path)
+        
+        for structure_dict_filename in structure_dict_filenames
+            
+            graph_dict = NG.load_graph_from_h5_and_gml(current_graph_dict_path*structure_dict_filename[1:end-13])
+
+            correlation_functions_dict = NA.get_correlation_functions(graph_dict;
+                distance_histogram_bin_width = 0.02,
+                save_result = true,
+                save_path = current_analysis_data_path*structure_dict_filename[1:end-13])
+    
+            println(structure_dict_filename*" done")
+    
+        end
+    
+    end
+end
+
+graph_dict_path = raw"..\structures\random_networks\216_vertices_multiple_runs\\"
+
+structure_dict_path = raw"..\structures\random_networks\binary_structures\216_vertices_multiple_runs\\"
+
+analysis_data_path = raw"..\analysis_data\random_networks\216_vertices_multiple_runs\\"
+
+get_different_functions(graph_dict_path, structure_dict_path, analysis_data_path)
+
+
+
+graph_dict_path = raw"..\structures\random_networks\216_vertices_multiple_runs\run_2\\"
+
+analysis_data_path = raw"..\analysis_data\random_networks\216_vertices_multiple_runs\run_2\\"
+
+filename = "216_vertices_T_0.2_heated_for_0.01_steps_quenched"
+
+graph_dict = NG.load_graph_from_h5_and_gml(graph_dict_path*filename)
+
+small_scale_order_metrics_dict = NA.get_small_length_scale_order_metrics(filename,
+    graph_path,
+    analysis_data_path;
+    save_result = false,
+    )
