@@ -614,8 +614,8 @@ Calculate angle averaged spectral density from 3d array of spectral density
 """
 function get_spectral_density_angle_averaged(spectral_density_dict::Dict;
     gaussian_filter::Bool = true,
-    gaussian_filter_sigma_x::Float64 = 2*pi/20, 
-    gaussian_filter_filtered_data_x_step_length::Float64 = 2*pi/20,
+    gaussian_filter_sigma_x::Float64 = 2*pi/25, 
+    gaussian_filter_filtered_data_x_step_length::Float64 = 2*pi/25,
     save_result::Bool = false,
     save_path = raw"..\analysis_data\sample_name")
 

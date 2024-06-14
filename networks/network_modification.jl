@@ -347,6 +347,9 @@ function relax_network_keating!(graph_dict::Dict,
         threshold_cycle_global_relaxation = evolution_dict["nr_max_relaxation_cycles"] + 1
     end
 
+    # create bool that determines whether cluster will be relaxed globally after local relaxation
+    continue_with_global_relaxation = true
+
     # perform the given number of relaxation cycles
     for cycle_nr in 1:threshold_cycle_global_relaxation-1
 
@@ -395,6 +398,10 @@ function relax_network_keating!(graph_dict::Dict,
                 if print_progress
                     println("Relaxed energy exceeds threshold: breaking at cycle nr "*string(cycle_nr))
                 end
+
+                # don't continue with global relaxation
+                continue_with_global_relaxation = false
+
                 break
             end
 
@@ -417,7 +424,12 @@ function relax_network_keating!(graph_dict::Dict,
 
     # relax network globally, if desired
     if (haskey(evolution_dict, "relax_globally_after_threshold_cycle") &&
-        evolution_dict["relax_globally_after_threshold_cycle"])
+        evolution_dict["relax_globally_after_threshold_cycle"] &&
+        continue_with_global_relaxation)
+
+        if print_progress
+            println("Relaxing network globally at cycle nr "*string(threshold_cycle_global_relaxation))
+        end
 
         # get cluster of entire network by setting shell nr toa high value
         cluster_dict = get_cluster_in_shells_dict(graph_dict,   switched_chain,

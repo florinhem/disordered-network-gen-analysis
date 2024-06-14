@@ -142,6 +142,145 @@ end
 
 
 """
+For each structure dict in a list of run and filenames, calculate the 
+autocovariance function as a function of direction
+"""
+function get_all_dicts_from_graphs_single_thread(run_and_filename_chunk,
+    graph_dicts_path::String,
+    structure_dicts_path::String,
+    analysis_data_path::String;
+    print_progress::Bool = false,
+    print_lock = Threads.ReentrantLock())
+
+    # loop through files
+    for run_and_filename in run_and_filename_chunk
+
+        # print current thread id and run/filename if desired
+        if print_progress
+            lock(print_lock) do
+                Format.printfmtln("Thread {1} is handling file {2}",
+                    Threads.threadid(), run_and_filename)
+            end
+        end
+
+        # get graph dict
+        graph_dict = NG.load_graph_from_h5_and_gml(graph_dicts_path*run_and_filename)
+
+        # create structure dict
+        structure_dict = get_binary_data_from_spatial_network(graph_dict;
+        bond_radius = 0.35,
+        voxel_edge_length = 0.1,
+        save_path = structure_dicts_path*run_and_filename,
+        filename = run_and_filename[7:end],
+        save_result=true)
+
+        # get autocovariance function as a function of direction
+        autocovariance_fct_direction_dict = get_autocovariance_fct_by_sampling_indices_array(
+            structure_dict;
+        save_result = true,
+        save_path = analysis_data_path*run_and_filename,
+        print_progress = print_progress,
+        thread_nr = Threads.threadid() ,
+        print_lock = print_lock)
+
+        spectral_density_dict = get_spectral_density_by_wavevector_array_fft(structure_dict;
+        save_autocovariance_fct_direction_dict = false,
+        save_result = true,
+        save_path = analysis_data_path*run_and_filename,
+        autocovariance_fct_direction_dict = autocovariance_fct_direction_dict)
+
+        spectral_density_angle_averaged_dict = get_spectral_density_angle_averaged(spectral_density_dict;
+        gaussian_filter = true,
+        gaussian_filter_sigma_x = 2*pi/25, 
+        gaussian_filter_filtered_data_x_step_length = 2*pi/25,
+        save_result = true,
+        save_path = analysis_data_path*run_and_filename)
+
+        volume_fract_variance_dict = get_volume_fract_variance(autocovariance_fct_direction_dict;
+            save_result = true,
+            save_path = analysis_data_path*run_and_filename)
+
+        structure_factor_dict = get_structure_factor_by_wavevector_array(graph_dict;
+        save_result = true,
+        save_path = analysis_data_path*run_and_filename,
+        label = nothing)
+
+        structure_factor_angle_averaged_dict = get_structure_factor_angle_averaged(structure_factor_dict::Dict;
+            gaussian_filter = true,
+            gaussian_filter_sigma_x = 2*pi/25, 
+            gaussian_filter_filtered_data_x_step_length = 2*pi/25,
+            save_result = true,
+            save_path = analysis_data_path*run_and_filename,
+            label = nothing)
+
+        correlation_functions_dict = get_correlation_functions(graph_dict;
+        distance_histogram_bin_width = 0.02,
+        save_result = true,
+        save_path = analysis_data_path*run_and_filename,
+        label = nothing)
+
+        get_small_length_scale_order_metrics(run_and_filename[7:end],
+        graph_dicts_path*run_and_filename[1:6],
+        analysis_data_path*run_and_filename[1:6];
+        l_max_steinhardt_q_l = 12,
+        diamond_structure_factor_peak_wavenumber = 4.676810,
+        diamond_structure_factor_peak_std = 8.5573,
+        diamond_spectral_density_peak_wavenumber = 4.680517,
+        diamond_spectral_density_peak_std = 521.88398,
+        save_result = true,
+        )
+    end
+
+    return
+end
+
+
+"""
+For all structure dicts in a folder, calculate the autocovariance function as a function
+of direction using multithreading
+"""
+function get_all_dicts_from_graphs_multithreading(graph_dicts_path,
+    structure_dicts_path,
+    analysis_data_path::String;
+    print_progress::Bool = false,
+    runs_vec = collect(1:5),
+    print_lock = Threads.ReentrantLock())
+
+    # vector for run and filename
+    run_and_filename_vec = []
+
+    # loop through runs
+    for i in runs_vec
+
+        graph_dicts_path_current_run = graph_dicts_path*"run_"*string(i)*"/"
+
+        filenames = readdir(graph_dicts_path_current_run)
+        filenames_evolution_dicts = filter(filename -> endswith(filename, "_evolution.h5"), filenames)
+        filenames_graph_dicts = [filename[1:end-13] for filename in filenames_evolution_dicts]
+
+        # append to list of all structure dict paths
+        append!(run_and_filename_vec, "run_"*string(i)*"/" .* filenames_graph_dicts)
+
+    end
+
+    # split filenames into chunks for multi-threading
+    run_and_filename_chunks = Iterators.partition(run_and_filename_vec, length(run_and_filename_vec) ÷ Threads.nthreads())
+
+    # run all filename chunk in parallel in different threads
+    map(run_and_filename_chunks) do run_and_filename_chunk
+
+        Threads.@spawn get_all_dicts_from_graphs_single_thread(run_and_filename_chunk,
+        graph_dicts_path,
+        structure_dicts_path,
+        analysis_data_path;
+        print_progress = print_progress,
+        print_lock = print_lock)
+    end
+
+end
+
+
+"""
 For given data paths and filename, calculate all order metrics, which can be
 calculated from small length scales
 """
@@ -221,4 +360,74 @@ function get_small_length_scale_order_metrics(filename::String,
     end
 
     return small_scale_order_metrics_dict
+end
+
+
+function get_small_length_scale_order_metrics_all_files(analysis_data_path::String;
+    l_max_steinhardt_q_l::Int64 = 12,
+    save_result::Bool = false,)
+
+    # get filenames of small scale order anisotropy_metric_from_spectral_density
+    all_filenames = readdir(analysis_data_path)
+    order_metrics_filenames = [filename for filename in all_filenames if occursin("small_scale_order_metrics", filename)]
+
+    # initialize vectors for all order metrics
+    total_keating_energy_vec = Vector{Float64}(undef, length(order_metrics_filenames))
+    bond_length_std_vec = Vector{Float64}(undef, length(order_metrics_filenames))
+    bond_angle_std_vec = Vector{Float64}(undef, length(order_metrics_filenames))
+    dihedral_angle_std_vec = Vector{Float64}(undef, length(order_metrics_filenames))
+    q_l_mat = Matrix{Measurements.Measurement{Float64}}(undef, l_max_steinhardt_q_l+1, length(order_metrics_filenames))
+    cluster_metric_vec = Vector{Float64}(undef, length(order_metrics_filenames))
+    anisotropy_metric_from_structure_factor_vec = Vector{Float64}(undef, length(order_metrics_filenames))
+    anisotropy_metric_from_spectral_density_vec = Vector{Float64}(undef, length(order_metrics_filenames))
+
+    # loop through order metric filenames
+    for i in eachindex(order_metrics_filenames)
+
+        # load order metrics
+        order_metrics_dict = GU.load_h5_dict(analysis_data_path*order_metrics_filenames[i])
+
+        # get all order metrics and save them to the corresponding vectors
+        total_keating_energy_vec[i] = order_metrics_dict["total_keating_energy"]
+        bond_length_std_vec[i] = order_metrics_dict["bond_length_std"]
+        bond_angle_std_vec[i] = order_metrics_dict["bond_angle_std"]
+        dihedral_angle_std_vec[i] = order_metrics_dict["dihedral_angle_std"]
+        q_l_mat[:,i] = order_metrics_dict["q_l_vec"]
+        cluster_metric_vec[i] = order_metrics_dict["cluster_metric"]
+        anisotropy_metric_from_structure_factor_vec[i] = order_metrics_dict["anisotropy_metric_from_structure_factor"]
+        anisotropy_metric_from_spectral_density_vec[i] = order_metrics_dict["anisotropy_metric_from_spectral_density"]
+
+    end
+
+    # sort all vectors with respect to the keating energy
+    order_metrics_filenames = order_metrics_filenames[sortperm(total_keating_energy_vec)]
+    bond_length_std_vec = bond_length_std_vec[sortperm(total_keating_energy_vec)]
+    bond_angle_std_vec = bond_angle_std_vec[sortperm(total_keating_energy_vec)]
+    dihedral_angle_std_vec = dihedral_angle_std_vec[sortperm(total_keating_energy_vec)]
+    q_l_mat = q_l_mat[:, sortperm(total_keating_energy_vec)]
+    cluster_metric_vec = cluster_metric_vec[sortperm(total_keating_energy_vec)]
+    anisotropy_metric_from_structure_factor_vec = anisotropy_metric_from_structure_factor_vec[sortperm(total_keating_energy_vec)]
+    anisotropy_metric_from_spectral_density_vec = anisotropy_metric_from_spectral_density_vec[sortperm(total_keating_energy_vec)]
+
+    sort!(total_keating_energy_vec)
+
+    # create dict to save
+    order_metrics_dict = Dict(
+        "total_keating_energy_vec" => total_keating_energy_vec,
+        "bond_length_std_vec" => bond_length_std_vec,
+        "bond_angle_std_vec" => bond_angle_std_vec,
+        "dihedral_angle_std_vec" => dihedral_angle_std_vec,
+        #"q_l_mat" => q_l_mat, creates error so far
+        "cluster_metric_vec" => cluster_metric_vec,
+        "anisotropy_metric_from_structure_factor_vec" => anisotropy_metric_from_structure_factor_vec,
+        "anisotropy_metric_from_spectral_density_vec" => anisotropy_metric_from_spectral_density_vec,
+        "filenames_vec" => order_metrics_filenames
+    )
+
+    # save dict to h5 file if desired
+    if save_result
+        GU.save_dict_to_h5(order_metrics_dict, analysis_data_path*"all_order_metrics.h5")
+    end
+
+    return order_metrics_dict
 end

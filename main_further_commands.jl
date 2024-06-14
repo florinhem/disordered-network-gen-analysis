@@ -4731,3 +4731,188 @@ small_scale_order_metrics_dict = NA.get_small_length_scale_order_metrics(filenam
     analysis_data_path;
     save_result = false,
     )
+
+
+function get_different_functions(graph_dict_path, structure_dict_path, analysis_data_path)
+
+    for i in 1:5
+
+        current_graph_dict_path = graph_dict_path*"run_"*string(i)*"\\"
+
+        current_structure_dict_path = structure_dict_path*"run_"*string(i)*"\\"
+    
+        current_analysis_data_path = analysis_data_path*"run_"*string(i)*"\\"
+    
+        structure_dict_filenames = readdir(current_structure_dict_path)
+        
+        for structure_dict_filename in structure_dict_filenames
+
+            small_scale_order_metrics_dict = NA.get_small_length_scale_order_metrics(structure_dict_filename[1:end-13],
+            current_graph_dict_path,
+            current_analysis_data_path,
+            save_result = true)
+    
+            println(structure_dict_filename*" done")
+    
+        end
+    
+    end
+end
+
+graph_dict_path = raw"..\structures\random_networks\216_vertices_multiple_runs\\"
+
+structure_dict_path = raw"..\structures\random_networks\binary_structures\216_vertices_multiple_runs\\"
+
+analysis_data_path = raw"..\analysis_data\random_networks\216_vertices_multiple_runs\\"
+
+get_different_functions(graph_dict_path, structure_dict_path, analysis_data_path)
+
+
+
+analysis_data_path = raw"..\analysis_data\random_networks\216_vertices_multiple_runs\run_2\\"
+
+all_filenames = readdir(analysis_data_path)
+
+# get filenames of small scale order anisotropy_metric_from_spectral_density
+order_metrics_filenames = [filename for filename in all_filenames if occursin("small_scale_order_metrics", filename)]
+
+# initialize vectors for all order metrics
+total_keating_energy_vec = Vector{Float64}(undef, length(order_metrics_filenames))
+bond_length_std_vec = Vector{Float64}(undef, length(order_metrics_filenames))
+bond_angle_std_vec = Vector{Float64}(undef, length(order_metrics_filenames))
+dihedral_angle_std_vec = Vector{Float64}(undef, length(order_metrics_filenames))
+q_l_vec_vec = Vector{Vector{Measurements.Measurement{Float64}}}(undef, length(order_metrics_filenames))
+cluster_metric_vec = Vector{Float64}(undef, length(order_metrics_filenames))
+anisotropy_metric_from_structure_factor_vec = Vector{Float64}(undef, length(order_metrics_filenames))
+anisotropy_metric_from_spectral_density_vec = Vector{Float64}(undef, length(order_metrics_filenames))
+
+
+# loop through order metric filenames
+for i in eachindex(order_metrics_filenames)
+
+    # load order metrics
+    order_metrics_dict = GU.load_h5_dict(analysis_data_path*order_metrics_filenames[i])
+
+    # get all order metrics and save them to the corresponding vectors
+    total_keating_energy_vec[i] = order_metrics_dict["total_keating_energy"]
+    bond_length_std_vec[i] = order_metrics_dict["bond_length_std"]
+    bond_angle_std_vec[i] = order_metrics_dict["bond_angle_std"]
+    dihedral_angle_std_vec[i] = order_metrics_dict["dihedral_angle_std"]
+    q_l_vec_vec[i] = order_metrics_dict["q_l_vec"]
+    cluster_metric_vec[i] = order_metrics_dict["cluster_metric"]
+    anisotropy_metric_from_structure_factor_vec[i] = order_metrics_dict["anisotropy_metric_from_structure_factor"]
+    anisotropy_metric_from_spectral_density_vec[i] = order_metrics_dict["anisotropy_metric_from_spectral_density"]
+
+end
+
+# sort all vectors with respect to the keating energy
+sort!(total_keating_energy_vec)
+
+order_metrics_filenames = order_metrics_filenames[sortperm(total_keating_energy_vec)]
+
+bond_length_std_vec = bond_length_std_vec[sortperm(total_keating_energy_vec)]
+bond_angle_std_vec = bond_angle_std_vec[sortperm(total_keating_energy_vec)]
+dihedral_angle_std_vec = dihedral_angle_std_vec[sortperm(total_keating_energy_vec)]
+q_l_vec_vec = q_l_vec_vec[sortperm(total_keating_energy_vec)]
+cluster_metric_vec = cluster_metric_vec[sortperm(total_keating_energy_vec)]
+anisotropy_metric_from_structure_factor_vec = anisotropy_metric_from_structure_factor_vec[sortperm(total_keating_energy_vec)]
+anisotropy_metric_from_spectral_density_vec = anisotropy_metric_from_spectral_density_vec[sortperm(total_keating_energy_vec)]
+
+Plots.scatter(bond_angle_std_vec[1:end-2], bond_length_std_vec[1:end-2])
+Plots.scatter(anisotropy_metric_from_structure_factor_vec, anisotropy_metric_from_spectral_density_vec)
+Plots.scatter(total_keating_energy_vec, anisotropy_metric_from_spectral_density_vec)
+
+Plots.scatter(total_keating_energy_vec[1:end-2], cluster_metric_vec[1:end-2])
+
+
+filename = order_metrics_filenames[80][1:end-29]
+graph_dict = NG.load_graph_from_h5_and_gml(graph_path*filename)
+
+evolution_dict = GU.load_h5_dict(graph_path*filename*"_evolution.h5")
+evolution_dict["relax_globally_after_threshold_cycle"] = true
+evolution_dict["reject_during_relaxation_cycle_threshold"]  = 5
+random_chain = NG.get_random_chain(graph_dict)
+
+total_energy = NG.get_total_energy_keating(graph_dict)
+
+original_graph_dict = deepcopy(graph_dict)
+
+graph_dict = NG.relax_network_keating!(graph_dict,
+random_chain,
+evolution_dict;
+threshold_total_energy = Inf,
+update_total_energy = true,
+print_progress = true)
+
+println(graph_dict["total_energy"])
+
+
+function relax_all_networks_globally(graph_path)
+
+    for i in 1:5
+        # get current path
+        current_path = graph_path * "run_" * string(i) * "\\"
+
+        # get all files in directory
+        filenames = readdir(current_path)
+
+        # get filenames of all evolution dicts
+        filenames_evolution_dicts = filter(filename -> endswith(filename, "_evolution.h5"), filenames)
+
+        for filename in filenames_evolution_dicts
+
+            println(filename)
+
+            # load evolution dict
+            evolution_dict = GU.load_h5_dict(current_path * filename)
+
+            # load graph
+            graph_dict = NG.load_graph_from_h5_and_gml(current_path * filename[1:end-13])
+
+            evolution_dict["relax_globally_after_threshold_cycle"] = true
+            evolution_dict["reject_during_relaxation_cycle_threshold"]  = 5
+            evolution_dict["mean_nr_monte_carlo_steps_for_quenching"]  = 13.7
+
+            # relax network
+            graph_dict = NG.relax_network_keating!(graph_dict,
+            NG.get_random_chain(graph_dict),
+            evolution_dict;
+            threshold_total_energy = Inf,
+            update_total_energy = true,
+            print_progress = false)
+
+            # save graph
+            NG.save_graph_to_h5_and_gml(graph_dict, filename[1:end-13]; evolution_dict = evolution_dict,
+            save_path = current_path)
+        end
+
+    end
+
+    return
+end
+
+graph_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_globally_relaxed\\"
+
+relax_all_networks_globally(graph_path)
+
+
+
+graph_dicts_path = "../structures/random_networks/216_vertices_globally_relaxed/"
+structure_dicts_path = "../structures/random_networks/binary_structures/216_vertices_globally_relaxed/"
+analysis_data_path = "../analysis_data/random_networks/216_vertices_globally_relaxed/"
+
+print_lock = Threads.ReentrantLock()
+
+NA.get_all_dicts_from_graphs_multithreading(graph_dicts_path,
+structure_dicts_path,
+analysis_data_path,
+print_progress = true,
+runs_vec = [2],
+print_lock = print_lock)
+
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_globally_relaxed\run_2\\"
+
+order_metrics_dict = NA.get_small_length_scale_order_metrics_all_files(analysis_data_path;
+    l_max_steinhardt_q_l = 12,
+    save_result = true,)

@@ -11,9 +11,6 @@ import LaTeXStrings as Latex
 import Measurements
 import Polynomials
 
-
-path = raw"..\..\presentations\material\\"
-
 fontsize=18
 
 Plots.gr()
@@ -57,61 +54,123 @@ function piticklabel(x::Rational, ::Val{:latex})
     Latex.L"%$S\frac{%$N\pi}{%$d}"
 end
 
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\random_networks\216_vertices_globally_relaxed\\"
 
-filenames = ["216_vertices_T_0.5_heated_for_10.0_steps_quenched"
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_globally_relaxed\\"
+
+order_metrics_dict = Dict()
+
+# loop through folders and append all order metrics to the order_metrics_dict
+for i in 1:5
+    
+    current_analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_globally_relaxed\run_"*string(i)*"\\"
+
+    current_order_metrics_dict = GU.load_h5_dict(current_analysis_data_path*"all_order_metrics.h5")
+
+    for (key, value) in current_order_metrics_dict
+        if haskey(order_metrics_dict, key)
+            order_metrics_dict[key] = vcat(order_metrics_dict[key], value)
+        else
+            order_metrics_dict[key] = value
+        end
+    end
+    
+end
+
+order_metrics_names = ["bond_length_std_vec", "bond_angle_std_vec", "dihedral_angle_std_vec", "anisotropy_metric_from_structure_factor_vec", "anisotropy_metric_from_spectral_density_vec", "cluster_metric_vec"]
+
+# sort all vectors in order of the total keating energy
+for order_metric_name in order_metrics_names
+    order_metrics_dict[order_metric_name] = order_metrics_dict[order_metric_name][sortperm(order_metrics_dict["total_keating_energy_vec"])]
+end
+order_metrics_dict["filenames_vec"] = order_metrics_dict["filenames_vec"][sortperm(order_metrics_dict["total_keating_energy_vec"])]
+sort!(order_metrics_dict["total_keating_energy_vec"])
+
+# now start the happy plotting
+
+y_labels = ["bond length std", "bond angle std", "dihedral angle std", "anisotropy in structure f.", "anisotropy in spectral d.", "cluster metric"]
+
+for i in eachindex(order_metrics_names)
+    Plots.scatter(order_metrics_dict["total_keating_energy_vec"][1:end-10]./216, order_metrics_dict[order_metrics_names[i]][1:end-10], xlabel = "Keating energy per vertex", ylabel = y_labels[i], legend = false,
+    xlims = (minimum(order_metrics_dict["total_keating_energy_vec"][1:end-10]./216), maximum(order_metrics_dict["total_keating_energy_vec"][1:end-10]./216)),
+    ylims = (minimum(order_metrics_dict[order_metrics_names[i]][1:end-10]), maximum(order_metrics_dict[order_metrics_names[i]][1:end-10])))
+    Plots.savefig(path*order_metrics_names[i][1:end-4]*".png")
+end
+
+mask_vec = [contains.(order_metrics_dict["filenames_vec"], "heated_for_0.1_steps"),
+contains.(order_metrics_dict["filenames_vec"], "heated_for_0.25_steps"),
+    contains.(order_metrics_dict["filenames_vec"], "heated_for_0.5_steps"),
+contains.(order_metrics_dict["filenames_vec"], "heated_for_1.0_steps"),
+contains.(order_metrics_dict["filenames_vec"], "heated_for_5.0_steps"),
+contains.(order_metrics_dict["filenames_vec"], "heated_for_10.0_steps"),
+contains.(order_metrics_dict["filenames_vec"], "heat_cool_0.025"),
+contains.(order_metrics_dict["filenames_vec"], "heat_cool_0.05"),
+contains.(order_metrics_dict["filenames_vec"], "heat_cool_0.1"),
+contains.(order_metrics_dict["filenames_vec"], "heat_cool_0.2"),
+( contains.(order_metrics_dict["filenames_vec"], "cool_0.1")
+    .& .!(contains.(order_metrics_dict["filenames_vec"], "heat")) ),
 ]
 
-for filename in filenames
-    data_path = raw"..\analysis_data\random_networks\216_vertices_multiple_runs\run_2\\"*filename
-    save_path = raw"..\plots\random_networks\\"*filename
+filename_vec = ["heated_for_0.1_steps", "heated_for_0.25_steps", "heated_for_0.5_steps", "heated_for_1.0_steps", "heated_for_5.0_steps", "heated_for_10.0_steps", "heat_cool_0.025", "heat_cool_0.05", "heat_cool_0.1", "heat_cool_0.2", "cool_0.1"]
 
-    autocovariance_fct_direction_dict = GU.load_h5_dict(data_path*"_autocovariance_fct_direction.h5")
+title_vec = ["heated for 0.1 steps", "heated for 0.25 steps", "heated for 0.5 steps", "heated for 1.0 steps", "heated for 5.0 steps", "heated for 10.0 steps", "heat and cool 0.025/MC step", "heat and cool 0.05/MC step", "heat and cool 0.1/MC step", "heat and cool 0.2/MC step", "cool 0.1/MC step"]
 
-    NA.plot_autocovariance_fct_heatmap(autocovariance_fct_direction_dict,
-        save_path;
-        save_plot = true,
-        clims = nothing,
-        x_y_lims = nothing,
-        sampling_vector_component_to_fix = 3,
-        sampling_vector_value_fixed = 0)
+for i in eachindex(mask_vec)
+    mask = mask_vec[i]
+    filtered_filenames_vec = order_metrics_dict["filenames_vec"][mask]
+    filtered_total_keating_energy_vec = order_metrics_dict["total_keating_energy_vec"][mask]
+    filtered_bond_length_std_vec = order_metrics_dict["bond_length_std_vec"][mask]
+    filtered_bond_angle_std_vec = order_metrics_dict["bond_angle_std_vec"][mask]
+    filtered_dihedral_angle_std_vec = order_metrics_dict["dihedral_angle_std_vec"][mask]
+    filtered_anisotropy_metric_from_structure_factor_vec = order_metrics_dict["anisotropy_metric_from_structure_factor_vec"][mask]
+    filtered_anisotropy_metric_from_spectral_density_vec = order_metrics_dict["anisotropy_metric_from_spectral_density_vec"][mask]
+    filtered_cluster_metric_vec = order_metrics_dict["cluster_metric_vec"][mask]
 
+    # get the temperature from the filtered filenames
+    pattern = r"T_([0-9\.]+)"
+    extracted_numbers = [match(pattern, s).captures[1] for s in filtered_filenames_vec]
+    temperatures = parse.(Float64, extracted_numbers)
 
-    spectral_density_dict = GU.load_h5_dict(data_path*"_spectral_density_array.h5")
-
-    NA.plot_spectral_density_heatmap(spectral_density_dict,
-        save_path;
-        save_plot = true,
-        clims = (0,0.1),
-        x_y_lims = nothing,
-        wavevector_component_to_fix = 3,
-        wavevector_value_fixed = 0)
-
-    spectral_density_dict = GU.load_h5_dict(data_path*"_spectral_density_array.h5")
-
-    spectral_density_angle_averaged_dict = GU.load_h5_dict(data_path*"_spectral_density_angle_averaged.h5")
-
-    Plots.plot(spectral_density_angle_averaged_dict["wavenumber_vec"], 
-                        Measurements.value.(spectral_density_angle_averaged_dict["spectral_density_vec"]) , 
-                        ribbon =  Measurements.uncertainty.(spectral_density_angle_averaged_dict["spectral_density_vec"]))
-
-    Plots.plot!(xlabel="wavenumber / "*Latex.L"d^{-1}", ylabel = "spectral density", legend = false, xlims=(0,15), ylims=(0,minimum([1000.0, maximum(Measurements.value.(spectral_density_angle_averaged_dict["unfiltered_spectral_density_vec"]))])), xtick=pitick(0, 15, 1; mode=:latex))
-
-    Plots.savefig(raw"..\plots\random_networks\\"*filename*"_spectral_density_angle_averaged.png")
-
-    Plots.plot(spectral_density_angle_averaged_dict["unfiltered_wavenumber_vec"], 
-    Measurements.value.(spectral_density_angle_averaged_dict["unfiltered_spectral_density_vec"]),
-    ribbon =  Measurements.uncertainty.(spectral_density_angle_averaged_dict["unfiltered_spectral_density_vec"]))
-
-    Plots.plot!(xlabel="wavenumber / "*Latex.L"d^{-1}", ylabel = "spectral density", legend = false, xlims=(0,15), ylims=(0, minimum([1000.0, maximum(Measurements.value.(spectral_density_angle_averaged_dict["unfiltered_spectral_density_vec"]))])), xtick=pitick(0, 15, 1; mode=:latex))
-
-    Plots.savefig(raw"..\plots\random_networks\\"*filename*"_spectral_density_angle_averaged_unfiltered.png")
+    min_temp = minimum(temperatures)
+    max_temp = maximum(temperatures)
+    normalized_temperatures = (temperatures .- min_temp) ./ (max_temp - min_temp)
+    colormap = Plots.cgrad(:roma, rev = true, scale = :exp)
+    mapped_colors = [colormap[normalized_temperature] for normalized_temperature in  normalized_temperatures]
 
 
-    volume_fract_variance_dict = NA.get_volume_fract_variance(autocovariance_fct_direction_dict;
-            save_result = false)
+    Plots.scatter(filtered_total_keating_energy_vec./216, filtered_bond_length_std_vec, xlabel = "Keating energy per vertex", ylabel = "bond length std", legend = false,
+    xlims = (minimum(order_metrics_dict["total_keating_energy_vec"][1:end-10]./216), maximum(order_metrics_dict["total_keating_energy_vec"][1:end-10]./216)),
+ylims = (minimum(order_metrics_dict["bond_length_std_vec"][1:end-10]), maximum(order_metrics_dict["bond_length_std_vec"][1:end-10])),
+title = title_vec[i], color = mapped_colors)
+    Plots.savefig(path*filename_vec[i]*"_bond_length_std.png")
 
-    # plot the volume fraction variance
-    Plots.plot(volume_fract_variance_dict["sphere_radius_vec"], volume_fract_variance_dict["volume_fract_variance_times_window_volume_vec"], xlabel="window radius "*Latex.L"R / d", ylabel=Latex.L"\sigma_V^2(R) \cdot v_1(R)", xlims=(0, maximum(volume_fract_variance_dict["sphere_radius_vec"])), ylims=(0, maximum(volume_fract_variance_dict["volume_fract_variance_times_window_volume_vec"])), legend=false)
+    Plots.scatter(filtered_total_keating_energy_vec./216, filtered_bond_angle_std_vec, xlabel = "Keating energy per vertex", ylabel = "bond angle std", legend = false,
+    xlims = (minimum(order_metrics_dict["total_keating_energy_vec"][1:end-10]./216), maximum(order_metrics_dict["total_keating_energy_vec"][1:end-10]./216)),
+ylims = (minimum(order_metrics_dict["bond_angle_std_vec"][1:end-10]), maximum(order_metrics_dict["bond_angle_std_vec"][1:end-10])),
+title = title_vec[i], color = mapped_colors)
+    Plots.savefig(path*filename_vec[i]*"_bond_angle_std.png")
 
-    Plots.savefig(raw"..\plots\random_networks\\"*filename*"_volume_fraction_variance.png")
+    Plots.scatter(filtered_total_keating_energy_vec./216, filtered_dihedral_angle_std_vec, xlabel = "Keating energy per vertex", ylabel = "dihedral angle std", legend = false,
+    xlims = (minimum(order_metrics_dict["total_keating_energy_vec"][1:end-10]./216), maximum(order_metrics_dict["total_keating_energy_vec"][1:end-10]./216)),
+ylims = (minimum(order_metrics_dict["dihedral_angle_std_vec"][1:end-10]), maximum(order_metrics_dict["dihedral_angle_std_vec"][1:end-10])),
+title = title_vec[i], color = mapped_colors)
+    Plots.savefig(path*filename_vec[i]*"_dihedral_angle_std.png")
+
+    Plots.scatter(filtered_total_keating_energy_vec./216, filtered_anisotropy_metric_from_structure_factor_vec, xlabel = "Keating energy per vertex", ylabel = "anisotropy in structure f.", legend = false,
+    xlims = (minimum(order_metrics_dict["total_keating_energy_vec"][1:end-10]./216), maximum(order_metrics_dict["total_keating_energy_vec"][1:end-10]./216)),
+ylims = (minimum(order_metrics_dict["anisotropy_metric_from_structure_factor_vec"][1:end-10]), maximum(order_metrics_dict["anisotropy_metric_from_structure_factor_vec"][1:end-10])),
+title = title_vec[i], color = mapped_colors)
+    Plots.savefig(path*filename_vec[i]*"_anisotropy_in_structure_factor.png")
+
+    Plots.scatter(filtered_total_keating_energy_vec./216, filtered_anisotropy_metric_from_spectral_density_vec, xlabel = "Keating energy per vertex", ylabel = "anisotropy in spectral d.", legend = false,
+    xlims = (minimum(order_metrics_dict["total_keating_energy_vec"][1:end-10]./216), maximum(order_metrics_dict["total_keating_energy_vec"][1:end-10]./216)),
+ylims = (minimum(order_metrics_dict["anisotropy_metric_from_spectral_density_vec"][1:end-10]), maximum(order_metrics_dict["anisotropy_metric_from_spectral_density_vec"][1:end-10])),
+title = title_vec[i], color = mapped_colors)
+    Plots.savefig(path*filename_vec[i]*"_anisotropy_in_spectral_density.png")
+
+    Plots.scatter(filtered_total_keating_energy_vec./216, filtered_cluster_metric_vec, xlabel = "Keating energy per vertex", ylabel = "cluster metric", legend = false,
+    xlims = (minimum(order_metrics_dict["total_keating_energy_vec"][1:end-10]./216), maximum(order_metrics_dict["total_keating_energy_vec"][1:end-10]./216)),
+ylims = (minimum(order_metrics_dict["cluster_metric_vec"][1:end-10]), maximum(order_metrics_dict["cluster_metric_vec"][1:end-10])),
+title = title_vec[i], color = mapped_colors)
+    Plots.savefig(path*filename_vec[i]*"_cluster_metric.png")
 end

@@ -16,6 +16,7 @@ function decompose_measurements_in_dict(dict::Dict)
         if typeof(value) in [Vector{Measurements.Measurement},
                             Vector{Measurements.Measurement{Float64}}, 
                             Vector{Complex{Measurements.Measurement{Float64}}},
+                            Array{Measurements.Measurement, 2},
                             Array{Measurements.Measurement, 3},
                             Array{Measurements.Measurement{Float64}, 3}, 
                             Array{Complex{Measurements.Measurement{Float64}}, 3}]
