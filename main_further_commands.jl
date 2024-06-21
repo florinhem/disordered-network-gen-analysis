@@ -4916,3 +4916,540 @@ analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\st
 order_metrics_dict = NA.get_small_length_scale_order_metrics_all_files(analysis_data_path;
     l_max_steinhardt_q_l = 12,
     save_result = true,)
+
+
+for i in [1,3,4,5]
+    analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_globally_relaxed\run_"*string(i)*"\\"
+
+    order_metrics_dict = NA.get_small_length_scale_order_metrics_all_files(analysis_data_path;
+        l_max_steinhardt_q_l = 12,
+        save_result = true,)
+
+    println("run $(i) done")
+
+end
+
+
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\anneal_quench\evolution_dicts_5\\"
+
+temperature_vec = vcat(0.07 .* ones(20), [0])
+nr_monte_carlo_steps_per_temperature_vec = vcat(4 .* ones(20), [50])
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 , temperature_vec = temperature_vec,
+nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 4)
+
+filename = "216_vertices_rand_nr_MC_steps_"*string(80.0)*"_quenched_evolution.h5"
+
+GU.save_dict_to_h5(evolution_dict, save_path*filename)
+
+temperature_vec = vcat(0.07 .* ones(20), collect(0.07:-0.01:0), [0])
+nr_monte_carlo_steps_per_temperature_vec = vcat(4 .* ones(20), ones(length(collect(0.07:-0.01:0))), [50])
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 ,temperature_vec = [0.07, 0],
+nr_monte_carlo_steps_per_temperature_vec = [10, 50], min_ring_size = 4)
+
+filename = "216_vertices_rand_nr_MC_steps_"*string(80.0)*"_cool_nr_MC_steps_"*string(1.0)*"_quenched_evolution.h5"
+
+GU.save_dict_to_h5(evolution_dict, save_path*filename)
+
+temperature_vec = vcat(0.07 .* ones(20), collect(0.07:-0.01:0), [0])
+nr_monte_carlo_steps_per_temperature_vec = vcat(4 .* ones(20), 0.5 .* ones(length(collect(0.07:-0.01:0))), [50])
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 ,temperature_vec = [0.07, 0],
+nr_monte_carlo_steps_per_temperature_vec = [10, 50], min_ring_size = 4)
+
+filename = "216_vertices_rand_nr_MC_steps_"*string(80.0)*"_cool_nr_MC_steps_"*string(0.5)*"_quenched_evolution.h5"
+
+GU.save_dict_to_h5(evolution_dict, save_path*filename)
+
+
+temperature_vec = vcat(0.07 .* ones(10), [0])
+nr_monte_carlo_steps_per_temperature_vec = vcat(4 .* ones(10), [50])
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 , temperature_vec = temperature_vec,
+nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 4)
+
+filename = "216_vertices_rand_nr_MC_steps_"*string(40.0)*"_quenched_evolution.h5"
+
+GU.save_dict_to_h5(evolution_dict, save_path*filename)
+
+temperature_vec = vcat(0.07 .* ones(10), collect(0.07:-0.01:0), [0])
+nr_monte_carlo_steps_per_temperature_vec = vcat(4 .* ones(10), ones(length(collect(0.07:-0.01:0))), [50])
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 ,temperature_vec = [0.07, 0],
+nr_monte_carlo_steps_per_temperature_vec = [10, 50], min_ring_size = 4)
+
+filename = "216_vertices_rand_nr_MC_steps_"*string(40.0)*"_cool_nr_MC_steps_"*string(1.0)*"_quenched_evolution.h5"
+
+GU.save_dict_to_h5(evolution_dict, save_path*filename)
+
+temperature_vec = vcat(0.07 .* ones(10), collect(0.07:-0.01:0), [0])
+nr_monte_carlo_steps_per_temperature_vec = vcat(4 .* ones(10), 0.5 .* ones(length(collect(0.07:-0.01:0))), [50])
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 ,temperature_vec = [0.07, 0],
+nr_monte_carlo_steps_per_temperature_vec = [10, 50], min_ring_size = 4)
+
+filename = "216_vertices_rand_nr_MC_steps_"*string(40.0)*"_cool_nr_MC_steps_"*string(0.5)*"_quenched_evolution.h5"
+
+GU.save_dict_to_h5(evolution_dict, save_path*filename)
+
+
+print_lock = Threads.ReentrantLock()
+
+i = 5
+
+evolution_dicts_directory_path = "../structures/random_networks/anneal_quench/evolution_dicts_"*string(i)*"/"
+save_path = "../structures/random_networks/anneal_quench/run_"*string(i)*"/"
+
+println("Starting run "*string(i))
+
+NG.generate_graphs_from_evolution_dicts_in_directory(
+evolution_dicts_directory_path,
+save_path;
+print_every_nr_attempted_bond_switches = 200,
+print_progress = true,
+save_network_after_each_temperature = true,
+print_lock = print_lock)
+
+
+graph_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_multiple_runs\run_2\\"
+
+filenames = ["216_vertices_T_0.125_heat_cool_0.1_per_mc_quenched",
+"216_vertices_T_0.2_heat_cool_0.1_per_mc_quenched",
+"216_vertices_T_0.3_heat_cool_0.1_per_mc_quenched",
+"216_vertices_T_0.1_cool_0.1_per_mc_quenched",
+"216_vertices_T_0.15_cool_0.1_per_mc_quenched",
+"216_vertices_T_0.2_cool_0.1_per_mc_quenched",
+]
+
+evolution_dicts_directory_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\1728_vertices\evolution_dicts_2\\"
+
+for filename in filenames
+
+    # load evolution dict
+    evolution_dict = GU.load_h5_dict(graph_path * filename * "_evolution.h5")
+
+    # add missing keys to the evolution dict
+    evolution_dict["relax_globally_after_threshold_cycle"] = true
+    evolution_dict["mean_nr_monte_carlo_steps_for_quenching"] = 13.7
+    evolution_dict["reject_during_relaxation_cycle_threshold"] = 5
+    evolution_dict["nr_vertices"] = 1728
+
+    # save the evolution dict to new folder
+    GU.save_dict_to_h5(evolution_dict, evolution_dicts_directory_path * "1728" *filename[4:end] * "_evolution.h5")
+
+end
+
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\anneal_quench\evolution_dicts_6\\"
+
+
+temperature_vec = vcat(0.065 .* ones(10), [0])
+nr_monte_carlo_steps_per_temperature_vec = vcat(4 .* ones(10), [50])
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 , temperature_vec = temperature_vec,
+nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 4)
+
+filename = "216_vertices_rand_T_"*string(0.065)*"_quenched_evolution.h5"
+
+GU.save_dict_to_h5(evolution_dict, save_path*filename)
+
+temperature_vec = vcat(0.062 .* ones(10), [0])
+nr_monte_carlo_steps_per_temperature_vec = vcat(4 .* ones(10), [50])
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 , temperature_vec = temperature_vec,
+nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 4)
+
+filename = "216_vertices_rand_T_"*string(0.062)*"_quenched_evolution.h5"
+
+GU.save_dict_to_h5(evolution_dict, save_path*filename)
+
+
+# 2 threads
+print_lock = Threads.ReentrantLock()
+
+i = 6
+
+evolution_dicts_directory_path = "../structures/random_networks/anneal_quench/evolution_dicts_"*string(i)*"/"
+save_path = "../structures/random_networks/anneal_quench/run_"*string(i)*"/"
+
+println("Starting run "*string(i))
+
+NG.generate_graphs_from_evolution_dicts_in_directory(
+evolution_dicts_directory_path,
+save_path;
+print_every_nr_attempted_bond_switches = 200,
+print_progress = true,
+save_network_after_each_temperature = true,
+print_lock = print_lock)
+
+
+# 6 threads
+evolution_dicts_directory_path = raw"../structures/random_networks/1728_vertices/evolution_dicts_2/"
+
+print_lock = Threads.ReentrantLock()
+
+save_path = "../structures/random_networks/1728_vertices/run_2/"
+
+
+NG.generate_graphs_from_evolution_dicts_in_directory(
+evolution_dicts_directory_path,
+save_path;
+print_every_nr_attempted_bond_switches = 200,
+print_progress = true,
+save_network_after_each_temperature = true,
+print_lock = print_lock)
+
+
+analysis_data_path = raw"..\analysis_data\random_networks\216_vertices_globally_relaxed\run_2\\"
+
+all_filenames = readdir(analysis_data_path)
+
+# get filenames of small scale order anisotropy_metric_from_spectral_density
+order_metrics_filenames = [filename for filename in all_filenames if occursin("small_scale_order_metrics", filename)]
+
+# initialize vectors for all order metrics
+anisotropy_metric_from_structure_factor_vec = Vector{Float64}(undef, length(order_metrics_filenames))
+anisotropy_metric_from_spectral_density_vec = Vector{Float64}(undef, length(order_metrics_filenames))
+
+
+# loop through order metric filenames
+for i in eachindex(order_metrics_filenames)
+
+    # load order metrics
+    order_metrics_dict = GU.load_h5_dict(analysis_data_path*order_metrics_filenames[i])
+
+    # get all order metrics and save them to the corresponding vectors
+    total_keating_energy_vec[i] = order_metrics_dict["total_keating_energy"]
+    anisotropy_metric_from_structure_factor_vec[i] = order_metrics_dict["anisotropy_metric_from_structure_factor"]
+    anisotropy_metric_from_spectral_density_vec[i] = order_metrics_dict["anisotropy_metric_from_spectral_density"]
+
+end
+
+# sort all vectors with respect to the keating energy
+sort!(total_keating_energy_vec)
+
+anisotropy_metric_from_structure_factor_vec = anisotropy_metric_from_structure_factor_vec[sortperm(total_keating_energy_vec)]
+anisotropy_metric_from_spectral_density_vec = anisotropy_metric_from_spectral_density_vec[sortperm(total_keating_energy_vec)]
+
+Plots.scatter(bond_angle_std_vec[1:end-2], bond_length_std_vec[1:end-2])
+Plots.scatter(anisotropy_metric_from_structure_factor_vec, anisotropy_metric_from_spectral_density_vec)
+Plots.scatter(total_keating_energy_vec, anisotropy_metric_from_spectral_density_vec)
+
+Plots.scatter(total_keating_energy_vec[1:end-2], cluster_metric_vec[1:end-2])
+
+
+
+filename_diamond = "216_vertices_T_0.1_heated_for_0.01_steps_quenched"
+
+graph_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_globally_relaxed\run_2\\"
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_globally_relaxed\run_2\\"
+
+graph_dict = NG.load_graph_from_h5_and_gml(graph_path*filename_diamond) 
+NG.plot_spatial_network(graph_dict)
+
+structure_factor_angle_averaged_dict_diamond = GU.load_h5_dict(analysis_data_path*filename_diamond*"_structure_factor_angle_averaged.h5")
+
+spectral_density_angle_averaged_dict_diamond = GU.load_h5_dict(analysis_data_path*filename_diamond*"_spectral_density_angle_averaged.h5")
+
+wavenumbers_to_check_vec = 2*pi*collect(0.2:0.1:1.0)
+
+# get the wavenumbers that lie the clostest to the wavenumbers_to_check_vec
+index_vec = [argmin(abs.(spectral_density_angle_averaged_dict_diamond["wavenumber_vec"] .- wavenumbers_to_check_vec[i])) for i in eachindex(wavenumbers_to_check_vec)]
+
+summed_spectral_density_to_check = sum( spectral_density_angle_averaged_dict_diamond["spectral_density_vec"][index_vec] )
+
+std_value_ratio = (Measurements.uncertainty(summed_spectral_density_to_check) / Measurements.value(summed_spectral_density_to_check))
+
+
+
+function get_different_functions(graph_dict_path, structure_dict_path, analysis_data_path)
+
+    for i in 1:5
+
+        current_graph_dict_path = graph_dict_path*"run_"*string(i)*"\\"
+
+        current_structure_dict_path = structure_dict_path*"run_"*string(i)*"\\"
+    
+        current_analysis_data_path = analysis_data_path*"run_"*string(i)*"\\"
+    
+        structure_dict_filenames = readdir(current_structure_dict_path)
+        
+        for structure_dict_filename in structure_dict_filenames
+            small_scale_order_metrics_dict = GU.load_h5_dict(current_analysis_data_path*structure_dict_filename[1:end-13]*"_small_scale_order_metrics.h5")
+
+            structure_factor_angle_averaged_dict = GU.load_h5_dict(current_analysis_data_path*structure_dict_filename[1:end-13]*"_structure_factor_angle_averaged.h5")
+
+            anisotropy_metric_from_structure_factor = NA.get_anisotropy_metric_from_structure_factor(
+    structure_factor_angle_averaged_dict)
+
+            spectral_density_angle_averaged_dict = GU.load_h5_dict(current_analysis_data_path*structure_dict_filename[1:end-13]*"_spectral_density_angle_averaged.h5")
+
+            anisotropy_metric_from_spectral_density = NA.get_anisotropy_metric_from_spectral_density(
+                spectral_density_angle_averaged_dict)
+
+            small_scale_order_metrics_dict["anisotropy_metric_from_structure_factor"] = anisotropy_metric_from_structure_factor
+            small_scale_order_metrics_dict["anisotropy_metric_from_spectral_density"] = anisotropy_metric_from_spectral_density
+
+            GU.save_dict_to_h5(small_scale_order_metrics_dict, current_analysis_data_path*structure_dict_filename[1:end-13]*"_small_scale_order_metrics.h5")
+    
+            println(structure_dict_filename*" done")
+    
+        end
+    
+    end
+end
+
+graph_dict_path = raw"..\structures\random_networks\216_vertices_globally_relaxed\\"
+
+structure_dict_path = raw"..\structures\random_networks\binary_structures\216_vertices_globally_relaxed\\"
+
+analysis_data_path = raw"..\analysis_data\random_networks\216_vertices_globally_relaxed\\"
+
+get_different_functions(graph_dict_path, structure_dict_path, analysis_data_path)
+
+
+function my_function()
+
+    for i in 1:5
+        analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_globally_relaxed\run_"*string(i)*"\\"
+
+        order_metrics_dict = NA.get_small_length_scale_order_metrics_all_files(analysis_data_path;
+            l_max_steinhardt_q_l = 12,
+            save_result = true,)
+
+        println("run $(i) done")
+
+    end
+
+    return
+end
+
+my_function()
+
+
+# 6 threads
+evolution_dicts_directory_path = raw"../structures/random_networks/1728_vertices/evolution_dicts_2/"
+
+print_lock = Threads.ReentrantLock()
+
+save_path = "../structures/random_networks/1728_vertices/run_2/"
+
+
+NG.generate_graphs_from_evolution_dicts_in_directory(
+evolution_dicts_directory_path,
+save_path;
+print_every_nr_attempted_bond_switches = 200,
+print_progress = true,
+save_network_after_each_temperature = true,
+further_evolve_previous_networks = true,
+print_lock = print_lock)
+
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_globally_relaxed\\"
+
+order_metrics_dict = Dict()
+
+# loop through folders and append all order metrics to the order_metrics_dict
+for i in 1:5
+    
+    current_analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_globally_relaxed\run_"*string(i)*"\\"
+
+    current_order_metrics_dict = GU.load_h5_dict(current_analysis_data_path*"all_order_metrics.h5")
+
+    for (key, value) in current_order_metrics_dict
+        if haskey(order_metrics_dict, key)
+            order_metrics_dict[key] = vcat(order_metrics_dict[key], value)
+        else
+            order_metrics_dict[key] = value
+        end
+    end
+    
+end
+
+order_metrics_names = ["bond_length_std_vec", "bond_angle_std_vec", "dihedral_angle_std_vec", "anisotropy_metric_from_structure_factor_vec", "anisotropy_metric_from_spectral_density_vec", "cluster_metric_vec"]
+
+# sort all vectors in order of the total keating energy
+for order_metric_name in order_metrics_names
+    order_metrics_dict[order_metric_name] = order_metrics_dict[order_metric_name][sortperm(order_metrics_dict["total_keating_energy_vec"])]
+end
+order_metrics_dict["filenames_vec"] = order_metrics_dict["filenames_vec"][sortperm(order_metrics_dict["total_keating_energy_vec"])]
+sort!(order_metrics_dict["total_keating_energy_vec"])
+
+mask_vec = [contains.(order_metrics_dict["filenames_vec"], "heated_for_0.1_steps"),
+contains.(order_metrics_dict["filenames_vec"], "heated_for_0.25_steps"),
+    contains.(order_metrics_dict["filenames_vec"], "heated_for_0.5_steps"),
+contains.(order_metrics_dict["filenames_vec"], "heated_for_1.0_steps"),
+contains.(order_metrics_dict["filenames_vec"], "heated_for_5.0_steps"),
+contains.(order_metrics_dict["filenames_vec"], "heated_for_10.0_steps"),
+contains.(order_metrics_dict["filenames_vec"], "heat_cool_0.025"),
+contains.(order_metrics_dict["filenames_vec"], "heat_cool_0.05"),
+contains.(order_metrics_dict["filenames_vec"], "heat_cool_0.1"),
+contains.(order_metrics_dict["filenames_vec"], "heat_cool_0.2"),
+( contains.(order_metrics_dict["filenames_vec"], "cool_0.1")
+    .& .!(contains.(order_metrics_dict["filenames_vec"], "heat")) ),
+]
+
+filename_vec = ["heated_for_0.1_steps", "heated_for_0.25_steps", "heated_for_0.5_steps", "heated_for_1.0_steps", "heated_for_5.0_steps", "heated_for_10.0_steps", "heat_cool_0.025", "heat_cool_0.05", "heat_cool_0.1", "heat_cool_0.2", "cool_0.1"]
+
+title_vec = ["heated for 0.1 steps", "heated for 0.25 steps", "heated for 0.5 steps", "heated for 1.0 steps", "heated for 5.0 steps", "heated for 10.0 steps", "heat and cool 0.025/MC step", "heat and cool 0.05/MC step", "heat and cool 0.1/MC step", "heat and cool 0.2/MC step", "cool 0.1/MC step"]
+
+i=9
+
+mask = mask_vec[i]
+filtered_filenames_vec = order_metrics_dict["filenames_vec"][mask]
+filtered_total_keating_energy_vec = order_metrics_dict["total_keating_energy_vec"][mask]
+filtered_bond_length_std_vec = order_metrics_dict["bond_length_std_vec"][mask]
+filtered_bond_angle_std_vec = order_metrics_dict["bond_angle_std_vec"][mask]
+filtered_dihedral_angle_std_vec = order_metrics_dict["dihedral_angle_std_vec"][mask]
+filtered_anisotropy_metric_from_structure_factor_vec = order_metrics_dict["anisotropy_metric_from_structure_factor_vec"][mask]
+filtered_anisotropy_metric_from_spectral_density_vec = order_metrics_dict["anisotropy_metric_from_spectral_density_vec"][mask]
+filtered_cluster_metric_vec = order_metrics_dict["cluster_metric_vec"][mask]
+
+pattern = r"T_([0-9\.]+)"
+extracted_numbers = [match(pattern, s).captures[1] for s in filtered_filenames_vec]
+temperatures = parse.(Float64, extracted_numbers)
+min_temp = minimum(temperatures)
+max_temp = maximum(temperatures)
+normalized_temperatures = (temperatures .- min_temp) ./ (max_temp - min_temp)
+colormap = Plots.cgrad(:roma, rev = true, scale = :exp)
+mapped_colors = [colormap[normalized_temperature] for normalized_temperature in  normalized_temperatures]
+
+graph_dict_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_globally_relaxed\run_2\\"
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_globally_relaxed\run_2_thick_bonds\\"
+
+run_2_index_vec = []
+
+for temperature in [0.1, 0.125, 0.15,  0.2, 0.25, 0.3, 0.4, 0.5]
+
+    current_filename = "216_vertices_T_"*string(temperature)*"_heat_cool_0.1_per_mc_quenched"
+
+    graph_dict = NG.load_graph_from_h5_and_gml(graph_dict_path*current_filename)
+
+    run_2_index = argmin(abs.(graph_dict["total_energy"] .- filtered_total_keating_energy_vec))
+    push!(run_2_index_vec, run_2_index)
+
+    NG.save_mesh_from_spatial_network(graph_dict, current_filename;
+    bond_radius = 0.3131,
+    save_path=save_path)
+end
+
+println("run_2")
+println(run_2_index_vec)
+filtered_total_keating_energy_vec[run_2_index_vec] ./216
+
+
+
+graph_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\anneal_quench\run_6\\"
+
+filename = "216_vertices_rand_T_0.062_quenched_3"
+
+graph_dict = NG.load_graph_from_h5_and_gml(graph_path * filename)
+evolution_dict = GU.load_h5_dict(graph_path * filename * "_evolution.h5")
+NG.plot_spatial_network(graph_dict)
+
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\anneal_quench\evolution_dicts_7\\"
+
+
+temperature_vec = vcat(0.062 .* ones(2), [0])
+nr_monte_carlo_steps_per_temperature_vec = vcat(4 .* ones(2), [50])
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 , temperature_vec = temperature_vec,
+nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 4)
+
+filename = "216_vertices_rand_nr_MC_steps_"*string(8.0)*"_quenched_evolution.h5"
+
+GU.save_dict_to_h5(evolution_dict, save_path*filename)
+
+temperature_vec = vcat(0.062 .* ones(3), [0])
+nr_monte_carlo_steps_per_temperature_vec = vcat(4 .* ones(3), [50])
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 , temperature_vec = temperature_vec,
+nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 4)
+
+filename = "216_vertices_rand_nr_MC_steps_"*string(12.0)*"_quenched_evolution.h5"
+
+GU.save_dict_to_h5(evolution_dict, save_path*filename)
+
+temperature_vec = vcat(0.062 .* ones(4), [0])
+nr_monte_carlo_steps_per_temperature_vec = vcat(4 .* ones(4), [50])
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 , temperature_vec = temperature_vec,
+nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 4)
+
+filename = "216_vertices_rand_nr_MC_steps_"*string(16.0)*"_quenched_evolution.h5"
+
+GU.save_dict_to_h5(evolution_dict, save_path*filename)
+
+temperature_vec = vcat(0.062 .* ones(2), collect(0.06:-0.02:0), [0])
+nr_monte_carlo_steps_per_temperature_vec = vcat(4 .* ones(2), 0.5 .* ones(length(collect(0.06:-0.02:0))), [50])
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 , temperature_vec = temperature_vec,
+nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 4)
+
+filename = "216_vertices_rand_nr_MC_steps_"*string(8.0)*"_cool_nr_MC_steps_"*string(0.5)*"_quenched_evolution.h5"
+
+GU.save_dict_to_h5(evolution_dict, save_path*filename)
+
+temperature_vec = vcat( 0.062 .* ones(3), collect(0.06:-0.02:0), [0])
+nr_monte_carlo_steps_per_temperature_vec = vcat(4 .* ones(3), 0.5 .* ones(length(collect(0.06:-0.02:0))), [50])
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 , temperature_vec = temperature_vec,
+nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 4)
+
+filename = "216_vertices_rand_nr_MC_steps_"*string(12.0)*"_cool_nr_MC_steps_"*string(0.5)*"_quenched_evolution.h5"
+
+GU.save_dict_to_h5(evolution_dict, save_path*filename)
+
+
+temperature_vec = vcat(0.062 .* ones(4), collect(0.06:-0.02:0), [0])
+nr_monte_carlo_steps_per_temperature_vec = vcat(4 .* ones(4), 0.5 .* ones(length(collect(0.06:-0.02:0))), [50])
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 , temperature_vec = temperature_vec,
+nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 4)
+
+filename = "216_vertices_rand_nr_MC_steps_"*string(16.0)*"_cool_nr_MC_steps_"*string(0.5)*"_quenched_evolution.h5"
+
+GU.save_dict_to_h5(evolution_dict, save_path*filename)
+
+
+i = 7
+
+print_lock = Threads.ReentrantLock()
+
+evolution_dicts_directory_path = "../structures/random_networks/anneal_quench/evolution_dicts_"*string(i)*"/"
+save_path = "../structures/random_networks/anneal_quench/run_"*string(i)*"/"
+
+println("Starting run "*string(i))
+
+NG.generate_graphs_from_evolution_dicts_in_directory(
+evolution_dicts_directory_path,
+save_path;
+print_every_nr_attempted_bond_switches = 200,
+print_progress = true,
+save_network_after_each_temperature = false,
+print_lock = print_lock)
+
+
+
+dict_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.285\run_1\\"
+
+save_path_1 = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\evolution_dicts\\"
+
+save_path_2 = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.36\evolution_dicts\\"
+
+# load all files in dict path that end with "evolution.h5"
+# and save them to save_path
+
+# get all files in dict_path
+files = readdir(dict_path)
+
+# filter files that end with "evolution.h5"
+files = filter(x -> occursin("evolution.h5", x), files)
+
+# load all files and save them to save_path
+for file in files
+
+    # load the file
+    evolution_dict = GU.load_h5_dict(dict_path*file)
+
+    evolution_dict["bond_bending_const"] = 0.21
+    
+    # save the file
+    GU.save_dict_to_h5(evolution_dict, save_path_1*file)
+
+    evolution_dict["bond_bending_const"] = 0.36
+
+    # save the file
+    GU.save_dict_to_h5(evolution_dict, save_path_2*file)
+end

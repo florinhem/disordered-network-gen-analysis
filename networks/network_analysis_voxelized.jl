@@ -710,23 +710,31 @@ end
 
 
 """
-Define a anisotropy metric as the normalized variance of the spectral density at the
-first peak of the spectral density of the diamond lattice
+Define a anisotropy metric as the ratio of uncertainty and value of
+the sum of the spectral density for several small wavenumbers normalized
+by the same value for the diamond lattice
 """
 function get_anisotropy_metric_from_spectral_density(
-    spectral_density_angle_averaged_dict::Dict,
-    diamond_spectral_density_peak_wavenumber::Float64 = 4.680517,
-    diamond_spectral_density_peak_std::Float64 = 521.88398)
+    spectral_density_angle_averaged_dict::Dict;
+    diamond_std_value_ratio::Float64 = 1.2588849)
 
-    # find the wavenumber that is the closest to the diamond peak wavenumber
-    diamond_spectral_density_peak_wavenumber_index = argmin(abs.(spectral_density_angle_averaged_dict["wavenumber_vec"] .- diamond_spectral_density_peak_wavenumber))
+    # set the wavenumbers where spectral density will be checked
+    wavenumbers_to_check_vec = 2*pi*collect(0.2:0.1:1.0)
 
-    # get the spectral density standard deviation around the diamond peak
-    peak_spectral_density_std = Measurements.uncertainty(
-        spectral_density_angle_averaged_dict["spectral_density_vec"][diamond_spectral_density_peak_wavenumber_index])
+    # get the wavenumbers that lie the clostest to the wavenumbers
+    # to be checked
+    index_vec = [argmin(abs.(spectral_density_angle_averaged_dict["wavenumber_vec"] 
+    .- wavenumbers_to_check_vec[i])) for i in eachindex(wavenumbers_to_check_vec)]
 
-    # normalize this standard deviation by the spectral density standard deviation of the diamond peak
-    anisotropy_metric_from_spectral_density = peak_spectral_density_std / diamond_spectral_density_peak_std
+    # sum the checked spectral densities
+    summed_spectral_density_to_check = sum( spectral_density_angle_averaged_dict["spectral_density_vec"][index_vec] )
+
+    # determine ratio of uncertainty to value
+    std_value_ratio = (Measurements.uncertainty(summed_spectral_density_to_check) 
+    / Measurements.value(summed_spectral_density_to_check))
+
+    # normalize this ratio by the corresponding ratio for the diamond
+    anisotropy_metric_from_spectral_density = std_value_ratio / diamond_std_value_ratio
 
     return anisotropy_metric_from_spectral_density
 end

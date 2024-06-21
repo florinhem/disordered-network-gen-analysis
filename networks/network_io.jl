@@ -321,6 +321,7 @@ function generate_graphs_from_evolution_dicts_single_thread(filenames,
     print_progress::Bool = false,
     random_evolution_seed::Int64 = -1,
     save_network_after_each_temperature::Bool = false,
+    further_evolve_previous_networks::Bool = false,
     print_lock = Threads.ReentrantLock())
 
     # loop through files
@@ -344,13 +345,53 @@ function generate_graphs_from_evolution_dicts_single_thread(filenames,
                 end
             end
             
-            # generate initial graph
-            graph_dict = get_periodic_network(evolution_dict)
+            # load previous network if desired 
+            if further_evolve_previous_networks
+
+                # get all filenames in graph path that contain the current filename
+                all_previous_graph_filenames = readdir(save_path)
+                current_previous_graph_filenames = [current_filename for current_filename 
+                in all_previous_graph_filenames if (occursin(filename[1:end-13], current_filename) 
+                && endswith(current_filename, ".gml") )]
+                
+                # get the filename
+                regex = r"(\d+)\.gml$"
+                graph_numbers = Vector{Int64}()
+                for current_previous_graph_filename in current_previous_graph_filenames
+                    number_match = match(regex, current_previous_graph_filename)
+                    extracted_number = parse(Int, number_match.captures[1])[1]
+                    push!(graph_numbers, extracted_number)
+                end
+                maximum_graph_number = maximum(graph_numbers)
+                current_previous_graph_filename = filename[1:end-13]*"_"*string(maximum_graph_number)
+
+                # load graph and evolution dict
+                graph_dict = load_graph_from_h5_and_gml(save_path*current_previous_graph_filename)
+                original_evolution_dict = deepcopy(evolution_dict)
+                evolution_dict = GU.load_h5_dict(
+                    save_path*current_previous_graph_filename*"_evolution.h5")
+
+                # remove those entries from evolution dict, that have already been evolved
+                evolution_dict["temperature_vec"] = evolution_dict["temperature_vec"][maximum_graph_number+1:end]
+                evolution_dict["nr_monte_carlo_steps_per_temperature_vec"] = evolution_dict["nr_monte_carlo_steps_per_temperature_vec"][maximum_graph_number+1:end]
+
+                total_energy_vec = evolution_dict["total_energy_vec"]
+                move_accepted_vec = evolution_dict["move_accepted_vec"]
+
+            # otherwise generate initial graph
+            else
+                graph_dict = get_periodic_network(evolution_dict)
+
+                total_energy_vec = Vector{Float64}(undef, 0)
+                move_accepted_vec = Vector{Bool}(undef, 0)
+            end
 
             # evolve graph
             graph_dict, total_energy_vec, move_accepted_vec = evolve_network_temperature_sequence!(
                 graph_dict, evolution_dict; 
                 print_progress = print_progress,
+                total_energy_vec = total_energy_vec,
+                move_accepted_vec = move_accepted_vec,
                 print_every_nr_attempted_bond_switches = print_every_nr_attempted_bond_switches,
                 random_evolution_seed = random_evolution_seed,
                 save_network_after_each_temperature = save_network_after_each_temperature,
@@ -361,6 +402,12 @@ function generate_graphs_from_evolution_dicts_single_thread(filenames,
             # save move_accepted_vec and total_energy_vec
             evolution_dict["total_energy_vec"] = total_energy_vec
             evolution_dict["move_accepted_vec"] = move_accepted_vec
+
+            # restore original temperature and nr monte carlo steps per temperature
+            if further_evolve_previous_networks
+                evolution_dict["temperature_vec"] = original_evolution_dict["temperature_vec"]
+                evolution_dict["nr_monte_carlo_steps_per_temperature_vec"] = original_evolution_dict["nr_monte_carlo_steps_per_temperature_vec"]
+            end
 
             # save graph
             save_graph_to_h5_and_gml(graph_dict,
@@ -387,6 +434,7 @@ function generate_graphs_from_evolution_dicts_in_directory(
     print_progress::Bool = false,
     random_evolution_seed::Int64 = -1,
     save_network_after_each_temperature::Bool = false,
+    further_evolve_previous_networks::Bool = false,
     print_lock = Threads.ReentrantLock())
 
     # get all files in directory
@@ -408,6 +456,7 @@ function generate_graphs_from_evolution_dicts_in_directory(
             print_progress = print_progress,
             random_evolution_seed = random_evolution_seed,
             save_network_after_each_temperature = save_network_after_each_temperature,
+            further_evolve_previous_networks = further_evolve_previous_networks,
             print_lock = print_lock)
     end
     

@@ -562,25 +562,31 @@ end
 
 
 """
-Define a anisotropy metric as the normalized variance of the structure factor at the
-first peak of the structure factor of the diamond lattice
+Define a anisotropy metric as the ratio of uncertainty and value of
+the sum of the structure factor for several small wavenumbers normalized
+by the same value for the diamond lattice
 """
 function get_anisotropy_metric_from_structure_factor(
-    structure_factor_angle_averaged_dict::Dict,
-    diamond_structure_factor_peak_wavenumber::Float64 = 4.676810,
-    diamond_structure_factor_peak_std::Float64 = 8.5573)
+    structure_factor_angle_averaged_dict::Dict;
+    diamond_std_value_ratio::Float64 = 1.2530337)
 
-    # find the wavenumber that is the closest to the diamond peak wavenumber
-    diamond_structure_factor_peak_wavenumber_index = argmin(abs.(
-        structure_factor_angle_averaged_dict["wavenumber_vec"] 
-        .- diamond_structure_factor_peak_wavenumber))
+    # set the wavenumbers where structure factor will be checked
+    wavenumbers_to_check_vec = 2*pi*collect(0.2:0.1:1.0)
 
-    # get the structure factor standard deviation around the diamond peak
-    peak_structure_factor_std = Measurements.uncertainty(
-        structure_factor_angle_averaged_dict["structure_factor_vec"][diamond_structure_factor_peak_wavenumber_index])
+    # get the wavenumbers that lie the clostest to the wavenumbers
+    # to be checked
+    index_vec = [argmin(abs.(structure_factor_angle_averaged_dict["wavenumber_vec"] 
+    .- wavenumbers_to_check_vec[i])) for i in eachindex(wavenumbers_to_check_vec)]
 
-    # normalize this standard deviation by the structure factor standard deviation of the diamond peak
-    anisotropy_metric_from_structure_factor = peak_structure_factor_std / diamond_structure_factor_peak_std
+    # sum the checked spectral densities
+    summed_structure_factor_to_check = sum( structure_factor_angle_averaged_dict["structure_factor_vec"][index_vec] )
+
+    # determine ratio of uncertainty to value
+    std_value_ratio = (Measurements.uncertainty(summed_structure_factor_to_check) 
+    / Measurements.value(summed_structure_factor_to_check))
+
+    # normalize this ratio by the corresponding ratio for the diamond
+    anisotropy_metric_from_structure_factor = std_value_ratio / diamond_std_value_ratio
 
     return anisotropy_metric_from_structure_factor
 end

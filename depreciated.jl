@@ -2883,3 +2883,53 @@ function monte_carlo_move!(graph_dict::Dict,
 
     return [graph_dict, move_accepted]
 end
+
+
+
+"""
+Define a anisotropy metric as the normalized variance of the structure factor at the
+first peak of the structure factor of the diamond lattice
+"""
+function get_anisotropy_metric_from_structure_factor(
+    structure_factor_angle_averaged_dict::Dict,
+    diamond_structure_factor_peak_wavenumber::Float64 = 4.676810,
+    diamond_structure_factor_peak_std::Float64 = 8.5573)
+
+    # find the wavenumber that is the closest to the diamond peak wavenumber
+    diamond_structure_factor_peak_wavenumber_index = argmin(abs.(
+        structure_factor_angle_averaged_dict["wavenumber_vec"] 
+        .- diamond_structure_factor_peak_wavenumber))
+
+    # get the structure factor standard deviation around the diamond peak
+    peak_structure_factor_std = Measurements.uncertainty(
+        structure_factor_angle_averaged_dict["structure_factor_vec"][diamond_structure_factor_peak_wavenumber_index])
+
+    # normalize this standard deviation by the structure factor standard deviation of the diamond peak
+    anisotropy_metric_from_structure_factor = peak_structure_factor_std / diamond_structure_factor_peak_std
+
+    return anisotropy_metric_from_structure_factor
+end
+
+
+
+"""
+Define a anisotropy metric as the normalized variance of the spectral density at the
+first peak of the spectral density of the diamond lattice
+"""
+function get_anisotropy_metric_from_spectral_density(
+    spectral_density_angle_averaged_dict::Dict,
+    diamond_spectral_density_peak_wavenumber::Float64 = 4.680517,
+    diamond_spectral_density_peak_std::Float64 = 521.88398)
+
+    # find the wavenumber that is the closest to the diamond peak wavenumber
+    diamond_spectral_density_peak_wavenumber_index = argmin(abs.(spectral_density_angle_averaged_dict["wavenumber_vec"] .- diamond_spectral_density_peak_wavenumber))
+
+    # get the spectral density standard deviation around the diamond peak
+    peak_spectral_density_std = Measurements.uncertainty(
+        spectral_density_angle_averaged_dict["spectral_density_vec"][diamond_spectral_density_peak_wavenumber_index])
+
+    # normalize this standard deviation by the spectral density standard deviation of the diamond peak
+    anisotropy_metric_from_spectral_density = peak_spectral_density_std / diamond_spectral_density_peak_std
+
+    return anisotropy_metric_from_spectral_density
+end
