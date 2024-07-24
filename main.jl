@@ -5,7 +5,6 @@ include("structure_analysis_modules_no_plotting.jl")
 # import my module that contains all functions for the generation and analysis of networks
 import .NetworkGeneration as NG
 import .NetworkAnalysis as NA
-import .BinaryDataAnalysis as BDA
 import .GeneralUtilities as GU
 
 import Plots
@@ -21,21 +20,14 @@ import Plots
 
 # julia --threads 23
 
+structure_dict_path = "../structures/biological/"
 
-i = 5
+analysis_data_path = "../analysis_data/biological/"
 
-print_lock = Threads.ReentrantLock()
+filename = "pachy_red"
 
-evolution_dicts_directory_path = "../structures/random_networks/216_vertices_bond_bending_0.21/evolution_dicts/"
-
-save_path = "../structures/random_networks/216_vertices_bond_bending_0.21/run_"*string(i)*"/"
-
-println("Starting run "*string(i))
-
-NG.generate_graphs_from_evolution_dicts_in_directory(
-evolution_dicts_directory_path,
-save_path;
-print_every_nr_attempted_bond_switches = 200,
-print_progress = true,
-save_network_after_each_temperature = false,
-print_lock = print_lock)
+NA.get_all_dicts_from_voxelized_structure(filename,
+    structure_dict_path,
+    analysis_data_path;
+    print_progress = true,
+    print_lock = Threads.ReentrantLock())

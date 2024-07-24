@@ -828,6 +828,49 @@ end
 
 
 """
+For a single voxelized structure, calculate
+several functions that characterize the structure
+"""
+function get_all_dicts_from_voxelized_structure(filename::String,
+    structure_dict_path::String,
+    analysis_data_path::String;
+    print_progress::Bool = false,
+    print_lock = Threads.ReentrantLock())
+
+    # load structure dict
+    structure_dict = GU.load_h5_dict(structure_dict_path*filename*"_structure.h5")
+
+    # get autocovariance function as a function of direction
+    autocovariance_fct_direction_dict = get_autocovariance_fct_by_sampling_indices_array(
+        structure_dict;
+    save_result = true,
+    save_path = analysis_data_path*filename,
+    print_progress = print_progress,
+    thread_nr = Threads.threadid() ,
+    print_lock = print_lock)
+
+    spectral_density_dict = get_spectral_density_by_wavevector_array_fft(structure_dict;
+    save_autocovariance_fct_direction_dict = false,
+    save_result = true,
+    save_path = analysis_data_path*filename,
+    autocovariance_fct_direction_dict = autocovariance_fct_direction_dict)
+
+    spectral_density_angle_averaged_dict = get_spectral_density_angle_averaged(spectral_density_dict;
+    gaussian_filter = true,
+    gaussian_filter_sigma_x = 2*pi/25, 
+    gaussian_filter_filtered_data_x_step_length = 2*pi/25,
+    save_result = true,
+    save_path = analysis_data_path*filename)
+
+    volume_fract_variance_dict = get_volume_fract_variance(autocovariance_fct_direction_dict;
+        save_result = true,
+        save_path = analysis_data_path*filename)
+
+    return
+end
+
+
+"""
 Fit a function to the angle averaged spectral density
 that consists of either two gaussians or a gaussian and an exponential decay
 """

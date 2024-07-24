@@ -505,7 +505,7 @@ function get_correlation_functions(graph_dict::Dict;
             0.0:distance_histogram_bin_width:graph_dict["supercell_edge_length"]/2, 
             closed=:left)
 
-            vertex_distance_vec = collect(distance_histogram.edges[1][2:end] .- distance_histogram_bin_width/2)
+    vertex_distance_vec = collect(distance_histogram.edges[1][2:end] .- distance_histogram_bin_width/2)
     vertex_nr_vec = distance_histogram.weights
 
     # get_vertex density

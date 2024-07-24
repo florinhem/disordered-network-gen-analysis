@@ -1625,3 +1625,186 @@ Plots.plot!(x_vec, heat_cool_temperature_vec.(x_vec, 0.1, 0.1), xlabel="Monte Ca
 Plots.plot!(legend = false)
 
 Plots.savefig(path*"heat_cool_0.1_temperature_profile.png")
+
+
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_bond_bending_0.285\\"
+
+order_metrics_dict = Dict()
+
+# loop through folders and append all order metrics to the order_metrics_dict
+for i in 1:5
+    
+    current_analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_bond_bending_0.285\run_"*string(i)*"\\"
+
+    current_order_metrics_dict = GU.load_h5_dict(current_analysis_data_path*"all_order_metrics.h5")
+
+    for (key, value) in current_order_metrics_dict
+        if haskey(order_metrics_dict, key)
+            order_metrics_dict[key] = vcat(order_metrics_dict[key], value)
+        else
+            order_metrics_dict[key] = value
+        end
+    end
+    
+end
+
+order_metrics_names = ["bond_length_std_vec", "bond_angle_std_vec", "dihedral_angle_std_vec", "anisotropy_metric_from_structure_factor_vec", "anisotropy_metric_from_spectral_density_vec", "cluster_metric_vec"]
+
+# sort all vectors in order of the total keating energy
+for order_metric_name in order_metrics_names
+    order_metrics_dict[order_metric_name] = order_metrics_dict[order_metric_name][sortperm(order_metrics_dict["total_keating_energy_vec"])]
+end
+order_metrics_dict["filenames_vec"] = order_metrics_dict["filenames_vec"][sortperm(order_metrics_dict["total_keating_energy_vec"])]
+sort!(order_metrics_dict["total_keating_energy_vec"])
+
+mask_vec = [contains.(order_metrics_dict["filenames_vec"], "heated_for_0.1_steps"),
+contains.(order_metrics_dict["filenames_vec"], "heated_for_0.25_steps"),
+    contains.(order_metrics_dict["filenames_vec"], "heated_for_0.5_steps"),
+contains.(order_metrics_dict["filenames_vec"], "heated_for_1.0_steps"),
+contains.(order_metrics_dict["filenames_vec"], "heated_for_5.0_steps"),
+contains.(order_metrics_dict["filenames_vec"], "heated_for_10.0_steps"),
+contains.(order_metrics_dict["filenames_vec"], "heat_cool_0.025"),
+contains.(order_metrics_dict["filenames_vec"], "heat_cool_0.05"),
+contains.(order_metrics_dict["filenames_vec"], "heat_cool_0.1"),
+contains.(order_metrics_dict["filenames_vec"], "heat_cool_0.2"),
+( contains.(order_metrics_dict["filenames_vec"], "cool_0.1")
+    .& .!(contains.(order_metrics_dict["filenames_vec"], "heat")) ),
+]
+
+filename_vec = ["heated_for_0.1_steps", "heated_for_0.25_steps", "heated_for_0.5_steps", "heated_for_1.0_steps", "heated_for_5.0_steps", "heated_for_10.0_steps", "heat_cool_0.025", "heat_cool_0.05", "heat_cool_0.1", "heat_cool_0.2", "cool_0.1"]
+
+title_vec = ["heated for 0.1 steps", "heated for 0.25 steps", "heated for 0.5 steps", "heated for 1.0 steps", "heated for 5.0 steps", "heated for 10.0 steps", "heat and cool 0.025/MC step", "heat and cool 0.05/MC step", "heat and cool 0.1/MC step", "heat and cool 0.2/MC step", "cool 0.1/MC step"]
+
+i=9
+
+mask = mask_vec[i]
+filtered_filenames_vec = order_metrics_dict["filenames_vec"][mask]
+filtered_total_keating_energy_vec = order_metrics_dict["total_keating_energy_vec"][mask]
+filtered_bond_length_std_vec = order_metrics_dict["bond_length_std_vec"][mask]
+filtered_bond_angle_std_vec = order_metrics_dict["bond_angle_std_vec"][mask]
+filtered_dihedral_angle_std_vec = order_metrics_dict["dihedral_angle_std_vec"][mask]
+filtered_anisotropy_metric_from_structure_factor_vec = order_metrics_dict["anisotropy_metric_from_structure_factor_vec"][mask]
+filtered_anisotropy_metric_from_spectral_density_vec = order_metrics_dict["anisotropy_metric_from_spectral_density_vec"][mask]
+filtered_cluster_metric_vec = order_metrics_dict["cluster_metric_vec"][mask]
+
+# get the temperature from the filtered filenames
+pattern = r"T_([0-9\.]+)"
+extracted_numbers = [match(pattern, s).captures[1] for s in filtered_filenames_vec]
+temperatures = parse.(Float64, extracted_numbers)
+min_temp = minimum(temperatures)
+max_temp = maximum(temperatures)
+normalized_temperatures = (temperatures .- min_temp) ./ (max_temp - min_temp)
+colormap = Plots.cgrad(:roma, rev = true, scale = :exp)
+mapped_colors = [colormap[normalized_temperature] for normalized_temperature in  normalized_temperatures]
+
+Plots.scatter(order_metrics_dict["total_keating_energy_vec"]./216, order_metrics_dict[order_metrics_names[1]], xlabel = "Keating energy per vertex", alpha=0.1, color= :black)
+Plots.scatter!(filtered_total_keating_energy_vec./216, filtered_bond_length_std_vec, xlabel = "Keating energy per vertex", ylabel = Latex.L"\sigma_\mathrm{bond} _\mathrm{length}", legend = false,
+    xlims = (minimum(order_metrics_dict["total_keating_energy_vec"]./216), maximum(order_metrics_dict["total_keating_energy_vec"]./216)),
+ylims = (minimum(order_metrics_dict["bond_length_std_vec"]), maximum(order_metrics_dict["bond_length_std_vec"])),
+color = mapped_colors)
+    Plots.savefig(path*filename_vec[i]*"_bond_length_std.png")
+
+Plots.scatter(order_metrics_dict["total_keating_energy_vec"]./216, order_metrics_dict[order_metrics_names[2]], xlabel = "Keating energy per vertex", alpha=0.1, color= :black)
+Plots.scatter!(filtered_total_keating_energy_vec./216, filtered_bond_angle_std_vec, xlabel = "Keating energy per vertex", ylabel = Latex.L"\sigma_\mathrm{bond} _\mathrm{angle}", legend = false,
+    xlims = (minimum(order_metrics_dict["total_keating_energy_vec"]./216), maximum(order_metrics_dict["total_keating_energy_vec"]./216)),
+ylims = (minimum(order_metrics_dict["bond_angle_std_vec"]), maximum(order_metrics_dict["bond_angle_std_vec"])),
+color = mapped_colors)
+    Plots.savefig(path*filename_vec[i]*"_bond_angle_std.png")
+
+Plots.scatter(order_metrics_dict["total_keating_energy_vec"]./216, order_metrics_dict[order_metrics_names[4]], xlabel = "Keating energy per vertex", alpha=0.1, color= :black)
+Plots.scatter!(filtered_total_keating_energy_vec./216, filtered_anisotropy_metric_from_structure_factor_vec, xlabel = "Keating energy per vertex", ylabel = "anisotropy", legend = false,
+    xlims = (minimum(order_metrics_dict["total_keating_energy_vec"]./216), maximum(order_metrics_dict["total_keating_energy_vec"]./216)),
+ylims = (minimum(order_metrics_dict["anisotropy_metric_from_structure_factor_vec"]), maximum(order_metrics_dict["anisotropy_metric_from_structure_factor_vec"])), color = mapped_colors)
+    Plots.savefig(path*filename_vec[i]*"_anisotropy_in_structure_factor.png")
+
+Plots.scatter(order_metrics_dict["total_keating_energy_vec"]./216, order_metrics_dict[order_metrics_names[5]], xlabel = "Keating energy per vertex", alpha=0.1, color= :black)
+Plots.scatter!(filtered_total_keating_energy_vec./216, filtered_anisotropy_metric_from_spectral_density_vec, xlabel = "Keating energy per vertex", ylabel = "anisotropy", legend = false,
+    xlims = (minimum(order_metrics_dict["total_keating_energy_vec"]./216), maximum(order_metrics_dict["total_keating_energy_vec"]./216)),
+ylims = (minimum(order_metrics_dict["anisotropy_metric_from_spectral_density_vec"]), maximum(order_metrics_dict["anisotropy_metric_from_spectral_density_vec"])),color = mapped_colors)
+    Plots.savefig(path*filename_vec[i]*"_anisotropy_in_spectral_density.png")
+
+Plots.scatter(order_metrics_dict["total_keating_energy_vec"]./216, order_metrics_dict[order_metrics_names[6]], xlabel = "Keating energy per vertex", alpha=0.1, color= :black)
+Plots.scatter!(filtered_total_keating_energy_vec./216, filtered_cluster_metric_vec, xlabel = "Keating energy per vertex", ylabel = "cluster metric", legend = false,
+    xlims = (minimum(order_metrics_dict["total_keating_energy_vec"]./216), maximum(order_metrics_dict["total_keating_energy_vec"]./216)),
+ylims = (minimum(order_metrics_dict["cluster_metric_vec"]), maximum(order_metrics_dict["cluster_metric_vec"])),
+color = mapped_colors)
+    Plots.savefig(path*filename_vec[i]*"_cluster_metric.png")
+
+
+function heat_cool_temperature_vec(x, max_temp, heat_cool_rate)
+
+    if x < max_temp/heat_cool_rate 
+        return heat_cool_rate * x
+    elseif x < 2*max_temp/heat_cool_rate 
+        return 2* max_temp - heat_cool_rate*x
+    else
+        return 0
+    end
+end
+
+
+function heat_cool_temperature_vec(x, max_temp, heat_cool_rate)
+
+    if x < max_temp/heat_cool_rate 
+        return heat_cool_rate * x
+    elseif x < 2*max_temp/heat_cool_rate 
+        return 2* max_temp - heat_cool_rate*x
+    else
+        return 0
+    end
+end
+
+x_vec = collect(0:0.01:10)
+y_vec = heat_cool_temperature_vec.(x_vec, 0.1, 0.1)
+
+min_temp = 0.1
+max_temp = 0.5
+temperatures = [0.1, 0.125, 0.15,  0.2, 0.25, 0.3, 0.4, 0.5]
+normalized_temperatures = (temperatures .- min_temp) ./ (max_temp - min_temp)
+colormap = Plots.cgrad(:roma, rev = true, scale = :exp)
+mapped_colors = [colormap[normalized_temperature] for normalized_temperature in  normalized_temperatures]
+
+
+Plots.plot(x_vec, heat_cool_temperature_vec.(x_vec, 0.4, 0.1),  alpha=1.0, color=mapped_colors[7])
+Plots.plot!(x_vec, heat_cool_temperature_vec.(x_vec, 0.25, 0.1),  alpha=1.0, color=mapped_colors[5])
+Plots.plot!(x_vec, heat_cool_temperature_vec.(x_vec, 0.2, 0.1),  alpha=1.0, color=mapped_colors[4])
+Plots.plot!(x_vec, heat_cool_temperature_vec.(x_vec, 0.15, 0.1), alpha=1.0, color=mapped_colors[3])
+Plots.plot!(x_vec, heat_cool_temperature_vec.(x_vec, 0.1, 0.1),  alpha=1.0, color=mapped_colors[1])
+Plots.plot!(legend = false, xlabel="Monte Carlo move per bond chain", ylabel=Latex.L"kT", right_margin = 2Plots.mm)
+
+Plots.savefig(path*"heat_cool_0.1_temperature_profile_2.png")
+
+
+
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\random_networks\1000_vertices_bond_bending_0.285\run_1\\"
+
+load_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\1000_vertices_bond_bending_0.285\run_1\\"
+
+filename = "1000_vertices_T_0.22_heat_cool_0.1_per_mc_quenched_correlation_functions.h5"
+
+temperature_vec = vcat(collect(0.1:0.01:0.18), collect(0.2:0.02:0.24))[1:6]
+
+Plots.plot()
+
+for temperature in temperature_vec
+    corr_fct_dict = GU.load_h5_dict(load_path * "1000_vertices_T_" * string(temperature) * "_heat_cool_0.1_per_mc_quenched_correlation_functions.h5")
+    Plots.plot!(corr_fct_dict["vertex_distance_vec"], corr_fct_dict["pair_correlation_fct_vec"], label = "T = " * string(temperature))
+end
+
+Plots.plot!(xlabel = "distance", ylabel = "pair correlation function")
+
+Plots.savefig(path*"pair_correlation_function_low_t.png")
+
+temperature_vec = vcat(collect(0.1:0.01:0.18), collect(0.2:0.02:0.24))[7:end]
+
+Plots.plot()
+
+for temperature in temperature_vec
+    corr_fct_dict = GU.load_h5_dict(load_path * "1000_vertices_T_" * string(temperature) * "_heat_cool_0.1_per_mc_quenched_correlation_functions.h5")
+    Plots.plot!(corr_fct_dict["vertex_distance_vec"], corr_fct_dict["pair_correlation_fct_vec"], label = "T = " * string(temperature))
+end
+
+Plots.plot!(xlabel = "distance", ylabel = "pair correlation function")
+
+Plots.savefig(path*"pair_correlation_function_high_t.png")

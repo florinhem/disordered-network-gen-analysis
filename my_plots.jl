@@ -54,35 +54,3 @@ function piticklabel(x::Rational, ::Val{:latex})
     Latex.L"%$S\frac{%$N\pi}{%$d}"
 end
 
-path = raw"..\..\presentations\material\\"
-
-
-function heat_cool_temperature_vec(x, max_temp, heat_cool_rate)
-
-    if x < max_temp/heat_cool_rate 
-        return heat_cool_rate * x
-    elseif x < 2*max_temp/heat_cool_rate 
-        return 2* max_temp - heat_cool_rate*x
-    else
-        return 0
-    end
-end
-
-x_vec = collect(0:0.01:10)
-y_vec = heat_cool_temperature_vec.(x_vec, 0.1, 0.1)
-
-min_temp = 0.1
-max_temp = 0.5
-temperatures = [0.1, 0.125, 0.15,  0.2, 0.25, 0.3, 0.4, 0.5]
-normalized_temperatures = (temperatures .- min_temp) ./ (max_temp - min_temp)
-colormap = Plots.cgrad(:roma, rev = true, scale = :exp)
-mapped_colors = [colormap[normalized_temperature] for normalized_temperature in  normalized_temperatures]
-
-Plots.plot(x_vec, heat_cool_temperature_vec.(x_vec, 0.4, 0.1), xlabel="Monte Carlo step", ylabel=Latex.L"kT", alpha=1.0, color=mapped_colors[7])
-Plots.plot!(x_vec, heat_cool_temperature_vec.(x_vec, 0.25, 0.1), xlabel="Monte Carlo step", ylabel=Latex.L"kT", alpha=1.0, color=mapped_colors[5])
-Plots.plot!(x_vec, heat_cool_temperature_vec.(x_vec, 0.2, 0.1), xlabel="Monte Carlo step", ylabel=Latex.L"kT", alpha=1.0, color=mapped_colors[4])
-Plots.plot!(x_vec, heat_cool_temperature_vec.(x_vec, 0.15, 0.1), xlabel="Monte Carlo step", ylabel=Latex.L"kT", alpha=1.0, color=mapped_colors[3])
-Plots.plot!(x_vec, heat_cool_temperature_vec.(x_vec, 0.1, 0.1), xlabel="Monte Carlo step", ylabel=Latex.L"kT", alpha=1.0, color=mapped_colors[1])
-Plots.plot!(legend = false)
-
-Plots.savefig(path*"heat_cool_0.1_temperature_profile.png")

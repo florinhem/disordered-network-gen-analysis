@@ -465,6 +465,96 @@ end
 
 
 """
+This is just an intermediate function to evolve multiple networks from evolution dicts in multiple runs
+"""
+function generate_graphs_from_evolution_dicts_single_thread_multiple_runs(save_path_filename_tuple_chunks,
+            evolution_dicts_directory_path::String;
+            print_every_nr_attempted_bond_switches::Int64 = 100,
+            print_progress::Bool = false,
+            random_evolution_seed::Int64 = -1,
+            save_network_after_each_temperature::Bool = false,
+            further_evolve_previous_networks::Bool = false,
+            print_lock = Threads.ReentrantLock())
+
+    # loop through the vector of save paths and evolution dict filenames
+    # and evolve each of them separately
+    for save_path_filename_tuple in save_path_filename_tuple_chunks
+
+        generate_graphs_from_evolution_dicts_single_thread([save_path_filename_tuple[2]],
+            evolution_dicts_directory_path,
+            save_path_filename_tuple[1];
+            print_every_nr_attempted_bond_switches = print_every_nr_attempted_bond_switches,
+            print_progress = print_progress,
+            random_evolution_seed = random_evolution_seed,
+            save_network_after_each_temperature = save_network_after_each_temperature,
+            further_evolve_previous_networks = further_evolve_previous_networks,
+            print_lock = print_lock)
+    end
+
+    return
+
+end
+
+
+"""
+Get all evolution dicts in one directory and for each generate the given number of
+graphs in separate files. This is done in a multi-threaded (parallel)
+fashion by splitting all filenames into chunks that are run on different threads
+"""
+function generate_graphs_from_evolution_dicts_in_directory_multiple_runs(
+    evolution_dicts_directory_path::String,
+    save_path::String;
+    print_every_nr_attempted_bond_switches::Int64 = 100,
+    print_progress::Bool = false,
+    random_evolution_seed::Int64 = -1,
+    save_network_after_each_temperature::Bool = false,
+    further_evolve_previous_networks::Bool = false,
+    runs_vec = collect(1:5),
+    print_lock = Threads.ReentrantLock())
+
+    # get all filenames by reading the evolution dict directory
+    filenames = readdir(evolution_dicts_directory_path)
+    filenames_evolution_dicts = filter(filename -> endswith(filename, "_evolution.h5"), filenames)
+
+    # get vector of filenames and save paths for multiple runs
+    save_path_all_runs_vec = Vector{String}(undef, 0)
+    filenames_evolution_dicts_all_runs_vec = Vector{String}(undef, 0)
+
+    for run in runs_vec
+        append!(save_path_all_runs_vec, (save_path .* "run_" 
+            .* string.( Int.( ones(length(filenames_evolution_dicts)) .* run ) ) .* "/" ) )
+        append!(filenames_evolution_dicts_all_runs_vec, filenames_evolution_dicts)
+    end
+
+    # create tuples out of the elements of both vectors
+    save_path_filename_tuple_vec = Vector{Tuple{String, String}}(undef, length(save_path_all_runs_vec))
+
+    for i in eachindex(save_path_filename_tuple_vec)
+        save_path_filename_tuple_vec[i] = (save_path_all_runs_vec[i], filenames_evolution_dicts_all_runs_vec[i] )
+    end
+
+    # split filenames and save_paths into chunks for multi-threading
+    save_path_filename_tuple_chunks = Iterators.partition(save_path_filename_tuple_vec, 
+        length(save_path_filename_tuple_vec) ÷ Threads.nthreads())
+
+    # run all filename chunks in parallel in different threads
+    map(save_path_filename_tuple_chunks) do save_path_filename_tuple_chunk
+
+        Threads.@spawn generate_graphs_from_evolution_dicts_single_thread_multiple_runs(save_path_filename_tuple_chunk,
+            evolution_dicts_directory_path;
+            print_every_nr_attempted_bond_switches = print_every_nr_attempted_bond_switches,
+            print_progress = print_progress,
+            random_evolution_seed = random_evolution_seed,
+            save_network_after_each_temperature = save_network_after_each_temperature,
+            further_evolve_previous_networks = further_evolve_previous_networks,
+            print_lock = print_lock)
+    end
+
+    return
+end    
+
+
+"""
 Get mesh from network
 """
 function save_mesh_from_spatial_network(graph_dict::Dict, filename::String;

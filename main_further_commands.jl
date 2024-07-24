@@ -5453,3 +5453,464 @@ for file in files
     # save the file
     GU.save_dict_to_h5(evolution_dict, save_path_2*file)
 end
+
+
+
+i = 5
+
+print_lock = Threads.ReentrantLock()
+
+evolution_dicts_directory_path = "../structures/random_networks/216_vertices_bond_bending_0.21/evolution_dicts/"
+
+save_path = "../structures/random_networks/216_vertices_bond_bending_0.21/run_"*string(i)*"/"
+
+println("Starting run "*string(i))
+
+NG.generate_graphs_from_evolution_dicts_in_directory(
+evolution_dicts_directory_path,
+save_path;
+print_every_nr_attempted_bond_switches = 200,
+print_progress = true,
+save_network_after_each_temperature = false,
+print_lock = print_lock)
+
+
+
+graph_dict_path = "../structures/random_networks/1728_vertices/run_2/"
+
+structure_dict_path = "../structures/random_networks/binary_structures/1728_vertices/"
+
+analysis_data_path = "../analysis_data/random_networks/1728_vertices/run_2/"
+
+filename = "1728_vertices_T_0.2_heat_cool_0.1_per_mc_quenched"
+
+
+NA.get_all_dicts_from_graph_single_file(filename,
+    graph_dict_path,
+    structure_dict_path,
+    analysis_data_path;
+    print_progress = true)
+
+
+
+graph_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\1728_vertices\run_2\\"
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\1728_vertices\run_2\\"
+
+filename = "1728_vertices_T_0.2_heat_cool_0.1_per_mc_quenched"
+
+small_scale_order_metrics_dict = NA.get_small_length_scale_order_metrics(filename,
+    graph_path,
+    analysis_data_path;
+    save_result = true,
+    )
+
+filename = "1728_vertices_T_0.125_heat_cool_0.1_per_mc_quenched"
+
+small_scale_order_metrics_dict = NA.get_small_length_scale_order_metrics(filename,
+        graph_path,
+        analysis_data_path;
+        save_result = true,
+        )
+
+
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\1000_vertices_bond_bending_0.285\evolution_dicts\\"
+
+temperatures = [0.1, 0.12, 0.14, 0.16, 0.18, 0.2, 0.22, 0.24]
+
+temperature_increase_per_monte_carlo_step = 0.1
+
+for temperature in temperatures
+
+    temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(temperature;
+        temperature_increase_per_monte_carlo_step = temperature_increase_per_monte_carlo_step, 
+        nr_monte_carlo_steps_per_temperature = 0.01,
+        quench = true )
+
+    evolution_dict = NA.get_evolution_dict(;nr_vertices = 1000 ,temperature_vec = temperature_vec,
+        nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3)
+
+    filename = "1000_vertices_T_"*string(temperature)*"_heat_cool_"*string(temperature_increase_per_monte_carlo_step)*"_per_mc_quenched"
+
+    GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
+
+end
+
+
+i = 1
+
+print_lock = Threads.ReentrantLock()
+
+evolution_dicts_directory_path = "../structures/random_networks/1000_vertices_bond_bending_0.285/evolution_dicts/"
+
+save_path = "../structures/random_networks/1000_vertices_bond_bending_0.285/run_"*string(i)*"/"
+
+println("Starting run "*string(i))
+
+NG.generate_graphs_from_evolution_dicts_in_directory(
+evolution_dicts_directory_path,
+save_path;
+print_every_nr_attempted_bond_switches = 200,
+print_progress = true,
+save_network_after_each_temperature = false,
+print_lock = print_lock)
+
+
+
+temperatures = [0.1, 0.12, 0.14, 0.16, 0.18, 0.2, 0.22, 0.24]
+
+temperature_increase_per_monte_carlo_step = 0.1
+
+nr_vertices = 512
+
+bond_bending_const_vec = [0.21, 0.28, 0.36]
+
+for bond_bending in bond_bending_const_vec
+
+    save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\\"* string(nr_vertices)*"_vertices_bond_bending_"*string(bond_bending)*"\\evolution_dicts\\"
+
+    for temperature in temperatures
+
+        temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(temperature;
+            temperature_increase_per_monte_carlo_step = temperature_increase_per_monte_carlo_step, 
+            nr_monte_carlo_steps_per_temperature = 0.01,
+            quench = true )
+
+        evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,temperature_vec = temperature_vec,
+            nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
+            bond_bending_const = bond_bending)
+
+        filename = string(nr_vertices)*"_vertices_T_"*string(temperature)*"_heat_cool_"*string(temperature_increase_per_monte_carlo_step)*"_per_mc_quenched"
+
+        GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
+
+    end
+end
+
+
+nr_vertices = 1000
+
+bond_bending_const_vec = [0.21, 0.36]
+
+for bond_bending in bond_bending_const_vec
+
+    save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\\"* string(nr_vertices)*"_vertices_bond_bending_"*string(bond_bending)*"\\evolution_dicts\\"
+
+    for temperature in temperatures
+
+        temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(temperature;
+            temperature_increase_per_monte_carlo_step = temperature_increase_per_monte_carlo_step, 
+            nr_monte_carlo_steps_per_temperature = 0.01,
+            quench = true )
+
+        evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,temperature_vec = temperature_vec,
+            nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
+            bond_bending_const = bond_bending)
+
+        filename = string(nr_vertices)*"_vertices_T_"*string(temperature)*"_heat_cool_"*string(temperature_increase_per_monte_carlo_step)*"_per_mc_quenched"
+
+        GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
+
+    end
+end
+
+
+
+nr_vertices = 216
+
+bond_bending_const_vec = [0.21, 0.285, 0.36]
+
+for bond_bending in bond_bending_const_vec
+
+    save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\\"* string(nr_vertices)*"_vertices_bond_bending_"*string(bond_bending)*"_heat_cool\\evolution_dicts\\"
+
+    for temperature in temperatures
+
+        temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(temperature;
+            temperature_increase_per_monte_carlo_step = temperature_increase_per_monte_carlo_step, 
+            nr_monte_carlo_steps_per_temperature = 0.01,
+            quench = true )
+
+        evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,temperature_vec = temperature_vec,
+            nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
+            bond_bending_const = bond_bending)
+
+        filename = string(nr_vertices)*"_vertices_T_"*string(temperature)*"_heat_cool_"*string(temperature_increase_per_monte_carlo_step)*"_per_mc_quenched"
+
+        GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
+
+    end
+end
+
+
+evolution_dicts_directory_path = "../structures/random_networks/216_vertices_bond_bending_0.36_heat_cool/evolution_dicts/"
+save_path = "../structures/random_networks/216_vertices_bond_bending_0.36_heat_cool/"
+
+NG.generate_graphs_from_evolution_dicts_in_directory_multiple_runs(
+    evolution_dicts_directory_path,
+    save_path;
+    print_every_nr_attempted_bond_switches = 200,
+    print_progress = true,
+    save_network_after_each_temperature = false,
+    further_evolve_previous_networks = false,
+    runs_vec = collect(1:5),
+    print_lock = Threads.ReentrantLock())
+
+
+evolution_dicts_directory_path = "../structures/random_networks/512_vertices_bond_bending_0.285/evolution_dicts/"
+save_path = "../structures/random_networks/512_vertices_bond_bending_0.285/"
+
+NG.generate_graphs_from_evolution_dicts_in_directory_multiple_runs(
+    evolution_dicts_directory_path,
+    save_path;
+    print_every_nr_attempted_bond_switches = 200,
+    print_progress = true,
+    save_network_after_each_temperature = false,
+    further_evolve_previous_networks = false,
+    runs_vec = collect(1:2),
+    print_lock = Threads.ReentrantLock())
+
+
+
+temperatures = [0.11, 0.13, 0.15, 0.17]
+
+temperature_increase_per_monte_carlo_step = 0.1
+
+nr_vertices = 512
+
+bond_bending_const_vec = [0.21, 0.285, 0.36]
+
+for bond_bending in bond_bending_const_vec
+
+    save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\\"* string(nr_vertices)*"_vertices_bond_bending_"*string(bond_bending)*"\\evolution_dicts_2\\"
+
+    for temperature in temperatures
+
+        temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(temperature;
+            temperature_increase_per_monte_carlo_step = temperature_increase_per_monte_carlo_step, 
+            nr_monte_carlo_steps_per_temperature = 0.01,
+            quench = true )
+
+        evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,temperature_vec = temperature_vec,
+            nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
+            bond_bending_const = bond_bending)
+
+        filename = string(nr_vertices)*"_vertices_T_"*string(temperature)*"_heat_cool_"*string(temperature_increase_per_monte_carlo_step)*"_per_mc_quenched"
+
+        GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
+
+    end
+end
+
+
+nr_vertices = 1000
+
+bond_bending_const_vec = [0.21, 0.285, 0.36]
+
+for bond_bending in bond_bending_const_vec
+
+    save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\\"* string(nr_vertices)*"_vertices_bond_bending_"*string(bond_bending)*"\\evolution_dicts_2\\"
+
+    for temperature in temperatures
+
+        temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(temperature;
+            temperature_increase_per_monte_carlo_step = temperature_increase_per_monte_carlo_step, 
+            nr_monte_carlo_steps_per_temperature = 0.01,
+            quench = true )
+
+        evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,temperature_vec = temperature_vec,
+            nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
+            bond_bending_const = bond_bending)
+
+        filename = string(nr_vertices)*"_vertices_T_"*string(temperature)*"_heat_cool_"*string(temperature_increase_per_monte_carlo_step)*"_per_mc_quenched"
+
+        GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
+
+    end
+end
+
+
+
+nr_vertices = 216
+
+bond_bending_const_vec = [0.21, 0.285, 0.36]
+
+for bond_bending in bond_bending_const_vec
+
+    save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\\"* string(nr_vertices)*"_vertices_bond_bending_"*string(bond_bending)*"_heat_cool\\evolution_dicts_2\\"
+
+    for temperature in temperatures
+
+        temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(temperature;
+            temperature_increase_per_monte_carlo_step = temperature_increase_per_monte_carlo_step, 
+            nr_monte_carlo_steps_per_temperature = 0.01,
+            quench = true )
+
+        evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,temperature_vec = temperature_vec,
+            nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
+            bond_bending_const = bond_bending)
+
+        filename = string(nr_vertices)*"_vertices_T_"*string(temperature)*"_heat_cool_"*string(temperature_increase_per_monte_carlo_step)*"_per_mc_quenched"
+
+        GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
+
+    end
+end
+
+
+
+evolution_dicts_directory_path = "../structures/random_networks/512_vertices_bond_bending_0.285/evolution_dicts_2/"
+save_path = "../structures/random_networks/512_vertices_bond_bending_0.285/"
+
+NG.generate_graphs_from_evolution_dicts_in_directory_multiple_runs(
+    evolution_dicts_directory_path,
+    save_path;
+    print_every_nr_attempted_bond_switches = 200,
+    print_progress = true,
+    save_network_after_each_temperature = false,
+    further_evolve_previous_networks = false,
+    runs_vec = collect(1:5),
+    print_lock = Threads.ReentrantLock())
+    
+
+evolution_dicts_directory_path = "../structures/random_networks/216_vertices_bond_bending_0.285_heat_cool/evolution_dicts_2/"
+save_path = "../structures/random_networks/216_vertices_bond_bending_0.285_heat_cool/"
+
+NG.generate_graphs_from_evolution_dicts_in_directory_multiple_runs(
+    evolution_dicts_directory_path,
+    save_path;
+    print_every_nr_attempted_bond_switches = 200,
+    print_progress = true,
+    save_network_after_each_temperature = false,
+    further_evolve_previous_networks = false,
+    runs_vec = collect(1:5),
+    print_lock = Threads.ReentrantLock())
+
+
+evolution_dicts_directory_path = "../structures/random_networks/1000_vertices_bond_bending_0.21/evolution_dicts/"
+save_path = "../structures/random_networks/1000_vertices_bond_bending_0.21/"
+
+NG.generate_graphs_from_evolution_dicts_in_directory_multiple_runs(
+    evolution_dicts_directory_path,
+    save_path;
+    print_every_nr_attempted_bond_switches = 200,
+    print_progress = true,
+    save_network_after_each_temperature = false,
+    further_evolve_previous_networks = false,
+    runs_vec = collect(1:5),
+    print_lock = Threads.ReentrantLock())
+
+
+evolution_dicts_directory_path = "../structures/random_networks/216_vertices_bond_bending_0.21_heat_cool/evolution_dicts/"
+save_path = "../structures/random_networks/216_vertices_bond_bending_0.21_heat_cool/"
+
+NG.generate_graphs_from_evolution_dicts_in_directory_multiple_runs(
+    evolution_dicts_directory_path,
+    save_path;
+    print_every_nr_attempted_bond_switches = 200,
+    print_progress = true,
+    save_network_after_each_temperature = false,
+    further_evolve_previous_networks = false,
+    runs_vec = collect(1:5),
+    print_lock = Threads.ReentrantLock())
+
+
+graph_dict_path = "../structures/random_networks/1000_vertices_bond_bending_0.285/run_1/"
+
+structure_dict_path = "../structures/random_networks/binary_structures/1000_vertices_bond_bending_0.285/run_1/"
+
+analysis_data_path = "../analysis_data/random_networks/1000_vertices_bond_bending_0.285/run_1/"
+
+# loop through all files in folder
+for filename_with_format in readdir(graph_dict_path)
+
+    # check if file is a h5 file
+    if endswith(filename_with_format, ".gml")
+
+        filename = filename_with_format[1:end-4]
+
+        NA.get_all_dicts_from_graph_single_file(filename,
+            graph_dict_path,
+            structure_dict_path,
+            analysis_data_path;
+            print_progress = true)
+
+    end
+end
+
+
+network_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\binary_structures\216_vertices_bond_bending_0.285\run_2\216_vertices_T_0.15_heat_cool_0.1_per_mc_quenched_structure.h5"
+
+structure_dict_network = GU.load_h5_dict(network_path)
+
+# load pachy weevil data
+
+pachy_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\biological\pachy_blue_structure.h5"
+
+structure_dict_pachy = GU.load_h5_dict(pachy_path)
+
+# adjust pachy weevil data to use same keys as random network
+
+structure_dict_pachy["data_binary"] = structure_dict_pachy["data_binary"][:,1:308,1:308]
+structure_dict_pachy["size_data"] = (308,308,308)
+
+
+structure_dict_pachy["volume_fract_tot"] = sum(structure_dict_pachy["data_binary"])/structure_dict_pachy["size_data"][1]^3
+
+# voxel size = 10 nm
+# mean bond length =~ 160 nm
+# voxel edge length in units of bond length = 0.0625
+
+structure_dict_pachy["voxel_edge_length"] = 0.0625
+
+structure_dict_pachy["mean_edge_length_data"] = structure_dict_pachy["size_data"][1] * structure_dict_pachy["voxel_edge_length"]
+
+# save pachy weevil data
+
+GU.save_dict_to_h5(structure_dict_pachy, raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\biological\pachy_blue_structure_adjusted.h5")
+
+
+pachy_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\biological\pachy_red_structure.h5"
+
+structure_dict_pachy = GU.load_h5_dict(pachy_path)
+
+
+structure_dict_pachy["data_binary"] = structure_dict_pachy["data_binary"][:,1:303,1:303]
+structure_dict_pachy["size_data"] = (303,303,303)
+
+
+structure_dict_pachy["volume_fract_tot"] = sum(structure_dict_pachy["data_binary"])/structure_dict_pachy["size_data"][1]^3
+
+# voxel size = 9 nm
+# mean bond length =~ 185 nm
+# voxel edge length in units of bond length = 0.04865
+
+structure_dict_pachy["voxel_edge_length"] = 0.04865
+
+structure_dict_pachy["mean_edge_length_data"] = structure_dict_pachy["size_data"][1] * structure_dict_pachy["voxel_edge_length"]
+
+# save pachy weevil data
+
+GU.save_dict_to_h5(structure_dict_pachy, raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\biological\pachy_red_structure_adjusted.h5")
+
+
+
+structure_dict_path = "../structures/biological/"
+
+analysis_data_path = "../analysis_data/biological/"
+
+filename = "pachy_blue"
+
+NA.get_all_dicts_from_voxelized_structure(filename,
+    structure_dict_path,
+    analysis_data_path;
+    print_progress = true,
+    print_lock = Threads.ReentrantLock())
+
+filename = "pachy_red"
+
+NA.get_all_dicts_from_voxelized_structure(filename,
+    structure_dict_path,
+    analysis_data_path;
+    print_progress = true,
+    print_lock = Threads.ReentrantLock())

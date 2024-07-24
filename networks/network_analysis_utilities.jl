@@ -142,8 +142,90 @@ end
 
 
 """
-For each structure dict in a list of run and filenames, calculate the 
-autocovariance function as a function of direction
+For a single file, calculate
+several functions that characterize the structure
+"""
+function get_all_dicts_from_graph_single_file(filename::String,
+    graph_dict_path::String,
+    structure_dict_path::String,
+    analysis_data_path::String;
+    structure_factor_diamond_std_value_ratio::Float64 = 1.2530337,
+    spectral_density_diamond_std_value_ratio::Float64 = 1.2588849,
+    print_progress::Bool = false,
+    print_lock = Threads.ReentrantLock())
+
+    # get graph dict
+    graph_dict = NG.load_graph_from_h5_and_gml(graph_dict_path*filename)
+
+    # create structure dict
+    structure_dict = get_binary_data_from_spatial_network(graph_dict;
+    bond_radius = 0.35,
+    voxel_edge_length = 0.1,
+    save_path = structure_dict_path*filename,
+    filename = filename,
+    save_result=true)
+
+    # get autocovariance function as a function of direction
+    autocovariance_fct_direction_dict = get_autocovariance_fct_by_sampling_indices_array(
+        structure_dict;
+    save_result = true,
+    save_path = analysis_data_path*filename,
+    print_progress = print_progress,
+    thread_nr = Threads.threadid() ,
+    print_lock = print_lock)
+
+    spectral_density_dict = get_spectral_density_by_wavevector_array_fft(structure_dict;
+    save_autocovariance_fct_direction_dict = false,
+    save_result = true,
+    save_path = analysis_data_path*filename,
+    autocovariance_fct_direction_dict = autocovariance_fct_direction_dict)
+
+    spectral_density_angle_averaged_dict = get_spectral_density_angle_averaged(spectral_density_dict;
+    gaussian_filter = true,
+    gaussian_filter_sigma_x = 2*pi/25, 
+    gaussian_filter_filtered_data_x_step_length = 2*pi/25,
+    save_result = true,
+    save_path = analysis_data_path*filename)
+
+    volume_fract_variance_dict = get_volume_fract_variance(autocovariance_fct_direction_dict;
+        save_result = true,
+        save_path = analysis_data_path*filename)
+
+    structure_factor_dict = get_structure_factor_by_wavevector_array(graph_dict;
+    save_result = true,
+    save_path = analysis_data_path*filename,
+    label = nothing)
+
+    structure_factor_angle_averaged_dict = get_structure_factor_angle_averaged(structure_factor_dict::Dict;
+        gaussian_filter = true,
+        gaussian_filter_sigma_x = 2*pi/25, 
+        gaussian_filter_filtered_data_x_step_length = 2*pi/25,
+        save_result = true,
+        save_path = analysis_data_path*filename,
+        label = nothing)
+
+    correlation_functions_dict = get_correlation_functions(graph_dict;
+    distance_histogram_bin_width = 0.02,
+    save_result = true,
+    save_path = analysis_data_path*filename,
+    label = nothing)
+
+    small_scale_order_metrics_dict = get_small_length_scale_order_metrics(filename,
+    graph_dict_path,
+    analysis_data_path;
+    l_max_steinhardt_q_l = 12,
+    structure_factor_diamond_std_value_ratio = structure_factor_diamond_std_value_ratio,
+    spectral_density_diamond_std_value_ratio = spectral_density_diamond_std_value_ratio,
+    save_result = true,
+    )
+
+    return
+end
+
+
+"""
+For each structure dict in a list of run and filenames, calculate
+several functions that characterize the structure
 """
 function get_all_dicts_from_graphs_single_thread(run_and_filename_chunk,
     graph_dicts_path::String,
@@ -163,72 +245,13 @@ function get_all_dicts_from_graphs_single_thread(run_and_filename_chunk,
             end
         end
 
-        # get graph dict
-        graph_dict = NG.load_graph_from_h5_and_gml(graph_dicts_path*run_and_filename)
-
-        # create structure dict
-        structure_dict = get_binary_data_from_spatial_network(graph_dict;
-        bond_radius = 0.35,
-        voxel_edge_length = 0.1,
-        save_path = structure_dicts_path*run_and_filename,
-        filename = run_and_filename[7:end],
-        save_result=true)
-
-        # get autocovariance function as a function of direction
-        autocovariance_fct_direction_dict = get_autocovariance_fct_by_sampling_indices_array(
-            structure_dict;
-        save_result = true,
-        save_path = analysis_data_path*run_and_filename,
-        print_progress = print_progress,
-        thread_nr = Threads.threadid() ,
-        print_lock = print_lock)
-
-        spectral_density_dict = get_spectral_density_by_wavevector_array_fft(structure_dict;
-        save_autocovariance_fct_direction_dict = false,
-        save_result = true,
-        save_path = analysis_data_path*run_and_filename,
-        autocovariance_fct_direction_dict = autocovariance_fct_direction_dict)
-
-        spectral_density_angle_averaged_dict = get_spectral_density_angle_averaged(spectral_density_dict;
-        gaussian_filter = true,
-        gaussian_filter_sigma_x = 2*pi/25, 
-        gaussian_filter_filtered_data_x_step_length = 2*pi/25,
-        save_result = true,
-        save_path = analysis_data_path*run_and_filename)
-
-        volume_fract_variance_dict = get_volume_fract_variance(autocovariance_fct_direction_dict;
-            save_result = true,
-            save_path = analysis_data_path*run_and_filename)
-
-        structure_factor_dict = get_structure_factor_by_wavevector_array(graph_dict;
-        save_result = true,
-        save_path = analysis_data_path*run_and_filename,
-        label = nothing)
-
-        structure_factor_angle_averaged_dict = get_structure_factor_angle_averaged(structure_factor_dict::Dict;
-            gaussian_filter = true,
-            gaussian_filter_sigma_x = 2*pi/25, 
-            gaussian_filter_filtered_data_x_step_length = 2*pi/25,
-            save_result = true,
-            save_path = analysis_data_path*run_and_filename,
-            label = nothing)
-
-        correlation_functions_dict = get_correlation_functions(graph_dict;
-        distance_histogram_bin_width = 0.02,
-        save_result = true,
-        save_path = analysis_data_path*run_and_filename,
-        label = nothing)
-
-        get_small_length_scale_order_metrics(run_and_filename[7:end],
-        graph_dicts_path*run_and_filename[1:6],
-        analysis_data_path*run_and_filename[1:6];
-        l_max_steinhardt_q_l = 12,
-        diamond_structure_factor_peak_wavenumber = 4.676810,
-        diamond_structure_factor_peak_std = 8.5573,
-        diamond_spectral_density_peak_wavenumber = 4.680517,
-        diamond_spectral_density_peak_std = 521.88398,
-        save_result = true,
-        )
+        get_all_dicts_from_graph_single_file(run_and_filename[7:end],
+    graph_dicts_path*run_and_filename[1:6],
+    structure_dicts_path*run_and_filename[1:6],
+    analysis_data_path*run_and_filename[1:6];
+    print_progress = print_progress,
+    print_lock = print_lock)
+        
     end
 
     return
@@ -236,8 +259,8 @@ end
 
 
 """
-For all structure dicts in a folder, calculate the autocovariance function as a function
-of direction using multithreading
+For all structure dicts in a folder, calculate several functions
+that characterize the structures using multithreading
 """
 function get_all_dicts_from_graphs_multithreading(graph_dicts_path,
     structure_dicts_path,
@@ -287,11 +310,9 @@ calculated from small length scales
 function get_small_length_scale_order_metrics(filename::String,
     graph_path::String,
     analysis_data_path::String;
+    structure_factor_diamond_std_value_ratio::Float64 = 1.2530337,
+    spectral_density_diamond_std_value_ratio::Float64 = 1.2588849,
     l_max_steinhardt_q_l::Int64 = 12,
-    diamond_structure_factor_peak_wavenumber::Float64 = 4.676810,
-    diamond_structure_factor_peak_std::Float64 = 8.5573,
-    diamond_spectral_density_peak_wavenumber::Float64 = 4.680517,
-    diamond_spectral_density_peak_std::Float64 = 521.88398,
     save_result = false,
     )
 
@@ -328,9 +349,8 @@ function get_small_length_scale_order_metrics(filename::String,
 
     # get anisotropy metric from structure factor
     anisotropy_metric_from_structure_factor = get_anisotropy_metric_from_structure_factor(
-        structure_factor_angle_averaged_dict,
-        diamond_structure_factor_peak_wavenumber,
-        diamond_structure_factor_peak_std
+        structure_factor_angle_averaged_dict;
+        diamond_std_value_ratio = structure_factor_diamond_std_value_ratio
     )
 
     # load angle averaged spectral density
@@ -338,9 +358,8 @@ function get_small_length_scale_order_metrics(filename::String,
 
     # get anisotropy metric from spectral density
     anisotropy_metric_from_spectral_density = get_anisotropy_metric_from_spectral_density(
-        spectral_density_angle_averaged_dict,
-        diamond_spectral_density_peak_wavenumber,
-        diamond_spectral_density_peak_std
+        spectral_density_angle_averaged_dict;
+        diamond_std_value_ratio = spectral_density_diamond_std_value_ratio
     )
 
     # create dict to save
