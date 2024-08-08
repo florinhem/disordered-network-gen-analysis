@@ -20,14 +20,53 @@ import Plots
 
 # julia --threads 23
 
-structure_dict_path = "../structures/biological/"
+function get_pore_size_distributions()
+    file_count = 0
 
-analysis_data_path = "../analysis_data/biological/"
+    structure_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\binary_structures\216_vertices_bond_bending_0.285\run_"
 
-filename = "pachy_red"
+    save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_bond_bending_0.285\run_"
 
-NA.get_all_dicts_from_voxelized_structure(filename,
-    structure_dict_path,
-    analysis_data_path;
-    print_progress = true,
-    print_lock = Threads.ReentrantLock())
+    for i in 1:5
+
+        current_structure_path = structure_path * string(i) * "\\"
+        current_save_path = save_path * string(i) * "\\"
+
+        # read all files in the current structure path
+        structure_files = readdir(current_structure_path)
+
+        for file in structure_files
+            # load structure
+            structure_dict = GU.load_h5_dict(current_structure_path * file)
+
+            filename = file[1:end-13]
+
+            # get pore size distribution
+            pore_size_distribution_dict = NA.get_pore_size_distribution(structure_dict;
+            save_result = true,
+            save_path = current_save_path * filename)
+
+            # get pore size distribution second moment
+            pore_size_distribution_second_moment = NA.get_pore_size_distribution_second_moment(pore_size_distribution_dict)
+
+            # load small scale order metrics dict 
+            small_scale_order_metrics_dict = GU.load_h5_dict(current_save_path * filename * "_small_scale_order_metrics.h5")
+
+            # save small scale order metrics dict with pore size distribution second moment
+            small_scale_order_metrics_dict["pore_size_distribution_second_moment"] = pore_size_distribution_second_moment
+
+            GU.save_dict_to_h5(small_scale_order_metrics_dict,
+            current_save_path * filename*"_small_scale_order_metrics.h5")
+
+            file_count += 1
+            println("File ", file_count, " done.")
+            
+        end
+        
+    end
+
+    return
+
+end
+
+get_pore_size_distributions()

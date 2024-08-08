@@ -151,6 +151,7 @@ function get_all_dicts_from_graph_single_file(filename::String,
     analysis_data_path::String;
     structure_factor_diamond_std_value_ratio::Float64 = 1.2530337,
     spectral_density_diamond_std_value_ratio::Float64 = 1.2588849,
+    pore_size_distribution_nr_sampled_voxels::Int64 = 20000,
     print_progress::Bool = false,
     print_lock = Threads.ReentrantLock())
 
@@ -174,12 +175,14 @@ function get_all_dicts_from_graph_single_file(filename::String,
     thread_nr = Threads.threadid() ,
     print_lock = print_lock)
 
+    # get spectral density by wavevector array
     spectral_density_dict = get_spectral_density_by_wavevector_array_fft(structure_dict;
     save_autocovariance_fct_direction_dict = false,
     save_result = true,
     save_path = analysis_data_path*filename,
     autocovariance_fct_direction_dict = autocovariance_fct_direction_dict)
 
+    # get angle averaged spectral density
     spectral_density_angle_averaged_dict = get_spectral_density_angle_averaged(spectral_density_dict;
     gaussian_filter = true,
     gaussian_filter_sigma_x = 2*pi/25, 
@@ -187,15 +190,18 @@ function get_all_dicts_from_graph_single_file(filename::String,
     save_result = true,
     save_path = analysis_data_path*filename)
 
+    # get volume fraction variance
     volume_fract_variance_dict = get_volume_fract_variance(autocovariance_fct_direction_dict;
         save_result = true,
         save_path = analysis_data_path*filename)
 
+    # get structure factor by wavevector array
     structure_factor_dict = get_structure_factor_by_wavevector_array(graph_dict;
     save_result = true,
     save_path = analysis_data_path*filename,
     label = nothing)
 
+    # get angle averaged structure factor
     structure_factor_angle_averaged_dict = get_structure_factor_angle_averaged(structure_factor_dict::Dict;
         gaussian_filter = true,
         gaussian_filter_sigma_x = 2*pi/25, 
@@ -204,12 +210,21 @@ function get_all_dicts_from_graph_single_file(filename::String,
         save_path = analysis_data_path*filename,
         label = nothing)
 
+    # get correlation functions
     correlation_functions_dict = get_correlation_functions(graph_dict;
-    distance_histogram_bin_width = 0.02,
-    save_result = true,
-    save_path = analysis_data_path*filename,
-    label = nothing)
+        distance_histogram_bin_width = 0.02,
+        save_result = true,
+        save_path = analysis_data_path*filename,
+        label = nothing)
 
+    # get pore size distribution
+    pore_size_distribution_dict = get_pore_size_distribution(structure_dict;
+        nr_sampled_voxels = pore_size_distribution_nr_sampled_voxels,
+        save_result = true,
+        save_path = analysis_data_path*filename,
+        label = nothing)
+
+    # get all order metrics that contain information about small length scales
     small_scale_order_metrics_dict = get_small_length_scale_order_metrics(filename,
     graph_dict_path,
     analysis_data_path;
@@ -344,6 +359,12 @@ function get_small_length_scale_order_metrics(filename::String,
     # get cluster metric
     cluster_metric = get_cluster_metric(correlation_functions_dict)
 
+    # load pore size distribution
+    pore_size_distribution_dict = GU.load_h5_dict(analysis_data_path*filename*"_pore_size_distribution.h5")
+
+    # get second moment of the pore size distribution
+    pore_size_distribution_second_moment = get_pore_size_distribution_second_moment(pore_size_distribution_dict)
+
     # load angle averaged structure factor
     structure_factor_angle_averaged_dict = GU.load_h5_dict(analysis_data_path*filename*"_structure_factor_angle_averaged.h5")
 
@@ -370,6 +391,7 @@ function get_small_length_scale_order_metrics(filename::String,
         "dihedral_angle_std" => dihedral_angle_std,
         "q_l_vec" => q_l_vec,
         "cluster_metric" => cluster_metric,
+        "pore_size_distribution_second_moment" => pore_size_distribution_second_moment,
         "anisotropy_metric_from_structure_factor" => anisotropy_metric_from_structure_factor,
         "anisotropy_metric_from_spectral_density" => anisotropy_metric_from_spectral_density
     )

@@ -5914,3 +5914,32 @@ NA.get_all_dicts_from_voxelized_structure(filename,
     analysis_data_path;
     print_progress = true,
     print_lock = Threads.ReentrantLock())
+
+
+network_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\binary_structures\216_vertices_bond_bending_0.285\run_2\216_vertices_T_0.15_heat_cool_0.1_per_mc_quenched_structure.h5"
+
+structure_dict_network = GU.load_h5_dict(network_path)
+
+
+
+evolution_dicts_directory_path = "../structures/random_networks/512_vertices_bond_bending_0.21/evolution_dicts/"
+save_path = "../structures/random_networks/512_vertices_bond_bending_0.21/"
+
+NG.generate_graphs_from_evolution_dicts_in_directory_multiple_runs(
+    evolution_dicts_directory_path,
+    save_path;
+    print_every_nr_attempted_bond_switches = 200,
+    print_progress = true,
+    save_network_after_each_temperature = false,
+    further_evolve_previous_networks = false,
+    runs_vec = collect(1:2),
+    print_lock = Threads.ReentrantLock())
+
+
+network_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\binary_structures\216_vertices_bond_bending_0.285\run_2\216_vertices_T_0.4_heat_cool_0.1_per_mc_quenched_structure.h5"
+
+structure_dict_network = GU.load_h5_dict(network_path)
+
+pore_size_distribution_dict = NA.get_pore_size_distribution(structure_dict_network)
+
+pore_size_distribution_second_moment = NA.get_pore_size_distribution_second_moment(pore_size_distribution_dict)

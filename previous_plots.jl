@@ -1808,3 +1808,42 @@ end
 Plots.plot!(xlabel = "distance", ylabel = "pair correlation function")
 
 Plots.savefig(path*"pair_correlation_function_high_t.png")
+
+
+
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\random_networks\others\\"
+
+network_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\binary_structures\216_vertices_bond_bending_0.285\run_2\216_vertices_T_0.15_heat_cool_0.1_per_mc_quenched_structure.h5"
+
+structure_dict_network = GU.load_h5_dict(network_path)
+
+pore_pixel_radius_array = NA.get_pore_size_distribution(structure_dict_network)
+
+pore_pixel_radius_vec = vec(pore_pixel_radius_array)
+pore_pixel_radius_filtered_vec = pore_pixel_radius_vec[pore_pixel_radius_vec .> 0.0]
+Plots.histogram(pore_pixel_radius_filtered_vec)
+Plots.savefig(path*"pore_size_distribution.png")
+
+sampling_nr = 100000
+pore_pixel_radius_sampled_1 = StatsBase.sample(pore_pixel_radius_vec, sampling_nr, replace=false)
+pore_pixel_radius_filtered_vec_1 = pore_pixel_radius_sampled_1[pore_pixel_radius_sampled_1 .> 0.0]
+Plots.histogram(pore_pixel_radius_filtered_vec_1)
+Plots.savefig(path*"pore_size_distribution_100000_samples.png")
+
+sampling_nr = 50000
+pore_pixel_radius_sampled_2 = StatsBase.sample(pore_pixel_radius_vec, sampling_nr, replace=false)
+pore_pixel_radius_filtered_vec_2 = pore_pixel_radius_sampled_2[pore_pixel_radius_sampled_2 .> 0.0]
+Plots.histogram(pore_pixel_radius_filtered_vec_2)
+Plots.savefig(path*"pore_size_distribution_50000_samples.png")
+
+sampling_nr = 10000
+pore_pixel_radius_sampled_3 = StatsBase.sample(pore_pixel_radius_vec, sampling_nr, replace=false)
+pore_pixel_radius_filtered_vec_3 = pore_pixel_radius_sampled_3[pore_pixel_radius_sampled_3 .> 0.0]
+Plots.histogram(pore_pixel_radius_filtered_vec_3)
+Plots.savefig(path*"pore_size_distribution_10000_samples.png")
+
+sampling_nr = 5000
+pore_pixel_radius_sampled_4 = StatsBase.sample(pore_pixel_radius_vec, sampling_nr, replace=false)
+pore_pixel_radius_filtered_vec_4 = pore_pixel_radius_sampled_4[pore_pixel_radius_sampled_4 .> 0.0]
+Plots.histogram(pore_pixel_radius_filtered_vec_4)
+Plots.savefig(path*"pore_size_distribution_5000_samples.png")
