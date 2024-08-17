@@ -21,15 +21,20 @@ import Measurements
 
 # julia --threads 23
 
+graph_dict_path = "../structures/random_networks/diamonds/"
 
-structure_dict_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\binary_structures\216_vertices_bond_bending_0.21_heat_cool\run_2\\"
+structure_dict_path = "../structures/random_networks/binary_structures/diamonds/"
 
-filename = "216_vertices_T_0.17_heat_cool_0.1_per_mc_quenched_structure"
+analysis_data_path = "../analysis_data/random_networks/diamonds/"
 
-structure_dict = GU.load_h5_dict(structure_dict_path * filename * ".h5")
+filename = "1000_vertices_perfect_diamond"
 
-pore_size_distribution_dict_new = NA.get_pore_size_distribution(structure_dict;
-    nr_sampled_voxels = 10000,
-    print_progress = true)
-
-Plots.plot(pore_size_distribution_dict_new["pore_size_vec"], pore_size_distribution_dict_new["pore_size_distribution"])
+NA.get_all_dicts_from_graph_single_file(filename,
+    graph_dict_path,
+    structure_dict_path,
+    analysis_data_path;
+    structure_factor_diamond_std_value_ratio = 1,
+    spectral_density_diamond_std_value_ratio = 1,
+    pore_size_distribution_nr_sampled_voxels = 20000,
+    print_progress = true,
+    print_lock = Threads.ReentrantLock())

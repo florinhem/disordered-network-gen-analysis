@@ -149,8 +149,8 @@ function get_all_dicts_from_graph_single_file(filename::String,
     graph_dict_path::String,
     structure_dict_path::String,
     analysis_data_path::String;
-    structure_factor_diamond_std_value_ratio::Float64 = 1.2530337,
-    spectral_density_diamond_std_value_ratio::Float64 = 1.2588849,
+    structure_factor_diamond_std_value_ratio = 1.2530337,
+    spectral_density_diamond_std_value_ratio = 1.2588849,
     pore_size_distribution_nr_sampled_voxels::Int64 = 20000,
     print_progress::Bool = false,
     print_lock = Threads.ReentrantLock())
@@ -222,7 +222,10 @@ function get_all_dicts_from_graph_single_file(filename::String,
         nr_sampled_voxels = pore_size_distribution_nr_sampled_voxels,
         save_result = true,
         save_path = analysis_data_path*filename,
-        label = nothing)
+        label = nothing,
+        print_progress = print_progress,
+        thread_nr = Threads.threadid() ,
+        print_lock = print_lock)
 
     # get all order metrics that contain information about small length scales
     small_scale_order_metrics_dict = get_small_length_scale_order_metrics(filename,
@@ -246,6 +249,9 @@ function get_all_dicts_from_graphs_single_thread(run_and_filename_chunk,
     graph_dicts_path::String,
     structure_dicts_path::String,
     analysis_data_path::String;
+    structure_factor_diamond_std_value_ratio = 1.2530337,
+    spectral_density_diamond_std_value_ratio = 1.2588849,
+    pore_size_distribution_nr_sampled_voxels::Int64 = 20000,
     print_progress::Bool = false,
     print_lock = Threads.ReentrantLock())
 
@@ -264,6 +270,9 @@ function get_all_dicts_from_graphs_single_thread(run_and_filename_chunk,
     graph_dicts_path*run_and_filename[1:6],
     structure_dicts_path*run_and_filename[1:6],
     analysis_data_path*run_and_filename[1:6];
+    structure_factor_diamond_std_value_ratio = structure_factor_diamond_std_value_ratio,
+    spectral_density_diamond_std_value_ratio = spectral_density_diamond_std_value_ratio,
+    pore_size_distribution_nr_sampled_voxels = pore_size_distribution_nr_sampled_voxels,
     print_progress = print_progress,
     print_lock = print_lock)
         
@@ -280,6 +289,9 @@ that characterize the structures using multithreading
 function get_all_dicts_from_graphs_multithreading(graph_dicts_path,
     structure_dicts_path,
     analysis_data_path::String;
+    structure_factor_diamond_std_value_ratio = 1.2530337,
+    spectral_density_diamond_std_value_ratio = 1.2588849,
+    pore_size_distribution_nr_sampled_voxels::Int64 = 20000,
     print_progress::Bool = false,
     runs_vec = collect(1:5),
     print_lock = Threads.ReentrantLock())
@@ -311,6 +323,9 @@ function get_all_dicts_from_graphs_multithreading(graph_dicts_path,
         graph_dicts_path,
         structure_dicts_path,
         analysis_data_path;
+        structure_factor_diamond_std_value_ratio = structure_factor_diamond_std_value_ratio,
+        spectral_density_diamond_std_value_ratio = spectral_density_diamond_std_value_ratio,
+        pore_size_distribution_nr_sampled_voxels = pore_size_distribution_nr_sampled_voxels,
         print_progress = print_progress,
         print_lock = print_lock)
     end
@@ -325,8 +340,8 @@ calculated from small length scales
 function get_small_length_scale_order_metrics(filename::String,
     graph_path::String,
     analysis_data_path::String;
-    structure_factor_diamond_std_value_ratio::Float64 = 1.2530337,
-    spectral_density_diamond_std_value_ratio::Float64 = 1.2588849,
+    structure_factor_diamond_std_value_ratio = 1.2530337,
+    spectral_density_diamond_std_value_ratio = 1.2588849,
     l_max_steinhardt_q_l::Int64 = 12,
     save_result = false,
     )

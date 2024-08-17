@@ -562,137 +562,6 @@ end
 
 
 """
-Get a digital sphere for a given radius
-"""
-function get_digital_sphere(radius)
-
-    # Initialize an empty array to hold the voxel coordinates
-    voxels = []
-
-    # Iterate through a cube that bounds the sphere
-    for x in -Int(round(radius)):Int(round(radius))
-        for y in -Int(round(radius)):Int(round(radius))
-            for z in -Int(round(radius)):Int(round(radius))
-                # Check if the current point lies within the sphere
-                if x^2 + y^2 + z^2 <= radius^2
-                    push!(voxels, [x, y, z])
-                end
-            end
-        end
-    end
-
-    return voxels
-end
-
-
-"""
-Calculate the pore size distribution following the method described in
-10.1103/PhysRevE.100.053314, modified to work with periodic boundary conditions
-and by using random sampling of voxels to speed up the calculation
-"""
-function get_pore_size_distribution(structure_dict::Dict;
-    nr_sampled_voxels::Int = 20000,
-    save_result::Bool = false,
-    save_path = raw"..\analysis_data\sample_name",
-    label = nothing)
-
-    # create list of digital spheres with increasing radius
-    sphere_pixel_radius_vec = collect(0.5001:0.5:minimum(structure_dict["size_data"]))
-    digital_sphere_list = [get_digital_sphere(radius) for radius in sphere_pixel_radius_vec]
-
-    # create array with pore radii
-    pore_pixel_radius_array = zeros(size(structure_dict["data_binary"])...)
-    i = 1
-
-    # sample given number of voxels to speed up calculation
-    sampled_coords = StatsBase.sample(CartesianIndices(structure_dict["data_binary"]), 
-        nr_sampled_voxels, replace=false)
-
-    # loop through all sampled voxels using cartesian indices
-    for coord in sampled_coords
-
-        # check if voxel is in pore
-        if !structure_dict["data_binary"][coord]
-
-            # loop through all digital spheres
-            for j in eachindex(digital_sphere_list)
-
-                # get digital sphere
-                digital_sphere = digital_sphere_list[j]
-
-                # check if voxel is in digital sphere
-                if all([!structure_dict["data_binary"][
-                    ((coord.I .- [1,1,1] .+ minimum(structure_dict["size_data"]) .+ digital_sphere[k]
-                        ).%minimum(structure_dict["size_data"]) .+ [1,1,1])...] 
-                        for k in eachindex(digital_sphere)])
-
-                    # set pore pixel radius to maximum of current and previous radius
-                    for k in eachindex(digital_sphere)
-
-                        pore_pixel_radius_array[
-                            ((coord.I .- [1,1,1] .+ minimum(structure_dict["size_data"]) .+ digital_sphere[k]
-                        ).%minimum(structure_dict["size_data"]) .+ [1,1,1])...
-                            ] = maximum([
-                                pore_pixel_radius_array[
-                                    ((coord.I .- [1,1,1] .+ minimum(structure_dict["size_data"]) .+ digital_sphere[k]
-                        ).%minimum(structure_dict["size_data"]) .+ [1,1,1])...],
-                                        sphere_pixel_radius_vec[j] 
-                                ])
-                    end
-                
-                else
-                    break
-
-                end
-
-            end
-        end
-    end
-
-    # shape the pore pixel radius array into a vector
-    pore_pixel_radius_vec = vec(pore_pixel_radius_array)
-
-    # filter out voxels that are not in a pore
-    pore_pixel_radius_filtered_vec = pore_pixel_radius_vec[pore_pixel_radius_vec .> 0.0]
-
-    # create histogram of pore pixel radii
-    pixel_radius_histogram = StatsBase.fit(
-            StatsBase.Histogram, pore_pixel_radius_filtered_vec, 
-            0.2501:0.5:minimum(structure_dict["size_data"]), 
-            closed=:left)
-
-    # normalize histogram
-    pixel_radius_histogram = LinearAlgebra.normalize(pixel_radius_histogram, mode=:probability)
-
-    # get pore size distribution
-    pore_size_distribution = pixel_radius_histogram.weights
-
-    # convert pixel radii to physical radii
-    pore_size_vec = sphere_pixel_radius_vec .* structure_dict["voxel_edge_length"]
-
-    
-
-    # create dict to save
-    pore_size_distribution_dict = Dict{String, Any}("pore_size_vec" => pore_size_vec,
-                                "pore_size_distribution" => pore_size_distribution,
-                                "nr_sampled_voxels" => nr_sampled_voxels)
-
-    # add label to dictionary if label is not nothing
-    if label !== nothing
-        pore_size_distribution_dict["label"] = label
-    end
-
-    # save results if desired
-    if save_result
-        GU.save_dict_to_h5(copy(pore_size_distribution_dict),
-            save_path*"_pore_size_distribution.h5")
-
-    end
-
-    return pore_size_distribution_dict
-end
-
-"""
 Get the second moment of the pore size distribution which, according to 
 10.1103/PhysRevE.104.014127 is an estimate of the critical pore radius
 (although they use another definition of the pore size distribution)
@@ -715,7 +584,7 @@ by the same value for the diamond lattice
 """
 function get_anisotropy_metric_from_structure_factor(
     structure_factor_angle_averaged_dict::Dict;
-    diamond_std_value_ratio::Float64 = 1.2530337)
+    diamond_std_value_ratio = 1.2530337)
 
     # set the wavenumbers where structure factor will be checked
     wavenumbers_to_check_vec = 2*pi*collect(0.2:0.1:1.0)

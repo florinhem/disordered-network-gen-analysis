@@ -1847,3 +1847,93 @@ pore_pixel_radius_sampled_4 = StatsBase.sample(pore_pixel_radius_vec, sampling_n
 pore_pixel_radius_filtered_vec_4 = pore_pixel_radius_sampled_4[pore_pixel_radius_sampled_4 .> 0.0]
 Plots.histogram(pore_pixel_radius_filtered_vec_4)
 Plots.savefig(path*"pore_size_distribution_5000_samples.png")
+
+
+
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\random_networks\1000_vertices_bond_bending_0.285\run_1\\"
+
+load_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\1000_vertices_bb_0.285\run_1\\"
+
+temperature_vec = vcat(collect(0.1:0.01:0.18), collect(0.2:0.02:0.24))[1:6]
+
+Plots.plot()
+
+for temperature in temperature_vec
+    spectral_density_angle_averaged_dict = GU.load_h5_dict(load_path * "1000_vertices_T_" * string(temperature) * "_heat_cool_0.1_per_mc_quenched_spectral_density_angle_averaged.h5")
+    Plots.plot!(spectral_density_angle_averaged_dict["wavenumber_vec"], Measurements.value.(spectral_density_angle_averaged_dict["spectral_density_vec"]), 
+    #ribbon =  Measurements.uncertainty.(spectral_density_angle_averaged_dict["spectral_density_vec"]),
+    label = "T = " * string(temperature))
+end
+
+Plots.plot!(xlabel = "wavenumber / "*Latex.L"d^{-1}", ylabel = "spectral density", xlim = (0, 4*pi), ylim=(0,150) )
+
+Plots.savefig(path*"spectral_density_angle_averaged_low_t.png")
+
+temperature_vec = vcat(collect(0.1:0.01:0.18), collect(0.2:0.02:0.24))[7:end]
+
+Plots.plot()
+
+for temperature in temperature_vec
+    spectral_density_angle_averaged_dict = GU.load_h5_dict(load_path * "1000_vertices_T_" * string(temperature) * "_heat_cool_0.1_per_mc_quenched_spectral_density_angle_averaged.h5")
+    Plots.plot!(spectral_density_angle_averaged_dict["wavenumber_vec"], Measurements.value.(spectral_density_angle_averaged_dict["spectral_density_vec"]), 
+    #ribbon =  Measurements.uncertainty.(spectral_density_angle_averaged_dict["spectral_density_vec"]),
+    label = "T = " * string(temperature))
+end
+
+Plots.plot!(xlabel = "wavenumber / "*Latex.L"d^{-1}", ylabel = "spectral density", xlim = (0, 4*pi), ylim=(0,150) )
+
+Plots.savefig(path*"spectral_density_angle_averaged_high_t.png")
+
+
+
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\biological\\"
+
+load_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\\"
+
+Plots.plot()
+
+spectral_density_angle_averaged_dict = GU.load_h5_dict(load_path * "pachy_blue_spectral_density_angle_averaged.h5")
+
+Plots.plot!(spectral_density_angle_averaged_dict["wavenumber_vec"], Measurements.value.(spectral_density_angle_averaged_dict["spectral_density_vec"])./3, 
+    ribbon =  Measurements.uncertainty.(spectral_density_angle_averaged_dict["spectral_density_vec"])./3,
+    label = "blue" )
+
+load_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\1000_vertices_bb_0.285\run_1\\"
+
+temperature_vec = [0.1, 0.15, 0.17]
+
+
+for temperature in temperature_vec
+    spectral_density_angle_averaged_dict = GU.load_h5_dict(load_path * "1000_vertices_T_" * string(temperature) * "_heat_cool_0.1_per_mc_quenched_spectral_density_angle_averaged.h5")
+    Plots.plot!(spectral_density_angle_averaged_dict["wavenumber_vec"], Measurements.value.(spectral_density_angle_averaged_dict["spectral_density_vec"]), 
+    ribbon =  Measurements.uncertainty.(spectral_density_angle_averaged_dict["spectral_density_vec"]),
+    label = "T = " * string(temperature))
+end
+
+Plots.plot!(xlabel = "wavenumber / "*Latex.L"d^{-1}", ylabel = "spectral density / a. u.", xlim = (0, 3*pi), ylim=(0,300) )
+
+Plots.savefig(path*"spectral_density_angle_averaged_weevil_random_networks.png")
+
+
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\biological\\"
+
+load_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\\"
+
+Plots.plot()
+
+spectral_density_angle_averaged_dict = GU.load_h5_dict(load_path * "pachy_blue_spectral_density_angle_averaged.h5")
+
+Plots.plot!(spectral_density_angle_averaged_dict["wavenumber_vec"], Measurements.value.(spectral_density_angle_averaged_dict["spectral_density_vec"])./3, 
+    ribbon =  Measurements.uncertainty.(spectral_density_angle_averaged_dict["spectral_density_vec"])./3,
+    label = "blue" )
+
+spectral_density_angle_averaged_dict = GU.load_h5_dict(load_path * "pachy_red_spectral_density_angle_averaged.h5")
+
+Plots.plot!(spectral_density_angle_averaged_dict["wavenumber_vec"], Measurements.value.(spectral_density_angle_averaged_dict["spectral_density_vec"])./1.7 ./3, 
+    ribbon =  Measurements.uncertainty.(spectral_density_angle_averaged_dict["spectral_density_vec"])./3,
+    label = "red" )
+
+
+Plots.plot!(xlabel = "wavenumber / "*Latex.L"d^{-1}", ylabel = "spectral density / a. u.", xlim = (0, 3*pi), ylim=(0,600) )
+
+Plots.savefig(path*"spectral_density_angle_averaged_weevil.png")

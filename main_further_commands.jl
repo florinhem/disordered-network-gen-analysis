@@ -5943,3 +5943,310 @@ structure_dict_network = GU.load_h5_dict(network_path)
 pore_size_distribution_dict = NA.get_pore_size_distribution(structure_dict_network)
 
 pore_size_distribution_second_moment = NA.get_pore_size_distribution_second_moment(pore_size_distribution_dict)
+
+function get_pore_size_distributions()
+    file_count = 0
+
+    structure_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\binary_structures\216_vertices_bond_bending_0.285\run_"
+
+    save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_bond_bending_0.285\run_"
+
+    for i in 1:5
+
+        current_structure_path = structure_path * string(i) * "\\"
+        current_save_path = save_path * string(i) * "\\"
+
+        # read all files in the current structure path
+        structure_files = readdir(current_structure_path)
+
+        for file in structure_files
+            # load structure
+            structure_dict = GU.load_h5_dict(current_structure_path * file)
+
+            filename = file[1:end-13]
+
+            # get pore size distribution
+            pore_size_distribution_dict = NA.get_pore_size_distribution(structure_dict;
+            save_result = true,
+            save_path = current_save_path * filename)
+
+            # get pore size distribution second moment
+            pore_size_distribution_second_moment = NA.get_pore_size_distribution_second_moment(pore_size_distribution_dict)
+
+            # load small scale order metrics dict 
+            small_scale_order_metrics_dict = GU.load_h5_dict(current_save_path * filename * "_small_scale_order_metrics.h5")
+
+            # save small scale order metrics dict with pore size distribution second moment
+            small_scale_order_metrics_dict["pore_size_distribution_second_moment"] = pore_size_distribution_second_moment
+
+            GU.save_dict_to_h5(small_scale_order_metrics_dict,
+            current_save_path * filename*"_small_scale_order_metrics.h5")
+
+            file_count += 1
+            println("File ", file_count, " done.")
+            
+        end
+        
+    end
+
+    return
+
+end
+
+get_pore_size_distributions()
+
+
+
+# load pachy weevil data
+
+pachy_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\pachy_red_autocovariance_fct_direction_complete_unadjusted.h5"
+
+autocovariance_dict_pachy = GU.load_h5_dict(pachy_path)
+
+# cut all arrays to cubic shape
+
+previous_size = size(autocovariance_dict_pachy["autocovariance_fct_array"])[1:3]
+central_indices = Int.( (previous_size .+ 1) ./ 2)
+half_cubic_edge_length = Int( ( minimum(previous_size[1:3] ) - 1) /2)
+
+
+autocovariance_dict_pachy["autocovariance_fct_array"] = autocovariance_dict_pachy["autocovariance_fct_array"][central_indices[1]-half_cubic_edge_length:central_indices[1]+half_cubic_edge_length, central_indices[2]-half_cubic_edge_length:central_indices[2]+half_cubic_edge_length, central_indices[3]-half_cubic_edge_length:central_indices[3]+half_cubic_edge_length, :]
+
+autocovariance_dict_pachy["autocovariance_fct_array_uncertainty"] = Measurements.uncertainty.(autocovariance_dict_pachy["autocovariance_fct_array"])
+autocovariance_dict_pachy["autocovariance_fct_array"] = Measurements.value.(autocovariance_dict_pachy["autocovariance_fct_array"])
+
+autocovariance_dict_pachy["sampling_index_array"] = autocovariance_dict_pachy["sampling_vec_array"][central_indices[1]-half_cubic_edge_length:central_indices[1]+half_cubic_edge_length, central_indices[2]-half_cubic_edge_length:central_indices[2]+half_cubic_edge_length, central_indices[3]-half_cubic_edge_length:central_indices[3]+half_cubic_edge_length, :]
+
+autocovariance_dict_pachy["sampling_index_vec_vec"] = [autocovariance_dict_pachy["sampling_distance_vec_vec"][1][central_indices[1]-half_cubic_edge_length:central_indices[1]+half_cubic_edge_length], autocovariance_dict_pachy["sampling_distance_vec_vec"][2][central_indices[2]-half_cubic_edge_length:central_indices[2]+half_cubic_edge_length], autocovariance_dict_pachy["sampling_distance_vec_vec"][3][central_indices[3]-half_cubic_edge_length:central_indices[3]+half_cubic_edge_length]]
+
+# voxel size = 9 nm
+# mean bond length =~ 185 nm
+# voxel edge length in units of bond length = 0.04865
+autocovariance_dict_pachy["voxel_edge_length"] = 0.04865
+autocovariance_dict_pachy["sampling_distance_vec_vec"] = autocovariance_dict_pachy["sampling_index_vec_vec"] .* autocovariance_dict_pachy["voxel_edge_length"]
+autocovariance_dict_pachy["sampling_distance_array"] = autocovariance_dict_pachy["sampling_index_array"] .* autocovariance_dict_pachy["voxel_edge_length"]
+
+# save pachy weevil data
+
+GU.save_dict_to_h5(autocovariance_dict_pachy, raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\pachy_red_autocovariance_fct_direction.h5")
+
+
+
+# load pachy weevil data
+
+pachy_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\pachy_blue_autocovariance_fct_direction_complete_unadjusted.h5"
+
+autocovariance_dict_pachy = GU.load_h5_dict(pachy_path)
+
+# cut all arrays to cubic shape
+
+previous_size = size(autocovariance_dict_pachy["autocovariance_fct_array"])[1:3]
+central_indices = Int.( (previous_size .+ 1) ./ 2)
+half_cubic_edge_length = Int( ( minimum(previous_size[1:3] ) - 1) /2)
+
+
+autocovariance_dict_pachy["autocovariance_fct_array"] = autocovariance_dict_pachy["autocovariance_fct_array"][central_indices[1]-half_cubic_edge_length:central_indices[1]+half_cubic_edge_length, central_indices[2]-half_cubic_edge_length:central_indices[2]+half_cubic_edge_length, central_indices[3]-half_cubic_edge_length:central_indices[3]+half_cubic_edge_length, :]
+
+autocovariance_dict_pachy["autocovariance_fct_array_uncertainty"] = Measurements.uncertainty.(autocovariance_dict_pachy["autocovariance_fct_array"])
+autocovariance_dict_pachy["autocovariance_fct_array"] = Measurements.value.(autocovariance_dict_pachy["autocovariance_fct_array"])
+
+autocovariance_dict_pachy["sampling_index_array"] = autocovariance_dict_pachy["sampling_vec_array"][central_indices[1]-half_cubic_edge_length:central_indices[1]+half_cubic_edge_length, central_indices[2]-half_cubic_edge_length:central_indices[2]+half_cubic_edge_length, central_indices[3]-half_cubic_edge_length:central_indices[3]+half_cubic_edge_length, :]
+
+autocovariance_dict_pachy["sampling_index_vec_vec"] = [autocovariance_dict_pachy["sampling_distance_vec_vec"][1][central_indices[1]-half_cubic_edge_length:central_indices[1]+half_cubic_edge_length], autocovariance_dict_pachy["sampling_distance_vec_vec"][2][central_indices[2]-half_cubic_edge_length:central_indices[2]+half_cubic_edge_length], autocovariance_dict_pachy["sampling_distance_vec_vec"][3][central_indices[3]-half_cubic_edge_length:central_indices[3]+half_cubic_edge_length]]
+
+# voxel size = 10 nm
+# mean bond length =~ 160 nm
+# voxel edge length in units of bond length = 0.0625
+
+autocovariance_dict_pachy["voxel_edge_length"] = 0.0625
+autocovariance_dict_pachy["sampling_distance_vec_vec"] = autocovariance_dict_pachy["sampling_index_vec_vec"] .* autocovariance_dict_pachy["voxel_edge_length"]
+autocovariance_dict_pachy["sampling_distance_array"] = autocovariance_dict_pachy["sampling_index_array"] .* autocovariance_dict_pachy["voxel_edge_length"]
+
+# save pachy weevil data
+
+GU.save_dict_to_h5(autocovariance_dict_pachy, raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\pachy_blue_autocovariance_fct_direction.h5")
+
+
+function get_spectral_density_from_autocovariance_fct(filename)
+
+    # set path to analysis data
+    analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\\"
+
+    # load structure dict
+    pachy_structure_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\biological\\"*filename*"_structure.h5"
+
+    # load autocovariance function dict
+    pachy_auto_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\\"*filename*"_autocovariance_fct_direction.h5"
+
+    # load structure dict
+    structure_dict = GU.load_h5_dict(pachy_structure_path)
+
+    # load autocovariance function dict
+    autocovariance_fct_direction_dict = GU.load_h5_dict(pachy_auto_path)
+
+    # get spectral density by wavevector array
+    spectral_density_dict = NA.get_spectral_density_by_wavevector_array_fft(structure_dict;
+    save_autocovariance_fct_direction_dict = false,
+    save_result = true,
+    save_path = analysis_data_path*filename,
+    autocovariance_fct_direction_dict = autocovariance_fct_direction_dict)
+
+    # get angle averaged spectral density
+    spectral_density_angle_averaged_dict = NA.get_spectral_density_angle_averaged(spectral_density_dict;
+    gaussian_filter = true,
+    gaussian_filter_sigma_x = 2*pi/25, 
+    gaussian_filter_filtered_data_x_step_length = 2*pi/25,
+    save_result = true,
+    save_path = analysis_data_path*filename)
+
+    return
+
+end
+
+get_spectral_density_from_autocovariance_fct("pachy_blue")
+
+get_spectral_density_from_autocovariance_fct("pachy_red")
+
+
+
+evolution_dicts_directory_path = "../structures/random_networks/512_vertices_bond_bending_0.21/evolution_dicts/"
+save_path = "../structures/random_networks/512_vertices_bond_bending_0.21/"
+
+NG.generate_graphs_from_evolution_dicts_in_directory_multiple_runs(
+    evolution_dicts_directory_path,
+    save_path;
+    print_every_nr_attempted_bond_switches = 200,
+    print_progress = true,
+    save_network_after_each_temperature = false,
+    further_evolve_previous_networks = false,
+    runs_vec = collect(3:5),
+    print_lock = Threads.ReentrantLock())
+
+
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\diamonds\\"
+
+filename = "512_vertices_perfect_diamond"
+
+# load the network
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 512)
+
+graph_dict = NG.get_periodic_network(evolution_dict)
+
+NG.save_graph_to_h5_and_gml(graph_dict, filename; 
+            save_path = path)
+
+graph_dict = NG.load_graph_from_h5_and_gml(path * filename)
+
+NG.plot_spatial_network(graph_dict)
+
+NG.save_mesh_from_spatial_network(graph_dict, filename; save_path = path, bond_radius = 0.3131)
+
+
+graph_dict_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\diamonds\\"
+
+structure_dict_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\binary_structures\diamonds\\"
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\diamonds\\"
+
+filename = "216_vertices_perfect_diamond"
+
+NA.get_all_dicts_from_graph_single_file(filename,
+    graph_dict_path,
+    structure_dict_path,
+    analysis_data_path;
+    structure_factor_diamond_std_value_ratio = 1,
+    spectral_density_diamond_std_value_ratio = 1,
+    pore_size_distribution_nr_sampled_voxels = 20000,
+    print_progress = true,
+    print_lock = Threads.ReentrantLock())
+
+
+
+graph_dicts_path = "../structures/random_networks/1000_vertices_bond_bending_0.21/"
+structure_dicts_path = "../structures/random_networks/binary_structures/1000_vertices_bond_bending_0.21/"
+analysis_data_path = "../analysis_data/random_networks/1000_vertices_bond_bending_0.21/"
+
+NA.get_all_dicts_from_graphs_multithreading(graph_dicts_path,
+    structure_dicts_path,
+    analysis_data_path::String;
+    structure_factor_diamond_std_value_ratio = 1,
+    spectral_density_diamond_std_value_ratio = 1,
+    pore_size_distribution_nr_sampled_voxels = 20000,
+    print_progress = true,
+    runs_vec = collect(1:5),
+    print_lock = Threads.ReentrantLock())
+
+
+graph_dicts_path = "../structures/random_networks/512_vertices_bond_bending_0.21/"
+structure_dicts_path = "../structures/random_networks/binary_structures/512_vertices_bond_bending_0.21/"
+analysis_data_path = "../analysis_data/random_networks/512_vertices_bond_bending_0.21/"
+
+NA.get_all_dicts_from_graphs_multithreading(graph_dicts_path,
+        structure_dicts_path,
+        analysis_data_path::String;
+        structure_factor_diamond_std_value_ratio = 1,
+        spectral_density_diamond_std_value_ratio = 1,
+        pore_size_distribution_nr_sampled_voxels = 20000,
+        print_progress = true,
+        runs_vec = collect(1:5),
+        print_lock = Threads.ReentrantLock())
+
+
+graph_dicts_path = "../structures/random_networks/216_vertices_bond_bending_0.21_heat_cool/"
+structure_dicts_path = "../structures/random_networks/binary_structures/216_vertices_bond_bending_0.21_heat_cool/"
+analysis_data_path = "../analysis_data/random_networks/216_vertices_bond_bending_0.21_heat_cool/"
+
+NA.get_all_dicts_from_graphs_multithreading(graph_dicts_path,
+                structure_dicts_path,
+                analysis_data_path::String;
+                structure_factor_diamond_std_value_ratio = 1,
+                spectral_density_diamond_std_value_ratio = 1,
+                pore_size_distribution_nr_sampled_voxels = 20000,
+                print_progress = true,
+                runs_vec = collect(1:5),
+                print_lock = Threads.ReentrantLock())
+
+
+graph_dicts_path = "../structures/random_networks/1000_vertices_bond_bending_0.285/"
+structure_dicts_path = "../structures/random_networks/binary_structures/1000_vertices_bond_bending_0.285/"
+analysis_data_path = "../analysis_data/random_networks/1000_vertices_bond_bending_0.285/"
+
+NA.get_all_dicts_from_graphs_multithreading(graph_dicts_path,
+    structure_dicts_path,
+    analysis_data_path::String;
+    structure_factor_diamond_std_value_ratio = 1,
+    spectral_density_diamond_std_value_ratio = 1,
+    pore_size_distribution_nr_sampled_voxels = 20000,
+    print_progress = true,
+    runs_vec = collect(1:5),
+    print_lock = Threads.ReentrantLock())
+
+
+graph_dicts_path = "../structures/random_networks/512_vertices_bond_bending_0.285/"
+structure_dicts_path = "../structures/random_networks/binary_structures/512_vertices_bond_bending_0.285/"
+analysis_data_path = "../analysis_data/random_networks/512_vertices_bond_bending_0.285/"
+
+NA.get_all_dicts_from_graphs_multithreading(graph_dicts_path,
+        structure_dicts_path,
+        analysis_data_path::String;
+        structure_factor_diamond_std_value_ratio = 1,
+        spectral_density_diamond_std_value_ratio = 1,
+        pore_size_distribution_nr_sampled_voxels = 20000,
+        print_progress = true,
+        runs_vec = collect(1:5),
+        print_lock = Threads.ReentrantLock())
+
+
+graph_dicts_path = "../structures/random_networks/216_vertices_bond_bending_0.285_heat_cool/"
+structure_dicts_path = "../structures/random_networks/binary_structures/216_vertices_bond_bending_0.285_heat_cool/"
+analysis_data_path = "../analysis_data/random_networks/216_vertices_bond_bending_0.285_heat_cool/"
+
+NA.get_all_dicts_from_graphs_multithreading(graph_dicts_path,
+                structure_dicts_path,
+                analysis_data_path::String;
+                structure_factor_diamond_std_value_ratio = 1,
+                spectral_density_diamond_std_value_ratio = 1,
+                pore_size_distribution_nr_sampled_voxels = 20000,
+                print_progress = true,
+                runs_vec = collect(1:5),
+                print_lock = Threads.ReentrantLock())

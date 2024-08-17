@@ -412,7 +412,7 @@ function get_autocovariance_fct_by_sampling_indices_array(structure_dict::Dict;
             progress_percentage = i/autocovariance_fct_array_size[1]*100
 
             lock(print_lock) do
-                Format.printfmtln("Current calculation progress thread nr {1:d}: {2:.1f} %", 
+                Format.printfmtln("Autocovariance function calculation progress thread nr {1:d}: {2:.1f} %", 
                     thread_nr, progress_percentage)
             end
         end
@@ -626,7 +626,7 @@ function get_spectral_density_angle_averaged(spectral_density_dict::Dict;
 
     # determine origin vector of cartesian coordinates
     index_vector_origin = Int.(floor.( (
-                size(spectral_density_dict["spectral_density_array"]) .+ 1 ) ./ 2) )
+                size(spectral_density_dict["spectral_density_array"])[1:3] .+ 1 ) ./ 2) )
 
     # loop through Cartesian Indices
     for i in CartesianIndices(spectral_density_dict["spectral_density_array"])
@@ -716,7 +716,7 @@ by the same value for the diamond lattice
 """
 function get_anisotropy_metric_from_spectral_density(
     spectral_density_angle_averaged_dict::Dict;
-    diamond_std_value_ratio::Float64 = 1.2588849)
+    diamond_std_value_ratio = 1.2588849)
 
     # set the wavenumbers where spectral density will be checked
     wavenumbers_to_check_vec = 2*pi*collect(0.2:0.1:1.0)
@@ -824,6 +824,183 @@ function get_volume_fract_variance(autocovariance_fct_direction_dict::Dict;
     end
 
     return volume_fract_variance_dict
+end
+
+
+"""
+Get a digital sphere for a given radius
+"""
+function get_digital_sphere(radius)
+
+    # Initialize an empty array to hold the voxel coordinates
+    voxels = []
+
+    # Iterate through a cube that bounds the sphere
+    for x in -Int(round(radius)):Int(round(radius))
+        for y in -Int(round(radius)):Int(round(radius))
+            for z in -Int(round(radius)):Int(round(radius))
+                # Check if the current point lies within the sphere
+                if x^2 + y^2 + z^2 <= radius^2
+                    push!(voxels, [x, y, z])
+                end
+            end
+        end
+    end
+
+    return voxels
+end
+
+
+"""
+For a given digital sphere, get a mask array of the size of the voxelized data
+with only the voxels of the digital sphere set to 1. The digital sphere is
+centered around the index [0,0,0] of the mask array and the array has periodic
+boundary conditions
+"""
+function get_digital_sphere_mask(radius::Float64, size_data::Tuple)
+
+    # get digital sphere
+    digital_sphere = get_digital_sphere(radius)
+
+    # initialize mask array
+    mask_array = zeros(Bool, size_data...)
+
+    # loop through all voxels of the digital sphere
+    for voxel in digital_sphere
+
+        # set voxel to 1
+        mask_array[ ((.- [1,1,1] .+ minimum(size_data) .+ voxel
+                        ).% size_data .+ [1,1,1])...
+                            ] = 1
+
+    end
+
+    return mask_array
+end
+
+
+"""
+Calculate the pore size distribution following the method described in
+10.1103/PhysRevE.100.053314, modified to work with periodic boundary conditions
+and by using random sampling of voxels to speed up the calculation
+"""
+function get_pore_size_distribution(structure_dict::Dict;
+    nr_sampled_voxels::Int = 20000,
+    save_result::Bool = false,
+    save_path = raw"..\analysis_data\sample_name",
+    label = nothing,
+    print_progress::Bool = false,
+    thread_nr::Int64 = 0,
+    print_lock = Threads.ReentrantLock())
+
+    # create list of digital spheres with increasing radius
+    sphere_pixel_radius_vec = collect(0.5001:0.5:minimum(structure_dict["size_data"]))
+    digital_sphere_mask_list = [get_digital_sphere_mask(radius, structure_dict["size_data"]) for radius in sphere_pixel_radius_vec]
+
+    # create array with pore radii
+    pore_pixel_radius_array = zeros(size(structure_dict["data_binary"])...)
+
+    # create array of ones of the size of the voxelized data
+    ones_array = ones(Bool, size(structure_dict["data_binary"])...)
+
+    # initialize counter if progress is printed
+    if print_progress
+        i = 1
+    end
+
+    # sample given number of voxels to speed up calculation
+    sampled_coords = StatsBase.sample(CartesianIndices(structure_dict["data_binary"]), 
+        nr_sampled_voxels, replace=false)
+
+    # loop through all sampled voxels using cartesian indices
+    for coord in sampled_coords
+
+        # check if voxel is in pore
+        if !structure_dict["data_binary"][coord]
+
+            # loop through all digital sphere masks
+            for j in eachindex(digital_sphere_mask_list)
+
+                digital_sphere_mask = digital_sphere_mask_list[j]
+
+                # use periodic boundary conditions to shift all entries of the mask array
+                # along the three dimensions as given by the sampling vector
+                digital_sphere_mask_shifted = circshift(digital_sphere_mask, coord.I)
+
+                # check if all voxels of the digital sphere are in the pore
+                if any(structure_dict["data_binary"][digital_sphere_mask_shifted])
+                    break
+
+                else
+                    # set pore pixel radius to maximum of current and previous radius
+                    pore_pixel_radius_array[digital_sphere_mask_shifted] = max.(pore_pixel_radius_array[digital_sphere_mask_shifted],
+                        sphere_pixel_radius_vec[j] .*  ones_array[digital_sphere_mask_shifted])
+
+                end
+
+            end
+        end
+
+        # print progress
+        if print_progress
+            i += 1
+
+            # print every 100th voxel
+            if i % 100 == 0
+                progress_percentage = i/nr_sampled_voxels*100
+
+                lock(print_lock) do
+                    Format.printfmtln("Pore size distribution calculation progress thread nr {1:d}: {2:.1f} %", 
+                        thread_nr, progress_percentage)
+                end
+
+            end
+            
+        end
+
+    end
+
+    # shape the pore pixel radius array into a vector
+    pore_pixel_radius_vec = vec(pore_pixel_radius_array)
+
+    # filter out voxels that are not in a pore
+    pore_pixel_radius_filtered_vec = pore_pixel_radius_vec[pore_pixel_radius_vec .> 0.0]
+
+    # create histogram of pore pixel radii
+    pixel_radius_histogram = StatsBase.fit(
+            StatsBase.Histogram, pore_pixel_radius_filtered_vec, 
+            0.2501:0.5:minimum(structure_dict["size_data"]), 
+            closed=:left)
+
+    # normalize histogram
+    pixel_radius_histogram = LinearAlgebra.normalize(pixel_radius_histogram, mode=:probability)
+
+    # get pore size distribution
+    pore_size_distribution = pixel_radius_histogram.weights
+
+    # convert pixel radii to physical radii
+    pore_size_vec = sphere_pixel_radius_vec .* structure_dict["voxel_edge_length"]
+
+    
+
+    # create dict to save
+    pore_size_distribution_dict = Dict{String, Any}("pore_size_vec" => pore_size_vec,
+                                "pore_size_distribution" => pore_size_distribution,
+                                "nr_sampled_voxels" => nr_sampled_voxels)
+
+    # add label to dictionary if label is not nothing
+    if label !== nothing
+        pore_size_distribution_dict["label"] = label
+    end
+
+    # save results if desired
+    if save_result
+        GU.save_dict_to_h5(copy(pore_size_distribution_dict),
+            save_path*"_pore_size_distribution.h5")
+
+    end
+
+    return pore_size_distribution_dict
 end
 
 
