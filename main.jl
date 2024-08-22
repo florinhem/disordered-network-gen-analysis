@@ -1,6 +1,6 @@
 
 # include file where structure analysis modules are stored
-include("structure_analysis_modules_no_plotting.jl")
+include("structure_analysis_modules.jl")
 
 # import my module that contains all functions for the generation and analysis of networks
 import .NetworkGeneration as NG
@@ -21,15 +21,15 @@ import Measurements
 
 # julia --threads 23
 
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\diamonds\\"
 
-structure_dict_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\binary_structures\216_vertices_bond_bending_0.21_heat_cool\run_2\\"
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\geometrical_models\diamonds\\"
 
-filename = "216_vertices_T_0.17_heat_cool_0.1_per_mc_quenched_structure"
+filename = "216_vertices_perfect_diamond"
 
-structure_dict = GU.load_h5_dict(structure_dict_path * filename * ".h5")
+graph_dict = NG.load_graph_from_h5_and_gml(path * filename)
 
-pore_size_distribution_dict_new = NA.get_pore_size_distribution(structure_dict;
-    nr_sampled_voxels = 10000,
-    print_progress = true)
+#NG.plot_spatial_network(graph_dict)
 
-Plots.plot(pore_size_distribution_dict_new["pore_size_vec"], pore_size_distribution_dict_new["pore_size_distribution"])
+NG.save_mesh_from_spatial_network(graph_dict, filename; save_path = save_path, bond_radius = 0.35,
+vector_out_of_supercell_length = 1, format = "obj")

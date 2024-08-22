@@ -308,8 +308,11 @@ function get_all_dicts_from_graphs_multithreading(graph_dicts_path,
         filenames_evolution_dicts = filter(filename -> endswith(filename, "_evolution.h5"), filenames)
         filenames_graph_dicts = [filename[1:end-13] for filename in filenames_evolution_dicts]
 
+        # filter out filenames that are already in the analysis data path
+        filenames_graph_dicts_not_analyzed = filter(filename -> !isfile(analysis_data_path*"run_"*string(i)*"/"*filename*"_small_scale_order_metrics.h5"), filenames_graph_dicts)
+
         # append to list of all structure dict paths
-        append!(run_and_filename_vec, "run_"*string(i)*"/" .* filenames_graph_dicts)
+        append!(run_and_filename_vec, "run_"*string(i)*"/" .* filenames_graph_dicts_not_analyzed)
 
     end
 

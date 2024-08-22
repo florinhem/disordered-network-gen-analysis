@@ -7,7 +7,7 @@ Functions for graph plotting
 cut all bonds that reach out of the supercell and replace 
 them by half way bonds
 """
-function cut_bonds_out_of_supercell!(plot_dict::Dict)
+function cut_bonds_out_of_supercell!(plot_dict::Dict; vector_out_of_supercell_length = 1/2)
     
     # get vector of all bonds in network
     bond_vec = collect(MetaGraphsNext.edge_labels(plot_dict["spatial_network"]))
@@ -25,7 +25,8 @@ function cut_bonds_out_of_supercell!(plot_dict::Dict)
             > plot_dict["supercell_edge_length"]/2)
             
             # determine half way vector
-            new_vector = (1/2) .* plot_dict["spatial_network"][bond...]["vector"]
+            new_vector = (vector_out_of_supercell_length 
+                        .* plot_dict["spatial_network"][bond...]["vector"])
 
             # add two new vertices and bonds half way of original bond
             for i in 1:2

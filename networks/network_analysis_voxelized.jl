@@ -880,6 +880,41 @@ end
 
 
 """
+For a given data size store all digital sphere masks in a dictionary
+"""
+function get_digital_sphere_mask_dict(size_data::Tuple;
+    save_result::Bool = false,
+    save_path = raw"..\analysis_data\random_networks\digital_sphere_masks\\",)
+
+    # create list of digital spheres with increasing radius
+    sphere_pixel_radius_vec = collect(0.5001:0.5:minimum([minimum(size_data)/2, 50]))
+    digital_sphere_mask_arr = Array{Bool}(undef, size_data..., length(sphere_pixel_radius_vec))
+
+    # loop through all radii
+    for i in eachindex(sphere_pixel_radius_vec)
+
+        digital_sphere_mask_arr[:,:,:,i] = get_digital_sphere_mask(sphere_pixel_radius_vec[i], size_data)
+
+    end
+
+    # create dict to save
+    digital_sphere_mask_dict = Dict{String, Any}("sphere_pixel_radius_vec" => sphere_pixel_radius_vec,
+                                "digital_sphere_mask_arr" => digital_sphere_mask_arr,
+                                "size_data" => size_data)
+
+
+    # save results if desired
+    if save_result
+        GU.save_dict_to_h5(copy(digital_sphere_mask_dict),
+            save_path*"digital_sphere_mask_size_" *string(size_data)* ".h5")
+
+    end
+
+    return digital_sphere_mask_dict
+end
+
+
+"""
 Calculate the pore size distribution following the method described in
 10.1103/PhysRevE.100.053314, modified to work with periodic boundary conditions
 and by using random sampling of voxels to speed up the calculation
@@ -887,15 +922,44 @@ and by using random sampling of voxels to speed up the calculation
 function get_pore_size_distribution(structure_dict::Dict;
     nr_sampled_voxels::Int = 20000,
     save_result::Bool = false,
-    save_path = raw"..\analysis_data\sample_name",
+    save_path = raw"..\analysis_data\sample_name\\",
     label = nothing,
+    digital_sphere_mask_path = raw"..\analysis_data\random_networks\digital_sphere_masks\\",
     print_progress::Bool = false,
     thread_nr::Int64 = 0,
     print_lock = Threads.ReentrantLock())
 
-    # create list of digital spheres with increasing radius
-    sphere_pixel_radius_vec = collect(0.5001:0.5:minimum(structure_dict["size_data"]))
-    digital_sphere_mask_list = [get_digital_sphere_mask(radius, structure_dict["size_data"]) for radius in sphere_pixel_radius_vec]
+    # if digital sphere mask file for given data size exists, load it
+    if isfile(digital_sphere_mask_path*"digital_sphere_mask_size_" *string(structure_dict["size_data"])* ".h5")
+
+        digital_sphere_mask_dict = GU.load_h5_dict(digital_sphere_mask_path*"digital_sphere_mask_size_" *string(structure_dict["size_data"])* ".h5")
+
+        # print progress
+        if print_progress
+            lock(print_lock) do
+                Format.printfmtln("Thread nr {1:d}: digital sphere mask dict loaded", 
+                        thread_nr)
+            end
+            
+        end
+
+    # otherwise create and save digital sphere mask dict
+    else
+
+        # print progress
+        if print_progress
+            lock(print_lock) do
+                Format.printfmtln("Thread nr {1:d}: generating digital sphere mask dict", 
+                        thread_nr)
+            end
+            
+        end
+
+        digital_sphere_mask_dict = get_digital_sphere_mask_dict(structure_dict["size_data"];
+            save_result = true,
+            save_path = digital_sphere_mask_path)
+
+    end
 
     # create array with pore radii
     pore_pixel_radius_array = zeros(size(structure_dict["data_binary"])...)
@@ -919,9 +983,9 @@ function get_pore_size_distribution(structure_dict::Dict;
         if !structure_dict["data_binary"][coord]
 
             # loop through all digital sphere masks
-            for j in eachindex(digital_sphere_mask_list)
+            for j in eachindex(digital_sphere_mask_dict["sphere_pixel_radius_vec"])
 
-                digital_sphere_mask = digital_sphere_mask_list[j]
+                digital_sphere_mask = digital_sphere_mask_dict["digital_sphere_mask_arr"][:,:,:,j]
 
                 # use periodic boundary conditions to shift all entries of the mask array
                 # along the three dimensions as given by the sampling vector
@@ -934,7 +998,7 @@ function get_pore_size_distribution(structure_dict::Dict;
                 else
                     # set pore pixel radius to maximum of current and previous radius
                     pore_pixel_radius_array[digital_sphere_mask_shifted] = max.(pore_pixel_radius_array[digital_sphere_mask_shifted],
-                        sphere_pixel_radius_vec[j] .*  ones_array[digital_sphere_mask_shifted])
+                        digital_sphere_mask_dict["sphere_pixel_radius_vec"][j] .*  ones_array[digital_sphere_mask_shifted])
 
                 end
 
@@ -969,7 +1033,7 @@ function get_pore_size_distribution(structure_dict::Dict;
     # create histogram of pore pixel radii
     pixel_radius_histogram = StatsBase.fit(
             StatsBase.Histogram, pore_pixel_radius_filtered_vec, 
-            0.2501:0.5:minimum(structure_dict["size_data"]), 
+            digital_sphere_mask_dict["sphere_pixel_radius_vec"][1]-0.25:0.5:digital_sphere_mask_dict["sphere_pixel_radius_vec"][end]+0.251,
             closed=:left)
 
     # normalize histogram
@@ -979,7 +1043,7 @@ function get_pore_size_distribution(structure_dict::Dict;
     pore_size_distribution = pixel_radius_histogram.weights
 
     # convert pixel radii to physical radii
-    pore_size_vec = sphere_pixel_radius_vec .* structure_dict["voxel_edge_length"]
+    pore_size_vec = digital_sphere_mask_dict["sphere_pixel_radius_vec"] .* structure_dict["voxel_edge_length"]
 
     
 

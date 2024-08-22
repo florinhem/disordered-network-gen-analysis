@@ -559,14 +559,18 @@ Get mesh from network
 """
 function save_mesh_from_spatial_network(graph_dict::Dict, filename::String;
     bond_radius::Float64 = 0.3131,
-    save_path::String = raw"..\structures\random_networks\\")
+    vector_out_of_supercell_length = 1/2,
+    save_path::String = raw"..\structures\random_networks\\",
+    duplicate_bonds_close_to_supercell_edge::Bool = true,
+    format::String = "obj")
 
     # create graph dict to plot
     plot_dict = deepcopy(graph_dict)
     
     # cut all bonds that reach out of supercell and replace
     # them by half way bonds
-    plot_dict = cut_bonds_out_of_supercell!(plot_dict)
+    plot_dict = cut_bonds_out_of_supercell!(plot_dict; 
+        vector_out_of_supercell_length = vector_out_of_supercell_length)
 
     # loop through bonds
     for bond in MetaGraphsNext.edge_labels(plot_dict["spatial_network"])
@@ -586,9 +590,60 @@ function save_mesh_from_spatial_network(graph_dict::Dict, filename::String;
         current_cylinder_mesh = GeometryBasics.mesh(current_cylinder)
 
         # save mesh
-        total_path = save_path*filename*"\\"*string(bond[1])*"_"*string(bond[2])*".obj"
+        total_path = save_path*filename*"\\"*string(bond[1])*"_"*string(bond[2])*"."*format
 
         FileIO.save(total_path, current_cylinder_mesh)
+
+        # if one of the two vertices is close to the supercell edge but the vertices
+        # are not on opposite sides of the supercell, save another cylinder just outside the
+        # supercell on the other side
+        if (duplicate_bonds_close_to_supercell_edge
+            && (any(start_pos .< bond_radius ) 
+            || any(target_pos .< bond_radius ) 
+            || any((graph_dict["supercell_edge_length"] .- start_pos) .< bond_radius )
+            || any((graph_dict["supercell_edge_length"] .- target_pos) .< bond_radius ) )
+            && LinearAlgebra.norm(start_pos .- target_pos) < graph_dict["supercell_edge_length"]/2
+            && all(start_pos .< graph_dict["supercell_edge_length"] )
+            && all(target_pos .< graph_dict["supercell_edge_length"] )
+            && all(start_pos .> 0.0 )
+            && all(target_pos .> 0.0 )
+            )
+
+            # check on which side of supercell the additional bond should be added and
+            # calculate new start and target positions
+            if any(start_pos .< bond_radius ) || any(target_pos .< bond_radius ) 
+                
+                new_start_pos = (start_pos .+ graph_dict["supercell_edge_length"]
+                    .* ((start_pos .< bond_radius ) .|| (target_pos .< bond_radius ) ))
+
+                new_target_pos = (target_pos .+ graph_dict["supercell_edge_length"]
+                    .* ((start_pos .< bond_radius ) .|| (target_pos .< bond_radius ) ))
+            else
+                new_start_pos = (start_pos .- graph_dict["supercell_edge_length"]
+                    .* (((graph_dict["supercell_edge_length"] .- start_pos) .< bond_radius )
+                    .|| ((graph_dict["supercell_edge_length"] .- target_pos) .< bond_radius )))
+
+                new_target_pos = (target_pos .- graph_dict["supercell_edge_length"]
+                    .* (((graph_dict["supercell_edge_length"] .- start_pos) .< bond_radius )
+                    .|| ((graph_dict["supercell_edge_length"] .- target_pos) .< bond_radius )))
+            end
+
+            #println(start_pos, target_pos, new_start_pos, new_target_pos)
+                
+            # create cylinder object
+            current_cylinder = GeometryBasics.Cylinder(
+                GeometryBasics.Point( new_start_pos...),
+                GeometryBasics.Point( new_target_pos...),
+                bond_radius)
+            
+            # mesh cylinder object
+            current_cylinder_mesh = GeometryBasics.mesh(current_cylinder)
+
+            # save mesh
+            total_path = save_path*filename*"\\"*string(bond[1])*"_"*string(bond[2])*"_outside_supercell."*format
+
+            FileIO.save(total_path, current_cylinder_mesh)
+        end
 
     end
 

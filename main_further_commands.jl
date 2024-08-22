@@ -6250,3 +6250,35 @@ NA.get_all_dicts_from_graphs_multithreading(graph_dicts_path,
                 print_progress = true,
                 runs_vec = collect(1:5),
                 print_lock = Threads.ReentrantLock())
+
+
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_1\\"
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\geometrical_models\216_vertices_bond_bending_0.21\run_1\\"
+
+filename = "216_vertices_T_0.1_heat_cool_0.1_per_mc_quenched"
+
+graph_dict = NG.load_graph_from_h5_and_gml(path * filename)
+
+#NG.plot_spatial_network(graph_dict)
+
+NG.save_mesh_from_spatial_network(graph_dict, filename; save_path = save_path, bond_radius = 0.35,
+vector_out_of_supercell_length = 1)
+
+
+paths = [raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\binary_structures\216_vertices_bond_bending_0.285_heat_cool\run_1\216_vertices_T_0.1_heat_cool_0.1_per_mc_quenched_structure.h5",
+    raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\binary_structures\512_vertices_bond_bending_0.285\run_1\512_vertices_T_0.1_heat_cool_0.1_per_mc_quenched_structure.h5",
+    raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\binary_structures\1000_vertices_bond_bending_0.285\run_1\1000_vertices_T_0.1_heat_cool_0.1_per_mc_quenched_structure.h5"]
+
+
+for path in paths
+
+    structure_dict = GU.load_h5_dict(path)
+
+    NA.get_digital_sphere_mask_dict(structure_dict["size_data"];
+        save_result = true,
+        save_path = raw"..\analysis_data\random_networks\digital_sphere_masks\\")
+
+    println("done")
+
+end
