@@ -3064,3 +3064,55 @@ function get_pore_size_distribution_old(structure_dict::Dict;
 
     return pore_size_distribution_dict
 end
+
+
+
+"""
+Save spatial network to a GML format file 
+"""
+function save_spatial_network_to_gml(spatial_network::MetaGraphsNext.MetaGraph,
+    filename::String;
+    save_path::String 
+        = raw"..\structures\random_networks\\")
+
+    # open new file
+    open(save_path*filename*".gml", "w") do opened_file
+
+        # write header
+        write(opened_file, "graph [ \n")
+
+        # loop through vertices
+        for vertex in MetaGraphsNext.labels(spatial_network)
+
+            # write vertex
+            write(opened_file, Format.format(
+                "  node [\n    id {1}\n    position [ x {2} y {3} z {4} ]\n  ]\n",
+                vertex,
+                spatial_network[vertex]["position"][1],
+                spatial_network[vertex]["position"][2],
+                spatial_network[vertex]["position"][3]))
+
+        end
+
+        # loop through edges
+        for edge in MetaGraphsNext.edge_labels(spatial_network)
+
+            # write edge
+            write(opened_file, Format.format(
+                "  edge [\n    source {1}\n    target {2}\n    vector [ x {3} y {4} z {5} ]\n    distance_squared {6}\n  ]\n",
+            edge[1],
+            edge[2], 
+            spatial_network[edge...]["vector"][1],
+            spatial_network[edge...]["vector"][2],
+            spatial_network[edge...]["vector"][3],
+            spatial_network[edge...]["distance_squared"]))
+
+        end
+
+        # write footer
+        write(opened_file, "]\n")
+
+    end
+
+    return
+end 

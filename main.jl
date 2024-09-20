@@ -7,13 +7,11 @@ import .NetworkGeneration as NG
 import .NetworkAnalysis as NA
 import .GeneralUtilities as GU
 
-import Plots
-import Measurements
 
-# possible choices of nr_vertices for diamond: 64, 216, 512, 1000, that is (2*n)^3 with natural nr natural
+# possible choices of nr_vertices for diamond: 64, 216, 512, 216, that is (2*n)^3 with natural nr natural
 
 # the supercell edge lengths are 
-# 1000 vertices: supercell_edge_length = 11.547005383792516
+# 216 vertices: supercell_edge_length = 11.547005383792516
 # 512 vertices: supercell_edge_length = 9.237604307034013
 # 216 vertices: supercell_edge_length = 6.9282032302755105
 # 64 vertices: supercell_edge_length = 4.619802153517007
@@ -21,15 +19,35 @@ import Measurements
 
 # julia --threads 23
 
-path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\diamonds\\"
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\\"
 
-save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\geometrical_models\diamonds\\"
+function myfunc()
+    count = 0
+    filepath_list = []
+    # Iterate through all directories and subdirectories
+    for (root, dirs, files) in walkdir(path)
+        for file in files
+            if endswith(file, ".gml")
 
-filename = "216_vertices_perfect_diamond"
+                joined_path = joinpath(root, file)
+                spatial_network = NG.load_spatial_network_from_gml(joined_path)
+                NG.save_spatial_network_to_gml(spatial_network,
+                file[1:end-4];
+                    save_path=root*"\\")
 
-graph_dict = NG.load_graph_from_h5_and_gml(path * filename)
+                #println(joinpath(root, file))  # Print the full path to the .gml file
+                push!(filepath_list, joinpath(root, file))
 
-#NG.plot_spatial_network(graph_dict)
+                #print every 50th file
+                count += 1
+                if count % 50 == 0
+                    println(count, " ", joined_path)
+                end
+            end
+        end
+    end
 
-NG.save_mesh_from_spatial_network(graph_dict, filename; save_path = save_path, bond_radius = 0.35,
-vector_out_of_supercell_length = 1, format = "obj")
+    return
+end
+
+myfunc()

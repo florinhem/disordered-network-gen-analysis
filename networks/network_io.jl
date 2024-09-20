@@ -105,7 +105,8 @@ function save_spatial_network_to_gml(spatial_network::MetaGraphsNext.MetaGraph,
 
             # write vertex
             write(opened_file, Format.format(
-                "  node [\n    id {1}\n    position [ x {2} y {3} z {4} ]\n  ]\n",
+                "  node [\n    id {1}\n    label \"{2}\"\n    position [ x {3} y {4} z {5} ]\n  ]\n",
+                vertex,
                 vertex,
                 spatial_network[vertex]["position"][1],
                 spatial_network[vertex]["position"][2],
@@ -118,7 +119,8 @@ function save_spatial_network_to_gml(spatial_network::MetaGraphsNext.MetaGraph,
 
             # write edge
             write(opened_file, Format.format(
-                "  edge [\n    source {1}\n    target {2}\n    vector [ x {3} y {4} z {5} ]\n    distance_squared {6}\n  ]\n",
+                "  edge [\n    label \"{1}\"\n    source {2}\n    target {3}\n    vector [ x {4} y {5} z {6} ]\n    distance_squared {7}\n  ]\n",
+            string(edge[1])*" "*string(edge[2]),
             edge[1],
             edge[2], 
             spatial_network[edge...]["vector"][1],

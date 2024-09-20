@@ -437,6 +437,7 @@ function get_small_length_scale_order_metrics_all_files(analysis_data_path::Stri
     dihedral_angle_std_vec = Vector{Float64}(undef, length(order_metrics_filenames))
     q_l_mat = Matrix{Measurements.Measurement{Float64}}(undef, l_max_steinhardt_q_l+1, length(order_metrics_filenames))
     cluster_metric_vec = Vector{Float64}(undef, length(order_metrics_filenames))
+    pore_size_distribution_second_moment_vec = Vector{Float64}(undef, length(order_metrics_filenames))
     anisotropy_metric_from_structure_factor_vec = Vector{Float64}(undef, length(order_metrics_filenames))
     anisotropy_metric_from_spectral_density_vec = Vector{Float64}(undef, length(order_metrics_filenames))
 
@@ -453,6 +454,7 @@ function get_small_length_scale_order_metrics_all_files(analysis_data_path::Stri
         dihedral_angle_std_vec[i] = order_metrics_dict["dihedral_angle_std"]
         q_l_mat[:,i] = order_metrics_dict["q_l_vec"]
         cluster_metric_vec[i] = order_metrics_dict["cluster_metric"]
+        pore_size_distribution_second_moment_vec[i] = order_metrics_dict["pore_size_distribution_second_moment"]
         anisotropy_metric_from_structure_factor_vec[i] = order_metrics_dict["anisotropy_metric_from_structure_factor"]
         anisotropy_metric_from_spectral_density_vec[i] = order_metrics_dict["anisotropy_metric_from_spectral_density"]
 
@@ -465,6 +467,7 @@ function get_small_length_scale_order_metrics_all_files(analysis_data_path::Stri
     dihedral_angle_std_vec = dihedral_angle_std_vec[sortperm(total_keating_energy_vec)]
     q_l_mat = q_l_mat[:, sortperm(total_keating_energy_vec)]
     cluster_metric_vec = cluster_metric_vec[sortperm(total_keating_energy_vec)]
+    pore_size_distribution_second_moment_vec = pore_size_distribution_second_moment_vec[sortperm(total_keating_energy_vec)]
     anisotropy_metric_from_structure_factor_vec = anisotropy_metric_from_structure_factor_vec[sortperm(total_keating_energy_vec)]
     anisotropy_metric_from_spectral_density_vec = anisotropy_metric_from_spectral_density_vec[sortperm(total_keating_energy_vec)]
 
@@ -478,6 +481,7 @@ function get_small_length_scale_order_metrics_all_files(analysis_data_path::Stri
         "dihedral_angle_std_vec" => dihedral_angle_std_vec,
         #"q_l_mat" => q_l_mat, creates error so far
         "cluster_metric_vec" => cluster_metric_vec,
+        "pore_size_distribution_second_moment_vec" => pore_size_distribution_second_moment_vec,
         "anisotropy_metric_from_structure_factor_vec" => anisotropy_metric_from_structure_factor_vec,
         "anisotropy_metric_from_spectral_density_vec" => anisotropy_metric_from_spectral_density_vec,
         "filenames_vec" => order_metrics_filenames

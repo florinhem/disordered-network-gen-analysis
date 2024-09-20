@@ -6282,3 +6282,154 @@ for path in paths
     println("done")
 
 end
+
+
+
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\diamonds\\"
+
+files = ["216_vertices_perfect_diamond_small_scale_order_metrics.h5", "512_vertices_perfect_diamond_small_scale_order_metrics.h5", "1000_vertices_perfect_diamond_small_scale_order_metrics.h5"]
+
+anisotropy_metric_from_structure_factor_vec = Vector{Float64}(undef, 3)
+anisotropy_metric_from_spectral_density_vec = Vector{Float64}(undef, 3)
+
+for i in eachindex(files)
+
+    current_dict = GU.load_h5_dict(path * files[i])
+
+    anisotropy_metric_from_structure_factor_vec[i] = current_dict["anisotropy_metric_from_structure_factor"]
+    anisotropy_metric_from_spectral_density_vec[i] = current_dict["anisotropy_metric_from_spectral_density"]
+
+    println("Anisotropy metric from structure factor for ", files[i], ": ", anisotropy_metric_from_structure_factor_vec[i])
+    println("Anisotropy metric from spectral density for ", files[i], ": ", anisotropy_metric_from_spectral_density_vec[i])
+end
+
+
+analysis_data_paths = [raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_bond_bending_0.21_heat_cool\\",
+raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_bond_bending_0.285_heat_cool\\",
+raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\512_vertices_bond_bending_0.21\\",
+raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\512_vertices_bond_bending_0.285\\",
+raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\1000_vertices_bond_bending_0.21\\",
+raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\1000_vertices_bond_bending_0.285\\"]
+
+for analysis_data_path in analysis_data_paths
+    for i in 1:5
+        NA.get_small_length_scale_order_metrics_all_files(analysis_data_path*"run_$i\\";
+        l_max_steinhardt_q_l = 12,
+        save_result = true,)
+    end
+    println("done with $analysis_data_path")
+end
+
+
+evolution_dicts_directory_path = "../structures/random_networks/216_vertices_bond_bending_0.36/evolution_dicts/"
+
+save_path = "../structures/random_networks/216_vertices_bond_bending_0.36/"
+
+NG.generate_graphs_from_evolution_dicts_in_directory_multiple_runs(
+    evolution_dicts_directory_path,
+    save_path;
+    print_every_nr_attempted_bond_switches = 200,
+    print_progress = true,
+    save_network_after_each_temperature = false,
+    further_evolve_previous_networks = false,
+    runs_vec = collect(1:5),
+    print_lock = Threads.ReentrantLock())
+
+
+
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\diamonds\\"
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\geometrical_models\diamonds\\"
+
+nr_vertices_vec = [216, 512, 1000]
+
+bond_radius_vec = [0.26, 0.35]
+
+for nr_vertices_vec in nr_vertices_vec
+    filename = string(nr_vertices_vec, "_vertices_perfect_diamond")
+    graph_dict = NG.load_graph_from_h5_and_gml(path*filename)
+
+    for bond_radius in bond_radius_vec
+
+        save_filename = string(filename, "_bond_radius_", bond_radius)
+        
+        NG.save_mesh_from_spatial_network(graph_dict, save_filename; save_path = save_path, bond_radius = bond_radius,
+        vector_out_of_supercell_length = 1)
+    end
+end
+
+
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\1000_vertices_bond_bending_0.285\run_2\\"
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\geometrical_models\1000_vertices_bond_bending_0.285\run_2\\"
+
+temperatures = vcat(collect(0.1:0.01:0.18), collect(0.2:0.02:0.24))
+
+for temperature in temperatures
+    filename = string("1000_vertices_T_", temperature, "_heat_cool_0.1_per_mc_quenched")
+
+    graph_dict = NG.load_graph_from_h5_and_gml(path*filename)
+
+    save_filename = string(filename, "_br_0.26")
+        
+    NG.save_mesh_from_spatial_network(graph_dict, save_filename; save_path = save_path, bond_radius = 0.26,
+        vector_out_of_supercell_length = 1)
+end
+
+
+
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.285_heat_cool\run_2\\"
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\\"
+
+
+filename = "216_vertices_T_0.1_heat_cool_0.1_per_mc_quenched"
+
+graph_dict = NG.load_graph_from_h5_and_gml(path*filename)
+
+NG.save_spatial_network_to_gml(graph_dict["spatial_network"], filename, save_path=save_path)
+
+
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\\"
+
+load_path = raw"C:\\Users\\HemmannF\\OneDrive - Université de Fribourg\\structure_analysis\\structures\\random_networks\\216_vertices_bond_bending_0.285\\run_1\\216_vertices_T_0.25_heated_for_0.1_steps_quenched.gml"
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\\"
+
+spatial_network = NG.load_spatial_network_from_gml(load_path)
+
+NG.save_spatial_network_to_gml(spatial_network,
+    "216_vertices_T_0.25_heated_for_0.1_steps_quenched";
+    save_path=path)
+
+    path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\\"
+
+    function myfunc()
+        count = 0
+        filepath_list = []
+        # Iterate through all directories and subdirectories
+        for (root, dirs, files) in walkdir(path)
+            for file in files
+                if endswith(file, ".gml")
+    
+                    joined_path = joinpath(root, file)
+                    spatial_network = NG.load_spatial_network_from_gml(joined_path)
+                    NG.save_spatial_network_to_gml(spatial_network,
+                    file[1:end-4];
+                        save_path=root*"\\")
+    
+                    #println(joinpath(root, file))  # Print the full path to the .gml file
+                    push!(filepath_list, joinpath(root, file))
+    
+                    #print every 50th file
+                    count += 1
+                    if count % 50 == 0
+                        println(count, " ", joined_path)
+                    end
+                end
+            end
+        end
+    
+        return
+    end
+    
+    myfunc()
