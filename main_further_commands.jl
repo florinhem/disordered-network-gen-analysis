@@ -6401,35 +6401,50 @@ NG.save_spatial_network_to_gml(spatial_network,
     "216_vertices_T_0.25_heated_for_0.1_steps_quenched";
     save_path=path)
 
-    path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\\"
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\\"
+function myfunc()
+    count = 0
+    filepath_list = []
+    # Iterate through all directories and subdirectories
+    for (root, dirs, files) in walkdir(path)
+        for file in files
+            if endswith(file, ".gml")
 
-    function myfunc()
-        count = 0
-        filepath_list = []
-        # Iterate through all directories and subdirectories
-        for (root, dirs, files) in walkdir(path)
-            for file in files
-                if endswith(file, ".gml")
-    
-                    joined_path = joinpath(root, file)
-                    spatial_network = NG.load_spatial_network_from_gml(joined_path)
-                    NG.save_spatial_network_to_gml(spatial_network,
-                    file[1:end-4];
-                        save_path=root*"\\")
-    
-                    #println(joinpath(root, file))  # Print the full path to the .gml file
-                    push!(filepath_list, joinpath(root, file))
-    
-                    #print every 50th file
-                    count += 1
-                    if count % 50 == 0
-                        println(count, " ", joined_path)
-                    end
+                joined_path = joinpath(root, file)
+                spatial_network = NG.load_spatial_network_from_gml(joined_path)
+                NG.save_spatial_network_to_gml(spatial_network,
+                file[1:end-4];
+                    save_path=root*"\\")
+
+                #println(joinpath(root, file))  # Print the full path to the .gml file
+                push!(filepath_list, joinpath(root, file))
+
+                #print every 50th file
+                count += 1
+                if count % 50 == 0
+                    println(count, " ", joined_path)
                 end
             end
         end
-    
-        return
     end
-    
-    myfunc()
+
+    return
+end
+
+myfunc()
+
+
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.285\run_2\\"
+
+filename = "216_vertices_T_0.1_heat_cool_0.1_per_mc_quenched"
+
+# load the network
+graph_dict = NG.load_graph_from_h5_and_gml(path*filename)
+
+my_graph_dict = MetaGraphsNext.MetaGraph(
+    Graphs.Graph();  
+    label_type=Int64, 
+    vertex_data_type=Dict{String, Any},  
+    edge_data_type=Dict{String, Any}, 
+    graph_data=Dict{String, Any}("coordination_nr"   => 4)
+)

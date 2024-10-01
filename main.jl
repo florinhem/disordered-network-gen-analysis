@@ -7,6 +7,9 @@ import .NetworkGeneration as NG
 import .NetworkAnalysis as NA
 import .GeneralUtilities as GU
 
+import MetaGraphsNext
+import Graphs
+
 
 # possible choices of nr_vertices for diamond: 64, 216, 512, 216, that is (2*n)^3 with natural nr natural
 
@@ -19,35 +22,26 @@ import .GeneralUtilities as GU
 
 # julia --threads 23
 
-path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\\"
+# graph_dict["spatial_network"] = spatial_network
+# graph_dict[" = spatial_network[]["
+# graph_dict::Dict = spatial_network::MetaGraphsNext.MetaGraph
+# graph_dict = spatial_network
+# graph ...
 
-function myfunc()
-    count = 0
-    filepath_list = []
-    # Iterate through all directories and subdirectories
-    for (root, dirs, files) in walkdir(path)
-        for file in files
-            if endswith(file, ".gml")
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\\"
 
-                joined_path = joinpath(root, file)
-                spatial_network = NG.load_spatial_network_from_gml(joined_path)
-                NG.save_spatial_network_to_gml(spatial_network,
-                file[1:end-4];
-                    save_path=root*"\\")
+filename = "216_vertices_T_0.2_heat_cool_0.1_per_mc_quenched"
 
-                #println(joinpath(root, file))  # Print the full path to the .gml file
-                push!(filepath_list, joinpath(root, file))
+spatial_network = NG.load_spatial_network_from_gml(save_path * filename * ".gml")
+NG.plot_spatial_network(spatial_network)
 
-                #print every 50th file
-                count += 1
-                if count % 50 == 0
-                    println(count, " ", joined_path)
-                end
-            end
-        end
-    end
+# evolution_dict = NA.get_evolution_dict()
 
-    return
-end
-
-myfunc()
+# spatial_network = NG.get_periodic_network(evolution_dict)
+# spatial_network[]["total_energy_up_to_date"] = false
+# 
+# NG.save_spatial_network_to_gml(
+#     spatial_network,
+#     "my_network";
+#     evolution_dict = nothing,
+#     save_path = save_path,)

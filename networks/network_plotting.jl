@@ -1,75 +1,165 @@
 """
-Functions for graph plotting
+Functions for spatial network plotting
 """
 
-
 """
-cut all bonds that reach out of the supercell and replace 
-them by half way bonds
+cut all bonds that reach out of the supercell and replace  them by half way
+bonds
 """
-function cut_bonds_out_of_supercell!(plot_dict::Dict; vector_out_of_supercell_length = 1/2)
+function cut_bonds_out_of_supercell!(
+    spatial_network::MetaGraphsNext.MetaGraph; 
+    vector_out_of_supercell_length = 1/2)
     
     # get vector of all bonds in network
-    bond_vec = collect(MetaGraphsNext.edge_labels(plot_dict["spatial_network"]))
+    bond_vec = collect(MetaGraphsNext.edge_labels(spatial_network))
 
     # count current vortex
-    vortex_count = copy(plot_dict["nr_vertices"])
+    vortex_count = copy(spatial_network[]["nr_vertices"])
 
     # loop through all bonds
     for bond in bond_vec
 
         # check if bond crosses supercell edge due to periodic boundary
         # conditions
-        if (LinearAlgebra.norm(plot_dict["spatial_network"][bond[1]]["position"] 
-                .- plot_dict["spatial_network"][bond[2]]["position"]) 
-            > plot_dict["supercell_edge_length"]/2)
+        if (LinearAlgebra.norm(spatial_network[bond[1]]["position"] 
+                .- spatial_network[bond[2]]["position"]) 
+            > spatial_network[]["supercell_edge_length"]/2)
             
             # determine half way vector
             new_vector = (vector_out_of_supercell_length 
-                        .* plot_dict["spatial_network"][bond...]["vector"])
+                        .* spatial_network[bond...]["vector"])
 
             # add two new vertices and bonds half way of original bond
             for i in 1:2
-                plot_dict["spatial_network"][vortex_count + i] = (
-                    Dict("position" => (plot_dict["spatial_network"][bond[i]]["position"] 
-                                    .+ (-1)^(i+1) .* new_vector )) )
+                spatial_network[vortex_count + i] = (
+                    Dict("position" => (spatial_network[bond[i]]["position"] 
+                        .+ (-1)^(i+1) .* new_vector )) )
 
-                plot_dict["spatial_network"][bond[i], vortex_count + i] = (
+                spatial_network[bond[i], vortex_count + i] = (
                     Dict("vector" => (-1)^(i+1) .* new_vector, 
-                        "distance_squared" => (
-                    (1/4) .* plot_dict["spatial_network"][bond...]["distance_squared"] )) )
+                        "distance_squared" => (vector_out_of_supercell_length^2 
+                            .* spatial_network[bond...]["distance_squared"] )))
 
             end
 
-            # update votex count
             vortex_count += 2
 
             # cut original bond
-            MetaGraphsNext.rem_edge!(plot_dict["spatial_network"],
+            MetaGraphsNext.rem_edge!(spatial_network,
             bond...)
         end
     end
 
-    plot_dict["nr_vertices"] = vortex_count
+    spatial_network[]["nr_vertices"] = vortex_count
 
-    return plot_dict
+    return spatial_network
+end
+
+
+"""
+For each bond in the network, if the both its vertices are on the same side of
+the supercell but at least one of them lies close to the supercell edge,
+duplicate the bond on the other side of the supercell just outside the edge.
+This is required when cylinders are assigned to the bonds and it is plotted or
+used in an optical simulation.
+"""
+function duplicate_bonds_close_to_supercell_edge!(
+    spatial_network::MetaGraphsNext.MetaGraph;
+    bond_radius::Float64 = 0.35)
+
+    # count current vortex
+    vortex_count = copy(spatial_network[]["nr_vertices"])
+
+    # loop through bonds
+    for bond in MetaGraphsNext.edge_labels(spatial_network)
+
+        # get bond's start and target positions and its direction vector
+        start_pos = spatial_network[bond[1]]["position"]
+        target_pos = spatial_network[bond[2]]["position"]
+
+        # if one of the two vertices is close to the supercell edge but the
+        # vertices are not on opposite sides of the supercell, save another
+        # cylinder just outside the supercell on the other side
+        if ((any(start_pos .< bond_radius ) 
+            || any(target_pos .< bond_radius ) 
+            || any((spatial_network[]["supercell_edge_length"] .- start_pos) 
+                .< bond_radius )
+            || any((spatial_network[]["supercell_edge_length"] .- target_pos) 
+                .< bond_radius ) )
+            && LinearAlgebra.norm(start_pos .- target_pos) 
+                < spatial_network[]["supercell_edge_length"]/2
+            && all(start_pos .< spatial_network[]["supercell_edge_length"] )
+            && all(target_pos .< spatial_network[]["supercell_edge_length"] )
+            && all(start_pos .> 0.0 )
+            && all(target_pos .> 0.0 ) )
+
+            # check on which side of supercell the additional bond should be
+            # added and calculate new start and target positions
+            if (any(start_pos .< bond_radius ) 
+                || any(target_pos .< bond_radius ) )
+                
+                new_start_pos = (
+                    start_pos .+ spatial_network[]["supercell_edge_length"]
+                    .* ((start_pos .< bond_radius ) 
+                    .|| (target_pos .< bond_radius ) ))
+
+                new_target_pos = (target_pos 
+                    .+ spatial_network[]["supercell_edge_length"]
+                    .* ((start_pos .< bond_radius ) 
+                    .|| (target_pos .< bond_radius ) ))
+            else
+                new_start_pos = (start_pos 
+                    .- spatial_network[]["supercell_edge_length"]
+                    .* (((spatial_network[]["supercell_edge_length"] 
+                        .- start_pos) .< bond_radius )
+                    .|| ((spatial_network[]["supercell_edge_length"] 
+                        .- target_pos) .< bond_radius )))
+
+                new_target_pos = (target_pos 
+                    .- spatial_network[]["supercell_edge_length"]
+                    .* (((spatial_network[]["supercell_edge_length"] 
+                        .- start_pos) .< bond_radius )
+                    .|| ((spatial_network[]["supercell_edge_length"] 
+                        .- target_pos) .< bond_radius )))
+            end
+
+            # add two new vertices and the bond between them to the spatial
+            # network
+            spatial_network[vortex_count + 1] = (
+                    Dict("position" => new_start_pos) )
+            spatial_network[vortex_count + 2] = (
+                        Dict("position" => new_target_pos) )
+
+            spatial_network[vortex_count + 1, vortex_count + 2] = (
+                Dict("vector" => (new_target_pos .- new_start_pos), 
+                    "distance_squared" => (
+                LinearAlgebra.norm(new_target_pos .- new_start_pos)^2 )) )
+
+            vortex_count += 2
+        end
+    end
+
+    spatial_network[]["nr_vertices"] = vortex_count
+
+    return spatial_network
 end
 
 
 """
 get all vertex positions in a vector of tuples
 """
-function get_vertex_position_vec(plot_dict::Dict)
+function get_vertex_position_vec(spatial_network::MetaGraphsNext.MetaGraph)
 
     # initialize vector of vertex positions
-    vertex_position_vec = Vector{Tuple}(undef, plot_dict["nr_vertices"])
+    vertex_position_vec = Vector{Tuple}(undef, 
+        spatial_network[]["nr_vertices"])
 
     # loop through all vertices
-    for vertex in MetaGraphsNext.labels(plot_dict["spatial_network"])
+    for vertex in MetaGraphsNext.labels(spatial_network)
 
         # save vertex position as a tuple
         vertex_position_vec[vertex] = Tuple(
-                    plot_dict["spatial_network"][vertex]["position"])
+                    spatial_network[vertex]["position"])
 
     end
 
@@ -80,12 +170,14 @@ end
 """
 Get color vectors for nodes and edges
 """
-function get_node_edge_color_vecs(plot_dict::Dict,
+function get_node_edge_color_vecs(
+    spatial_network::MetaGraphsNext.MetaGraph,
     highlight_nodes::Tuple = (),
     highlight_edges::Vector = [] )
 
     # get node color vector
-    node_color_vec = [GLMakie.Colors.colorant"black" for i in 1:plot_dict["nr_vertices"]]
+    node_color_vec = [GLMakie.Colors.colorant"black" for i 
+        in 1:spatial_network[]["nr_vertices"]]
 
     for highlight_node in highlight_nodes
         node_color_vec[highlight_node] = GLMakie.Colors.colorant"red"
@@ -94,11 +186,11 @@ function get_node_edge_color_vecs(plot_dict::Dict,
     # get edge color vector
 
     # get all edges
-    edge_vec = collect(MetaGraphsNext.edge_labels(plot_dict["spatial_network"]))
+    edge_vec = collect(MetaGraphsNext.edge_labels(spatial_network))
 
     # initialize edge color vector
-    edge_color_vec = Vector{GLMakie.Colors.RGB{GLMakie.Colors.FixedPointNumbers.N0f8}}(
-                                                undef, length(edge_vec)) 
+    edge_color_vec = Vector{GLMakie.Colors.RGB{
+        GLMakie.Colors.FixedPointNumbers.N0f8}}(undef, length(edge_vec)) 
 
     # count current edge
     edge_count = 1
@@ -120,44 +212,43 @@ end
 
 
 """
-Plot a network in 2d or 3d
+Plot a spatial network in 2d or 3d
 """
-function plot_spatial_network(graph_dict::Dict;
+function plot_spatial_network(
+    spatial_network::MetaGraphsNext.MetaGraph;
     highlight_nodes::Tuple = (),
     highlight_edges::Vector = [])
 
     # get original nr of vertices
-    nr_vertices = graph_dict["nr_vertices"]
+    nr_vertices = spatial_network[]["nr_vertices"]
 
-    # create graph dict to plot
-    plot_dict = deepcopy(graph_dict)
+    # create spatial network to plot
+    spatial_network = deepcopy(spatial_network)
     
     # cut all bonds that reach out of supercell and replace
     # them by half way bonds
-    plot_dict = cut_bonds_out_of_supercell!(plot_dict)
+    spatial_network = cut_bonds_out_of_supercell!(spatial_network)
 
     # get nr of new virtual vertices
-    nr_virtual_vertices = plot_dict["nr_vertices"] - nr_vertices
+    nr_virtual_vertices = spatial_network[]["nr_vertices"] - nr_vertices
 
     # set node size to zero for all virtual vertices
     node_size_vec = vcat(10 .* ones(Int64, nr_vertices), 
-                        zeros(Int64, nr_virtual_vertices)) 
+        zeros(Int64, nr_virtual_vertices)) 
 
     # Get color vectors for nodes and edges
     node_color_vec, edge_color_vec = get_node_edge_color_vecs(
-                                    plot_dict,
-                                    highlight_nodes,
-                                    highlight_edges )
+        spatial_network, highlight_nodes, highlight_edges )
 
     # get all vertex positions in a vector of tuples
-    vertex_position_vec = get_vertex_position_vec(plot_dict)
+    vertex_position_vec = get_vertex_position_vec(spatial_network)
 
     # generate plot
-    f, ax, p = GraphMakie.graphplot(plot_dict["spatial_network"],
-    layout=GraphMakie.NetworkLayout.Spring(dim=3),
-    node_size = node_size_vec,
-    node_color = node_color_vec,
-    edge_color = edge_color_vec)     # ilabels=repr.(1:graph_dict["nr_vertices"]),
+    f, ax, p = GraphMakie.graphplot(spatial_network,
+        layout=GraphMakie.NetworkLayout.Spring(dim=3),
+        node_size = node_size_vec,
+        node_color = node_color_vec,
+        edge_color = edge_color_vec) 
     
     # adjust vertex positions
     fixed_layout(_) = vertex_position_vec
@@ -171,30 +262,32 @@ function plot_spatial_network(graph_dict::Dict;
 end
 
 
-function get_rainbow_color_vecs(plot_dict )
+function get_rainbow_color_vecs(spatial_network )
 
     # get node color vector
-    node_color_vec = [GLMakie.Colors.HSV(rand(1:360), rand(1:360), rand(1:360)) for i in 1:plot_dict["nr_vertices"]]
+    node_color_vec = [GLMakie.Colors.HSV(rand(1:360), rand(1:360), rand(1:360)) 
+        for i in 1:spatial_network[]["nr_vertices"]]
 
 
     # get edge color vector
 
     # get all edges
-    edge_vec = collect(MetaGraphsNext.edge_labels(plot_dict["spatial_network"]))
+    edge_vec = collect(MetaGraphsNext.edge_labels(spatial_network))
 
     # initialize edge color vector
-    edge_color_vec = Vector{Tuple{GLMakie.Colors.RGB{GLMakie.Colors.FixedPointNumbers.N0f8}, Float64}}(
-                                                undef, length(edge_vec)) 
+    edge_color_vec = Vector{Tuple{GLMakie.Colors.RGB{
+        GLMakie.Colors.FixedPointNumbers.N0f8}, Float64}}(undef,
+        length(edge_vec)) 
 
     # count current edge
     edge_count = 1
 
     for edge in edge_vec
-        edge_color_vec[edge_count] = (GLMakie.Colors.HSV(rand(1:360), rand(1:360), rand(1:360)), 0.6)
+        edge_color_vec[edge_count] = (
+            GLMakie.Colors.HSV(rand(1:360), rand(1:360), rand(1:360)), 0.6)
         
         edge_count += 1
     end
-
 
     return [node_color_vec, edge_color_vec]
 end
@@ -203,39 +296,39 @@ end
 """
 Plot a network in 2d or 3d
 """
-function plot_network_rainbow(graph_dict::Dict)
+function plot_network_rainbow(spatial_network::MetaGraphsNext.MetaGraph)
 
     # get original nr of vertices
-    nr_vertices = graph_dict["nr_vertices"]
+    nr_vertices = spatial_network[]["nr_vertices"]
 
-    # create graph dict to plot
-    plot_dict = deepcopy(graph_dict)
+    # create spatial network to plot
+    spatial_network = deepcopy(spatial_network)
     
     # cut all bonds that reach out of supercell and replace
     # them by half way bonds
-    plot_dict = cut_bonds_out_of_supercell!(plot_dict)
+    spatial_network = cut_bonds_out_of_supercell!(spatial_network)
 
     # get nr of new virtual vertices
-    nr_virtual_vertices = plot_dict["nr_vertices"] - nr_vertices
+    nr_virtual_vertices = spatial_network[]["nr_vertices"] - nr_vertices
 
     # set node size to zero for all virtual vertices
     node_size_vec = vcat(10 .* ones(Int64, nr_vertices), 
                         zeros(Int64, nr_virtual_vertices)) 
 
     # get all vertex positions in a vector of tuples
-    vertex_position_vec = get_vertex_position_vec(plot_dict)
+    vertex_position_vec = get_vertex_position_vec(spatial_network)
 
     # Get color vectors for nodes and edges
     node_color_vec, edge_color_vec = get_rainbow_color_vecs(
-                                    plot_dict )
+                                    spatial_network )
 
     # get all vertex positions in a vector of tuples
-    vertex_position_vec = get_vertex_position_vec(plot_dict)
+    vertex_position_vec = get_vertex_position_vec(spatial_network)
 
     GLMakie.set_theme!(GLMakie.theme_black())
 
     # generate plot
-    f, ax, p = GraphMakie.graphplot(plot_dict["spatial_network"],
+    f, ax, p = GraphMakie.graphplot(spatial_network,
     layout=GraphMakie.NetworkLayout.Spring(dim=3),
     node_size = 0,
     edge_width = 4,

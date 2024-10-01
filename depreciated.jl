@@ -3116,3 +3116,248 @@ function save_spatial_network_to_gml(spatial_network::MetaGraphsNext.MetaGraph,
 
     return
 end 
+
+
+"""
+Get mesh from network
+"""
+function save_mesh_from_spatial_network(graph_dict::Dict, filename::String;
+    bond_radius::Float64 = 0.3131,
+    vector_out_of_supercell_length = 1/2,
+    save_path::String = raw"..\structures\random_networks\\",
+    duplicate_bonds_close_to_supercell_edge::Bool = true,
+    format::String = "obj")
+
+    # create graph dict to plot
+    plot_dict = deepcopy(graph_dict)
+    
+    # cut all bonds that reach out of supercell and replace
+    # them by new bonds to duplicated vertices outside of the supercell
+    plot_dict = cut_bonds_out_of_supercell!(plot_dict; 
+        vector_out_of_supercell_length = vector_out_of_supercell_length)
+
+    # loop through bonds
+    for bond in MetaGraphsNext.edge_labels(plot_dict["spatial_network"])
+
+        # get bond's start and target positions and its direction vector
+        start_pos = plot_dict["spatial_network"][bond[1]]["position"]
+        target_pos = plot_dict["spatial_network"][bond[2]]["position"]
+        # direction_vec = plot_dict["spatial_network"][bond...]["vector"]
+
+        # create cylinder object
+        current_cylinder = GeometryBasics.Cylinder(
+            GeometryBasics.Point( start_pos...),
+            GeometryBasics.Point( target_pos...),
+            bond_radius)
+        
+        # mesh cylinder object
+        current_cylinder_mesh = GeometryBasics.mesh(current_cylinder)
+
+        # save mesh
+        total_path = save_path*filename*"\\"*string(bond[1])*"_"*string(bond[2])*"."*format
+
+        FileIO.save(total_path, current_cylinder_mesh)
+
+        # if one of the two vertices is close to the supercell edge but the vertices
+        # are not on opposite sides of the supercell, save another cylinder just outside the
+        # supercell on the other side
+        if (duplicate_bonds_close_to_supercell_edge
+            && (any(start_pos .< bond_radius ) 
+            || any(target_pos .< bond_radius ) 
+            || any((graph_dict["supercell_edge_length"] .- start_pos) .< bond_radius )
+            || any((graph_dict["supercell_edge_length"] .- target_pos) .< bond_radius ) )
+            && LinearAlgebra.norm(start_pos .- target_pos) < graph_dict["supercell_edge_length"]/2
+            && all(start_pos .< graph_dict["supercell_edge_length"] )
+            && all(target_pos .< graph_dict["supercell_edge_length"] )
+            && all(start_pos .> 0.0 )
+            && all(target_pos .> 0.0 )
+            )
+
+            # check on which side of supercell the additional bond should be added and
+            # calculate new start and target positions
+            if any(start_pos .< bond_radius ) || any(target_pos .< bond_radius ) 
+                
+                new_start_pos = (start_pos .+ graph_dict["supercell_edge_length"]
+                    .* ((start_pos .< bond_radius ) .|| (target_pos .< bond_radius ) ))
+
+                new_target_pos = (target_pos .+ graph_dict["supercell_edge_length"]
+                    .* ((start_pos .< bond_radius ) .|| (target_pos .< bond_radius ) ))
+            else
+                new_start_pos = (start_pos .- graph_dict["supercell_edge_length"]
+                    .* (((graph_dict["supercell_edge_length"] .- start_pos) .< bond_radius )
+                    .|| ((graph_dict["supercell_edge_length"] .- target_pos) .< bond_radius )))
+
+                new_target_pos = (target_pos .- graph_dict["supercell_edge_length"]
+                    .* (((graph_dict["supercell_edge_length"] .- start_pos) .< bond_radius )
+                    .|| ((graph_dict["supercell_edge_length"] .- target_pos) .< bond_radius )))
+            end
+
+            #println(start_pos, target_pos, new_start_pos, new_target_pos)
+                
+            # create cylinder object
+            current_cylinder = GeometryBasics.Cylinder(
+                GeometryBasics.Point( new_start_pos...),
+                GeometryBasics.Point( new_target_pos...),
+                bond_radius)
+            
+            # mesh cylinder object
+            current_cylinder_mesh = GeometryBasics.mesh(current_cylinder)
+
+            # save mesh
+            total_path = save_path*filename*"\\"*string(bond[1])*"_"*string(bond[2])*"_outside_supercell."*format
+
+            FileIO.save(total_path, current_cylinder_mesh)
+        end
+
+    end
+
+    return
+end
+
+
+"""
+Load spatial network and its properties from a MGformat file and a h5 dictionary
+"""
+function load_spatial_network_from_h5_and_MGformat(dict_path_without_format::String)
+
+    # load spatial network in MGformat
+    spatial_network = MetaGraphsNext.loadgraph(
+            dict_path_without_format*".mg", MetaGraphsNext.MGFormat())
+
+    # load rest of spatial network dict
+    spatial_network = GU.load_h5_dict(dict_path_without_format*".h5")
+
+    # add spatial network key to graph dict
+    spatial_network = spatial_network
+
+    return spatial_network
+end
+
+
+
+
+"""
+Save spatial network to a GML format file and the rest of spatial_network and
+evolution_dict to an h5 file
+"""
+function save_graph_to_h5_and_gml(spatial_network::MetaGraphsNext.MetaGraph,
+    filename::String;
+    evolution_dict = nothing,
+    save_path::String 
+        = raw"..\structures\random_networks\\")
+
+    # save evolution dict if passed
+    if evolution_dict !== nothing
+        GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
+    end
+
+    # create copy of spatial_network to not change the original file
+    spatial_network_to_save = deepcopy(spatial_network)
+
+    # save graph to gml format
+    save_spatial_network_to_gml(spatial_network, filename; save_path=save_path)
+
+    # remove spatial_network from spatial_network
+    delete!(spatial_network_to_save, "spatial_network")
+
+    # save graph dict
+    GU.save_dict_to_h5(spatial_network_to_save, save_path*filename*".h5")
+
+    return
+end
+
+
+"""
+Load graph and its properties from a GML file and a h5 dictionary
+"""
+function load_graph_from_h5_and_gml(dict_path_without_format::String)
+
+    # load spatial network in MGformat
+    spatial_network = load_spatial_network_from_gml(
+            dict_path_without_format*".gml")
+
+    # load rest of graph dict
+    spatial_network = GU.load_h5_dict(dict_path_without_format*".h5")
+
+    # add spatial network key to graph dict
+    spatial_network = spatial_network
+
+    return spatial_network
+end
+
+
+
+
+"""
+Save spatial network to an MGformat file and the rest of spatial_network and
+evolution_dict to an h5 file
+"""
+function save_spatial_network_to_h5_and_MGformat(spatial_network::MetaGraphsNext.MetaGraph,
+    filename::String;
+    evolution_dict = nothing,
+    save_path::String 
+        = raw"..\structures\random_networks\\")
+
+    # save evolution dict if passed
+    if evolution_dict !== nothing
+        GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
+    end
+
+    # create copy of spatial_network to not change the original file
+    spatial_network_to_save = deepcopy(spatial_network)
+
+    # save spatial network to MGformat
+    MetaGraphsNext.savegraph(save_path*filename*".mg", spatial_network_to_save["spatial_network"])
+
+    # remove spatial_network from spatial_network
+    delete!(spatial_network_to_save, "spatial_network")
+
+    # save spatial network dict
+    GU.save_dict_to_h5(spatial_network_to_save, save_path*filename*".h5")
+
+    return
+end
+
+
+"""
+Convert a graph in MGformat to a gml format
+"""
+function convert_MGformat_to_gml(
+    filename::String;
+    save_path::String 
+        = raw"..\structures\random_networks\\")
+
+    # load graph dict
+    spatial_network = load_graph_from_h5_and_MGformat(save_path*filename)
+
+    # save graph to gml format
+    save_spatial_network_to_gml(spatial_network, filename; save_path=save_path)
+
+    return
+end
+
+
+
+
+"""
+Convert all files in a directory in MGformat to gml format
+"""
+function convert_all_files_in_directory_MGformat_to_gml(directory_path::String)
+
+    # get all files in directory
+    filenames = readdir(directory_path)
+
+    # loop through files
+    for filename in filenames
+
+        if endswith(filename, ".mg")
+
+            # convert file to gml format
+            convert_MGformat_to_gml(filename[1:end-3]; save_path=directory_path)
+        end
+
+    end
+
+    return
+    
+end

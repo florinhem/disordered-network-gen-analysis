@@ -1,104 +1,73 @@
 """
-Functions for loading and saving graph data
+Functions for loading and saving spatial network data
 """
 
 """
-Save the coordinates of start and end of all edges in a graph to a CSV file
+Save the coordinates of start and target position of all edges in a spatial
+network to a CSV file
 """
-function save_graph_to_csv(graph_dict::Dict,
+function save_spatial_network_to_csv(
+    spatial_network::MetaGraphsNext.MetaGraph,
     filename::String;
-    save_path::String 
-        = raw"..\structures\random_networks\\")
+    save_path::String = raw"..\structures\random_networks\\")
 
-    edges = collect(MetaGraphsNext.edge_labels(graph_dict["spatial_network"]))
+    edges = collect(MetaGraphsNext.edge_labels(spatial_network))
 
     # create an empty array with the following entries
-    data_arr = Array{Float64}(undef, length(edges), 2*graph_dict["nr_dimensions"])
+    data_arr = Array{Float64}(
+        undef, length(edges), 2*spatial_network[]["nr_dimensions"])
 
     # save start and end coordinates of edges to array
     edge_count = 1
 
     for edge in edges
-        data_arr[edge_count, 1:graph_dict["nr_dimensions"]] = (
-            graph_dict["spatial_network"][edge[1]]["position"])
-        data_arr[edge_count, graph_dict["nr_dimensions"]+1:2*graph_dict["nr_dimensions"]] = (
-            graph_dict["spatial_network"][edge[2]]["position"])
+        data_arr[edge_count, 1:spatial_network[]["nr_dimensions"]] = (
+            spatial_network[edge[1]]["position"])
+        data_arr[edge_count, (spatial_network[]["nr_dimensions"]
+                +1):2*spatial_network[]["nr_dimensions"]] = (
+            spatial_network[edge[2]]["position"])
 
         edge_count += 1
 
     end
 
-    # save data
     FileIO.save(save_path*filename, DataFrames.DataFrame(data_arr, :auto) )
 
     return
-
-end
-
-
-"""
-Save spatial network to an MGformat file and the rest of graph_dict and
-evolution_dict to an h5 file
-"""
-function save_graph_to_h5_and_MGformat(graph_dict::Dict,
-    filename::String;
-    evolution_dict = nothing,
-    save_path::String 
-        = raw"..\structures\random_networks\\")
-
-    # save evolution dict if passed
-    if evolution_dict !== nothing
-        GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
-    end
-
-    # create copy of graph_dict to not change the original file
-    graph_dict_to_save = deepcopy(graph_dict)
-
-    # save graph to MGformat
-    MetaGraphsNext.savegraph(save_path*filename*".mg", graph_dict_to_save["spatial_network"])
-
-    # remove spatial_network from graph_dict
-    delete!(graph_dict_to_save, "spatial_network")
-
-    # save graph dict
-    GU.save_dict_to_h5(graph_dict_to_save, save_path*filename*".h5")
-
-    return
-end
-
-
-"""
-Load graph and its properties from a MGformat file and a h5 dictionary
-"""
-function load_graph_from_h5_and_MGformat(dict_path_without_format::String)
-
-    # load spatial network in MGformat
-    spatial_network = MetaGraphsNext.loadgraph(
-            dict_path_without_format*".mg", MetaGraphsNext.MGFormat())
-
-    # load rest of graph dict
-    graph_dict = GU.load_h5_dict(dict_path_without_format*".h5")
-
-    # add spatial network key to graph dict
-    graph_dict["spatial_network"] = spatial_network
-
-    return graph_dict
 end
 
 
 """
 Save spatial network to a GML format file 
 """
-function save_spatial_network_to_gml(spatial_network::MetaGraphsNext.MetaGraph,
+function save_spatial_network_to_gml(
+    spatial_network::MetaGraphsNext.MetaGraph,
     filename::String;
-    save_path::String 
-        = raw"..\structures\random_networks\\")
+    evolution_dict = nothing,
+    save_path::String = raw"..\structures\random_networks\\")
+
+    # save evolution dict if passed
+    if evolution_dict !== nothing
+        GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
+    end
 
     # open new file
     open(save_path*filename*".gml", "w") do opened_file
 
         # write header
         write(opened_file, "graph [ \n")
+
+        # write network properties
+        for (key, value) in spatial_network[]
+            if value isa Bool
+                value = Int(value)
+            end
+
+            write(opened_file, Format.format(
+                "  {1} {2}\n",
+                key,
+                value))
+        end
 
         # loop through vertices
         for vertex in MetaGraphsNext.labels(spatial_network)
@@ -111,7 +80,6 @@ function save_spatial_network_to_gml(spatial_network::MetaGraphsNext.MetaGraph,
                 spatial_network[vertex]["position"][1],
                 spatial_network[vertex]["position"][2],
                 spatial_network[vertex]["position"][3]))
-
         end
 
         # loop through edges
@@ -119,7 +87,7 @@ function save_spatial_network_to_gml(spatial_network::MetaGraphsNext.MetaGraph,
 
             # write edge
             write(opened_file, Format.format(
-                "  edge [\n    label \"{1}\"\n    source {2}\n    target {3}\n    vector [ x {4} y {5} z {6} ]\n    distance_squared {7}\n  ]\n",
+                "  edge [\n    label \"{1}\"\n    source {2}\n    target {3}\n    vector [ x {4} y {5} z {6} ]\n    distance_squared {7}\n    ]\n",
             string(edge[1])*" "*string(edge[2]),
             edge[1],
             edge[2], 
@@ -134,59 +102,59 @@ function save_spatial_network_to_gml(spatial_network::MetaGraphsNext.MetaGraph,
         write(opened_file, "]\n")
 
     end
-
     return
 end 
 
 
 """
-Save spatial network to a GML format file and the rest of graph_dict and
-evolution_dict to an h5 file
-"""
-function save_graph_to_h5_and_gml(graph_dict::Dict,
-    filename::String;
-    evolution_dict = nothing,
-    save_path::String 
-        = raw"..\structures\random_networks\\")
-
-    # save evolution dict if passed
-    if evolution_dict !== nothing
-        GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
-    end
-
-    # create copy of graph_dict to not change the original file
-    graph_dict_to_save = deepcopy(graph_dict)
-
-    # save graph to gml format
-    save_spatial_network_to_gml(graph_dict["spatial_network"], filename; save_path=save_path)
-
-    # remove spatial_network from graph_dict
-    delete!(graph_dict_to_save, "spatial_network")
-
-    # save graph dict
-    GU.save_dict_to_h5(graph_dict_to_save, save_path*filename*".h5")
-
-    return
-end
-
-
-"""
 Load spatial network from a GML format file 
 """
-function load_spatial_network_from_gml(dict_path::String)
+function load_spatial_network_from_gml(spatial_network_path::String)
 
-    # create an empty network graph where vertexic positions and edge vectors will be stored
-    spatial_network = MetaGraphsNext.MetaGraph(Graphs.Graph(); 
-                                        label_type = Int64,
-                                        vertex_data_type = Dict{String, Any},
-                                        edge_data_type = Dict{String, Any} )
+    # create an empty spatial network where vertex positions and edge vectors
+    # will be stored
+    spatial_network = MetaGraphsNext.MetaGraph(
+        Graphs.Graph(); 
+        label_type = Int64,
+        vertex_data_type = Dict{String, Any},
+        edge_data_type = Dict{String, Any},
+        graph_data = Dict{String, Any}() )
 
     # load gml file to string
-    gml_string = read(dict_path, String)
+    gml_string = read(spatial_network_path, String)
 
-    # extract node and edge strings
-    nodes_string = gml_string[findfirst("node", gml_string)[end]+1:findfirst("edge", gml_string)[1]-1]
-    edges_string = gml_string[findfirst("edge", gml_string)[end]+1:findlast("]", gml_string)[end]-1]
+    # extract network data, node and edge strings
+    network_data_string = gml_string[1:findfirst("node", gml_string)[end]]
+    nodes_string = gml_string[findfirst("node [", gml_string)[end]+1:findfirst(
+        "edge [", gml_string)[1]-1]
+    edges_string = gml_string[findfirst("edge [", gml_string)[end]+1:findlast(
+        "]", gml_string)[end]-1]
+
+    # Regular expression to match network data keys and values
+    pattern = r"(\w+)\s+([\w\.e\-\+]+)"
+
+    # Function to parse values as Int, Float64, or leave as string
+    function parse_value(value_str)
+        if value_str == "0" 
+            return false
+        elseif value_str == "1"  
+            return true
+        elseif !isnothing(tryparse(Int, value_str))  
+            return parse(Int, value_str)
+        elseif !isnothing(tryparse(Float64, value_str))  
+            return parse(Float64, value_str)
+        else 
+            return value_str
+        end
+    end
+
+    # Extract the matches using the regex and save them to the network data
+    # dictionary
+    for m in eachmatch(pattern, network_data_string)
+        key = m.captures[1]
+        value = parse_value(m.captures[2])
+        spatial_network[][key] = value
+    end
 
     # split strings into individual nodes and edges
     nodes_string_list = split(nodes_string, "node")
@@ -209,8 +177,9 @@ function load_spatial_network_from_gml(dict_path::String)
         y_value = parse(Float64, position_match.captures[2])
         z_value = parse(Float64, position_match.captures[3])
 
-        # add vertex to graph
-        spatial_network[vertex] = Dict("position" =>  [x_value, y_value, z_value])
+        # add vertex to spatial network
+        spatial_network[vertex] = Dict(
+            "position" =>  [x_value, y_value, z_value])
 
     end
 
@@ -239,10 +208,12 @@ function load_spatial_network_from_gml(dict_path::String)
 
         # Extracting distance squared
         distance_squared_match = match(distance_squared_regex, edge_string)
-        distance_squared_value = parse(Float64, distance_squared_match.captures[1])
+        distance_squared_value = parse(
+            Float64, distance_squared_match.captures[1])
 
-        # add edge to graph
-        spatial_network[source_value, target_value] = Dict("vector" => [x_value, y_value, z_value],
+        # add edge to spatial network
+        spatial_network[source_value, target_value] = Dict(
+            "vector" => [x_value, y_value, z_value],
             "distance_squared" => distance_squared_value)
 
     end
@@ -261,62 +232,21 @@ function load_graph_from_h5_and_gml(dict_path_without_format::String)
             dict_path_without_format*".gml")
 
     # load rest of graph dict
-    graph_dict = GU.load_h5_dict(dict_path_without_format*".h5")
+    spatial_network = GU.load_h5_dict(dict_path_without_format*".h5")
 
     # add spatial network key to graph dict
-    graph_dict["spatial_network"] = spatial_network
+    spatial_network = spatial_network
 
-    return graph_dict
+    return spatial_network
 end
 
 
 """
-Convert a graph in MGformat to a gml format
+For each evolution dict in a list of filenames in one directory generate a new
+spatial network with same evolution in another directory
 """
-function convert_MGformat_to_gml(
-    filename::String;
-    save_path::String 
-        = raw"..\structures\random_networks\\")
-
-    # load graph dict
-    graph_dict = load_graph_from_h5_and_MGformat(save_path*filename)
-
-    # save graph to gml format
-    save_spatial_network_to_gml(graph_dict["spatial_network"], filename; save_path=save_path)
-
-    return
-end
-
-
-"""
-Convert all files in a directory in MGformat to gml format
-"""
-function convert_all_files_in_directory_MGformat_to_gml(directory_path::String)
-
-    # get all files in directory
-    filenames = readdir(directory_path)
-
-    # loop through files
-    for filename in filenames
-
-        if endswith(filename, ".mg")
-
-            # convert file to gml format
-            convert_MGformat_to_gml(filename[1:end-3]; save_path=directory_path)
-        end
-
-    end
-
-    return
-    
-end
-
-
-"""
-For each evolution dict in a list of filenames in one directory generate a new graph
-with same evolution in another directory
-"""
-function generate_graphs_from_evolution_dicts_single_thread(filenames,
+function generate_spatial_networks_from_evolution_dicts_single_thread(
+    filenames,
     evolution_dicts_directory_path::String,
     save_path::String;
     print_every_nr_attempted_bond_switches::Int64 = 100,
@@ -333,7 +263,8 @@ function generate_graphs_from_evolution_dicts_single_thread(filenames,
         if endswith(filename, "_evolution.h5")
 
             # load evolution dict
-            evolution_dict = GU.load_h5_dict(evolution_dicts_directory_path*filename)
+            evolution_dict = GU.load_h5_dict(
+                evolution_dicts_directory_path*filename)
 
             # remove move_accepted_vec and total_energy_vec
             delete!(evolution_dict, "move_accepted_vec")
@@ -350,69 +281,89 @@ function generate_graphs_from_evolution_dicts_single_thread(filenames,
             # load previous network if desired 
             if further_evolve_previous_networks
 
-                # get all filenames in graph path that contain the current filename
-                all_previous_graph_filenames = readdir(save_path)
-                current_previous_graph_filenames = [current_filename for current_filename 
-                in all_previous_graph_filenames if (occursin(filename[1:end-13], current_filename) 
-                && endswith(current_filename, ".gml") )]
+                # get all filenames in spatial network path that contain the
+                # current filename
+                all_previous_spatial_network_filenames = readdir(save_path)
+                current_previous_spatial_network_filenames = [
+                    current_filename for current_filename 
+                        in all_previous_spatial_network_filenames 
+                        if (occursin(filename[1:end-13], current_filename) 
+                            && endswith(current_filename, ".gml") )]
                 
                 # get the filename
                 regex = r"(\d+)\.gml$"
-                graph_numbers = Vector{Int64}()
-                for current_previous_graph_filename in current_previous_graph_filenames
-                    number_match = match(regex, current_previous_graph_filename)
+                spatial_network_numbers = Vector{Int64}()
+                for current_previous_spatial_network_filename in current_previous_spatial_network_filenames
+                    number_match = match(regex, 
+                        current_previous_spatial_network_filename)
                     extracted_number = parse(Int, number_match.captures[1])[1]
-                    push!(graph_numbers, extracted_number)
+                    push!(spatial_network_numbers, extracted_number)
                 end
-                maximum_graph_number = maximum(graph_numbers)
-                current_previous_graph_filename = filename[1:end-13]*"_"*string(maximum_graph_number)
+                maximum_spatial_network_number = maximum(
+                    spatial_network_numbers)
+                current_previous_spatial_network_filename = (filename[1:end-13]
+                    *"_"*string(maximum_spatial_network_number))
 
-                # load graph and evolution dict
-                graph_dict = load_graph_from_h5_and_gml(save_path*current_previous_graph_filename)
+                # load spatial network and evolution dict
+                spatial_network = load_spatial_network_from_gml(
+                    save_path*current_previous_spatial_network_filename*".gml")
                 original_evolution_dict = deepcopy(evolution_dict)
                 evolution_dict = GU.load_h5_dict(
-                    save_path*current_previous_graph_filename*"_evolution.h5")
+                    save_path*current_previous_spatial_network_filename
+                    *"_evolution.h5")
 
-                # remove those entries from evolution dict, that have already been evolved
-                evolution_dict["temperature_vec"] = evolution_dict["temperature_vec"][maximum_graph_number+1:end]
-                evolution_dict["nr_monte_carlo_steps_per_temperature_vec"] = evolution_dict["nr_monte_carlo_steps_per_temperature_vec"][maximum_graph_number+1:end]
+                # remove those entries from evolution dict, that have already
+                # been evolved
+                evolution_dict["temperature_vec"] = evolution_dict[
+                    "temperature_vec"][maximum_spatial_network_number+1:end]
+                evolution_dict["nr_monte_carlo_steps_per_temperature_vec"] = (
+                    evolution_dict["nr_monte_carlo_steps_per_temperature_vec"][
+                        maximum_spatial_network_number+1:end])
 
                 total_energy_vec = evolution_dict["total_energy_vec"]
                 move_accepted_vec = evolution_dict["move_accepted_vec"]
 
-            # otherwise generate initial graph
+            # otherwise generate initial spatial network
             else
-                graph_dict = get_periodic_network(evolution_dict)
+                spatial_network = get_periodic_network(evolution_dict)
 
                 total_energy_vec = Vector{Float64}(undef, 0)
                 move_accepted_vec = Vector{Bool}(undef, 0)
             end
 
-            # evolve graph
-            graph_dict, total_energy_vec, move_accepted_vec = evolve_network_temperature_sequence!(
-                graph_dict, evolution_dict; 
-                print_progress = print_progress,
-                total_energy_vec = total_energy_vec,
-                move_accepted_vec = move_accepted_vec,
-                print_every_nr_attempted_bond_switches = print_every_nr_attempted_bond_switches,
-                random_evolution_seed = random_evolution_seed,
-                save_network_after_each_temperature = save_network_after_each_temperature,
-                filename = filename[1:end-13],
-                save_path = save_path,
-                print_lock = print_lock)
+            # evolve spatial network
+            spatial_network, total_energy_vec, move_accepted_vec = (
+                evolve_network_temperature_sequence!(
+                    spatial_network, evolution_dict; 
+                    print_progress = print_progress,
+                    total_energy_vec = total_energy_vec,
+                    move_accepted_vec = move_accepted_vec,
+                    print_every_nr_attempted_bond_switches 
+                        = print_every_nr_attempted_bond_switches,
+                    random_evolution_seed = random_evolution_seed,
+                    save_network_after_each_temperature 
+                        = save_network_after_each_temperature,
+                    filename = filename[1:end-13],
+                    save_path = save_path,
+                    print_lock = print_lock))
 
             # save move_accepted_vec and total_energy_vec
             evolution_dict["total_energy_vec"] = total_energy_vec
             evolution_dict["move_accepted_vec"] = move_accepted_vec
 
-            # restore original temperature and nr monte carlo steps per temperature
+            # restore original temperature and nr monte carlo steps per
+            # temperature
             if further_evolve_previous_networks
-                evolution_dict["temperature_vec"] = original_evolution_dict["temperature_vec"]
-                evolution_dict["nr_monte_carlo_steps_per_temperature_vec"] = original_evolution_dict["nr_monte_carlo_steps_per_temperature_vec"]
+                evolution_dict["temperature_vec"] = (
+                    original_evolution_dict["temperature_vec"])
+                evolution_dict["nr_monte_carlo_steps_per_temperature_vec"] = (
+                    original_evolution_dict[
+                        "nr_monte_carlo_steps_per_temperature_vec"])
             end
 
-            # save graph
-            save_graph_to_h5_and_gml(graph_dict,
+            # save spatial network
+            save_spatial_network_to_gml(
+                spatial_network,
                 filename[1:end-13];
                 evolution_dict = evolution_dict,
                 save_path = save_path)
@@ -425,11 +376,12 @@ end
 
 
 """
-Get all evolution dicts in one directory and for each generate a new graph with
-same evolution in another directory. This is done in a multi-threaded (parallel)
-fashion by splitting all filenames into chunks that are run on different threads
+Get all evolution dicts in one directory and for each generate a new spatial
+network with same evolution in another directory. This is done in a 
+multi-threaded (parallel) fashion by splitting all filenames into chunks that
+are run on different threads
 """
-function generate_graphs_from_evolution_dicts_in_directory(
+function generate_spatial_networks_from_evolution_dicts_in_directory(
     evolution_dicts_directory_path::String,
     save_path::String;
     print_every_nr_attempted_bond_switches::Int64 = 100,
@@ -443,23 +395,30 @@ function generate_graphs_from_evolution_dicts_in_directory(
     filenames = readdir(evolution_dicts_directory_path)
 
     # get filenames of all evolution dicts
-    filenames_evolution_dicts = filter(filename -> endswith(filename, "_evolution.h5"), filenames)
+    filenames_evolution_dicts = filter(filename
+        -> endswith(filename, "_evolution.h5"), filenames)
 
     # split filenames into chunks for multi-threading
-    filename_chunks = Iterators.partition(filenames_evolution_dicts, length(filenames_evolution_dicts) ÷ Threads.nthreads())
+    filename_chunks = Iterators.partition(filenames_evolution_dicts, 
+        length(filenames_evolution_dicts) ÷ Threads.nthreads())
 
     # run all filename chunk in parallel in different threads
     map(filename_chunks) do filename_chunk
 
-        Threads.@spawn generate_graphs_from_evolution_dicts_single_thread(filename_chunk,
-            evolution_dicts_directory_path,
-            save_path;
-            print_every_nr_attempted_bond_switches = print_every_nr_attempted_bond_switches,
-            print_progress = print_progress,
-            random_evolution_seed = random_evolution_seed,
-            save_network_after_each_temperature = save_network_after_each_temperature,
-            further_evolve_previous_networks = further_evolve_previous_networks,
-            print_lock = print_lock)
+        Threads.@spawn (
+            generate_spatial_networks_from_evolution_dicts_single_thread(
+                filename_chunk,
+                evolution_dicts_directory_path,
+                save_path;
+                print_every_nr_attempted_bond_switches 
+                    = print_every_nr_attempted_bond_switches,
+                print_progress = print_progress,
+                random_evolution_seed = random_evolution_seed,
+                save_network_after_each_temperature 
+                    = save_network_after_each_temperature,
+                further_evolve_previous_networks 
+                    = further_evolve_previous_networks,
+                print_lock = print_lock))
     end
     
     return
@@ -467,56 +426,65 @@ end
 
 
 """
-This is just an intermediate function to evolve multiple networks from evolution dicts in multiple runs
+This is just an intermediate function to evolve multiple networks from
+evolution dicts in multiple runs
 """
-function generate_graphs_from_evolution_dicts_single_thread_multiple_runs(save_path_filename_tuple_chunks,
-            evolution_dicts_directory_path::String;
-            print_every_nr_attempted_bond_switches::Int64 = 100,
-            print_progress::Bool = false,
-            random_evolution_seed::Int64 = -1,
-            save_network_after_each_temperature::Bool = false,
-            further_evolve_previous_networks::Bool = false,
-            print_lock = Threads.ReentrantLock())
+function (
+    generate_spatial_networks_from_evolution_dicts_single_thread_multiple_runs(
+        save_path_filename_tuple_chunks,
+        evolution_dicts_directory_path::String;
+        print_every_nr_attempted_bond_switches::Int64 = 100,
+        print_progress::Bool = false,
+        random_evolution_seed::Int64 = -1,
+        save_network_after_each_temperature::Bool = false,
+        further_evolve_previous_networks::Bool = false,
+        print_lock = Threads.ReentrantLock()))
 
-    # loop through the vector of save paths and evolution dict filenames
-    # and evolve each of them separately
+    # loop through the vector of save paths and evolution dict filenames and
+    # evolve each of them separately
     for save_path_filename_tuple in save_path_filename_tuple_chunks
 
-        generate_graphs_from_evolution_dicts_single_thread([save_path_filename_tuple[2]],
+        generate_spatial_networks_from_evolution_dicts_single_thread(
+            [save_path_filename_tuple[2]],
             evolution_dicts_directory_path,
             save_path_filename_tuple[1];
-            print_every_nr_attempted_bond_switches = print_every_nr_attempted_bond_switches,
+            print_every_nr_attempted_bond_switches 
+                = print_every_nr_attempted_bond_switches,
             print_progress = print_progress,
             random_evolution_seed = random_evolution_seed,
-            save_network_after_each_temperature = save_network_after_each_temperature,
-            further_evolve_previous_networks = further_evolve_previous_networks,
+            save_network_after_each_temperature 
+                = save_network_after_each_temperature,
+            further_evolve_previous_networks 
+                = further_evolve_previous_networks,
             print_lock = print_lock)
     end
 
     return
-
 end
 
 
 """
-Get all evolution dicts in one directory and for each generate the given number of
-graphs in separate files. This is done in a multi-threaded (parallel)
-fashion by splitting all filenames into chunks that are run on different threads
+Get all evolution dicts in one directory and for each generate the given number
+of spatial networks in separate files. This is done in a multi-threaded
+(parallel) fashion by splitting all filenames into chunks that are run on
+different threads
 """
-function generate_graphs_from_evolution_dicts_in_directory_multiple_runs(
-    evolution_dicts_directory_path::String,
-    save_path::String;
-    print_every_nr_attempted_bond_switches::Int64 = 100,
-    print_progress::Bool = false,
-    random_evolution_seed::Int64 = -1,
-    save_network_after_each_temperature::Bool = false,
-    further_evolve_previous_networks::Bool = false,
-    runs_vec = collect(1:5),
-    print_lock = Threads.ReentrantLock())
+function (
+    generate_spatial_networks_from_evolution_dicts_in_directory_multiple_runs(
+        evolution_dicts_directory_path::String,
+        save_path::String;
+        print_every_nr_attempted_bond_switches::Int64 = 100,
+        print_progress::Bool = false,
+        random_evolution_seed::Int64 = -1,
+        save_network_after_each_temperature::Bool = false,
+        further_evolve_previous_networks::Bool = false,
+        runs_vec = collect(1:5),
+        print_lock = Threads.ReentrantLock()))
 
     # get all filenames by reading the evolution dict directory
     filenames = readdir(evolution_dicts_directory_path)
-    filenames_evolution_dicts = filter(filename -> endswith(filename, "_evolution.h5"), filenames)
+    filenames_evolution_dicts = filter(
+        filename -> endswith(filename, "_evolution.h5"), filenames)
 
     # get vector of filenames and save paths for multiple runs
     save_path_all_runs_vec = Vector{String}(undef, 0)
@@ -524,31 +492,40 @@ function generate_graphs_from_evolution_dicts_in_directory_multiple_runs(
 
     for run in runs_vec
         append!(save_path_all_runs_vec, (save_path .* "run_" 
-            .* string.( Int.( ones(length(filenames_evolution_dicts)) .* run ) ) .* "/" ) )
-        append!(filenames_evolution_dicts_all_runs_vec, filenames_evolution_dicts)
+            .* string.( Int.( ones(length(filenames_evolution_dicts)) 
+            .* run ) ) .* "/" ) )
+        append!(filenames_evolution_dicts_all_runs_vec, 
+            filenames_evolution_dicts)
     end
 
     # create tuples out of the elements of both vectors
-    save_path_filename_tuple_vec = Vector{Tuple{String, String}}(undef, length(save_path_all_runs_vec))
+    save_path_filename_tuple_vec = Vector{Tuple{String, String}}(undef, 
+        length(save_path_all_runs_vec))
 
     for i in eachindex(save_path_filename_tuple_vec)
-        save_path_filename_tuple_vec[i] = (save_path_all_runs_vec[i], filenames_evolution_dicts_all_runs_vec[i] )
+        save_path_filename_tuple_vec[i] = (save_path_all_runs_vec[i],
+            filenames_evolution_dicts_all_runs_vec[i] )
     end
 
     # split filenames and save_paths into chunks for multi-threading
-    save_path_filename_tuple_chunks = Iterators.partition(save_path_filename_tuple_vec, 
+    save_path_filename_tuple_chunks = Iterators.partition(
+        save_path_filename_tuple_vec, 
         length(save_path_filename_tuple_vec) ÷ Threads.nthreads())
 
     # run all filename chunks in parallel in different threads
     map(save_path_filename_tuple_chunks) do save_path_filename_tuple_chunk
 
-        Threads.@spawn generate_graphs_from_evolution_dicts_single_thread_multiple_runs(save_path_filename_tuple_chunk,
+        Threads.@spawn generate_spatial_networks_from_evolution_dicts_single_thread_multiple_run(
+            save_path_filename_tuple_chunk,
             evolution_dicts_directory_path;
-            print_every_nr_attempted_bond_switches = print_every_nr_attempted_bond_switches,
+            print_every_nr_attempted_bond_switches 
+                = print_every_nr_attempted_bond_switches,
             print_progress = print_progress,
             random_evolution_seed = random_evolution_seed,
-            save_network_after_each_temperature = save_network_after_each_temperature,
-            further_evolve_previous_networks = further_evolve_previous_networks,
+            save_network_after_each_temperature 
+                = save_network_after_each_temperature,
+            further_evolve_previous_networks 
+                = further_evolve_previous_networks,
             print_lock = print_lock)
     end
 
@@ -557,30 +534,80 @@ end
 
 
 """
+Modify the spatial network to prepare it for plotting or optical simulations
+by cutting all bonds that reach out of the supercell and by duplicating those
+bonds that are close to the supercell edge on the other side of the supercell
+just outside the supercell edge
+"""
+function get_spatial_network_for_simulation(
+    spatial_network::MetaGraphsNext.MetaGraph;
+    vector_out_of_supercell_length = 1/2,
+    duplicate_bonds_close_to_supercell_edge::Bool = true,
+    bond_radius::Float64 = 0.3131,
+    save_result::Bool = false,
+    filename::String = "some_network",
+    save_path::String = raw"..\structures\random_networks\\")
+
+    # create spatial network to plot
+    spatial_network = deepcopy(spatial_network)
+    
+    # cut all bonds that reach out of supercell and replace
+    # them by new bonds to duplicated vertices outside of the supercell
+    spatial_network = cut_bonds_out_of_supercell!(spatial_network; 
+        vector_out_of_supercell_length = vector_out_of_supercell_length)
+
+    # for each bond in the network, if the both its vertices are on the same
+    # side of the supercell but at least one of them lies close to the
+    # supercell edge, duplicate the bond on the other side of the supercell
+    # just outside the supercell edge. This is required when cylinders are
+    # assigned to the bonds and it is plotted or used in an optical simulation
+    if duplicate_bonds_close_to_supercell_edge
+        spatial_network = duplicate_bonds_close_to_supercell_edge!(
+            spatial_network; 
+            bond_radius = bond_radius)
+    end
+
+    # save spatial network to gml format
+    if save_result
+        save_spatial_network_to_gml(spatial_network, filename*"_for_sim"; 
+            save_path=save_path)
+    end
+
+    return spatial_network
+end
+
+
+"""
 Get mesh from network
 """
-function save_mesh_from_spatial_network(graph_dict::Dict, filename::String;
+function save_mesh_from_spatial_network(
+    spatial_network::MetaGraphsNext.MetaGraph, 
+    filename::String;
     bond_radius::Float64 = 0.3131,
     vector_out_of_supercell_length = 1/2,
     save_path::String = raw"..\structures\random_networks\\",
     duplicate_bonds_close_to_supercell_edge::Bool = true,
     format::String = "obj")
 
-    # create graph dict to plot
-    plot_dict = deepcopy(graph_dict)
-    
-    # cut all bonds that reach out of supercell and replace
-    # them by half way bonds
-    plot_dict = cut_bonds_out_of_supercell!(plot_dict; 
-        vector_out_of_supercell_length = vector_out_of_supercell_length)
+    # cut all bonds that reach out of the supercell and by duplicate those 
+    # bonds that are close to the supercell edge on the other side of the
+    # supercell just outside the supercell edge
+    spatial_network = get_spatial_network_for_simulation(
+        spatial_network;
+        vector_out_of_supercell_length 
+        = vector_out_of_supercell_length,
+        duplicate_bonds_close_to_supercell_edge 
+        = duplicate_bonds_close_to_supercell_edge,
+        bond_radius = bond_radius,
+        save_result = false)
 
     # loop through bonds
-    for bond in MetaGraphsNext.edge_labels(plot_dict["spatial_network"])
+    for bond in MetaGraphsNext.edge_labels(spatial_network)
 
         # get bond's start and target positions and its direction vector
-        start_pos = plot_dict["spatial_network"][bond[1]]["position"]
-        target_pos = plot_dict["spatial_network"][bond[2]]["position"]
-        # direction_vec = plot_dict["spatial_network"][bond...]["vector"]
+        start_pos = spatial_network[bond[1]]["position"]
+        target_pos = spatial_network[bond[2]]["position"]
+        # direction_vec = spatial_network[bond...]["vector"]
 
         # create cylinder object
         current_cylinder = GeometryBasics.Cylinder(
@@ -592,60 +619,10 @@ function save_mesh_from_spatial_network(graph_dict::Dict, filename::String;
         current_cylinder_mesh = GeometryBasics.mesh(current_cylinder)
 
         # save mesh
-        total_path = save_path*filename*"\\"*string(bond[1])*"_"*string(bond[2])*"."*format
+        total_path = (save_path*filename*"\\"*string(bond[1])*"_"
+            *string(bond[2])*"."*format)
 
         FileIO.save(total_path, current_cylinder_mesh)
-
-        # if one of the two vertices is close to the supercell edge but the vertices
-        # are not on opposite sides of the supercell, save another cylinder just outside the
-        # supercell on the other side
-        if (duplicate_bonds_close_to_supercell_edge
-            && (any(start_pos .< bond_radius ) 
-            || any(target_pos .< bond_radius ) 
-            || any((graph_dict["supercell_edge_length"] .- start_pos) .< bond_radius )
-            || any((graph_dict["supercell_edge_length"] .- target_pos) .< bond_radius ) )
-            && LinearAlgebra.norm(start_pos .- target_pos) < graph_dict["supercell_edge_length"]/2
-            && all(start_pos .< graph_dict["supercell_edge_length"] )
-            && all(target_pos .< graph_dict["supercell_edge_length"] )
-            && all(start_pos .> 0.0 )
-            && all(target_pos .> 0.0 )
-            )
-
-            # check on which side of supercell the additional bond should be added and
-            # calculate new start and target positions
-            if any(start_pos .< bond_radius ) || any(target_pos .< bond_radius ) 
-                
-                new_start_pos = (start_pos .+ graph_dict["supercell_edge_length"]
-                    .* ((start_pos .< bond_radius ) .|| (target_pos .< bond_radius ) ))
-
-                new_target_pos = (target_pos .+ graph_dict["supercell_edge_length"]
-                    .* ((start_pos .< bond_radius ) .|| (target_pos .< bond_radius ) ))
-            else
-                new_start_pos = (start_pos .- graph_dict["supercell_edge_length"]
-                    .* (((graph_dict["supercell_edge_length"] .- start_pos) .< bond_radius )
-                    .|| ((graph_dict["supercell_edge_length"] .- target_pos) .< bond_radius )))
-
-                new_target_pos = (target_pos .- graph_dict["supercell_edge_length"]
-                    .* (((graph_dict["supercell_edge_length"] .- start_pos) .< bond_radius )
-                    .|| ((graph_dict["supercell_edge_length"] .- target_pos) .< bond_radius )))
-            end
-
-            #println(start_pos, target_pos, new_start_pos, new_target_pos)
-                
-            # create cylinder object
-            current_cylinder = GeometryBasics.Cylinder(
-                GeometryBasics.Point( new_start_pos...),
-                GeometryBasics.Point( new_target_pos...),
-                bond_radius)
-            
-            # mesh cylinder object
-            current_cylinder_mesh = GeometryBasics.mesh(current_cylinder)
-
-            # save mesh
-            total_path = save_path*filename*"\\"*string(bond[1])*"_"*string(bond[2])*"_outside_supercell."*format
-
-            FileIO.save(total_path, current_cylinder_mesh)
-        end
 
     end
 

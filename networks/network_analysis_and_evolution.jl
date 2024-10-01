@@ -116,7 +116,9 @@ end
 
 """
 Get temperature sequence for heating and then cooling at
-a constant temperature gradient
+a constant temperature gradient. The temperature increase per monte carlo step
+is the gradient of heating. The argument 'nr_monte_carlo_steps_per_temperature'
+only sets, how finely the temperature is supposed to be sampled.
 """
 function get_temperature_sequence_heating_cooling_gradient(maximal_temperature = 2;
     temperature_increase_per_monte_carlo_step = 0.5, 
