@@ -11,15 +11,15 @@ function decompose_measurements_in_dict(dict::Dict)
     # loop through each key of the dict
     for (key, value) in dict
 
-        # if key if of type Measurements.Measurement, save values and uncertainties
-        # to two seperate keys and delete previous key
+        # if key if of type Measurements.Measurement, save values and
+        # uncertainties to two seperate keys and delete previous key
         if typeof(value) in [Vector{Measurements.Measurement},
-                            Vector{Measurements.Measurement{Float64}}, 
-                            Vector{Complex{Measurements.Measurement{Float64}}},
-                            Array{Measurements.Measurement, 2},
-                            Array{Measurements.Measurement, 3},
-                            Array{Measurements.Measurement{Float64}, 3}, 
-                            Array{Complex{Measurements.Measurement{Float64}}, 3}]
+            Vector{Measurements.Measurement{Float64}}, 
+            Vector{Complex{Measurements.Measurement{Float64}}},
+            Array{Measurements.Measurement, 2},
+            Array{Measurements.Measurement, 3},
+            Array{Measurements.Measurement{Float64}, 3}, 
+            Array{Complex{Measurements.Measurement{Float64}}, 3}]
 
             dict[key*"_values"] = Measurements.value.( value )
             dict[key*"_uncertainties"] = Measurements.uncertainty.( value )
@@ -29,7 +29,6 @@ function decompose_measurements_in_dict(dict::Dict)
     end
 
     return dict
-
 end
 
 
@@ -107,19 +106,18 @@ function bool_to_int_in_dict(dict)
     end
 
     return dict
-
 end
 
 
 """
 save dict to H5 file.
-The dicts can not be stored right away, because they contain some variables of type
-Measurements.Measurement. These need to be decomposed into value and uncertainty first.
-Also vectors of vectors need to be decomposed and the vectors have to be stored individually,
-tuples need to be converted into vectors and booleans need to be converted to ints (0 and 1)
+The dicts can not be stored right away, because they contain some variables of
+type Measurements.Measurement. These need to be decomposed into value and
+uncertainty first. Also vectors of vectors need to be decomposed and the
+vectors have to be stored individually, tuples need to be converted into
+vectors and booleans need to be converted to ints (0 and 1)
 """
-function save_dict_to_h5(dict::Dict,
-                        save_path::String)
+function save_dict_to_h5(dict::Dict, save_path::String)
 
     # copy dict to avoid changing the original dict
     dict = deepcopy(dict)
@@ -128,7 +126,8 @@ function save_dict_to_h5(dict::Dict,
     decomposed_measurements_dict = decompose_measurements_in_dict(dict)
 
     # decompose vectors of vectors into seperate vectors
-    decomposed_vec_vec_dict = decompose_vec_vecs_in_dict(decomposed_measurements_dict)
+    decomposed_vec_vec_dict = decompose_vec_vecs_in_dict(
+        decomposed_measurements_dict)
 
     # turn tuples into vectors
     tuples_to_vectors_dict = tuples_to_vectors_in_dict(decomposed_vec_vec_dict)
@@ -140,7 +139,6 @@ function save_dict_to_h5(dict::Dict,
     FileIO.save(save_path, saving_dict)
 
     return
-
 end
 
 
@@ -164,7 +162,6 @@ function restore_bool_from_int_in_dict(dict)
     end
 
     return dict
-
 end
 
 
@@ -176,8 +173,8 @@ function restore_measurement_types(dict::Dict)
     # loop through each key of the dict
     for (key, value) in dict
 
-        # if key ends on "_values", then merge it with corresponding uncertainties
-        # into measurement type
+        # if key ends on "_values", then merge it with corresponding 
+        # uncertainties into measurement type
         if endswith(key, "_values")
 
             # get original key
@@ -186,18 +183,22 @@ function restore_measurement_types(dict::Dict)
             # get key of uncertainties
             uncertainty_key = original_key*"_uncertainties"
 
-            # create vector of type Measurements.Measurement after checking whether
-            # values are complex or real
+            # create vector of type Measurements.Measurement after checking 
+            # whether values are complex or real
             if typeof(value[1]) == ComplexF64
-                measurement_vector = Complex.( Measurements.measurement.( real.( value ), real.( dict[uncertainty_key] ) ),
-                                                Measurements.measurement.( imag.( value ), imag.( dict[uncertainty_key] ) )  )
+                measurement_vector = Complex.( Measurements.measurement.( 
+                        real.( value ), real.( dict[uncertainty_key] ) ),
+                    Measurements.measurement.( imag.( value ), imag.( 
+                        dict[uncertainty_key] ) )  )
 
             else
-                measurement_vector = Measurements.measurement.( dict[key], dict[uncertainty_key] )
+                measurement_vector = Measurements.measurement.( 
+                    dict[key], dict[uncertainty_key] )
 
             end
 
-            # save measurement vector to dict and delete value and uncertainty keys
+            # save measurement vector to dict and delete value and uncertainty
+            # keys
             dict[original_key] = measurement_vector
             delete!(dict, key)
             delete!(dict, uncertainty_key)
@@ -206,7 +207,6 @@ function restore_measurement_types(dict::Dict)
     end
 
     return dict
-
 end
 
 
@@ -263,14 +263,14 @@ function restore_tuples_in_dict(dict::Dict)
     end
 
     return dict
-
 end
 
 
 """
 load dict from h5 file.
-When loaded, variables of type Measurements.Measurement whcih were decomposed are
-restored again. Also vectors of vectors had to be decomposed for saving and are restored
+When loaded, variables of type Measurements.Measurement whcih were decomposed
+are restored again. Also vectors of vectors had to be decomposed for saving and
+are restored
 """
 function load_h5_dict(dict_path::String)
 
@@ -284,12 +284,12 @@ function load_h5_dict(dict_path::String)
     measurements_restored_dict = restore_measurement_types(bool_restored_dict)
 
     # restore vectors of vectors
-    vec_vecs_restored_dict = restore_vec_vecs_in_dict(measurements_restored_dict)
+    vec_vecs_restored_dict = restore_vec_vecs_in_dict(
+        measurements_restored_dict)
 
     # restore tuples
     restored_dict = restore_tuples_in_dict(vec_vecs_restored_dict)
 
     return restored_dict
-
 end
 
