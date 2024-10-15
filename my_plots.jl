@@ -12,6 +12,7 @@ import LaTeXStrings as Latex
 import Measurements
 import Polynomials
 import FFTW
+import Statistics
 
 fontsize=18
 
@@ -142,25 +143,66 @@ end
 fancylogscale!(p::Plots.Plot; kwargs...) = (fancylogscale!(p.subplots[1]; kwargs...); return p)
 fancylogscale!(; kwargs...) = fancylogscale!(Plots.plot!(); kwargs...)
 
-path = raw"..\..\presentations\material\\"
 
-# Set the size of the checkerboard
-n_rows, n_cols = 8, 8  # 8x8 checkerboard
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\random_networks\1000_vertices_bond_bending_0.285\run_1\\"
 
-# Create an empty grid to hold the colors
-checkerboard = [Random.rand() for i in 1:n_rows, j in 1:n_cols]
+load_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\1000_vertices_bond_bending_0.285\run_1\\"
 
-colormap = Plots.cgrad(:roma)
+temperature_vec = vcat(collect(0.1:0.01:0.18), collect(0.2:0.02:0.24))[1:6]
 
-checkerboard_colors = [colormap[checkerboard[i,j]] for i in 1:n_rows, j in 1:n_cols]
+Plots.plot()
 
-# Plot the checkerboard
-Plots.plot(Plots.heatmap(1:n_rows, 1:n_cols, checkerboard_colors, aspect_ratio=:equal))
-Plots.savefig(path*"checkerboard.png")
+for temperature in temperature_vec
+    corr_fct_dict = GU.load_h5_dict(load_path * "1000_vertices_T_" * string(temperature) * "_heat_cool_0.1_per_mc_quenched_correlation_functions.h5")
+    Plots.plot!(corr_fct_dict["vertex_distance_vec"], corr_fct_dict["pair_correlation_fct_vec"], label = "T = " * string(temperature))
+end
 
-colormap = Plots.cgrad(:roma, scale=:lin)
-checkerboard_fft = FFTW.fft(checkerboard)
-checkerboard_fft_normalized = abs.(checkerboard_fft) ./ 4
-checkerboard_fft_colors = [colormap[abs(checkerboard_fft_normalized[i,j])] for i in 1:n_rows, j in 1:n_cols]
-Plots.plot(Plots.heatmap(1:n_rows, 1:n_cols, checkerboard_fft_colors, aspect_ratio=:equal))
-Plots.savefig(path*"checkerboard_fft.png")
+Plots.plot!(xlabel = "distance", ylabel = "pair correlation function")
+
+Plots.savefig(path*"pair_correlation_function_low_t.png")
+
+Plots.plot()
+
+for temperature in temperature_vec
+    corr_fct_dict = GU.load_h5_dict(load_path * "1000_vertices_T_" * string(temperature) * "_heat_cool_0.1_per_mc_quenched_correlation_functions.h5")
+    Plots.plot!(corr_fct_dict["vertex_distance_vec"], corr_fct_dict["ripley_k_vec"], label = "T = " * string(temperature))
+end
+
+Plots.plot!(xlabel = "distance", ylabel = "Cumulative coord. nr.", ylims=(0,6))
+
+Plots.savefig(path*"cumulative_coord_nr_low_t_wrong.png")
+
+Plots.plot()
+
+for temperature in temperature_vec
+    corr_fct_dict = GU.load_h5_dict(load_path * "1000_vertices_T_" * string(temperature) * "_heat_cool_0.1_per_mc_quenched_correlation_functions.h5")
+
+    supercell_edge_length = 11.547005383792516
+    nr_vertices = 1000
+    vertex_density = nr_vertices/supercell_edge_length^3
+    cumulative_coord_nr_vec = Vector{Float64}(undef, 
+    length(corr_fct_dict["vertex_distance_vec"]))
+    vertex_distance_step = (corr_fct_dict["vertex_distance_vec"][2] - corr_fct_dict["vertex_distance_vec"][1])
+    
+    cumulative_coord_nr_vec = (vertex_density*4*pi *vertex_distance_step * cumsum(corr_fct_dict["vertex_distance_vec"] .^2 .* corr_fct_dict["pair_correlation_fct_vec"] ))
+    
+    
+    Plots.plot!(corr_fct_dict["vertex_distance_vec"], cumulative_coord_nr_vec, label = "T = " * string(temperature))
+end
+
+Plots.plot!(xlabel = "distance", ylabel = "Cumulative coord. nr.", ylims=(0,6))
+
+Plots.savefig(path*"cumulative_coord_nr_low_t.png")
+
+temperature_vec = vcat(collect(0.1:0.01:0.18), collect(0.2:0.02:0.24))[7:end]
+
+Plots.plot()
+
+for temperature in temperature_vec
+    corr_fct_dict = GU.load_h5_dict(load_path * "1000_vertices_T_" * string(temperature) * "_heat_cool_0.1_per_mc_quenched_correlation_functions.h5")
+    Plots.plot!(corr_fct_dict["vertex_distance_vec"], corr_fct_dict["pair_correlation_fct_vec"], label = "T = " * string(temperature))
+end
+
+Plots.plot!(xlabel = "distance", ylabel = "pair correlation function")
+
+Plots.savefig(path*"pair_correlation_function_high_t.png")

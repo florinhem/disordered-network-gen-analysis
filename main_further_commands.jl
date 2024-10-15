@@ -6448,3 +6448,49 @@ my_graph_dict = MetaGraphsNext.MetaGraph(
     edge_data_type=Dict{String, Any}, 
     graph_data=Dict{String, Any}("coordination_nr"   => 4)
 )
+
+
+
+function my_func()
+
+    nr_vertices_vec = [216, 512, 1000]
+    bond_bending_vec = [0.21, 0.285, 0.36]
+
+    # loop through each number of vertices
+    for nr_vertices in nr_vertices_vec
+
+        # loop through each bond bending
+        for bond_bending in bond_bending_vec
+
+            path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\\"*string(nr_vertices, "_vertices_bond_bending_", bond_bending, "\\")
+
+            for run in 1:5
+                current_path = path*"run_"*string(run)*"\\"
+
+                # get all files in the current path
+                files = readdir(current_path)
+
+                # get vector of all gml files
+                gml_files = [file for file in files if endswith(file, ".gml")]
+
+                # loop through each file that is a gml file
+                for gml_file in gml_files
+                    filename  = gml_file[1:end-4]
+
+                    spatial_network = NG.load_spatial_network_from_h5_and_gml(current_path*filename)
+
+                    # save spatial network
+                    NG.save_spatial_network_to_gml(
+                        spatial_network,
+                        filename;
+                        save_path = current_path)
+
+                    # delete h5 file
+                    rm(current_path*filename*".h5")
+                end
+            end
+        end
+    end
+end
+
+my_func()

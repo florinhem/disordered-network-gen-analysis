@@ -22,26 +22,34 @@ import Graphs
 
 # julia --threads 23
 
-# graph_dict["spatial_network"] = spatial_network
-# graph_dict[" = spatial_network[]["
-# graph_dict::Dict = spatial_network::MetaGraphsNext.MetaGraph
-# graph_dict = spatial_network
-# graph ...
+nr_vertices_vec = [216, 512, 1000]
 
-save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\\"
 
-filename = "216_vertices_T_0.2_heat_cool_0.1_per_mc_quenched"
+for nr_vertices in nr_vertices_vec
 
-spatial_network = NG.load_spatial_network_from_gml(save_path * filename * ".gml")
-NG.plot_spatial_network(spatial_network)
+    filename = string(nr_vertices)*"_vertices_T_0.08_heat_cool_0.1_per_mc_quenched"
 
-# evolution_dict = NA.get_evolution_dict()
+    for run in 1:5
 
-# spatial_network = NG.get_periodic_network(evolution_dict)
-# spatial_network[]["total_energy_up_to_date"] = false
-# 
-# NG.save_spatial_network_to_gml(
-#     spatial_network,
-#     "my_network";
-#     evolution_dict = nothing,
-#     save_path = save_path,)
+        spatial_network_path = "../structures/random_networks/"*string(nr_vertices)*"_vertices_bond_bending_0.21/run_"*string(run)*"/"
+        structure_dict_path = "../structures/random_networks/binary_structures/"*string(nr_vertices)*"_vertices_bond_bending_0.21/run_"*string(run)*"/"
+        analysis_data_path = "../analysis_data/random_networks/"*string(nr_vertices)*"_vertices_bond_bending_0.21/run_"*string(run)*"/"
+
+        println("Nr vertices: ", nr_vertices, ", run: ", run)
+
+        NA.get_all_dicts_from_network_single_file(
+            filename,
+            spatial_network_path,
+            structure_dict_path,
+            analysis_data_path;
+            bond_radius = 0.35,
+            voxel_edge_length = 0.1,
+            structure_factor_diamond_std_value_ratio = 1,
+            spectral_density_diamond_std_value_ratio = 1,
+            pore_size_distribution_nr_sampled_voxels = 20000,
+            print_progress = true,
+            print_lock = Threads.ReentrantLock())
+
+    end
+end
+

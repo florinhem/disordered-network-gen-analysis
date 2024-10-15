@@ -225,17 +225,20 @@ end
 """
 Load graph and its properties from a GML file and a h5 dictionary
 """
-function load_graph_from_h5_and_gml(dict_path_without_format::String)
+function load_spatial_network_from_h5_and_gml(dict_path_without_format::String)
 
-    # load spatial network in MGformat
+    # load spatial network without metadata
     spatial_network = load_spatial_network_from_gml(
             dict_path_without_format*".gml")
 
-    # load rest of graph dict
-    spatial_network = GU.load_h5_dict(dict_path_without_format*".h5")
+    # load metadata from h5 file
+    metadata_dict = GU.load_h5_dict(dict_path_without_format*".h5")
 
-    # add spatial network key to graph dict
-    spatial_network = spatial_network
+    # go through all keys in the metadata dict and add them to the spatial
+    # network
+    for (key, value) in metadata_dict
+        spatial_network[][key] = value
+    end
 
     return spatial_network
 end

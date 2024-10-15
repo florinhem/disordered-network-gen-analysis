@@ -6,7 +6,12 @@ import .NetworkAnalysis as NA
 import .GeneralUtilities as GU
 
 import Plots
+import Random
 import LaTeXStrings as Latex
+import Measurements
+import Polynomials
+import FFTW
+import Statistics
 
 
 path = raw"..\..\presentations\material\\"
@@ -2394,7 +2399,7 @@ for i in eachindex(order_metrics_names)
         mapped_colors = [colormap[normalized_temperature] for normalized_temperature in  normalized_temperatures]
 
         if order_metrics_names[i] == "anisotropy_metric_from_structure_factor_vec" || order_metrics_names[i] == "anisotropy_metric_from_spectral_density_vec"
-            Plots.scatter!(order_metrics_dicts[j]["total_keating_energy_vec"] ./ nr_vertices[j], order_metrics_dicts[j][order_metrics_names[i]] ./ diamond_order_metrics_dicts[j][order_metrics_names[i][1:end-4]],
+            Plots.scatter!(order_metrics_dicts[j]["total_keating_energy_vec"] ./ nr_vertices[j], order_metrics_dicts[j][order_metrics_names[i]] ./ Statistics.mean(order_metrics_dicts[j][order_metrics_names[i]]),
             color = mapped_colors, markershape = markershapes[j], yscale = :log10)
         else
             
@@ -2419,3 +2424,26 @@ for i in eachindex(order_metrics_names)
     Plots.savefig(plots_save_path*order_metrics_names[i]*".png")
 end
 
+
+path = raw"..\..\presentations\material\\"
+
+# Set the size of the checkerboard
+n_rows, n_cols = 8, 8  # 8x8 checkerboard
+
+# Create an empty grid to hold the colors
+checkerboard = [Random.rand() for i in 1:n_rows, j in 1:n_cols]
+
+colormap = Plots.cgrad(:roma)
+
+checkerboard_colors = [colormap[checkerboard[i,j]] for i in 1:n_rows, j in 1:n_cols]
+
+# Plot the checkerboard
+Plots.plot(Plots.heatmap(1:n_rows, 1:n_cols, checkerboard_colors, aspect_ratio=:equal))
+Plots.savefig(path*"checkerboard.png")
+
+colormap = Plots.cgrad(:roma, scale=:lin)
+checkerboard_fft = FFTW.fft(checkerboard)
+checkerboard_fft_normalized = abs.(checkerboard_fft) ./ 4
+checkerboard_fft_colors = [colormap[abs(checkerboard_fft_normalized[i,j])] for i in 1:n_rows, j in 1:n_cols]
+Plots.plot(Plots.heatmap(1:n_rows, 1:n_cols, checkerboard_fft_colors, aspect_ratio=:equal))
+Plots.savefig(path*"checkerboard_fft.png")

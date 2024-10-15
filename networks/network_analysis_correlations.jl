@@ -500,8 +500,9 @@ end
 
 
 """
-Calculate pair angle averaged pair correlation function and total correlation
-function from vertex position of spatial network
+Calculate pair correlation function, total correlation function and
+cumulative coordination number as defined in equations 3-5 of
+10.1016/j.physrep.2018.03.001
 """
 function get_correlation_functions(
     spatial_network::MetaGraphsNext.MetaGraph;
@@ -551,11 +552,6 @@ function get_correlation_functions(
     vertex_density = spatial_network[]["nr_vertices"] / spatial_network[][
         "supercell_edge_length"]^3
 
-    # calculate ripley's K function / cumulative coordination number 
-    # (eq. 5 in 10.1016/j.physrep.2018.03.001)
-    ripley_k_vec = cumsum(vertex_nr_vec) ./(spatial_network[]["nr_vertices"] 
-        * vertex_density)
-
     # calculate pair correlaion function
     # (eq. 3 in 10.1016/j.physrep.2018.03.001)
     pair_correlation_fct_vec = ((1/(4*pi*vertex_density 
@@ -567,10 +563,15 @@ function get_correlation_functions(
     # (eq. 4 in 10.1016/j.physrep.2018.03.001)
     total_correlation_fct_vec = pair_correlation_fct_vec .- 1
 
+    # calculate cumulative coordination number 
+    # (eq. 5 in 10.1016/j.physrep.2018.03.001)
+    cumulative_coord_nr_vec = (4*pi*vertex_density*distance_histogram_bin_width
+        * cumsum(vertex_distance_vec.^2 .* pair_correlation_fct_vec ))
+
     # create dict to save
     correlation_functions_dict = Dict{String, Any}(
         "vertex_distance_vec" => vertex_distance_vec, 
-        "ripley_k_vec" => ripley_k_vec,
+        "cumulative_coord_nr_vec" => cumulative_coord_nr_vec,
         "pair_correlation_fct_vec" => pair_correlation_fct_vec,
         "total_correlation_fct_vec" => total_correlation_fct_vec)
 
