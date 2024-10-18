@@ -45,8 +45,7 @@ function cut_bonds_out_of_supercell!(
             vortex_count += 2
 
             # cut original bond
-            MetaGraphsNext.rem_edge!(spatial_network,
-            bond...)
+            MetaGraphsNext.rem_edge!(spatial_network, bond...)
         end
     end
 
@@ -183,8 +182,6 @@ function get_node_edge_color_vecs(
         node_color_vec[highlight_node] = GLMakie.Colors.colorant"red"
     end
 
-    # get edge color vector
-
     # get all edges
     edge_vec = collect(MetaGraphsNext.edge_labels(spatial_network))
 
@@ -221,9 +218,6 @@ function plot_spatial_network(
 
     # get original nr of vertices
     nr_vertices = spatial_network[]["nr_vertices"]
-
-    # create spatial network to plot
-    spatial_network = deepcopy(spatial_network)
     
     # cut all bonds that reach out of supercell and replace
     # them by half way bonds
@@ -262,14 +256,11 @@ function plot_spatial_network(
 end
 
 
-function get_rainbow_color_vecs(spatial_network )
+function get_rainbow_color_vecs(spatial_network)
 
     # get node color vector
     node_color_vec = [GLMakie.Colors.HSV(rand(1:360), rand(1:360), rand(1:360)) 
         for i in 1:spatial_network[]["nr_vertices"]]
-
-
-    # get edge color vector
 
     # get all edges
     edge_vec = collect(MetaGraphsNext.edge_labels(spatial_network))
@@ -282,6 +273,7 @@ function get_rainbow_color_vecs(spatial_network )
     # count current edge
     edge_count = 1
 
+    # TODO edge was never used:
     for edge in edge_vec
         edge_color_vec[edge_count] = (
             GLMakie.Colors.HSV(rand(1:360), rand(1:360), rand(1:360)), 0.6)
@@ -300,9 +292,6 @@ function plot_network_rainbow(spatial_network::MetaGraphsNext.MetaGraph)
 
     # get original nr of vertices
     nr_vertices = spatial_network[]["nr_vertices"]
-
-    # create spatial network to plot
-    spatial_network = deepcopy(spatial_network)
     
     # cut all bonds that reach out of supercell and replace
     # them by half way bonds

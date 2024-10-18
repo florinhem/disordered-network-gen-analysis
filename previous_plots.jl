@@ -2419,3 +2419,134 @@ for i in eachindex(order_metrics_names)
     Plots.savefig(plots_save_path*order_metrics_names[i]*".png")
 end
 
+#%%
+
+
+using Base.Iterators
+
+function get_bond_length_AND_keating_energy_per_vertex_after_evolve_network(
+    ;maximal_temperature=1,
+    nr_vertices=nr_vertices)
+
+    evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices, network_type="diamond", bond_bending_const=0.285, min_ring_size=3)
+    spatial_network = NG.get_periodic_network(evolution_dict)
+    #NG.plot_spatial_network(spatial_network)
+
+    temperature_vec, nr_monte_carlo_steps_per_temperature_vec = 
+        NA.get_temperature_sequence_heating_cooling_gradient(
+            maximal_temperature;
+            temperature_gradient = 10.0, 
+            nr_monte_carlo_steps_per_temperature = 2/(18*216),
+            quench = false)
+
+    evolution_dict["temperature_vec"] = temperature_vec
+    evolution_dict["nr_monte_carlo_steps_per_temperature_vec"] = nr_monte_carlo_steps_per_temperature_vec
+
+    spatial_network, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_sequence!(
+        spatial_network,
+        evolution_dict;
+        print_progress = false,
+        print_every_nr_attempted_bond_switches = 10)
+
+    #=
+    save_path = raw".\my_networks\\"
+    filename = "Test3"
+
+    NG.save_spatial_network_to_gml(
+        spatial_network,
+        filename;
+        evolution_dict = evolution_dict,
+        save_path = save_path)
+    =#
+
+    #Now do here a standard deviation of bond
+    bond_length_std, bond_length_vec = NA.get_bond_length_std(spatial_network)
+
+    #Get the Keating energy
+    total_energy_keating=NG.get_total_energy_keating(spatial_network)
+    energy_keating_per_vertex=total_energy_keating/evolution_dict["nr_vertices"]
+
+    return bond_length_std,energy_keating_per_vertex
+end
+
+
+bond_bending_const=0.285
+x=[]
+y=[]
+
+nr_trials_per_temperature=1
+maximal_temperature_range=0.1:0.1:0.3
+#temperature_color_array=[]
+#maximal_temperature_array=collect(take(cycle(maximal_temperature_range),nr_trials_per_temperature*length(maximal_temperature_range)))
+shape_array=[:diamond, :rect]
+nr_vertices_array=[216,512]
+
+@assert length(shape_array)===length(nr_vertices_array)
+
+#=
+P=Plots.plot(
+    linez=maximal_temperature_range,
+    c=:batlow,
+    label=false,
+    colorbar=:true,
+    colorbar_title="Maximal temperature"
+)
+=#
+
+P=Plots.scatter()
+
+for j in eachindex(nr_vertices_array)
+
+    nr_vertices=nr_vertices_array[j]
+    shape=shape_array[j]
+
+    for i in eachindex(maximal_temperature_range)
+
+        maximal_temperature=maximal_temperature_range[i]
+        #temperature_color=temperature_color_array[i]
+
+        for k in 1:nr_trials_per_temperature
+
+            println("start: shape="*"$shape"*", N="*"$nr_vertices"*", T_max="*"$maximal_temperature"*", k="*"$k")
+            bond_length_std,energy_keating_per_vertex=get_bond_length_AND_keating_energy_per_vertex_after_evolve_network(
+                ;maximal_temperature=maximal_temperature,
+                nr_vertices=nr_vertices)
+
+            P=Plots.scatter!(
+                P,
+                [energy_keating_per_vertex],
+                [bond_length_std],
+                xlabel="Keating energy per vertex",
+                ylabel="Bond length std",
+                
+                #marker_z=maximal_temperature_range,
+                #markercolor=[]
+                markershape=shape,
+
+                zcolor=maximal_temperature_range,
+                c=:batlow,
+                
+                label=false,
+                colorbar=:true,
+                colorbar_title="Maximal temperature",
+                
+                flip_axis=false
+                )
+        end
+    end
+end
+
+minimum_temperature=minimum(maximal_temperature_range)
+maximum_temperature=maximum(maximal_temperature_range)
+
+minimum_nr_vertices=minimum(nr_vertices_array)
+maximum_nr_vertices=maximum(nr_vertices_array)
+
+Plots.savefig(P,raw".\my_networks\KE_VS_BLSTD\KE_VS_BLSTD_16"*
+    "_N="*"$minimum_nr_vertices" * "-" * "$maximum_nr_vertices"*
+    "_beta="*"$bond_bending_const"*
+    "_T="*"$minimum_temperature" * "-" * "$maximum_temperature"*
+    "_trials="*"$nr_trials_per_temperature"*
+    ".png")
+
+#display(P)

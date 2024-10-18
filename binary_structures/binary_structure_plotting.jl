@@ -5,45 +5,59 @@ structures
 
 
 """
-Plot window volume times local volume fraction variance as a function of window edge length
-to determine whether structure is hyperuniform.
-If the plot tends to zero for edge length -> infintity, then the structure is hyperuniform.
+Plot window volume times local volume fraction variance as a function of 
+window edge length to determine whether structure is hyperuniform.
+If the plot tends to zero for edge length 
+-> infintity, then the structure is hyperuniform.
 The argument plot_dict_vec contains dictionaries with the following keys:
 - window_edge_length_vec
 - local_volume_fract_variance_vec
 - label
 """
-function plot_volume_fraction_variance_times_window_volume(nr_dimensions_data::Int64,
-                                    plot_dict_vec::Vector,
-                                    save_path::String;
-                                    title="Hyperuniformity test",
-                                    save_plot = false)
+function plot_volume_fraction_variance_times_window_volume(
+    nr_dimensions_data::Int64,
+    plot_dict_vec::Vector,
+    save_path::String;
+    title="Hyperuniformity test",
+    save_plot = false)
 
     # create empty plot
-    hyperuniform_plot = Plots.plot(xlabel="window edge length "*Latex.L"L"*" / voxel edge length",
-                                    ylabel=Format.format(Latex.L"\sigma_\tau^2(L) \cdot L^{:d} / ", 
-                                                        nr_dimensions_data)
-                                                    *"voxel edge length"
-                                                    *Format.format(Latex.L"^{:d}", nr_dimensions_data) ,
-                                    legend = true, dpi=250, title=title)
+    hyperuniform_plot = Plots.plot(
+        xlabel="window edge length "*Latex.L"L"*" / voxel edge length",
+        ylabel=Format.format(
+            Latex.L"\sigma_\tau^2(L) \cdot L^{:d} / ", 
+            nr_dimensions_data)
+            *"voxel edge length"
+            *Format.format(Latex.L"^{:d}", nr_dimensions_data) ,
+        legend = true, 
+        dpi=250, 
+        title=title)
 
     # loop through plot dictionaries to add plots
     for plot_dict in plot_dict_vec
 
         # get vector of window volumes
-        window_volume_vec = plot_dict["window_edge_length_vec"] .^ nr_dimensions_data
+        window_volume_vec = 
+            plot_dict["window_edge_length_vec"] .^ nr_dimensions_data
 
-        # plot window volume times local volume fraction variance against window edge length
-        Plots.plot!(plot_dict["window_edge_length_vec"], 
-                    Measurements.value.(plot_dict["local_volume_fract_variance_vec"]) .* window_volume_vec, 
-                    ribbon = Measurements.uncertainty.(plot_dict["local_volume_fract_variance_vec"]) .* window_volume_vec,
-                    label = plot_dict["label"])
+        # plot window volume times local volume fraction variance 
+        # against window edge length
+        Plots.plot!(
+            plot_dict["window_edge_length_vec"], 
+            Measurements.value.(
+                plot_dict["local_volume_fract_variance_vec"]) .* 
+                window_volume_vec, 
+            ribbon = Measurements.uncertainty.(
+                plot_dict["local_volume_fract_variance_vec"]) .* 
+                window_volume_vec,
+            label = plot_dict["label"])
 
     end
 
     # if specified by the argument, save the plot
     if save_plot
-        Plots.savefig(save_path*"_volume_fraction_variance_times_window_volume.png")
+        Plots.savefig(
+            save_path*"_volume_fraction_variance_times_window_volume.png")
 
     else
         Plots.display(hyperuniform_plot)
@@ -58,36 +72,41 @@ end
 """
 Plot local volume fraction variance as a function of window edge length
 to determine whether structure is hyperuniform.
-If the plot tends to zero for edge length -> infintity, then the structure is hyperuniform.
+If the plot tends to zero for edge length 
+-> infintity, then the structure is hyperuniform.
 The argument plot_dict_vec contains dictionaries with the following keys:
 - window_edge_length_vec
 - local_volume_fract_variance_vec
 - voxel_edge_length
 - label
 """
-function plot_volume_fraction_variance(plot_dict_vec::Vector,
-                                    save_path::String;
-                                    title="Local volume fraction variance",
-                                    save_plot = false
-                                    )
+function plot_volume_fraction_variance(
+    plot_dict_vec::Vector,
+    save_path::String;
+    title="Local volume fraction variance",
+    save_plot = false)
 
     yticks = 10. .^ collect(-6:-1)
 
     # create empty plot
-    volume_fraction_plot = Plots.plot(xlabel= "measuring window diameter " * Latex.L"L / d",
-                                    ylabel=Latex.L"\sigma_\tau^2(L) " ,
-                                    yaxis=:log,  yticks=yticks,
-                                    legend = true, dpi=250, title=title)
+    volume_fraction_plot = Plots.plot(
+        xlabel= "measuring window diameter " * Latex.L"L / d",
+        ylabel=Latex.L"\sigma_\tau^2(L) " ,
+        yaxis=:log,  yticks=yticks,
+        legend = true, dpi=250, title=title)
 
 
     # loop through plot dictionaries to add plots
     for plot_dict in plot_dict_vec
 
-        # plot window volume times local volume fraction variance against window edge length
-        Plots.plot!(plot_dict["window_edge_length_vec"]*plot_dict["voxel_edge_length"], 
-                    Measurements.value.(plot_dict["local_volume_fract_variance_vec"]) , 
-                    ribbon = Measurements.uncertainty.(plot_dict["local_volume_fract_variance_vec"]) ,
-                    label = plot_dict["label"])
+        # plot window volume times local volume fraction variance 
+        # against window edge length
+        Plots.plot!(
+            plot_dict["window_edge_length_vec"]*plot_dict["voxel_edge_length"], 
+            Measurements.value.(plot_dict["local_volume_fract_variance_vec"]) , 
+            ribbon = Measurements.uncertainty.(
+                plot_dict["local_volume_fract_variance_vec"]) ,
+            label = plot_dict["label"])
 
     end
 
@@ -106,24 +125,28 @@ end
 
 
 """
-Plot autocovariance function as a function of the distance r between two points inside
-a structure.
+Plot autocovariance function as a function of the distance r between two points
+inside a structure.
 The argument plot_dict_vec contains dictionaries with the following keys:
 - sampling_distance_vec
 - autocovariance_fct_vec
 - voxel_edge_length
 - label
 """
-function plot_autocovariance_fct(plot_dict_vec::Vector,
-                                    save_path::String;
-                                    title="Autocovariance function",
-                                    save_plot = false,
-                                    ylims=nothing)
+function plot_autocovariance_fct(
+    plot_dict_vec::Vector,
+    save_path::String;
+    title="Autocovariance function",
+    save_plot = false,
+    ylims=nothing)
 
     # create empty plot
-    autocovariance_fct_plot = Plots.plot(xlabel= "sampling distance " * Latex.L"r / d",
-                                    ylabel=Latex.L"\chi(r) " ,
-                                    legend = true, dpi=250, title=title)
+    autocovariance_fct_plot = Plots.plot(
+        xlabel= "sampling distance " * Latex.L"r / d",
+        ylabel=Latex.L"\chi(r) " ,
+        legend = true, 
+        dpi=250, 
+        title=title)
     
     # set ylims if specified
     if ylims !== nothing
@@ -134,10 +157,11 @@ function plot_autocovariance_fct(plot_dict_vec::Vector,
     for plot_dict in plot_dict_vec
 
         # plot window volume times local volume fraction variance against window edge length
-        Plots.plot!(plot_dict["sampling_distance_vec"]*plot_dict["voxel_edge_length"], 
-                    Measurements.value.(plot_dict["autocovariance_fct_vec"]), 
-                    ribbon = Measurements.uncertainty.(plot_dict["autocovariance_fct_vec"]),
-                    label = plot_dict["label"])
+        Plots.plot!(
+            plot_dict["sampling_distance_vec"]*plot_dict["voxel_edge_length"], 
+            Measurements.value.(plot_dict["autocovariance_fct_vec"]), 
+            ribbon = Measurements.uncertainty.(plot_dict["autocovariance_fct_vec"]),
+            label = plot_dict["label"])
 
     end
 
@@ -168,16 +192,20 @@ The argument plot_dict_vec contains dictionaries with the following keys:
 - voxel_edge_length
 - label
 """
-function plot_spectral_density(plot_dict_vec::Vector,
-                                save_path::String;
-                                title="Spectral density",
-                                save_plot = false,
-                                xlims = nothing)
+function plot_spectral_density(
+    plot_dict_vec::Vector,
+    save_path::String;
+    title="Spectral density",
+    save_plot = false,
+    xlims = nothing)
 
     # create empty plot
-    spectral_density_plot = Plots.plot(xlabel="wavenumber " * Latex.L"k / ( 1/ d )",
-                                    ylabel=Latex.L"\tilde{\chi} (k) ",
-                                    legend = true, dpi=250, title=title)
+    spectral_density_plot = Plots.plot(
+        xlabel="wavenumber " * Latex.L"k / ( 1/ d )",
+        ylabel=Latex.L"\tilde{\chi} (k) ",
+        legend = true, 
+        dpi=250, 
+        title=title)
 
     # if desired, zoom in along x axes
     if xlims !== nothing
@@ -188,10 +216,12 @@ function plot_spectral_density(plot_dict_vec::Vector,
     for plot_dict in plot_dict_vec
 
         # plot spectral density
-        Plots.plot!(plot_dict["wavenumber_vec"] ./ plot_dict["voxel_edge_length"], 
-                    real.( Measurements.value.(plot_dict["spectral_density_vec"]) ), 
-                    ribbon = real.( Measurements.uncertainty.(plot_dict["spectral_density_vec"]) ),
-                    label = plot_dict["label"])
+        Plots.plot!(
+            plot_dict["wavenumber_vec"] ./ plot_dict["voxel_edge_length"], 
+            real.( Measurements.value.(plot_dict["spectral_density_vec"]) ), 
+            ribbon = real.( 
+                Measurements.uncertainty.(plot_dict["spectral_density_vec"]) ),
+            label = plot_dict["label"])
 
     end
 
@@ -214,27 +244,29 @@ end
 
 
 """
-Determine a reasonable nr of measurements per distance by performing a convergence
-analysis of the autocovariance function for r=0 where its supposed to yield
-(1-volume_fract_tot)*volume_fract_tot.
+Determine a reasonable nr of measurements per distance by performing a 
+convergence analysis of the autocovariance function for r=0 where its 
+supposed to yield (1-volume_fract_tot)*volume_fract_tot.
 The plots suggest to choose nr_measurements_per_distance >~ 10000
 """
 function convergence_analysis_autocovariance_fct_nr_measurements_per_distance(
-                    structure_dict::Dict;
-                    nr_measurements_per_distance_vec = Int.( round.( 10 .^ collect(1:0.1:4) ) ),
-                    title="Convergence analysis autocovariance function",
-                    save_plot = false,
-                    save_path=raw"..\plots\\",
-                    save_filename="convergence_analysis_nr_measurements_autocovariance_fct.png"  )
+    structure_dict::Dict;
+    nr_measurements_per_distance_vec = Int.( round.( 10 .^ collect(1:0.1:4) ) ),
+    title="Convergence analysis autocovariance function",
+    save_plot = false,
+    save_path=raw"..\plots\\",
+    save_filename="convergence_analysis_nr_measurements_autocovariance_fct.png")
 
-    # in this array the autocovariance fct at distance 0 will be stored as a function of
-    # the nr of measurements
-    autocovariance_fct_vec = Vector{Measurements.Measurement}(undef, length(nr_measurements_per_distance_vec))
+    # in this array the autocovariance fct at distance 0 will be stored as a 
+    # function of the nr of measurements
+    autocovariance_fct_vec = Vector{Measurements.Measurement}(
+        undef, length(nr_measurements_per_distance_vec))
 
     # loop through nr of measurements
     for i in eachindex(nr_measurements_per_distance_vec)
 
-    autocovariance_fct_vec[i] = get_autocovariance_fct_isotrope(0,
+    autocovariance_fct_vec[i] = get_autocovariance_fct_isotrope(
+        0,
         structure_dict["size_data"],
         structure_dict["volume_fract_tot"],
         structure_dict["data_binary"];
@@ -243,24 +275,30 @@ function convergence_analysis_autocovariance_fct_nr_measurements_per_distance(
     end
     
     # initialize plot and set labels and characteristics
-    convergence_analysis_plot = Plots.plot(xlabel="#  measurements",
-                ylabel=Latex.L"\chi(r=0) " ,
-                xaxis=:log,
-                legend = true, dpi=250, title=title)
+    convergence_analysis_plot = Plots.plot(
+        xlabel="#  measurements",
+        ylabel=Latex.L"\chi(r=0) " ,
+        xaxis=:log,
+        legend = true, 
+        dpi=250, 
+        title=title)
 
     # plot measured autocovariance functions
-    Plots.plot!(nr_measurements_per_distance_vec, 
-                Measurements.value.(autocovariance_fct_vec),
-                ribbon = Measurements.uncertainty.( autocovariance_fct_vec),
-                label = "from measurement")
+    Plots.plot!(
+        nr_measurements_per_distance_vec, 
+        Measurements.value.(autocovariance_fct_vec),
+        ribbon = Measurements.uncertainty.( autocovariance_fct_vec),
+        label = "from measurement")
 
     # determine and plot theoretical values
-    theoretical_value = structure_dict["volume_fract_tot"]*(1 - structure_dict["volume_fract_tot"])
+    theoretical_value = structure_dict["volume_fract_tot"]*
+        (1 - structure_dict["volume_fract_tot"])
 
-    Plots.plot!( [minimum(nr_measurements_per_distance_vec), 
-                maximum(nr_measurements_per_distance_vec)], 
-                [theoretical_value, theoretical_value],
-                label = "from theory")          
+    Plots.plot!( 
+        [minimum(nr_measurements_per_distance_vec), 
+        maximum(nr_measurements_per_distance_vec)], 
+        [theoretical_value, theoretical_value],
+        label = "from theory")          
 
     # if specified by the argument, save the plot
     if save_plot
@@ -281,7 +319,8 @@ Plot heat map of autocovariance fct by keeping one component of the
 wavevector fixed.
 The sampling_vector_value fixed needs to be given in units of nm
 """
-function plot_autocovariance_fct_heatmap(plot_dict::Dict,
+function plot_autocovariance_fct_heatmap(
+    plot_dict::Dict,
     save_path::String;
     save_plot = false,
     clims = nothing,
@@ -298,27 +337,27 @@ function plot_autocovariance_fct_heatmap(plot_dict::Dict,
 
         # find index of fixed sampling vector value
         sampling_vector_fixed_index = argmin( abs.( 
-                                plot_dict["sampling_distance_vec_vec"][1] 
-                            .- (sampling_vector_value_fixed / plot_dict["voxel_edge_length"] ) ) )
+            plot_dict["sampling_distance_vec_vec"][1] 
+            .- (sampling_vector_value_fixed / plot_dict["voxel_edge_length"] ) ) )
 
         autocovariance_fct_2d_array = Measurements.value.(
-                                            plot_dict["autocovariance_fct_array"]
-                                        )[sampling_vector_fixed_index,:,:] 
+            plot_dict["autocovariance_fct_array"]
+            )[sampling_vector_fixed_index,:,:] 
 
         uncertainty_2d_array = Measurements.uncertainty.(
-                                            plot_dict["autocovariance_fct_array"]
-                                        )[sampling_vector_fixed_index,:,:] 
+            plot_dict["autocovariance_fct_array"]
+            )[sampling_vector_fixed_index,:,:] 
         
         # set labels and title for the plot
         xlabel = Latex.L"r_y / d " 
         ylabel = Latex.L"r_z / d"
         title = (Latex.L"r_x = "
-        *Format.format(Latex.L"{1:.1f}",
-                        (plot_dict["sampling_distance_vec_vec"][1][sampling_vector_fixed_index]
-                                        * plot_dict["voxel_edge_length"] ) ) 
-        *" "*Latex.L" d,  \Delta \chi (\vec{r}) ) = "
-        *Format.format(Latex.L"{1:.3f}",
-        Statistics.mean( uncertainty_2d_array) ) )
+            *Format.format(Latex.L"{1:.1f}",
+                (plot_dict["sampling_distance_vec_vec"][1][sampling_vector_fixed_index]
+                * plot_dict["voxel_edge_length"] ) ) 
+            *" "*Latex.L" d,  \Delta \chi (\vec{r}) ) = "
+            *Format.format(Latex.L"{1:.3f}",
+                Statistics.mean( uncertainty_2d_array) ) )
 
 
     elseif sampling_vector_component_to_fix == 2
@@ -328,25 +367,25 @@ function plot_autocovariance_fct_heatmap(plot_dict::Dict,
         sampling_distance_vec_y = plot_dict["sampling_distance_vec_vec"][3]
 
         # find index of fixed sampling vector value
-        sampling_vector_fixed_value, sampling_vector_fixed_index = findmin( abs.( 
-                                plot_dict["sampling_distance_vec_vec"][2] 
-                            .- (sampling_vector_value_fixed / plot_dict["voxel_edge_length"] ) ) )
+        sampling_vector_fixed_value, sampling_vector_fixed_index = 
+            findmin( abs.( plot_dict["sampling_distance_vec_vec"][2] 
+                .- (sampling_vector_value_fixed / plot_dict["voxel_edge_length"] ) ) )
 
         autocovariance_fct_2d_array = Measurements.value.(
-                                            plot_dict["autocovariance_fct_array"]
-                                        )[:,sampling_vector_fixed_index,:] 
+            plot_dict["autocovariance_fct_array"]
+            )[:,sampling_vector_fixed_index,:] 
 
         uncertainty_2d_array = Measurements.uncertainty.(
-                                            plot_dict["autocovariance_fct_array"]
-                                        )[:,sampling_vector_fixed_index,:] 
+            plot_dict["autocovariance_fct_array"]
+            )[:,sampling_vector_fixed_index,:] 
         
         # set labels and title for the plot
         xlabel = Latex.L"r_x / d " 
         ylabel = Latex.L"r_z / d"
         title = (Latex.L"r_y = "
         *Format.format(Latex.L"{1:.1f}",
-                        (plot_dict["sampling_distance_vec_vec"][2][sampling_vector_fixed_index]
-                                        * plot_dict["voxel_edge_length"] ) ) 
+            (plot_dict["sampling_distance_vec_vec"][2][sampling_vector_fixed_index]
+            * plot_dict["voxel_edge_length"] ) ) 
         *" "*Latex.L" d,  \Delta \chi (\vec{r}) ) = "
         *Format.format(Latex.L"{1:.3f}",
         Statistics.mean( uncertainty_2d_array) ) )
@@ -359,25 +398,25 @@ function plot_autocovariance_fct_heatmap(plot_dict::Dict,
         sampling_distance_vec_y = plot_dict["sampling_distance_vec_vec"][2]
 
         # find index of fixed sampling vector value
-        sampling_vector_fixed_value, sampling_vector_fixed_index = findmin( abs.( 
-                                plot_dict["sampling_distance_vec_vec"][3] 
-                            .- (sampling_vector_value_fixed / plot_dict["voxel_edge_length"] ) ) )
+        sampling_vector_fixed_value, sampling_vector_fixed_index = 
+            findmin( abs.(  plot_dict["sampling_distance_vec_vec"][3] 
+                .- (sampling_vector_value_fixed / plot_dict["voxel_edge_length"] ) ) )
 
         autocovariance_fct_2d_array = Measurements.value.(
-                                            plot_dict["autocovariance_fct_array"]
-                                        )[:,:,sampling_vector_fixed_index] 
+            plot_dict["autocovariance_fct_array"]
+            )[:,:,sampling_vector_fixed_index] 
 
         uncertainty_2d_array = Measurements.uncertainty.(
-                                            plot_dict["autocovariance_fct_array"]
-                                        )[:,:,sampling_vector_fixed_index] 
+            plot_dict["autocovariance_fct_array"]
+            )[:,:,sampling_vector_fixed_index] 
         
         # set labels and title for the plot
         xlabel = Latex.L"r_x / d " 
         ylabel = Latex.L"r_y / d"
         title = (Latex.L"r_z = "  
         *Format.format(Latex.L"{1:.1f}",
-                        (plot_dict["sampling_distance_vec_vec"][3][sampling_vector_fixed_index]
-                                        * plot_dict["voxel_edge_length"] ) ) 
+            (plot_dict["sampling_distance_vec_vec"][3][sampling_vector_fixed_index]
+            * plot_dict["voxel_edge_length"] ) ) 
         *" "*Latex.L" d,  \Delta \chi (\vec{r}) ) = "
         *Format.format(Latex.L"{1:.3f}",
         Statistics.mean( uncertainty_2d_array) ) )
@@ -388,20 +427,21 @@ function plot_autocovariance_fct_heatmap(plot_dict::Dict,
     end
 
     # create plots
-    autocovariance_fct_plot = Plots.heatmap(sampling_distance_vec_x .* plot_dict["voxel_edge_length"],
-                                sampling_distance_vec_y .* plot_dict["voxel_edge_length"],
-                                permutedims(autocovariance_fct_2d_array),
-                                xlabel=xlabel,
-                                ylabel=ylabel,
-                                colorbar_title = "\n"*Latex.L"\chi (\vec{r}) ) " ,
-                                right_margin = 8Plots.mm,
-                                legend = true, 
-                                title=title,
-                                c = :bluesreds,
-                                aspect_ratio = :equal,
-                                dpi=250, 
-                                size = 500 .* (1.2 , 1 )  ) # 600 .* (1, length(sampling_distance_vec_y)/length(sampling_distance_vec_x) )
-                                # dpi=250, 
+    autocovariance_fct_plot = Plots.heatmap(
+        sampling_distance_vec_x .* plot_dict["voxel_edge_length"],
+        sampling_distance_vec_y .* plot_dict["voxel_edge_length"],
+        permutedims(autocovariance_fct_2d_array),
+        xlabel=xlabel,
+        ylabel=ylabel,
+        colorbar_title = "\n"*Latex.L"\chi (\vec{r}) ) " ,
+        right_margin = 8Plots.mm,
+        legend = true, 
+        title=title,
+        c = :bluesreds,
+        aspect_ratio = :equal,
+        dpi=250, 
+        size = 500 .* (1.2 , 1 )  ) 
+        # 600 .* (1, length(sampling_distance_vec_y)/length(sampling_distance_vec_x) )
 
     # set clims if desired
     if clims !== nothing
@@ -410,12 +450,18 @@ function plot_autocovariance_fct_heatmap(plot_dict::Dict,
 
     # set x and y lims if desired
     if x_y_lims !== nothing
-        Plots.heatmap!(autocovariance_fct_plot, xlims = x_y_lims, ylims = x_y_lims, size = 500 .* (1 , 1 ))
+        Plots.heatmap!(
+            autocovariance_fct_plot, 
+            xlims = x_y_lims, 
+            ylims = x_y_lims, 
+            size = 500 .* (1 , 1 ))
     end
 
     # if specified by the argument, save the plot
     if  save_plot
-        Plots.savefig(autocovariance_fct_plot, save_path*"_autocovariance_fct_direction.png")
+        Plots.savefig(
+            autocovariance_fct_plot, 
+            save_path*"_autocovariance_fct_direction.png")
 
 
     # otherwise display the plot
@@ -430,8 +476,8 @@ end
 
 
 """
-Plot heat map of real part, imaginary part and absolute value of spectral density
-by keeping one component of the wavevector fixed.
+Plot heat map of real part, imaginary part and absolute value of spectral
+density by keeping one component of the wavevector fixed.
 The fixed wavevector value is given in units of (1/nm)
 """
 function plot_spectral_density_heatmap(plot_dict::Dict,
@@ -455,7 +501,8 @@ function plot_spectral_density_heatmap(plot_dict::Dict,
                                         plot_dict["wavenumber_vec_vec"][1]
                                     .- wavevector_value_fixed ) )
 
-        spectral_density_2d_array = plot_dict["spectral_density_array"][wavevector_fixed_index,:,:] 
+        spectral_density_2d_array = plot_dict["spectral_density_array"]
+            [wavevector_fixed_index,:,:] 
         
         # set labels and title for the plot
         xlabel = Latex.L"k_y / ( 1/ d )" 
@@ -479,7 +526,8 @@ function plot_spectral_density_heatmap(plot_dict::Dict,
                                     plot_dict["wavenumber_vec_vec"][2]
                                     .- wavevector_value_fixed ) )
 
-        spectral_density_2d_array = plot_dict["spectral_density_array"][:,wavevector_fixed_index,:] 
+        spectral_density_2d_array = plot_dict["spectral_density_array"]
+            [:,wavevector_fixed_index,:] 
 
         
         # set labels and title for the plot
@@ -503,7 +551,8 @@ function plot_spectral_density_heatmap(plot_dict::Dict,
                                     plot_dict["wavenumber_vec_vec"][3] 
                                     .- wavevector_value_fixed ) )
 
-        spectral_density_2d_array = plot_dict["spectral_density_array"][:,:,wavevector_fixed_index] 
+        spectral_density_2d_array = plot_dict["spectral_density_array"]
+            [:,:,wavevector_fixed_index] 
 
         # set labels and title for the plot
         xlabel = Latex.L"k_x / ( 1/ d )" 
@@ -529,49 +578,52 @@ function plot_spectral_density_heatmap(plot_dict::Dict,
 
     # normalize spectral density array to its maximum aboslute value
     spectral_density_2d_normalized_array = (spectral_density_2d_permuted_array 
-                                ./ maximum( abs.(spectral_density_2d_permuted_array) ) )
+        ./ maximum( abs.(spectral_density_2d_permuted_array) ) )
 
     # create plots
-    abs_plot = Plots.heatmap(x_axis,
-                                y_axis,
-                                abs.(spectral_density_2d_normalized_array),
-                                xlabel=xlabel,
-                                ylabel=ylabel,
-                                colorbar_title = "\n"*Latex.L" \mathrm{Abs}( \tilde{\chi} (\vec{k}) ) / \mathrm{Abs}( \tilde{\chi} )_\mathrm{max}  " ,
-                                right_margin = 8Plots.mm,
-                                legend = true, title=title,
-                                c = :bluesreds,
-                                clims = clims,
-                                aspect_ratio = :equal,
-                                dpi=250, 
-                                size = 500 .* (1.2 , 1 )) # 2/3 * length(y_axis)/length(x_axis)
+    abs_plot = Plots.heatmap(
+        x_axis,
+        y_axis,
+        abs.(spectral_density_2d_normalized_array),
+        xlabel=xlabel,
+        ylabel=ylabel,
+        colorbar_title = "\n"*Latex.L" \mathrm{Abs}( \tilde{\chi} (\vec{k}) ) / \mathrm{Abs}( \tilde{\chi} )_\mathrm{max}  " ,
+        right_margin = 8Plots.mm,
+        legend = true, title=title,
+        c = :bluesreds,
+        clims = clims,
+        aspect_ratio = :equal,
+        dpi=250, 
+        size = 500 .* (1.2 , 1 )) # 2/3 * length(y_axis)/length(x_axis)
 
-    re_plot = Plots.heatmap(x_axis,
-                                y_axis,
-                                real.(spectral_density_2d_normalized_array),
-                                xlabel=xlabel,
-                                ylabel=ylabel,
-                                colorbar_title = "\n"*Latex.L"\mathrm{Re}( \tilde{\chi} (\vec{k}) ) / \mathrm{Abs}( \tilde{\chi} )_\mathrm{max}" ,
-                                right_margin = 8Plots.mm,
-                                legend = true, title=title,
-                                c = :bluesreds,
-                                clims = clims,
-                                aspect_ratio = :equal,
-                                dpi=250, 
-                                size = 500 .* (1.2 , 1 ))
+    re_plot = Plots.heatmap(
+        x_axis,
+        y_axis,
+        real.(spectral_density_2d_normalized_array),
+        xlabel=xlabel,
+        ylabel=ylabel,
+        colorbar_title = "\n"*Latex.L"\mathrm{Re}( \tilde{\chi} (\vec{k}) ) / \mathrm{Abs}( \tilde{\chi} )_\mathrm{max}" ,
+        right_margin = 8Plots.mm,
+        legend = true, title=title,
+        c = :bluesreds,
+        clims = clims,
+        aspect_ratio = :equal,
+        dpi=250, 
+        size = 500 .* (1.2 , 1 ))
 
-    im_plot = Plots.heatmap(x_axis,
-                                y_axis,
-                                imag.(spectral_density_2d_normalized_array),
-                                xlabel=xlabel,
-                                ylabel=ylabel,
-                                colorbar_title = "\n"*Latex.L"\mathrm{Im}( \tilde{\chi} (\vec{k}) ) / \mathrm{Abs}( \tilde{\chi} )_\mathrm{max}" ,
-                                right_margin = 8Plots.mm,
-                                legend = true, title=title,
-                                c = :bluesreds,
-                                aspect_ratio = :equal,
-                                dpi=250, 
-                                size = 500 .* (1.2 , 1 ))
+    im_plot = Plots.heatmap(
+        x_axis,
+        y_axis,
+        imag.(spectral_density_2d_normalized_array),
+        xlabel=xlabel,
+        ylabel=ylabel,
+        colorbar_title = "\n"*Latex.L"\mathrm{Im}( \tilde{\chi} (\vec{k}) ) / \mathrm{Abs}( \tilde{\chi} )_\mathrm{max}" ,
+        right_margin = 8Plots.mm,
+        legend = true, title=title,
+        c = :bluesreds,
+        aspect_ratio = :equal,
+        dpi=250, 
+        size = 500 .* (1.2 , 1 ))
 
     # set x and y lims if desired
     if x_y_lims !== nothing

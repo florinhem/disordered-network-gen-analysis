@@ -835,7 +835,7 @@ function evolve_network!(
                         if (haskey(evolution_dict, 
                                 "mean_nr_monte_carlo_steps_for_quenching")
                             && temperature == 0 
-                            && i == 50*spatial_network[]["nr_vertices"]*18)
+                            && i == 50*nr_chains)
 
                             Format.printfmtln(
                                 "Thread {1}: attempted bond switch nr {2} at 
@@ -844,7 +844,7 @@ function evolve_network!(
                                 Threads.threadid(), i, temperature, 
                                 i/(evolution_dict[
                                     "mean_nr_monte_carlo_steps_for_quenching"]
-                                *spatial_network[]["nr_vertices"]*18)*100,
+                                *nr_chains)*100,
                                 quench_counter )
                         else
                             Format.printfmtln("Thread {1}: attempted bond
@@ -872,7 +872,7 @@ function evolve_network!(
                         if (haskey(evolution_dict,
                             "mean_nr_monte_carlo_steps_for_quenching")
                             && temperature == 0 
-                            && i == 50*spatial_network[]["nr_vertices"]*18)
+                            && i == 50*nr_chains)
 
                             Format.printfmtln("Thread {1}: attempted bond 
                                 switch nr {2} at T={3} declined. T={3} is {4:.3f} 
@@ -880,7 +880,7 @@ function evolve_network!(
                                 Threads.threadid(), i, temperature, 
                                 i/(evolution_dict[
                                     "mean_nr_monte_carlo_steps_for_quenching"]
-                                    *spatial_network[]["nr_vertices"]*18)*100,
+                                    *nr_chains)*100,
                                 quench_counter )
                         else
                             Format.printfmtln("Thread {1}: attempted bond 
@@ -925,7 +925,8 @@ steps (which I define as nr_bonds attempted Monte Carlo moves) per temperature
 """
 function evolve_network_temperature_sequence!(
     spatial_network::MetaGraphsNext.MetaGraph,
-    evolution_dict::Dict;
+    evolution_dict::Dict
+    ;
     total_energy_vec::Vector{Float64} = Vector{Float64}(undef, 0),
     move_accepted_vec::Vector{Bool} = Vector{Bool}(undef, 0),
     print_progress::Bool = false,

@@ -3146,7 +3146,7 @@ temperatures = [0.1, 0.125, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5]
 for temperature in temperatures
 
     temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(temperature;
-    temperature_increase_per_monte_carlo_step = 0.1,
+    temperature_gradient = 0.1,
     quench = true )
 
     evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 ,temperature_vec = temperature_vec,
@@ -3403,10 +3403,10 @@ temperatures = [0.75, 1.0, 2.0, 4.0]
 
 for temperature in temperatures
 
-    for temperature_increase_per_monte_carlo_step in [0.025, 0.05, 0.1, 0.2]
+    for temperature_gradient in [0.025, 0.05, 0.1, 0.2]
 
         temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(temperature;
-        temperature_increase_per_monte_carlo_step = temperature_increase_per_monte_carlo_step, 
+        temperature_gradient = temperature_gradient, 
         nr_monte_carlo_steps_per_temperature = 0.01,
         quench = true )
 
@@ -3425,7 +3425,7 @@ for temperature in temperatures
 
         NG.plot_network(graph_dict)
 
-        filename = "216_vertices_T_"*string(temperature)*"_heat_cool_"*string(temperature_increase_per_monte_carlo_step)*"_per_mc_quenched"
+        filename = "216_vertices_T_"*string(temperature)*"_heat_cool_"*string(temperature_gradient)*"_per_mc_quenched"
 
         save_path = raw"..\structures\random_networks\without_ring_size_limitation\\"
 
@@ -5518,19 +5518,19 @@ save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_a
 
 temperatures = [0.1, 0.12, 0.14, 0.16, 0.18, 0.2, 0.22, 0.24]
 
-temperature_increase_per_monte_carlo_step = 0.1
+temperature_gradient = 0.1
 
 for temperature in temperatures
 
     temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(temperature;
-        temperature_increase_per_monte_carlo_step = temperature_increase_per_monte_carlo_step, 
+    temperature_gradient = temperature_gradient, 
         nr_monte_carlo_steps_per_temperature = 0.01,
         quench = true )
 
     evolution_dict = NA.get_evolution_dict(;nr_vertices = 1000 ,temperature_vec = temperature_vec,
         nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3)
 
-    filename = "1000_vertices_T_"*string(temperature)*"_heat_cool_"*string(temperature_increase_per_monte_carlo_step)*"_per_mc_quenched"
+    filename = "1000_vertices_T_"*string(temperature)*"_heat_cool_"*string(temperature_gradient)*"_per_mc_quenched"
 
     GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
 
@@ -5559,7 +5559,7 @@ print_lock = print_lock)
 
 temperatures = [0.1, 0.12, 0.14, 0.16, 0.18, 0.2, 0.22, 0.24]
 
-temperature_increase_per_monte_carlo_step = 0.1
+temperature_gradient = 0.1
 
 nr_vertices = 512
 
@@ -5572,7 +5572,7 @@ for bond_bending in bond_bending_const_vec
     for temperature in temperatures
 
         temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(temperature;
-            temperature_increase_per_monte_carlo_step = temperature_increase_per_monte_carlo_step, 
+        temperature_gradient = temperature_gradient, 
             nr_monte_carlo_steps_per_temperature = 0.01,
             quench = true )
 
@@ -5580,7 +5580,7 @@ for bond_bending in bond_bending_const_vec
             nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
             bond_bending_const = bond_bending)
 
-        filename = string(nr_vertices)*"_vertices_T_"*string(temperature)*"_heat_cool_"*string(temperature_increase_per_monte_carlo_step)*"_per_mc_quenched"
+        filename = string(nr_vertices)*"_vertices_T_"*string(temperature)*"_heat_cool_"*string(temperature_gradient)*"_per_mc_quenched"
 
         GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
 
@@ -5599,7 +5599,7 @@ for bond_bending in bond_bending_const_vec
     for temperature in temperatures
 
         temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(temperature;
-            temperature_increase_per_monte_carlo_step = temperature_increase_per_monte_carlo_step, 
+        temperature_gradient = temperature_gradient, 
             nr_monte_carlo_steps_per_temperature = 0.01,
             quench = true )
 
@@ -5607,7 +5607,7 @@ for bond_bending in bond_bending_const_vec
             nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
             bond_bending_const = bond_bending)
 
-        filename = string(nr_vertices)*"_vertices_T_"*string(temperature)*"_heat_cool_"*string(temperature_increase_per_monte_carlo_step)*"_per_mc_quenched"
+        filename = string(nr_vertices)*"_vertices_T_"*string(temperature)*"_heat_cool_"*string(temperature_gradient)*"_per_mc_quenched"
 
         GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
 
@@ -5627,7 +5627,7 @@ for bond_bending in bond_bending_const_vec
     for temperature in temperatures
 
         temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(temperature;
-            temperature_increase_per_monte_carlo_step = temperature_increase_per_monte_carlo_step, 
+        temperature_gradient = temperature_gradient, 
             nr_monte_carlo_steps_per_temperature = 0.01,
             quench = true )
 
@@ -5635,7 +5635,7 @@ for bond_bending in bond_bending_const_vec
             nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
             bond_bending_const = bond_bending)
 
-        filename = string(nr_vertices)*"_vertices_T_"*string(temperature)*"_heat_cool_"*string(temperature_increase_per_monte_carlo_step)*"_per_mc_quenched"
+        filename = string(nr_vertices)*"_vertices_T_"*string(temperature)*"_heat_cool_"*string(temperature_gradient)*"_per_mc_quenched"
 
         GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
 
@@ -5674,7 +5674,7 @@ NG.generate_graphs_from_evolution_dicts_in_directory_multiple_runs(
 
 temperatures = [0.11, 0.13, 0.15, 0.17]
 
-temperature_increase_per_monte_carlo_step = 0.1
+temperature_gradient = 0.1
 
 nr_vertices = 512
 
@@ -5687,7 +5687,7 @@ for bond_bending in bond_bending_const_vec
     for temperature in temperatures
 
         temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(temperature;
-            temperature_increase_per_monte_carlo_step = temperature_increase_per_monte_carlo_step, 
+        temperature_gradient = temperature_gradient, 
             nr_monte_carlo_steps_per_temperature = 0.01,
             quench = true )
 
@@ -5695,7 +5695,7 @@ for bond_bending in bond_bending_const_vec
             nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
             bond_bending_const = bond_bending)
 
-        filename = string(nr_vertices)*"_vertices_T_"*string(temperature)*"_heat_cool_"*string(temperature_increase_per_monte_carlo_step)*"_per_mc_quenched"
+        filename = string(nr_vertices)*"_vertices_T_"*string(temperature)*"_heat_cool_"*string(temperature_gradient)*"_per_mc_quenched"
 
         GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
 
@@ -5714,7 +5714,7 @@ for bond_bending in bond_bending_const_vec
     for temperature in temperatures
 
         temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(temperature;
-            temperature_increase_per_monte_carlo_step = temperature_increase_per_monte_carlo_step, 
+        temperature_gradient = temperature_gradient, 
             nr_monte_carlo_steps_per_temperature = 0.01,
             quench = true )
 
@@ -5722,7 +5722,7 @@ for bond_bending in bond_bending_const_vec
             nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
             bond_bending_const = bond_bending)
 
-        filename = string(nr_vertices)*"_vertices_T_"*string(temperature)*"_heat_cool_"*string(temperature_increase_per_monte_carlo_step)*"_per_mc_quenched"
+        filename = string(nr_vertices)*"_vertices_T_"*string(temperature)*"_heat_cool_"*string(temperature_gradient)*"_per_mc_quenched"
 
         GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
 
@@ -5742,7 +5742,7 @@ for bond_bending in bond_bending_const_vec
     for temperature in temperatures
 
         temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(temperature;
-            temperature_increase_per_monte_carlo_step = temperature_increase_per_monte_carlo_step, 
+        temperature_gradient = temperature_gradient, 
             nr_monte_carlo_steps_per_temperature = 0.01,
             quench = true )
 
@@ -5750,7 +5750,7 @@ for bond_bending in bond_bending_const_vec
             nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
             bond_bending_const = bond_bending)
 
-        filename = string(nr_vertices)*"_vertices_T_"*string(temperature)*"_heat_cool_"*string(temperature_increase_per_monte_carlo_step)*"_per_mc_quenched"
+        filename = string(nr_vertices)*"_vertices_T_"*string(temperature)*"_heat_cool_"*string(temperature_gradient)*"_per_mc_quenched"
 
         GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
 

@@ -12,9 +12,9 @@ import LinearAlgebra    # to perform linear algebra calculations like the dot pr
 
 # set path to files
 if Sys.iswindows()
-    load_path = raw"..\code_photonic_structures\general_utilities\\"
+    load_path = raw".\general_utilities\\"
 else
-    load_path = raw"../code_photonic_structures/general_utilities/"
+    load_path = raw"./general_utilities/"
 end
 
 # include IO utilities
@@ -46,9 +46,9 @@ import MetaGraphsNext   # to convert spatial network to binary data
 
 # set path to files
 if Sys.iswindows()
-    load_path = raw"..\code_photonic_structures\binary_structures\\"
+    load_path = raw".\binary_structures\\"
 else
-    load_path = raw"../code_photonic_structures/binary_structures/"
+    load_path = raw"./binary_structures/"
 end
 
 # include functions to load binary 3d data, convert and correct it and to extract
@@ -102,9 +102,9 @@ import Format   # for python-like string formatting
 
 # set path to files
 if Sys.iswindows()
-    load_path = raw"..\code_photonic_structures\networks\\"
+    load_path = raw".\networks\\"
 else
-    load_path = raw"../code_photonic_structures/networks/"
+    load_path = raw"./networks/"
 end
 
 # these functions are utilities for network generation and modification 
@@ -156,9 +156,9 @@ import Format   # for python-like string formatting
 
 # set path to files
 if Sys.iswindows()
-    load_path = raw"..\code_photonic_structures\networks\\"
+    load_path = raw".\networks\\"
 else
-    load_path = raw"../code_photonic_structures/networks/"
+    load_path = raw"./networks/"
 end
 
 # these functions can be used to characterize networks

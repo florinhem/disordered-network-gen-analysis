@@ -98,7 +98,8 @@ function get_binary_data_from_nodal_eqn(unit_cell_length=500,
     voxel_edge_length=10,
     volume_fraction_parameter = 0,
     save_result::Bool=false, 
-    save_path=raw"..\structures\nodal_surfaces\\"*surface_type*"_surface_structure.h5")
+    save_path=raw"..\structures\nodal_surfaces\\"*
+        surface_type*"_surface_structure.h5")
 
     # get desired nodal equation
     nodal_eqn = get_nodal_eqn(surface_type)
@@ -107,10 +108,11 @@ function get_binary_data_from_nodal_eqn(unit_cell_length=500,
     unit_cell_length_in_voxels = unit_cell_length / voxel_edge_length
 
     # determine the data edge length in units of voxels
-    data_edge_length = Int( round( unit_cell_length_in_voxels * nr_unit_cells  ) )
+    data_edge_length = Int(round( unit_cell_length_in_voxels * nr_unit_cells))
 
     # generate array of zeros where data will be stored in
-    data_binary = zeros(Bool, data_edge_length, data_edge_length, data_edge_length)
+    data_binary = zeros(Bool, data_edge_length, data_edge_length, 
+        data_edge_length)
 
     # determine the wavenumber
     wavenumber = 2*pi/unit_cell_length_in_voxels
@@ -132,20 +134,21 @@ function get_binary_data_from_nodal_eqn(unit_cell_length=500,
     end
 
     # get essential information about the structure data
-    volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = get_data_essentials(
-        data_binary)
+    volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data =
+        get_data_essentials(data_binary)
 
     # save everything in dictionary
-    structure_dict = Dict("data_binary" => data_binary, 
-                            "volume_fract_tot" => volume_fract_tot, 
-                            "size_data" => size_data, 
-                            "mean_edge_length_data" => mean_edge_length_data, 
-                            "nr_dimensions_data" => nr_dimensions_data,
-                            "voxel_edge_length" => voxel_edge_length ,
-                            "label" => surface_type,
-                            "unit_cell_length" => unit_cell_length,
-                            "nr_unit_cells" => nr_unit_cells,
-                            "volume_fraction_parameter" => volume_fraction_parameter )
+    structure_dict = Dict(
+        "data_binary" => data_binary, 
+        "volume_fract_tot" => volume_fract_tot, 
+        "size_data" => size_data, 
+        "mean_edge_length_data" => mean_edge_length_data, 
+        "nr_dimensions_data" => nr_dimensions_data,
+        "voxel_edge_length" => voxel_edge_length ,
+        "label" => surface_type,
+        "unit_cell_length" => unit_cell_length,
+        "nr_unit_cells" => nr_unit_cells,
+        "volume_fraction_parameter" => volume_fraction_parameter )
 
     # if desired, save corrected data
     if save_result

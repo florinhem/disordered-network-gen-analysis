@@ -53,6 +53,41 @@ end
 
 
 """
+Faster
+Get bond bending energy for a given vertex
+"""
+function local_bond_bending_energy_keating2(
+    spatial_network::MetaGraphsNext.MetaGraph,
+    vertex_label::Int64)
+
+    neighbor_label_vec::Vector{Int64} = collect(MetaGraphsNext.neighbor_labels(
+        spatial_network, 
+        vertex_label))
+
+    bond_bending_sum::Float64 = 0.0
+
+    for j in 1:(spatial_network[]["coordination_nr"]-1)
+        s1::Int64=sign(neighbor_label_vec[j] - vertex_label)
+        v1::Vector{Float64}=spatial_network[vertex_label, neighbor_label_vec[j]][
+            "vector"]
+        
+
+        for k in j+1:spatial_network[]["coordination_nr"]
+            s::Int64=s1*sign(neighbor_label_vec[k] - vertex_label)
+            v2::Vector{Float64}=spatial_network[vertex_label, neighbor_label_vec[k]]["vector"]
+            bond_bending_sum += (s*LinearAlgebra.dot(v1,v2) + 1/3 )^2 
+            
+        end
+    end
+
+    bond_bending_energy::Float64 = (
+        3/8 * spatial_network[]["bond_bending_const"] * bond_bending_sum)
+
+    return bond_bending_energy
+end
+
+
+"""
 Calculate the total energy of a spatial network
 """
 function get_total_energy_keating(spatial_network::MetaGraphsNext.MetaGraph)
@@ -61,6 +96,27 @@ function get_total_energy_keating(spatial_network::MetaGraphsNext.MetaGraph)
 
     for vertex in MetaGraphsNext.labels(spatial_network)
         total_energy += local_bond_bending_energy_keating(
+            spatial_network, vertex)
+    end
+
+    for bond in MetaGraphsNext.edge_labels(spatial_network)
+        total_energy += local_bond_stretching_energy_keating(
+            spatial_network, bond)
+    end
+
+    return total_energy
+end
+
+
+"""
+Calculate the total energy of a spatial network
+"""
+function get_total_energy_keating2(spatial_network::MetaGraphsNext.MetaGraph)
+
+    total_energy = 0.0
+
+    for vertex in MetaGraphsNext.labels(spatial_network)
+        total_energy += local_bond_bending_energy_keating2(
             spatial_network, vertex)
     end
 

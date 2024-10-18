@@ -117,6 +117,7 @@ function get_monte_carlo_steps_for_quenching_vec(
             evolution_dict["nr_monte_carlo_steps_per_temperature_vec"]
 
             nr_monte_carlo_moves_per_step = 18*evolution_dict["nr_vertices"]
+            # TODO convert 18 (hardcoded) into 4*3*3/2 with coordination_nr
 
             nr_monte_carlo_moves_before_quenching = (
                 nr_monte_carlo_moves_per_step*sum(evolution_dict[

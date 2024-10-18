@@ -135,8 +135,9 @@ function get_next_neighbor_positions_arr(
 
             if next_neighbor !== central_vertex
 
-                # get next neighbor's virtual coordinates which might be outside of the 
-                # supercell if periodic boundary conditions play a role
+                # get next neighbor's virtual coordinates which might be 
+                # outside of the supercell if periodic boundary conditions 
+                # play a role
                 next_neighbor_positions_arr[i,: , current_next_neighbor] = (
                     get_virtual_position(
                         central_vertex_position,

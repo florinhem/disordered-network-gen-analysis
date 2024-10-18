@@ -223,25 +223,6 @@ end
 
 
 """
-Load graph and its properties from a GML file and a h5 dictionary
-"""
-function load_graph_from_h5_and_gml(dict_path_without_format::String)
-
-    # load spatial network in MGformat
-    spatial_network = load_spatial_network_from_gml(
-            dict_path_without_format*".gml")
-
-    # load rest of graph dict
-    spatial_network = GU.load_h5_dict(dict_path_without_format*".h5")
-
-    # add spatial network key to graph dict
-    spatial_network = spatial_network
-
-    return spatial_network
-end
-
-
-"""
 For each evolution dict in a list of filenames in one directory generate a new
 spatial network with same evolution in another directory
 """
@@ -547,9 +528,6 @@ function get_spatial_network_for_simulation(
     save_result::Bool = false,
     filename::String = "some_network",
     save_path::String = raw"..\structures\random_networks\\")
-
-    # create spatial network to plot
-    spatial_network = deepcopy(spatial_network)
     
     # cut all bonds that reach out of supercell and replace
     # them by new bonds to duplicated vertices outside of the supercell

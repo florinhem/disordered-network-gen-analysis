@@ -1,0 +1,7 @@
+# ignore ALL .log files
+*.log
+*.json
+*.png
+
+# ignore ALL files in ANY directory
+my_networks/ 
