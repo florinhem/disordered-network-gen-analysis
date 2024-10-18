@@ -11,8 +11,9 @@ import MetaGraphsNext
 import Graphs
 import Plots
 import Colors
+import Statistics
 
-function scatter_plot_for_mulitple_gml(;
+function plot_stretch_vs_bend(;
     nr_vertices_array,
     maximal_temperature_array,
     nr_trials_per_temperature,
@@ -27,7 +28,7 @@ function scatter_plot_for_mulitple_gml(;
     @assert length(maximal_temperature_array)===length(color_array)
 
     P=Plots.scatter(
-        title="Bond length std vs Keating energy per vertex"
+        title="Stretching energy vs bending energy"
     )
 
     for k in eachindex(nr_vertices_array)
@@ -55,17 +56,38 @@ function scatter_plot_for_mulitple_gml(;
 
                 spatial_network=NG.load_spatial_network_from_gml(total_path)
 
-                bond_length_std, bond_length_vec = NA.get_bond_length_std(spatial_network)
 
-                total_energy_keating=NG.get_total_energy_keating(spatial_network)
-                energy_keating_per_vertex=total_energy_keating/spatial_network[]["nr_vertices"]
+                # E_stretch
+                E_stretch=[]
+                for bond in MetaGraphsNext.edge_labels(spatial_network)
+                    append!(E_stretch,NG.local_bond_stretching_energy_keating(
+                        spatial_network, bond))
+                end
+
+                # E_bend
+                E_bend=[]
+                for vertex in MetaGraphsNext.labels(spatial_network)
+                    append!(E_bend,NG.local_bond_bending_energy_keating(
+                        spatial_network, vertex))
+                end
+
+                # Prepare plot
+                x=Statistics.mean(E_stretch)
+                x_err=Statistics.std(E_stretch)
+                y=Statistics.mean(E_bend)
+                y_err=Statistics.std(E_bend)
+
+                println(x,x_err)
+                println(y,y_err)
 
                 P=Plots.scatter!(
                     P,
-                    [energy_keating_per_vertex],
-                    [bond_length_std],
-                    xlabel="Keating energy per vertex",
-                    ylabel="Bond length std",
+                    [x],
+                    [y],
+                    xerr=x_err,
+                    yerr=y_err,
+                    xlabel="Stretching energy with 1 std errorbar",
+                    ylabel="Bending energy with 1 std errorbar",
                     markercolor=color,
                     markershape=shape,
                     label=false,
@@ -82,8 +104,8 @@ function scatter_plot_for_mulitple_gml(;
     minimum_nr_vertices=minimum(nr_vertices_array)
     maximum_nr_vertices=maximum(nr_vertices_array)
 
-    plot_save_path = raw".\my_networks\multiple_gml\\"
-    plot_filename = ("multiple_gml_21"
+    plot_save_path = raw".\my_networks\stretch_vs_bend\\"
+    plot_filename = ("stretch_vs_bend_4"
         *"_N="*"$minimum_nr_vertices" * "-" * "$maximum_nr_vertices"
         *"_T="*"$minimum_temperature" * "-" * "$maximum_temperature"
         *"_trials="*"$nr_trials_per_temperature"
@@ -96,7 +118,7 @@ function scatter_plot_for_mulitple_gml(;
 end
 
 
-scatter_plot_for_mulitple_gml(
+plot_stretch_vs_bend(
     nr_vertices_array=[216,512],
     maximal_temperature_array=[0.0,0.5,1.0,1.5],
     nr_trials_per_temperature=1,

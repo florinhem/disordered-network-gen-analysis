@@ -32,7 +32,7 @@ function save_multiple_N_T_trials_beta_gml(;
                 temperature_vec, nr_monte_carlo_steps_per_temperature_vec = 
                     NA.get_temperature_sequence_heating_cooling_gradient(
                         maximal_temperature;
-                        temperature_gradient = 10.0, 
+                        temperature_gradient = 0.5, 
                         nr_monte_carlo_steps_per_temperature = 0.01,
                         quench = false)
 
@@ -68,8 +68,8 @@ end
 
 
 save_multiple_N_T_trials_beta_gml(;
-    nr_vertices_array=[216,512],
+    nr_vertices_array=[216,512,1000],
     maximal_temperature_array=[0.0,0.5,1.0,1.5],
-    nr_trials_per_temperature=1,
+    nr_trials_per_temperature=2,
     bond_bending_const=0.285
 )
