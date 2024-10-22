@@ -59,7 +59,8 @@ function correct_voxel_size!(data_binary::Array{Bool}, voxel_size::Tuple)
             for j in insertion_indices
                 println("slice to be inserted: "*string(j))
 
-                # println("shape of insertion slice: "*string(size(insertion_slice)))
+                #println("shape of insertion slice: "*
+                #    string(size(insertion_slice)))
 
                 # insert slice at index j along current direction
                 if i == 1
@@ -155,7 +156,8 @@ Convert a colorscale array to binary data
 """
 function convert_colorscale_to_binary(data_colorscale::Array)
 
-    # convert colorscale data to grayscale, then to float and then to binary data
+    # convert colorscale data to grayscale, then to float 
+    # and then to binary data
     data_gray = Images.Gray.(data_colorscale)
     data_float = Float64.( data_gray ) 
     data_binary = Array(Bool.(
@@ -198,13 +200,14 @@ function get_structure_dict_from_colorscale(data_path_raw::String;
         get_data_essentials(data_binary_corrected_voxel_size)
 
     # save everything in dictionary
-    structure_dict = Dict("data_binary" => data_binary_corrected_voxel_size, 
-                            "volume_fract_tot" => volume_fract_tot, 
-                            "size_data" => size_data, 
-                            "mean_edge_length_data" => mean_edge_length_data, 
-                            "nr_dimensions_data" => nr_dimensions_data,
-                            "voxel_edge_length" => minimum(voxel_size) ,
-                            "label" => label )
+    structure_dict = Dict(
+        "data_binary" => data_binary_corrected_voxel_size, 
+        "volume_fract_tot" => volume_fract_tot, 
+        "size_data" => size_data, 
+        "mean_edge_length_data" => mean_edge_length_data, 
+        "nr_dimensions_data" => nr_dimensions_data,
+        "voxel_edge_length" => minimum(voxel_size) ,
+        "label" => label )
 
     # if desired, save corrected data
     if save_result
@@ -240,9 +243,10 @@ function get_structure_dict_from_colorscale_stack(data_path_raw_prefix::String,
     for i in 1:nr_images
 
         # load colorscale structure data
-        data_colorscale = FileIO.load(data_path_raw_prefix
-                                    *string(i-1)
-                                    *data_path_raw_suffix)
+        data_colorscale = FileIO.load(
+            data_path_raw_prefix
+            *string(i-1)
+            *data_path_raw_suffix)
 
         # convert colorscale data to grayscale, then to float 
         # and then to binary data
@@ -267,13 +271,14 @@ function get_structure_dict_from_colorscale_stack(data_path_raw_prefix::String,
         get_data_essentials(data_binary_corrected_voxel_size)
 
     # save everything in dictionary
-    structure_dict = Dict("data_binary" => data_binary_corrected_voxel_size, 
-                            "volume_fract_tot" => volume_fract_tot, 
-                            "size_data" => size_data, 
-                            "mean_edge_length_data" => mean_edge_length_data, 
-                            "nr_dimensions_data" => nr_dimensions_data,
-                            "voxel_edge_length" => minimum(voxel_size) ,
-                            "label" => label )
+    structure_dict = Dict(
+        "data_binary" => data_binary_corrected_voxel_size, 
+        "volume_fract_tot" => volume_fract_tot, 
+        "size_data" => size_data, 
+        "mean_edge_length_data" => mean_edge_length_data, 
+        "nr_dimensions_data" => nr_dimensions_data,
+        "voxel_edge_length" => minimum(voxel_size) ,
+        "label" => label )
 
     # if desired, save corrected data
     if save_result

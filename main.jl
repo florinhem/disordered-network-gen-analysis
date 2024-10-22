@@ -22,8 +22,8 @@ function get_bond_length_AND_keating_energy_per_vertex_after_evolve_network(
     temperature_vec, nr_monte_carlo_steps_per_temperature_vec = 
         NA.get_temperature_sequence_heating_cooling_gradient(
             maximal_temperature;
-            temperature_gradient = 10.0, 
-            nr_monte_carlo_steps_per_temperature = 2/(18*216),
+            temperature_gradient = 0.5, 
+            nr_monte_carlo_steps_per_temperature = 0.01,
             quench = false)
 
     evolution_dict["temperature_vec"] = temperature_vec
@@ -34,6 +34,8 @@ function get_bond_length_AND_keating_energy_per_vertex_after_evolve_network(
         evolution_dict;
         print_progress = true,
         print_every_nr_attempted_bond_switches = 10)
+
+    #NG.plot_spatial_network(spatial_network)
 
     #=
     save_path = raw".\my_networks\\"
@@ -92,6 +94,6 @@ P=Plots.scatter(x, y,
     flip_axis=false
     )
 
-savefig(P,raw".\my_networks\KE_VS_BLSTD\KE_VS_BLSTD_3_N=216_beta=0_285_T=0-1-2_trials=4.png")
+#savefig(P,raw".\my_networks\KE_VS_BLSTD\KE_VS_BLSTD_3_N=216_beta=0_285_T=0-1-2_trials=4.png")
 
 #Do this all in a function => iterate over temperature (color?) and over beta (what we want to know) and stop at different Keating energies(?)

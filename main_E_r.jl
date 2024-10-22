@@ -38,8 +38,8 @@ function plot_streching_energy(;
     temperature_vec, nr_monte_carlo_steps_per_temperature_vec = 
         NA.get_temperature_sequence_heating_cooling_gradient(
             maximal_temperature;
-            temperature_gradient = 10.0, 
-            nr_monte_carlo_steps_per_temperature = 2/(18*216),
+            temperature_gradient = 0.5, 
+            nr_monte_carlo_steps_per_temperature = 0.1,
             quench = false)
 
     evolution_dict["temperature_vec"] = temperature_vec
@@ -72,7 +72,7 @@ function plot_streching_energy(;
     Plots.plot!([r_equilibrium+r_std], seriestype="vline", label=false, color=:red)
     
     
-    Plots.scatter!(r,E,xlabel="bond length [1/d]",ylabel="streching energy [1/(α d^2)]",label="Measured")
+    Plots.scatter!(r,E,xlabel="bond length / d",ylabel="streching energy / (α d^2)",label="Measured")
 
     # save picture
     save_path = raw".\my_networks\E_str\\"
@@ -97,20 +97,8 @@ function plot_bending_energy(;
         nr_vertices,
         maximal_temperature,
         bond_bending_const)
-
-    # plot the theoretical and taylor function around the equilibrium
-    theta_theoretical=collect(0:0.05:pi)
-    theta_equilibrium=acos(-1/3)
-    r_norm=1
-    E_bend=3/8 * (r_norm.^2*cos.(theta_theoretical) .+1/3).^2
-    second_taylor_constant=3/8 * bond_bending_const * 12 * (sin(theta_equilibrium)^2-cos(theta_equilibrium)^2-1/3*cos(theta_equilibrium)) 
-    E_taylor=1/2 * second_taylor_constant *(theta_theoretical .- theta_equilibrium).^2
-
-    Plots.plot(theta_theoretical,E_bend,label="E_bend",legend=:topright)
-    Plots.plot!(theta_theoretical,E_taylor,label="E_taylor")
-    Plots.plot!([theta_equilibrium], seriestype="vline", label=false, color=:blue)
-
     
+    # SIMULATED
     # create the network
     evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices, network_type="diamond", bond_bending_const=bond_bending_const, min_ring_size=3)
     spatial_network = NG.get_periodic_network(evolution_dict)
@@ -120,8 +108,8 @@ function plot_bending_energy(;
     temperature_vec, nr_monte_carlo_steps_per_temperature_vec = 
         NA.get_temperature_sequence_heating_cooling_gradient(
             maximal_temperature;
-            temperature_gradient = 10.0, 
-            nr_monte_carlo_steps_per_temperature = 2/(18*216),
+            temperature_gradient = 0.5, 
+            nr_monte_carlo_steps_per_temperature = 0.01,
             quench = false)
 
     evolution_dict["temperature_vec"] = temperature_vec
@@ -130,9 +118,10 @@ function plot_bending_energy(;
     spatial_network, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_sequence!(
         spatial_network,
         evolution_dict;
-        print_progress = true,
+        print_progress = false,
         print_every_nr_attempted_bond_switches = 10)
 
+    #NG.plot_spatial_network(spatial_network)
 
     # prepare for scatter plotting
     θ=[]
@@ -144,39 +133,88 @@ function plot_bending_energy(;
         spatial_network, 
         vertex_label))
 
-        for j in 1:(spatial_network[]["coordination_nr"]-1)
-            s1::Int64=sign(neighbor_label_vec[j] - vertex_label)
-            v1::Vector{Float64}=spatial_network[vertex_label, neighbor_label_vec[j]][
-                "vector"]
-            a=s1.*v1
-    
+        for j in 1:spatial_network[]["coordination_nr"]
+            a=sign(neighbor_label_vec[j] - vertex_label).* 
+                spatial_network[vertex_label, neighbor_label_vec[j]]["vector"]
+
             for k in j+1:spatial_network[]["coordination_nr"]
-                s2::Int64=sign(neighbor_label_vec[k] - vertex_label)
-                v2::Vector{Float64}=spatial_network[vertex_label, neighbor_label_vec[k]]["vector"]
-                b=s2.*v2
-                append!(θ,acos(LinearAlgebra.dot(a,b)/(LinearAlgebra.norm(a)*LinearAlgebra.norm(b))))
-                append!(E,NG.local_bond_bending_energy_keating(spatial_network, vertex_label))
+                b=sign(neighbor_label_vec[k] - vertex_label).* 
+                    spatial_network[vertex_label, neighbor_label_vec[k]]["vector"]
                 
+                append!(θ,acos(LinearAlgebra.dot(a,b)/(LinearAlgebra.norm(a)*LinearAlgebra.norm(b))))
+                append!(E,3/8*spatial_network[]["bond_bending_const"]*(LinearAlgebra.dot(a,b) + 1/3)^2)
+                #=
+                if(acos(LinearAlgebra.dot(a,b)/(LinearAlgebra.norm(a)*LinearAlgebra.norm(b)))>2.5)
+                    println(acos(LinearAlgebra.dot(a,b)/(LinearAlgebra.norm(a)*LinearAlgebra.norm(b))))
+                    println(3/8*spatial_network[]["bond_bending_const"]*(LinearAlgebra.dot(a,b) + 1/3)^2)
+                    println(a)
+                    println(b)
+                    println(LinearAlgebra.dot(a,b))
+                end
+                =#
             end
         end
     end
 
-    println(θ)
-    println(E)
+    #println(θ)
+    #println(E)
 
 
-    # prepare for std around equilibrium
+    # PLOT
+    E_min=minimum(E)
+    E_max=maximum(E)
+    E_range=E_max-E_min
+    E_start=E_min-E_range*0.05
+    E_end=E_max+E_range*0.05
+
+    Plots.scatter(
+        θ,
+        E,
+        xlabel="bond angle in rad",
+        ylabel="bending energy / (α d^2)",
+        ylimits=(E_start,E_end),
+        label="Measured", 
+        legend=:topleft,
+        markersize=3, 
+        markerstrokewidth=1, 
+        color=:violet)
+
+
+    # statistics of theta
+    θ_mean=Statistics.mean(θ)
     θ_std=Statistics.std(θ)
+    
+    Plots.plot!([θ_mean], seriestype="vline", label="θ_mean", color=:green)
+    Plots.plot!([θ_mean-θ_std], seriestype="vline", label="θ_mean±θ_std", color=:blue)
+    Plots.plot!([θ_mean+θ_std], seriestype="vline", label=false, color=:blue)
 
-    Plots.plot!([theta_equilibrium-θ_std], seriestype="vline", label=false, color=:red)
-    Plots.plot!([theta_equilibrium+θ_std], seriestype="vline", label=false, color=:red)
+    
+    # THEORY
+    # plot the theoretical and taylor function around the equilibrium
+    nr_steps=100
+    theta_min=minimum(θ)
+    theta_max=maximum(θ)
+    theta_range=theta_max-theta_min
+    theta_step=theta_range/nr_steps
+    theta_start=theta_min-theta_range*0.05
+    theta_end=theta_max+theta_range*0.05
+    theta_theoretical=collect(theta_start:theta_step:theta_end)
+    theta_equilibrium=acos(-1/3)
+    r_norm=1
+    E_bend=3/8 * bond_bending_const * (r_norm.^2*cos.(theta_theoretical) .+1/3).^2
+    second_taylor_constant=3/8 * bond_bending_const * 2 * (sin(theta_equilibrium)^2-cos(theta_equilibrium)^2-1/3*cos(theta_equilibrium)) 
+    E_taylor=1/2 * second_taylor_constant *(theta_theoretical .- theta_equilibrium).^2
 
-    Plots.scatter!(θ,E,xlabel="bond angle [rad]",ylabel="bending energy [1/(α d^2)]",label="Measured")
+    Plots.plot!(theta_theoretical,E_bend,label="E_bend", color=:red)
+    Plots.plot!(theta_theoretical,E_taylor,label="E_taylor", color=:orange)
+    Plots.plot!([theta_equilibrium], seriestype="vline", label="θ_eq", color=:yellow)
 
 
+
+    # SAVE
     # save picture
     save_path = raw".\my_networks\E_bend\\"
-    filename = ("E_bend_17_"
+    filename = ("E_bend_31"
         *"_N="*"$nr_vertices"
         *"_T="*"$maximal_temperature"
         *"_beta="*"$bond_bending_const"
@@ -200,5 +238,5 @@ plot_streching_energy(
 
 plot_bending_energy(
     nr_vertices=216,
-    maximal_temperature=0.8,
-    bond_bending_const=0.285)
+    maximal_temperature=0.1,
+    bond_bending_const=0.85)

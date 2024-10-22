@@ -156,7 +156,8 @@ function plot_autocovariance_fct(
     # loop through plot dictionaries to add plots
     for plot_dict in plot_dict_vec
 
-        # plot window volume times local volume fraction variance against window edge length
+        # plot window volume times local volume fraction 
+        # variance against window edge length
         Plots.plot!(
             plot_dict["sampling_distance_vec"]*plot_dict["voxel_edge_length"], 
             Measurements.value.(plot_dict["autocovariance_fct_vec"]), 
@@ -218,9 +219,9 @@ function plot_spectral_density(
         # plot spectral density
         Plots.plot!(
             plot_dict["wavenumber_vec"] ./ plot_dict["voxel_edge_length"], 
-            real.( Measurements.value.(plot_dict["spectral_density_vec"]) ), 
+            real.( Measurements.value.(plot_dict["spectral_density_vec"])), 
             ribbon = real.( 
-                Measurements.uncertainty.(plot_dict["spectral_density_vec"]) ),
+                Measurements.uncertainty.(plot_dict["spectral_density_vec"])),
             label = plot_dict["label"])
 
     end
@@ -251,7 +252,7 @@ The plots suggest to choose nr_measurements_per_distance >~ 10000
 """
 function convergence_analysis_autocovariance_fct_nr_measurements_per_distance(
     structure_dict::Dict;
-    nr_measurements_per_distance_vec = Int.( round.( 10 .^ collect(1:0.1:4) ) ),
+    nr_measurements_per_distance_vec = Int.( round.( 10 .^ collect(1:0.1:4))),
     title="Convergence analysis autocovariance function",
     save_plot = false,
     save_path=raw"..\plots\\",
@@ -338,7 +339,7 @@ function plot_autocovariance_fct_heatmap(
         # find index of fixed sampling vector value
         sampling_vector_fixed_index = argmin( abs.( 
             plot_dict["sampling_distance_vec_vec"][1] 
-            .- (sampling_vector_value_fixed / plot_dict["voxel_edge_length"] ) ) )
+            .- (sampling_vector_value_fixed / plot_dict["voxel_edge_length"])))
 
         autocovariance_fct_2d_array = Measurements.value.(
             plot_dict["autocovariance_fct_array"]
@@ -353,7 +354,8 @@ function plot_autocovariance_fct_heatmap(
         ylabel = Latex.L"r_z / d"
         title = (Latex.L"r_x = "
             *Format.format(Latex.L"{1:.1f}",
-                (plot_dict["sampling_distance_vec_vec"][1][sampling_vector_fixed_index]
+                (plot_dict["sampling_distance_vec_vec"][1][
+                    sampling_vector_fixed_index]
                 * plot_dict["voxel_edge_length"] ) ) 
             *" "*Latex.L" d,  \Delta \chi (\vec{r}) ) = "
             *Format.format(Latex.L"{1:.3f}",
@@ -369,7 +371,8 @@ function plot_autocovariance_fct_heatmap(
         # find index of fixed sampling vector value
         sampling_vector_fixed_value, sampling_vector_fixed_index = 
             findmin( abs.( plot_dict["sampling_distance_vec_vec"][2] 
-                .- (sampling_vector_value_fixed / plot_dict["voxel_edge_length"] ) ) )
+                .- (sampling_vector_value_fixed 
+                / plot_dict["voxel_edge_length"] ) ) )
 
         autocovariance_fct_2d_array = Measurements.value.(
             plot_dict["autocovariance_fct_array"]
@@ -384,7 +387,8 @@ function plot_autocovariance_fct_heatmap(
         ylabel = Latex.L"r_z / d"
         title = (Latex.L"r_y = "
         *Format.format(Latex.L"{1:.1f}",
-            (plot_dict["sampling_distance_vec_vec"][2][sampling_vector_fixed_index]
+            (plot_dict["sampling_distance_vec_vec"][2][
+                sampling_vector_fixed_index]
             * plot_dict["voxel_edge_length"] ) ) 
         *" "*Latex.L" d,  \Delta \chi (\vec{r}) ) = "
         *Format.format(Latex.L"{1:.3f}",
@@ -400,7 +404,8 @@ function plot_autocovariance_fct_heatmap(
         # find index of fixed sampling vector value
         sampling_vector_fixed_value, sampling_vector_fixed_index = 
             findmin( abs.(  plot_dict["sampling_distance_vec_vec"][3] 
-                .- (sampling_vector_value_fixed / plot_dict["voxel_edge_length"] ) ) )
+                .- (sampling_vector_value_fixed 
+                / plot_dict["voxel_edge_length"] ) ) )
 
         autocovariance_fct_2d_array = Measurements.value.(
             plot_dict["autocovariance_fct_array"]
@@ -415,15 +420,16 @@ function plot_autocovariance_fct_heatmap(
         ylabel = Latex.L"r_y / d"
         title = (Latex.L"r_z = "  
         *Format.format(Latex.L"{1:.1f}",
-            (plot_dict["sampling_distance_vec_vec"][3][sampling_vector_fixed_index]
+            (plot_dict["sampling_distance_vec_vec"][3][
+                sampling_vector_fixed_index]
             * plot_dict["voxel_edge_length"] ) ) 
         *" "*Latex.L" d,  \Delta \chi (\vec{r}) ) = "
         *Format.format(Latex.L"{1:.3f}",
         Statistics.mean( uncertainty_2d_array) ) )
         
     else
-        @error ("Sampling vector component to fix must 
-                be 1, 2 or 3, but is "*string(sampling_vector_component_to_fix))
+        @error ("Sampling vector component to fix must be 1, 2 or 3, but is "*
+            string(sampling_vector_component_to_fix))
     end
 
     # create plots
@@ -481,7 +487,8 @@ density by keeping one component of the wavevector fixed.
 The fixed wavevector value is given in units of (1/nm)
 """
 function plot_spectral_density_heatmap(plot_dict::Dict,
-    save_path::String;
+    save_path::String
+    ;
     title="Spectral density",
     save_plot = false,
     clims = (0, 0.1 ),
@@ -498,8 +505,7 @@ function plot_spectral_density_heatmap(plot_dict::Dict,
 
         # find index of fixed wavenumber value
         wavevector_fixed_index = argmin( abs.( 
-                                        plot_dict["wavenumber_vec_vec"][1]
-                                    .- wavevector_value_fixed ) )
+            plot_dict["wavenumber_vec_vec"][1].- wavevector_value_fixed ) )
 
         spectral_density_2d_array = plot_dict["spectral_density_array"]
             [wavevector_fixed_index,:,:] 
@@ -510,8 +516,8 @@ function plot_spectral_density_heatmap(plot_dict::Dict,
         title = (title*", "
         * Latex.L"k_x = " 
         *Format.format(Latex.L"{:.2f}", 
-                    plot_dict["wavenumber_vec_vec"][1][wavevector_fixed_index] 
-                        / plot_dict["voxel_edge_length"] )
+            plot_dict["wavenumber_vec_vec"][1][wavevector_fixed_index] 
+            / plot_dict["voxel_edge_length"] )
         *" "*Latex.L"( 1/ d )")
 
 
@@ -523,8 +529,8 @@ function plot_spectral_density_heatmap(plot_dict::Dict,
 
         # find index of fixed wavenumber value
         wavevector_fixed_value, wavevector_fixed_index = findmin( abs.( 
-                                    plot_dict["wavenumber_vec_vec"][2]
-                                    .- wavevector_value_fixed ) )
+            plot_dict["wavenumber_vec_vec"][2]
+            .- wavevector_value_fixed ) )
 
         spectral_density_2d_array = plot_dict["spectral_density_array"]
             [:,wavevector_fixed_index,:] 
@@ -536,8 +542,8 @@ function plot_spectral_density_heatmap(plot_dict::Dict,
         title = (title*", "
         * Latex.L"k_y = " 
         *Format.format(Latex.L"{:.2f}", 
-                    plot_dict["wavenumber_vec_vec"][2][wavevector_fixed_index] 
-                        / plot_dict["voxel_edge_length"] )
+            plot_dict["wavenumber_vec_vec"][2][wavevector_fixed_index] 
+            / plot_dict["voxel_edge_length"] )
         *" "*Latex.L"( 1/ d )")
 
     elseif wavevector_component_to_fix == 3
@@ -548,8 +554,8 @@ function plot_spectral_density_heatmap(plot_dict::Dict,
 
         # find index of fixed wavenumber value
         wavevector_fixed_value, wavevector_fixed_index = findmin( abs.( 
-                                    plot_dict["wavenumber_vec_vec"][3] 
-                                    .- wavevector_value_fixed ) )
+            plot_dict["wavenumber_vec_vec"][3] 
+            .- wavevector_value_fixed ) )
 
         spectral_density_2d_array = plot_dict["spectral_density_array"]
             [:,:,wavevector_fixed_index] 
@@ -560,8 +566,8 @@ function plot_spectral_density_heatmap(plot_dict::Dict,
         title = (title*", "
         * Latex.L"k_z = " 
         *Format.format(Latex.L"{:.2f}", 
-                    plot_dict["wavenumber_vec_vec"][3][wavevector_fixed_index] 
-                        / plot_dict["voxel_edge_length"] )
+            plot_dict["wavenumber_vec_vec"][3][wavevector_fixed_index] 
+            / plot_dict["voxel_edge_length"] )
         *" "*Latex.L"( 1/ d )")
 
     else
@@ -587,7 +593,8 @@ function plot_spectral_density_heatmap(plot_dict::Dict,
         abs.(spectral_density_2d_normalized_array),
         xlabel=xlabel,
         ylabel=ylabel,
-        colorbar_title = "\n"*Latex.L" \mathrm{Abs}( \tilde{\chi} (\vec{k}) ) / \mathrm{Abs}( \tilde{\chi} )_\mathrm{max}  " ,
+        colorbar_title = "\n"
+            *Latex.L" \mathrm{Abs}( \tilde{\chi} (\vec{k}) ) / \mathrm{Abs}( \tilde{\chi} )_\mathrm{max}  " ,
         right_margin = 8Plots.mm,
         legend = true, title=title,
         c = :bluesreds,
@@ -602,7 +609,8 @@ function plot_spectral_density_heatmap(plot_dict::Dict,
         real.(spectral_density_2d_normalized_array),
         xlabel=xlabel,
         ylabel=ylabel,
-        colorbar_title = "\n"*Latex.L"\mathrm{Re}( \tilde{\chi} (\vec{k}) ) / \mathrm{Abs}( \tilde{\chi} )_\mathrm{max}" ,
+        colorbar_title = "\n"
+            *Latex.L"\mathrm{Re}( \tilde{\chi} (\vec{k}) ) / \mathrm{Abs}( \tilde{\chi} )_\mathrm{max}" ,
         right_margin = 8Plots.mm,
         legend = true, title=title,
         c = :bluesreds,
@@ -617,7 +625,8 @@ function plot_spectral_density_heatmap(plot_dict::Dict,
         imag.(spectral_density_2d_normalized_array),
         xlabel=xlabel,
         ylabel=ylabel,
-        colorbar_title = "\n"*Latex.L"\mathrm{Im}( \tilde{\chi} (\vec{k}) ) / \mathrm{Abs}( \tilde{\chi} )_\mathrm{max}" ,
+        colorbar_title = "\n"
+            *Latex.L"\mathrm{Im}( \tilde{\chi} (\vec{k}) ) / \mathrm{Abs}( \tilde{\chi} )_\mathrm{max}" ,
         right_margin = 8Plots.mm,
         legend = true, title=title,
         c = :bluesreds,
@@ -627,9 +636,12 @@ function plot_spectral_density_heatmap(plot_dict::Dict,
 
     # set x and y lims if desired
     if x_y_lims !== nothing
-        Plots.heatmap!(abs_plot, xlims = x_y_lims, ylims = x_y_lims, size = 500 .* (1 , 1 ))
-        Plots.heatmap!(re_plot, xlims = x_y_lims, ylims = x_y_lims, size = 500 .* (1 , 1 ))
-        Plots.heatmap!(im_plot, xlims = x_y_lims, ylims = x_y_lims, size = 500 .* (1 , 1 ))
+        Plots.heatmap!(abs_plot, 
+            xlims = x_y_lims, ylims = x_y_lims, size = 500 .* (1 , 1 ))
+        Plots.heatmap!(re_plot, 
+            xlims = x_y_lims, ylims = x_y_lims, size = 500 .* (1 , 1 ))
+        Plots.heatmap!(im_plot, 
+            xlims = x_y_lims, ylims = x_y_lims, size = 500 .* (1 , 1 ))
     end
 
     # if specified by the argument, save the plot
@@ -654,21 +666,23 @@ This function plots several statistical measures, that is
 - autocovariance function
 - spectral density
 """
-function plot_statistical_measures(data_path_vec,
-                                save_path::String;
-                                voxel_edge_length_vec=nothing,
-                                label_vec=nothing,
-                                spectral_density_xlims = nothing,
-                                autocovariance_fct_direction_x_y_lims = nothing,
-                                autocovariance_fct_direction_clims = nothing,
-                                spectral_density_heatmaps_clims = (0, 0.1),
-                                spectral_density_heatmaps_x_y_lims = nothing,
-                                plot_autocovariance_fct_bool = true,
-                                plot_spectral_density_bool = true,
-                                plot_local_volume_fraction_variance_bool = true,
-                                plot_autocovariance_fct_direction_bool = true,
-                                plot_spectral_density_heatmaps_bool = true
-                                )
+function plot_statistical_measures(
+    data_path_vec,
+    save_path::String
+    ;
+    voxel_edge_length_vec=nothing,
+    label_vec=nothing,
+    spectral_density_xlims = nothing,
+    autocovariance_fct_direction_x_y_lims = nothing,
+    autocovariance_fct_direction_clims = nothing,
+    spectral_density_heatmaps_clims = (0, 0.1),
+    spectral_density_heatmaps_x_y_lims = nothing,
+    plot_autocovariance_fct_bool = true,
+    plot_spectral_density_bool = true,
+    plot_local_volume_fraction_variance_bool = true,
+    plot_autocovariance_fct_direction_bool = true,
+    plot_spectral_density_heatmaps_bool = true
+    )
 
     # if desired plot autocovariance function
     if plot_autocovariance_fct_bool
@@ -680,7 +694,8 @@ function plot_statistical_measures(data_path_vec,
         for i in eachindex(data_path_vec)
 
             # load plot dictionary
-            autocovariance_fct_plot_dict = GU.load_h5_dict(data_path_vec[i]*"_autocovariance_fct.h5")
+            autocovariance_fct_plot_dict = GU.load_h5_dict(
+                data_path_vec[i]*"_autocovariance_fct.h5")
 
             # if desired adjust label and voxel edge length
             if  label_vec !== nothing
@@ -689,26 +704,30 @@ function plot_statistical_measures(data_path_vec,
 
             # if desired adjust label and voxel edge length
             if voxel_edge_length_vec !== nothing
-                autocovariance_fct_plot_dict["voxel_edge_length"] = voxel_edge_length_vec[i]
+                autocovariance_fct_plot_dict["voxel_edge_length"] = 
+                    voxel_edge_length_vec[i]
             end
                 
             # add current plot dict to vector
-            push!(autocovariance_fct_plot_dict_vec, autocovariance_fct_plot_dict)
+            push!(autocovariance_fct_plot_dict_vec, 
+                autocovariance_fct_plot_dict)
 
         end
 
         # plot the data
-        plot_autocovariance_fct(autocovariance_fct_plot_dict_vec,
-                        save_path;
-                        title="Autocovariance function",
-                        save_plot = true)
+        plot_autocovariance_fct(
+            autocovariance_fct_plot_dict_vec,
+            save_path;
+            title="Autocovariance function",
+            save_plot = true)
 
         # plot zoom into the data
-        plot_autocovariance_fct(autocovariance_fct_plot_dict_vec,
-                        save_path;
-                        title="Autocovariance function",
-                        save_plot = true,
-                        ylims = [-0.07, 0.07])
+        plot_autocovariance_fct(
+            autocovariance_fct_plot_dict_vec,
+            save_path;
+            title="Autocovariance function",
+            save_plot = true,
+            ylims = [-0.07, 0.07])
 
     end
 
@@ -722,7 +741,8 @@ function plot_statistical_measures(data_path_vec,
         for i in eachindex(data_path_vec)
 
             # load plot dictionary
-            spectral_density_plot_dict = GU.load_h5_dict(data_path_vec[i]*"_spectral_density.h5")
+            spectral_density_plot_dict = GU.load_h5_dict(
+                data_path_vec[i]*"_spectral_density.h5")
 
             # if desired adjust label and voxel edge length
             if label_vec !== nothing
@@ -731,7 +751,8 @@ function plot_statistical_measures(data_path_vec,
 
             # if desired adjust label and voxel edge length
             if  voxel_edge_length_vec !== nothing
-                spectral_density_plot_dict["voxel_edge_length"] = voxel_edge_length_vec[i]
+                spectral_density_plot_dict["voxel_edge_length"] = 
+                    voxel_edge_length_vec[i]
             end
                 
             # add current plot dict to vector
@@ -740,17 +761,19 @@ function plot_statistical_measures(data_path_vec,
         end
 
         # plot the data
-        plot_spectral_density(spectral_density_plot_dict_vec,
-                        save_path;
-                        save_plot = true)
+        plot_spectral_density(
+            spectral_density_plot_dict_vec,
+            save_path;
+            save_plot = true)
 
         # if specified, plot a zoom into the spectral sensity
         if spectral_density_xlims !== nothing
 
-            plot_spectral_density(spectral_density_plot_dict_vec,
-                            save_path;
-                            save_plot = true,
-                            xlims = spectral_density_xlims)
+            plot_spectral_density(
+                spectral_density_plot_dict_vec,
+                save_path;
+                save_plot = true,
+                xlims = spectral_density_xlims)
         end
 
     end
@@ -767,7 +790,7 @@ function plot_statistical_measures(data_path_vec,
 
             # load plot dictionary
             local_volume_fraction_variance_plot_dict = GU.load_h5_dict(
-                                                            data_path_vec[i]*"_volume_fraction_variance.h5")
+                data_path_vec[i]*"_volume_fraction_variance.h5")
 
             # if desired adjust label and voxel edge length
             if  label_vec !== nothing
@@ -776,18 +799,21 @@ function plot_statistical_measures(data_path_vec,
 
             # if desired adjust label and voxel edge length
             if voxel_edge_length_vec !== nothing
-                local_volume_fraction_variance_plot_dict["voxel_edge_length"] = voxel_edge_length_vec[i]
+                local_volume_fraction_variance_plot_dict["voxel_edge_length"] = 
+                    voxel_edge_length_vec[i]
             end
                 
             # add current plot dict to vector
-            push!(local_volume_fraction_variance_plot_dict_vec, local_volume_fraction_variance_plot_dict)
+            push!(local_volume_fraction_variance_plot_dict_vec, 
+                local_volume_fraction_variance_plot_dict)
 
         end
 
         # plot the data
-        plot_volume_fraction_variance(local_volume_fraction_variance_plot_dict_vec,
-                        save_path;
-                        save_plot = true)
+        plot_volume_fraction_variance(
+            local_volume_fraction_variance_plot_dict_vec,
+            save_path;
+            save_plot = true)
 
     end
 
@@ -800,7 +826,7 @@ function plot_statistical_measures(data_path_vec,
 
             # load plot dictionary
             autocovariance_fct_direction_plot_dict = GU.load_h5_dict(
-                                                            data_path_vec[i]*"_autocovariance_fct_direction_complete.h5")
+                data_path_vec[i]*"_autocovariance_fct_direction_complete.h5")
 
             # if desired adjust label and voxel edge length
             if label_vec  !== nothing
@@ -809,19 +835,24 @@ function plot_statistical_measures(data_path_vec,
 
             # if desired adjust label and voxel edge length
             if voxel_edge_length_vec !== nothing
-                autocovariance_fct_direction_plot_dict["voxel_edge_length"] = voxel_edge_length_vec[i]
+                autocovariance_fct_direction_plot_dict["voxel_edge_length"] = 
+                    voxel_edge_length_vec[i]
             end
                 
-            # plot autocovariance function heatmaps along x-y, x-z and y-z planes
+            # plot autocovariance function heatmaps along 
+            # x-y, x-z and y-z planes
             for j in 1:3
 
-                plot_autocovariance_fct_heatmap(autocovariance_fct_direction_plot_dict,
-                        save_path*"_"*autocovariance_fct_direction_plot_dict["label"]*"_"*string(j)*"_fixed";
-                        save_plot = true,
-                        clims = autocovariance_fct_direction_clims,
-                        x_y_lims = autocovariance_fct_direction_x_y_lims,
-                        sampling_vector_component_to_fix = j,
-                        sampling_vector_value_fixed = 0)
+                plot_autocovariance_fct_heatmap(
+                    autocovariance_fct_direction_plot_dict,
+                    save_path*"_"
+                        *autocovariance_fct_direction_plot_dict["label"]*"_"
+                        *string(j)*"_fixed";
+                    save_plot = true,
+                    clims = autocovariance_fct_direction_clims,
+                    x_y_lims = autocovariance_fct_direction_x_y_lims,
+                    sampling_vector_component_to_fix = j,
+                    sampling_vector_value_fixed = 0)
             end
 
         end
@@ -836,7 +867,8 @@ function plot_statistical_measures(data_path_vec,
         for i in eachindex(data_path_vec)
 
             # load plot dictionary
-            spectral_density_array_dict = GU.load_h5_dict(data_path_vec[i]*"_spectral_density_array.h5")
+            spectral_density_array_dict = GU.load_h5_dict(
+                data_path_vec[i]*"_spectral_density_array.h5")
 
             # if desired adjust label and voxel edge length
             if label_vec  !== nothing
@@ -845,14 +877,17 @@ function plot_statistical_measures(data_path_vec,
 
             # if desired adjust label and voxel edge length
             if voxel_edge_length_vec !== nothing
-                spectral_density_array_dict["voxel_edge_length"] = voxel_edge_length_vec[i]
+                spectral_density_array_dict["voxel_edge_length"] = 
+                    voxel_edge_length_vec[i]
             end
                 
             # plot spectral density heatmaps along x-y, x-z and y-z planes
             for j in 1:3
 
                 plot_spectral_density_heatmap(spectral_density_array_dict,
-                        save_path*"_"*spectral_density_array_dict["label"]*"_"*string(j)*"_fixed";
+                        save_path*"_"
+                            *spectral_density_array_dict["label"]*"_"
+                            *string(j)*"_fixed";
                         save_plot = true,
                         clims = spectral_density_heatmaps_clims,
                         x_y_lims = spectral_density_heatmaps_x_y_lims,
@@ -882,10 +917,11 @@ function plot_binary_structure(data_binary::Array{Bool, 3})
     coordinates_matrix = hcat(coords_vecs...)
 
     # create a 3D scatter plot with voxels
-    scene = GLMakie.scatter(coordinates_matrix[1,:],
-                        coordinates_matrix[2,:],
-                        coordinates_matrix[3,:],
-                        marker=:circle,markersize = 2)
+    scene = GLMakie.scatter(
+        coordinates_matrix[1,:],
+        coordinates_matrix[2,:],
+        coordinates_matrix[3,:],
+        marker=:circle,markersize = 2)
 
     # display the plot
     GLMakie.display(scene)

@@ -119,9 +119,6 @@ vectors and booleans need to be converted to ints (0 and 1)
 """
 function save_dict_to_h5(dict::Dict, save_path::String)
 
-    # copy dict to avoid changing the original dict
-    dict = deepcopy(dict)
-
     # decompose those keys of the dict that are of measurement type
     decomposed_measurements_dict = decompose_measurements_in_dict(dict)
 

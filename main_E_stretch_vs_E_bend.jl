@@ -46,7 +46,7 @@ function plot_stretch_vs_bend(;
                 println("$nr_vertices"*", "*"$maximal_temperature"*", "*"$i")
 
                 save_path = raw".\my_networks\multiple_gml\\"
-                filename = ("multiple_gml_6"
+                filename = ("multiple_gml_13"
                     *"_N="*"$nr_vertices"
                     *"_T="*"$maximal_temperature"
                     *"_trial="*"$i"
@@ -77,8 +77,11 @@ function plot_stretch_vs_bend(;
                 y=Statistics.mean(E_bend)
                 y_err=Statistics.std(E_bend)
 
-                println(x,x_err)
-                println(y,y_err)
+                println(x)
+                println(x_err)
+                println(y)
+                println(y_err)
+                println("Ratio: "*"$(y_err/x_err)")
 
                 P=Plots.scatter!(
                     P,
@@ -92,7 +95,9 @@ function plot_stretch_vs_bend(;
                     markershape=shape,
                     label=false,
                     cbar=true,
-                    show=true)
+                    show=true,
+                    aspect_ratio = :equal
+                    )
 
             end
         end
@@ -105,7 +110,7 @@ function plot_stretch_vs_bend(;
     maximum_nr_vertices=maximum(nr_vertices_array)
 
     plot_save_path = raw".\my_networks\stretch_vs_bend\\"
-    plot_filename = ("stretch_vs_bend_4"
+    plot_filename = ("stretch_vs_bend_6"
         *"_N="*"$minimum_nr_vertices" * "-" * "$maximum_nr_vertices"
         *"_T="*"$minimum_temperature" * "-" * "$maximum_temperature"
         *"_trials="*"$nr_trials_per_temperature"
@@ -120,7 +125,7 @@ end
 
 plot_stretch_vs_bend(
     nr_vertices_array=[216,512],
-    maximal_temperature_array=[0.0,0.5,1.0,1.5],
+    maximal_temperature_array=[0.1,0.2,0.3,0.4],
     nr_trials_per_temperature=1,
     bond_bending_const=0.285,
     shape_array=[:circle,:rect]

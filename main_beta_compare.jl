@@ -59,11 +59,20 @@ function scatter_plot_for_mulitple_gml(;
 
                     spatial_network=NG.load_spatial_network_from_gml(total_path)
 
-                    bond_length_std, bond_length_vec = NA.get_bond_length_std(spatial_network)
+                    #bond_length_std, bond_length_vec = NA.get_bond_length_std(spatial_network)
 
                     total_energy_keating=NG.get_total_energy_keating(spatial_network)
                     energy_keating_per_vertex=total_energy_keating/spatial_network[]["nr_vertices"]
 
+
+                    nr_angles_per_vertex=spatial_network[]["coordination_nr"]*(spatial_network[]["coordination_nr"]-1)/2
+                    println("---")
+                    println("E:"*"$energy_keating_per_vertex")
+                    println("beta:"*"$bond_bending_const")
+                    #println("angles:"*"$nr_angles_per_vertex")
+                    println(energy_keating_per_vertex/(2+bond_bending_const*nr_angles_per_vertex))
+                    println()
+                    #=
                     P=Plots.scatter!(
                         P,
                         [energy_keating_per_vertex],
@@ -75,6 +84,7 @@ function scatter_plot_for_mulitple_gml(;
                         label=false,
                         cbar=true,
                         show=true)
+                    =#
                 end
             end
         end
@@ -88,7 +98,7 @@ function scatter_plot_for_mulitple_gml(;
     
     minimum_bond_bending_const=minimum(bond_bending_const_array)
     maximum_bond_bending_const=maximum(bond_bending_const_array)
-
+    #=
     plot_save_path = raw".\my_networks\multiple_gml\\"
     plot_filename = ("multiple_gml_23"
         *"_N="*"$minimum_nr_vertices" * "-" * "$maximum_nr_vertices"
@@ -100,13 +110,15 @@ function scatter_plot_for_mulitple_gml(;
 
     
     Plots.savefig(P,plot_total_path)
+    =#
 end
 
 
 scatter_plot_for_mulitple_gml(
     nr_vertices_array=[216,512],
-    maximal_temperature_array=[0.1,0.2,0.4,0.8,1.6],
+    maximal_temperature_array=[0.1,0.2],
     nr_trials_per_temperature=1,
     bond_bending_const_array=[0.21,0.285,0.36],
     shape_array=[:circle,:rect]
 )
+
