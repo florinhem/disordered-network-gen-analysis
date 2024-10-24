@@ -7,3 +7,5 @@ This is a new branch to intoduce the beta/alpha parameter.
 For now the beta/alpha was fixed to 0.285, now we change it to a variable. 
 The idea is to change it so we can modify the Keating energy. 
 The ground state will probably not be obtained. We will see.
+
+Modify readme remotely
