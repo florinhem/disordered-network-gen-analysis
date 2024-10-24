@@ -27,6 +27,7 @@ function get_evolution_dict(;
     nr_monte_carlo_steps_per_temperature_vec::Vector = [10,10],
     mean_nr_monte_carlo_steps_for_quenching::Float64 = 13.7,
     relax_globally_after_threshold_cycle::Bool = true,
+    theta_ground_state::Float64 = 109.5
     )
 
     # check if the temperature sequence is given correctly
@@ -73,7 +74,8 @@ function get_evolution_dict(;
     "nr_monte_carlo_steps_per_temperature_vec" => nr_monte_carlo_steps_per_temperature_vec,
     "mean_nr_monte_carlo_steps_for_quenching" => mean_nr_monte_carlo_steps_for_quenching,
     "estimated_nr_bond_switches" => estimated_nr_bond_switches,
-    "relax_globally_after_threshold_cycle" => relax_globally_after_threshold_cycle
+    "relax_globally_after_threshold_cycle" => relax_globally_after_threshold_cycle,
+    "theta_ground_state" => theta_ground_state
     )
 
     return evolution_dict

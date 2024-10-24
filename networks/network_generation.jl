@@ -474,6 +474,9 @@ function get_periodic_network(evolution_dict)
 
     spatial_network[]["bond_bending_const"] = evolution_dict[
         "bond_bending_const"]
+    
+    spatial_network[]["theta_ground_state"] = evolution_dict[
+        "theta_ground_state"]
 
     # thermally excite network if desired
     if evolution_dict["thermal_fluctuations"]
