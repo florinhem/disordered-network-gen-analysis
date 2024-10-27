@@ -45,15 +45,20 @@ function save_spatial_network_to_gml(
     filename::String;
     evolution_dict = nothing,
     save_path::String = raw"..\structures\random_networks\\")
+    
+    println("In network network_io save_spatial_nw_gml")
 
     # save evolution dict if passed
     if evolution_dict !== nothing
+        println("nothing")
         GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
     end
 
+    println("before open")
+
     # open new file
     open(save_path*filename*".gml", "w") do opened_file
-
+        println("opened")
         # write header
         write(opened_file, "graph [ \n")
 
@@ -100,8 +105,9 @@ function save_spatial_network_to_gml(
 
         # write footer
         write(opened_file, "]\n")
-
+        println("written")
     end
+    println("close")
     return
 end 
 
