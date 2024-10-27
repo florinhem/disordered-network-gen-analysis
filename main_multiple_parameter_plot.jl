@@ -66,9 +66,9 @@ function scatter_plot_for_mulitple_gml(;
                     for n in eachindex(theta_ground_state_array)
 
                         theta_ground_state=theta_ground_state_array[n]
-			shape=shape_array[n]
+			            shape=shape_array[n]
 
-                        println("$nr_vertices"*", "*"$maximal_temperature"*", "*"$i"*", "*"$bond_bending_const", "*"$theta_ground_state" )
+                        println("$nr_vertices"*", "*"$maximal_temperature"*", "*"$i"*", "*"$bond_bending_const"*", "*"$theta_ground_state" )
 
                 
                         filename = (filename_start
@@ -86,7 +86,9 @@ function scatter_plot_for_mulitple_gml(;
 
                         spatial_network=NG.load_spatial_network_from_gml(total_path)
 
-                        bond_length_std, bond_length_vec = NA.get_bond_length_std(spatial_network)
+                        #bond_length_std, bond_length_vec = NA.get_bond_length_std(spatial_network)
+                        bond_angle_std, bond_angle_vec = NA.get_bond_angle_std(spatial_network)
+
 
                         total_energy_keating=NG.get_total_energy_keating(spatial_network)
                         energy_keating_per_vertex=total_energy_keating/spatial_network[]["nr_vertices"]
@@ -94,9 +96,11 @@ function scatter_plot_for_mulitple_gml(;
                         P=Plots.scatter!(
                             P,
                             [energy_keating_per_vertex],
-                            [bond_length_std],
+                            #[bond_length_std],
+                            [bond_angle_std],
                             xlabel="Keating energy per vertex",
-                            ylabel="Bond length std",
+                            #ylabel="Bond length std",
+                            ylabel="Bond angle std",
                             markercolor=color,
                             markershape=shape,
                             label=false,
@@ -144,9 +148,11 @@ scatter_plot_for_mulitple_gml(
     temperature_gradient=0.1,
     nr_monte_carlo_steps_per_temperature=0.01,
     theta_ground_state_array=[110.0,180.0],
-    save_path = "/home/glauserv/Documents/GitLinux/GitF/code_photonic_structures/simulations/multiple_parameters/",      #raw".\simulations\multiple_parameters\\",
-    filename_start = "multiple_p_quench_false_theta_array"    #"multiple_p",
-    plot_save_path = "/home/glauserv/Documents/GitLinux/GitF/code_photonic_structures/simulations/analysis_plot/",      #raw".\simulations\analysis_plot\\",
-    plot_filename_start = "multiple_p_quench_false_theta_array"        #"multiple_p",
+    #save_path = "/home/glauserv/Documents/GitLinux/GitF/code_photonic_structures/simulations/multiple_parameters/",      
+    save_path = raw".\simulations\multiple_parameters\\",
+    filename_start = "multiple_p_quench_false_theta_array",    #"multiple_p",
+    #plot_save_path = "/home/glauserv/Documents/GitLinux/GitF/code_photonic_structures/simulations/analysis_plot/",      
+    plot_save_path = raw".\simulations\analysis_plot\\",
+    plot_filename_start = "multiple_p_angle",        #"multiple_p",
     shape_array=[:circle,:rect]
 )
