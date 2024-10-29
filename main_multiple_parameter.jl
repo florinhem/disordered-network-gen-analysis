@@ -27,16 +27,31 @@ function save_multiple_N_T_trials_beta_gml(
     
     println(Threads.nthreads())
 
-    Threads.@threads for (nr_vertices,maximal_temperature,i,bond_bending_const,temperature_gradient,nr_monte_carlo_steps_per_temperature,theta_ground_state) in collect(
-        Iterators.product(nr_vertices_array,maximal_temperature_array,1:nr_trials_per_temperature,bond_bending_const_array,temperature_gradient_array,nr_monte_carlo_steps_per_temperature_array,theta_ground_state_array))
+    Iter=collect(Iterators.product(
+        nr_vertices_array,
+        maximal_temperature_array,
+        1:nr_trials_per_temperature,
+        bond_bending_const_array,
+        temperature_gradient_array,
+        nr_monte_carlo_steps_per_temperature_array,
+        theta_ground_state_array))
+
+    Threads.@threads for (
+        nr_vertices,
+        maximal_temperature,
+        i,
+        bond_bending_const,
+        temperature_gradient,
+        nr_monte_carlo_steps_per_temperature,
+        theta_ground_state) in Iter
                 
         println("$nr_vertices"*", "*
 		"$maximal_temperature"*", "*
 		"$i"*", "*
 		"$bond_bending_const"*", "*
 		"$temperature_gradient"*", "*
-                "$nr_monte_carlo_steps_per_temperature"*", "*
-                "$theta_ground_state" )
+        "$nr_monte_carlo_steps_per_temperature"*", "*
+        "$theta_ground_state" )
     
         evolution_dict = NA.get_evolution_dict(;
             nr_vertices = nr_vertices, 
@@ -76,9 +91,9 @@ function save_multiple_N_T_trials_beta_gml(
             *"_T="*"$maximal_temperature"
             *"_Trial="*"$i"
             *"_Beta="*"$bond_bending_const"
-            *"_Theta_GS="*"$theta_ground_state"
             *"_GradT="*"$temperature_gradient"
             *"_StepsPerT="*"$nr_monte_carlo_steps_per_temperature"
+            *"_Theta_GS="*"$theta_ground_state"
             )
 	
         NG.save_spatial_network_to_gml(
@@ -95,12 +110,12 @@ try
         nr_vertices_array=[216],
         maximal_temperature_array=[0.1],
         nr_trials_per_temperature=1,
-        bond_bending_const_array=[0.21,0.285,0.36],
-        temperature_gradient_array=[0.025,0.05,0.1,0.2,0.4],
-        nr_monte_carlo_steps_per_temperature_array=[0.0025,0.005,0.01,0.02,0.04],
+        bond_bending_const_array=[0.135,0.21,0.285,0.36,0.435],
+        temperature_gradient_array=[0.001,0.01,0.1,1,10],
+        nr_monte_carlo_steps_per_temperature_array=[0.0001,0.001,0.01,0.1,1],
         theta_ground_state_array=[110.0,180.0],
         save_path ="/home/glauserv/Documents/GitLinux/GitF/code_photonic_structures/simulations/multiple_parameters/",
-        filename_start="multiple_BTMC_"
+        filename_start="multiple_BTMC"
     )
 catch e
     error_msg = sprint(showerror, e)

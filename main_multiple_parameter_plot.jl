@@ -24,7 +24,8 @@ function scatter_plot_for_mulitple_gml(;
     filename_start,
     plot_save_path,
     plot_filename_start,
-    shape_array)
+    shape_array,
+    plot_metric)
 
     # test before we begin
     @assert length(nr_vertices_array)>=1
@@ -43,14 +44,26 @@ function scatter_plot_for_mulitple_gml(;
     
     @assert length(maximal_temperature_array)===length(color_array)
 
-    P=Plots.scatter(
+    if plot_metric==="stretching"
         title="Bond length std vs Keating energy per vertex"
+        ylabel="Bond length std"
+    elseif plot_metric==="bending"
+        title="Bond angle std vs Keating energy per vertex"
+        ylabel="Bond angle std"
+    elseif plot_metric==="dihedral"
+        title="Dihedral angle std vs Keating energy per vertex"
+        ylabel="Dihedral angle std"
+    end
+
+    P=Plots.scatter(
+        title=title,
+        xlabel="Keating energy per vertex",
+        ylabel=ylabel
     )
 
     for k in eachindex(nr_vertices_array)
 
         nr_vertices=nr_vertices_array[k]
-        #shape=shape_array[k]
 
         for j in eachindex(maximal_temperature_array)
 
@@ -86,8 +99,18 @@ function scatter_plot_for_mulitple_gml(;
 
                         spatial_network=NG.load_spatial_network_from_gml(total_path)
 
+
+                        if plot_metric==="stretching"
+                            y, bond_length_vec = NA.get_bond_length_std(spatial_network)
+                            
+                        elseif plot_metric==="bending"
+                            y, bond_angle_vec = NA.get_bond_angle_std(spatial_network)
+                        elseif plot_metric==="dihedral"
+                            y, dihedral_angle_vec = NA.get_dihedral_angle_std(spatial_network)
+                        end
                         #bond_length_std, bond_length_vec = NA.get_bond_length_std(spatial_network)
-                        bond_angle_std, bond_angle_vec = NA.get_bond_angle_std(spatial_network)
+                        #bond_angle_std, bond_angle_vec = NA.get_bond_angle_std(spatial_network)
+                        #dihedral_angle_std, dihedral_angle_vec = get_dihedral_angle_std(spatial_network)
 
 
                         total_energy_keating=NG.get_total_energy_keating(spatial_network)
@@ -96,14 +119,10 @@ function scatter_plot_for_mulitple_gml(;
                         P=Plots.scatter!(
                             P,
                             [energy_keating_per_vertex],
-                            #[bond_length_std],
-                            [bond_angle_std],
-                            xlabel="Keating energy per vertex",
-                            #ylabel="Bond length std",
-                            ylabel="Bond angle std",
+                            [y],
                             markercolor=color,
                             markershape=shape,
-                            label=false,
+                            legend=false,
                             cbar=true,
                             show=true)
                     end
@@ -126,6 +145,7 @@ function scatter_plot_for_mulitple_gml(;
 
 
     plot_filename = (plot_filename_start
+        *"_"*plot_metric
         *"_N="*"$minimum_nr_vertices" * "-" * "$maximum_nr_vertices"
         *"_T="*"$minimum_temperature" * "-" * "$maximum_temperature"
         *"_Trials="*"$nr_trials_per_temperature"
@@ -147,12 +167,13 @@ scatter_plot_for_mulitple_gml(
     bond_bending_const_array=[0.285],
     temperature_gradient=0.1,
     nr_monte_carlo_steps_per_temperature=0.01,
-    theta_ground_state_array=[110.0,180.0],
-    #save_path = "/home/glauserv/Documents/GitLinux/GitF/code_photonic_structures/simulations/multiple_parameters/",      
+    theta_ground_state_array=[110.0,180.0],     
     save_path = raw".\simulations\multiple_parameters\\",
-    filename_start = "multiple_p_quench_false_theta_array",    #"multiple_p",
-    #plot_save_path = "/home/glauserv/Documents/GitLinux/GitF/code_photonic_structures/simulations/analysis_plot/",      
+    filename_start = "multiple_p_quench_false_theta_array",    
     plot_save_path = raw".\simulations\analysis_plot\\",
-    plot_filename_start = "multiple_p_angle",        #"multiple_p",
-    shape_array=[:circle,:rect]
+    plot_filename_start = "multiple_SBD_1",
+    shape_array=[:circle,:rect],
+    #plot_metric="stretching" 
+    #plot_metric="bending"
+    plot_metric="dihedral"
 )
