@@ -591,17 +591,22 @@ end
 
 
 """
-Define a cluster metric as the average ball radius within which there are 12 
-vertices, which would be the second neighbor shell in a perfect diamond
-lattice, normalized by the second neighbor distance of the diamond lattice.
-For clusters, this metric is typically below 0.7
+Define a cluster metric as the average ball radius within which there is the
+given number of vertices, which would be the second neighbor shell in a 
+periodic lattice, normalized by the second neighbor distance of the diamond
+lattice. For clusters, this metric is typically below 0.7
 """
-function get_cluster_metric(correlation_functions_dict::Dict)
+function get_cluster_metric(correlation_functions_dict::Dict;
+    nr_vertices_second_neighbor_shell::Int = 17,
+    second_neighbor_distance_periodic_network::Float64 = 2*sqrt(6)/3)
 
-    # get distance where ripley's K function is 12
+    # get distance where cumulative coordination nr equals the given number of 
+    # vertices minus one to account for the fact that the central vertex is not
+    # contained in the cumulative coordination number 
     cluster_metric = correlation_functions_dict["vertex_distance_vec"][
-        findfirst(x -> x > 12, correlation_functions_dict["ripley_k_vec"])
-        ]/1.63
+        findfirst(x -> x > nr_vertices_second_neighbor_shell, 
+        correlation_functions_dict["cumulative_coord_nr_vec"])
+        ]/second_neighbor_distance_periodic_network
 
     return cluster_metric
 end
@@ -609,7 +614,7 @@ end
 
 """
 Get the second moment of the pore size distribution which, according to 
-10.1103/PhysRevE.104.014127 is an estimate of the critical pore radius
+10.1103/PhysRevE.104.014127 is an estimate of the critical pore radius squared
 (although they use another definition of the pore size distribution)
 """
 function get_pore_size_distribution_second_moment(
@@ -642,7 +647,7 @@ function get_anisotropy_metric_from_structure_factor(
         "wavenumber_vec"] .- wavenumbers_to_check_vec[i])) 
         for i in eachindex(wavenumbers_to_check_vec)]
 
-    # sum the checked spectral densities
+    # sum the checked structure factors
     summed_structure_factor_to_check = sum( 
         structure_factor_angle_averaged_dict[
             "structure_factor_vec"][index_vec] )

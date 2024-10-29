@@ -1,6 +1,6 @@
 
 # include file where structure analysis modules are stored
-include("structure_analysis_modules.jl")
+include("structure_analysis_modules_no_plotting.jl")
 
 # import my module that contains all functions for the generation and analysis of networks
 import .NetworkGeneration as NG
@@ -20,36 +20,43 @@ import Graphs
 # 64 vertices: supercell_edge_length = 4.619802153517007
 # which is the cube root of the number of vertices times 2/sqrt(3)
 
-# julia --threads 23
+# calculate diamond correlation function and small scale order metrics
 
-nr_vertices_vec = [216, 512, 1000]
+function my_func()
+    
+    current_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\diamonds\\"
+    current_analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\diamonds\\"
 
+    # get all files in the current path
+    files = readdir(current_path)
+    # get vector of all gml files
+    gml_files = [file for file in files if endswith(file, ".gml")]
+    
+    # loop through each file that is a gml file
+    for gml_file in gml_files
+        filename  = gml_file[1:end-4]
+        spatial_network = NG.load_spatial_network_from_gml(current_path*filename*".gml")
 
-for nr_vertices in nr_vertices_vec
-
-    filename = string(nr_vertices)*"_vertices_T_0.08_heat_cool_0.1_per_mc_quenched"
-
-    for run in 1:5
-
-        spatial_network_path = "../structures/random_networks/"*string(nr_vertices)*"_vertices_bond_bending_0.21/run_"*string(run)*"/"
-        structure_dict_path = "../structures/random_networks/binary_structures/"*string(nr_vertices)*"_vertices_bond_bending_0.21/run_"*string(run)*"/"
-        analysis_data_path = "../analysis_data/random_networks/"*string(nr_vertices)*"_vertices_bond_bending_0.21/run_"*string(run)*"/"
-
-        println("Nr vertices: ", nr_vertices, ", run: ", run)
-
-        NA.get_all_dicts_from_network_single_file(
+        # get correlation functions
+        correlation_functions_dict = NA.get_correlation_functions(
+            spatial_network;
+            distance_histogram_bin_width = 0.02,
+            save_result = true,
+            save_path = current_analysis_data_path*filename,
+            label = nothing)
+        # get all order metrics that contain information about small length scales
+        small_scale_order_metrics_dict = NA.get_small_length_scale_order_metrics(
             filename,
-            spatial_network_path,
-            structure_dict_path,
-            analysis_data_path;
-            bond_radius = 0.35,
-            voxel_edge_length = 0.1,
-            structure_factor_diamond_std_value_ratio = 1,
-            spectral_density_diamond_std_value_ratio = 1,
-            pore_size_distribution_nr_sampled_voxels = 20000,
-            print_progress = true,
-            print_lock = Threads.ReentrantLock())
-
+            current_path,
+            current_analysis_data_path;
+            l_max_steinhardt_q_l = 12,
+            structure_factor_diamond_std_value_ratio 
+                = 1,
+            spectral_density_diamond_std_value_ratio 
+                = 1,
+            save_result = true,
+            )
     end
 end
 
+my_func()

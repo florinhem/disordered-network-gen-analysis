@@ -6494,3 +6494,220 @@ function my_func()
 end
 
 my_func()
+
+
+
+nr_vertices = 512
+
+spatial_network_path = "../structures/random_networks/"*string(nr_vertices)*"_vertices_bond_bending_0.36/"
+structure_dict_path = "../structures/random_networks/binary_structures/"*string(nr_vertices)*"_vertices_bond_bending_0.36/"
+analysis_data_path = "../analysis_data/random_networks/"*string(nr_vertices)*"_vertices_bond_bending_0.36/"
+
+NA.get_all_dicts_from_networks_multithreading(
+    spatial_network_path,
+    structure_dict_path,
+    analysis_data_path;
+    bond_radius = 0.35,
+    voxel_edge_length = 0.1,
+    structure_factor_diamond_std_value_ratio = 1,
+    spectral_density_diamond_std_value_ratio = 1,
+    pore_size_distribution_nr_sampled_voxels = 20000,
+    print_progress = true,
+    runs_vec = collect(1:5),
+    print_lock = Threads.ReentrantLock())
+
+
+
+spatial_network_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.36\run_1\\"
+
+filename = "216_vertices_T_0.1_heat_cool_0.1_per_mc_quenched"
+
+structure_dict_path = raw"C:\Users\HemmannF\Downloads\\"
+
+analysis_data_path = structure_dict_path
+
+NA.get_all_dicts_from_network_single_file(
+    filename,
+    spatial_network_path,
+    structure_dict_path,
+    analysis_data_path;
+    pore_size_distribution_nr_sampled_voxels = 1000,
+    print_progress = true)
+
+
+
+analysis_data_paths = [raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_bond_bending_0.36\\",
+raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\512_vertices_bond_bending_0.36\\",
+raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\1000_vertices_bond_bending_0.36\\"]
+
+for analysis_data_path in analysis_data_paths
+    for i in 1:5
+        NA.get_small_length_scale_order_metrics_all_files(analysis_data_path*"run_$i\\";
+        l_max_steinhardt_q_l = 12,
+        save_result = true,)
+    end
+    println("done with $analysis_data_path")
+end
+
+analysis_data_paths = [raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_bond_bending_0.21\\",
+raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\512_vertices_bond_bending_0.21\\",
+raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\1000_vertices_bond_bending_0.21\\",
+raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_bond_bending_0.285\\",
+raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\512_vertices_bond_bending_0.285\\",
+raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\1000_vertices_bond_bending_0.285\\"]
+
+for analysis_data_path in analysis_data_paths
+    for i in 1:5
+        NA.get_small_length_scale_order_metrics_all_files(analysis_data_path*"run_$i\\";
+        l_max_steinhardt_q_l = 12,
+        save_result = true,)
+    end
+    println("done with $analysis_data_path")
+end
+
+
+function my_func()
+
+    nr_vertices_vec = [512, 1000]
+    bond_bending_vec = [0.21, 0.285, 0.36]
+
+    # loop through each number of vertices
+    for nr_vertices in nr_vertices_vec
+
+        # loop through each bond bending
+        for bond_bending in bond_bending_vec
+
+            path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\\"*string(nr_vertices, "_vertices_bond_bending_", bond_bending, "\\")
+
+            analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\\"*string(nr_vertices, "_vertices_bond_bending_", bond_bending, "\\")
+
+            for run in 1:5
+
+                println("Starting run ", run, " with ", nr_vertices, " vertices and bond bending ", bond_bending)
+
+                current_path = path*"run_"*string(run)*"\\"
+                current_analysis_data_path = analysis_data_path*"run_"*string(run)*"\\"
+
+                # get all files in the current path
+                files = readdir(current_path)
+
+                # get vector of all gml files
+                gml_files = [file for file in files if endswith(file, ".gml")]
+
+                # loop through each file that is a gml file
+                for gml_file in gml_files
+                    filename  = gml_file[1:end-4]
+
+                    spatial_network = NG.load_spatial_network_from_gml(current_path*filename*".gml")
+
+                    # get correlation functions
+                    correlation_functions_dict = NA.get_correlation_functions(
+                        spatial_network;
+                        distance_histogram_bin_width = 0.02,
+                        save_result = true,
+                        save_path = current_analysis_data_path*filename,
+                        label = nothing)
+
+                    # get all order metrics that contain information about small length scales
+                    small_scale_order_metrics_dict = NA.get_small_length_scale_order_metrics(
+                        filename,
+                        current_path,
+                        current_analysis_data_path;
+                        l_max_steinhardt_q_l = 12,
+                        structure_factor_diamond_std_value_ratio 
+                            = 1,
+                        spectral_density_diamond_std_value_ratio 
+                            = 1,
+                        save_result = true,
+                        )
+                end
+            end
+        end
+    end
+end
+
+my_func()
+
+
+current_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\diamonds\\"
+current_analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\diamonds\\"
+
+# get all files in the current path
+files = readdir(current_path)
+
+# get vector of all gml files
+gml_files = [file for file in files if endswith(file, ".gml")]
+
+# loop through each file that is a gml file
+for gml_file in gml_files
+    filename  = gml_file[1:end-4]
+    spatial_network = NG.load_spatial_network_from_h5_and_gml(current_path*filename)
+
+    NG.save_spatial_network_to_gml(
+        spatial_network,
+        filename;
+        save_path = current_path)
+
+    # delete h5 file
+    rm(current_path*filename*".h5")
+end
+
+
+function my_func()
+    
+    current_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\diamonds\\"
+    current_analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\diamonds\\"
+
+    # get all files in the current path
+    files = readdir(current_path)
+    # get vector of all gml files
+    gml_files = [file for file in files if endswith(file, ".gml")]
+    
+    # loop through each file that is a gml file
+    for gml_file in gml_files
+        filename  = gml_file[1:end-4]
+        spatial_network = NG.load_spatial_network_from_gml(current_path*filename*".gml")
+
+        # get correlation functions
+        correlation_functions_dict = NA.get_correlation_functions(
+            spatial_network;
+            distance_histogram_bin_width = 0.02,
+            save_result = true,
+            save_path = current_analysis_data_path*filename,
+            label = nothing)
+        # get all order metrics that contain information about small length scales
+        small_scale_order_metrics_dict = NA.get_small_length_scale_order_metrics(
+            filename,
+            current_path,
+            current_analysis_data_path;
+            l_max_steinhardt_q_l = 12,
+            structure_factor_diamond_std_value_ratio 
+                = 1,
+            spectral_density_diamond_std_value_ratio 
+                = 1,
+            save_result = true,
+            )
+    end
+end
+
+my_func()
+
+
+nr_vertices = 512
+
+spatial_network_path = "../structures/random_networks/"*string(nr_vertices)*"_vertices_bond_bending_0.21/"
+structure_dict_path = "../structures/random_networks/binary_structures/"*string(nr_vertices)*"_vertices_bond_bending_0.21/"
+analysis_data_path = "../analysis_data/random_networks/"*string(nr_vertices)*"_vertices_bond_bending_0.21/"
+
+NA.get_all_dicts_from_networks_multithreading(
+    spatial_network_path,
+    structure_dict_path,
+    analysis_data_path;
+    bond_radius = 0.35,
+    voxel_edge_length = 0.1,
+    structure_factor_diamond_std_value_ratio = 1,
+    spectral_density_diamond_std_value_ratio = 1,
+    pore_size_distribution_nr_sampled_voxels = 20000,
+    print_progress = true,
+    runs_vec = collect(1:5),
+    print_lock = Threads.ReentrantLock())
