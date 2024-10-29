@@ -4,7 +4,7 @@ This module contains all functions with tests of functions or modules
 module MyTests
 
 # include file where structure analysis modules are stored
-include("structure_analysis_modules.jl")
+include("structure_analysis_modules_no_plotting.jl")
 
 # import my module that contains all functions for the generation and analysis of networks
 import .NetworkGeneration as NG
@@ -16,6 +16,7 @@ using Test
 
 #import the module MetaGraphsNext
 using MetaGraphsNext
+
 
 
 # prepare short tests
@@ -31,20 +32,23 @@ spatial_network = NG.get_periodic_network(evolution_dict)
 
 
 
+try
 
-
-#Energy test
-for vertex in MetaGraphsNext.labels(spatial_network)
-    println(vertex)
-    println(NG.local_bond_bending_energy_keating(spatial_network, vertex))
-    println(NG.local_bond_bending_energy_keating2(spatial_network, vertex))
-    @test NG.local_bond_bending_energy_keating(spatial_network, vertex)===
-          NG.local_bond_bending_energy_keating2(spatial_network, vertex)
-    println("yes test has passed") 
+    #Energy test
+    for vertex in MetaGraphsNext.labels(spatial_network)
+        println(vertex)
+        println(NG.local_bond_bending_energy_keating(spatial_network, vertex))
+        println(NG.local_bond_bending_energy_keating2(spatial_network, vertex))
+        @test NG.local_bond_bending_energy_keating(spatial_network, vertex)===
+              NG.local_bond_bending_energy_keating2(spatial_network, vertex)
+        println("yes test has passed") 
+    end
+catch e
+           error_msg = sprint(showerror, e)
+           st = sprint((io,v) -> show(io, "text/plain", v), stacktrace(catch_backtrace()))
+           @warn "Trouble doing things:\n$(error_msg)\n$(st)"
+           println("Trouble doing things:\n$(error_msg)\n$(st)")
 end
-
-
-
 
 
 

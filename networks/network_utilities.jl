@@ -168,6 +168,9 @@ function get_cluster_bonds_vec(
     cluster_bonds_inside_vec = []
     cluster_bonds_edge_vec = []
 
+    #println(cluster_vertices_to_move_vec)
+    #println(cluster_vertices_outer_shell_vec)
+
     # get vector of all cluster vertices
     all_cluster_vertices_vec = vcat(cluster_vertices_to_move_vec, 
                                 cluster_vertices_outer_shell_vec)
