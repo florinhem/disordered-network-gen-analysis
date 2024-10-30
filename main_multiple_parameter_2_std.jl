@@ -11,15 +11,16 @@ import MetaGraphsNext
 import Graphs
 import Plots
 import Colors
+import Glob
 
 function scatter_plot_for_mulitple_gml(;
     nr_vertices_array,
     maximal_temperature_array,
-    nr_trials_per_temperature,
     bond_bending_const_array,
     temperature_gradient_array,
     nr_monte_carlo_steps_per_temperature_array,
     theta_ground_state_array,
+    nr_trials_per_temperature,
     save_path,
     filename_start,
     plot_save_path,
@@ -31,35 +32,28 @@ function scatter_plot_for_mulitple_gml(;
     # test before we begin
     @assert length(nr_vertices_array)>=1
     @assert length(maximal_temperature_array)>=1
-    @assert nr_trials_per_temperature>=1
     @assert length(bond_bending_const_array)>=1
     @assert length(temperature_gradient_array)>=1
     @assert length(nr_monte_carlo_steps_per_temperature_array)>=1
     @assert length(theta_ground_state_array)>=1
+    @assert nr_trials_per_temperature>=1
     @assert length(markershape_array)>=1
 
     @assert length(theta_ground_state_array)===length(markershape_array)
 
-    #=
-    # generate color for the different temperatures
-    if length(maximal_temperature_array)===1
-        markercolor_array=[:blue]
-    else 
-        markercolor_array=range(Colors.colorant"blue", stop=Colors.colorant"red", length=length(maximal_temperature_array))
-        println(markercolor_array)
-    end
-    =#
 
     # generate color for the different temperatures
     if length(temperature_gradient_array)===1
         markercolor_array=[:blue]
     else 
         markercolor_array=range(Colors.colorant"blue", stop=Colors.colorant"red", length=length(temperature_gradient_array))
-        println(markercolor_array)
     end
     
     @assert length(temperature_gradient_array)===length(markercolor_array)
 
+    # store array with all the paths in the directory to check if we have
+    # this .h5 and .gml to be able to plot it.
+    path_array=Glob.glob(filename_start*"*.gml",save_path)
 
     P=Plots.scatter(
         title="Bond length std vs Bond angle std",
@@ -75,28 +69,29 @@ function scatter_plot_for_mulitple_gml(;
 
             maximal_temperature=maximal_temperature_array[j]
 
-            for i in 1:nr_trials_per_temperature
+            for m in eachindex(bond_bending_const_array)
 
-                for m in eachindex(bond_bending_const_array)
+                bond_bending_const=bond_bending_const_array[m]
+                markerstrokewidth=markerstrokewidth_array[m]
 
-                    bond_bending_const=bond_bending_const_array[m]
-                    markerstrokewidth=markerstrokewidth_array[m]
+                for n in eachindex(temperature_gradient_array)
 
-                    for n in eachindex(temperature_gradient_array)
+                    temperature_gradient=temperature_gradient_array[n]
+                    markercolor=markercolor_array[n]
+                    
+                    for o in eachindex(nr_monte_carlo_steps_per_temperature_array)
 
-                        temperature_gradient=temperature_gradient_array[n]
-                        markercolor=markercolor_array[n]
-                        
-                        for o in eachindex(nr_monte_carlo_steps_per_temperature_array)
+                        nr_monte_carlo_steps_per_temperature=nr_monte_carlo_steps_per_temperature_array[o]
+                        markersize=markersize_array[o]
+                    
+                        for p in eachindex(theta_ground_state_array)
+                            
+                            theta_ground_state=theta_ground_state_array[p]
+                            markershape=markershape_array[p]
 
-                            nr_monte_carlo_steps_per_temperature=nr_monte_carlo_steps_per_temperature_array[o]
-                            markersize=markersize_array[o]
-                       
-                            for p in eachindex(theta_ground_state_array)
-
-                                theta_ground_state=theta_ground_state_array[p]
-                                markershape=markershape_array[p]
-
+                            for i in 1:nr_trials_per_temperature
+                                
+                                #=
                                 println("$nr_vertices"*", "*
                                     "$maximal_temperature"*", "*
                                     "$i"*", "*
@@ -104,11 +99,13 @@ function scatter_plot_for_mulitple_gml(;
                                     "$temperature_gradient"*", "*
                                     "$nr_monte_carlo_steps_per_temperature"*", "*
                                     "$theta_ground_state" )
+                                =#
                         
                                 filename = (filename_start
                                     *"_N="*"$nr_vertices"
                                     *"_T="*"$maximal_temperature"
                                     *"_Trial="*"$i"
+                                    # TODO Take trial after theta_GS
                                     *"_Beta="*"$bond_bending_const"
                                     *"_GradT="*"$temperature_gradient"
                                     *"_StepsPerT="*"$nr_monte_carlo_steps_per_temperature"
@@ -118,22 +115,40 @@ function scatter_plot_for_mulitple_gml(;
 
                                 total_path=save_path*filename
 
-                                spatial_network=NG.load_spatial_network_from_gml(total_path)
+                                if(total_path in path_array)
+                                    #println("scatter done")
 
-                                bond_length_std, bond_length_vec = NA.get_bond_length_std(spatial_network)
-                                bond_angle_std, bond_angle_vec = NA.get_bond_angle_std(spatial_network)
+                                    spatial_network=NG.load_spatial_network_from_gml(total_path)
 
-                                Plots.scatter!(
-                                    P,
-                                    [bond_length_std],
-                                    [bond_angle_std],
-                                    markercolor=markercolor,
-                                    markershape=markershape,
-                                    markersize=markersize,
-                                    markerstrokewidth=markerstrokewidth,
-                                    legend=false,
-                                    cbar=true,
-                                    show=true)
+                                    bond_length_std, bond_length_vec = NA.get_bond_length_std(spatial_network)
+                                    bond_angle_std, bond_angle_vec = NA.get_bond_angle_std(spatial_network)
+
+                                    println("["
+                                        #*"$nr_vertices"*","
+                                        #*"$maximal_temperature"*","
+                                        *"$bond_bending_const"*","
+                                        *"$temperature_gradient"*","
+                                        *"$nr_monte_carlo_steps_per_temperature"*","
+                                        *"$theta_ground_state"*","
+                                        #*"$i"*","
+                                        *"$bond_length_std"*","
+                                        *"$bond_angle_std"
+                                        *"],")
+
+                                    Plots.scatter!(
+                                        P,
+                                        [bond_length_std],
+                                        [bond_angle_std],
+                                        markercolor=markercolor,
+                                        markershape=markershape,
+                                        markersize=markersize,
+                                        markerstrokewidth=markerstrokewidth,
+                                        legend=false,
+                                        cbar=true,
+                                        show=true)
+                                else
+                                    #println("file not in directory")
+                                end
                             end
                         end
                     end
@@ -164,11 +179,11 @@ function scatter_plot_for_mulitple_gml(;
     plot_filename = (plot_filename_start
         *"_N="*"$minimum_nr_vertices" * "-" * "$maximum_nr_vertices"
         *"_T="*"$minimum_temperature" * "-" * "$maximum_temperature"
-        *"_Trials="*"$nr_trials_per_temperature"
         *"_Beta="*"$minimum_bond_bending_const" * "-" * "$maximum_bond_bending_const"
         *"_GradT="*"$minimum_temperature_gradient" * "-" * "$maximum_temperature_gradient"
         *"_StepsPerT="*"$minimum_nr_monte_carlo_steps_per_temperature" * "-" * "$maximum_nr_monte_carlo_steps_per_temperature"
         *"_Theta_GS="*"$minimum_theta" * "-" * "$maximum_theta"
+        *"_Trials="*"$nr_trials_per_temperature"
         *".png")
     plot_total_path=plot_save_path*plot_filename
 
@@ -180,15 +195,15 @@ scatter_plot_for_mulitple_gml(
     nr_vertices_array=[216],
     maximal_temperature_array=[0.1],
     nr_trials_per_temperature=1,
-    bond_bending_const_array=[0.135,0.21,0.285,0.36,0.435],
-    temperature_gradient_array=[0.001,0.01,0.1,1,10],
-    nr_monte_carlo_steps_per_temperature_array=[0.0001,0.001,0.01,0.1,1],
+    bond_bending_const_array=[0.135,0.21,0.285,0.36,0.435],                #[0.135,0.21,0.285,0.36,0.435],
+    temperature_gradient_array=[0.001,0.01,0.1,1,10],                      #[0.001,0.01,0.1,1,10],
+    nr_monte_carlo_steps_per_temperature_array=[0.0001,0.001,0.01,0.1,1],  #[0.0001,0.001,0.01,0.1,1],
     theta_ground_state_array=[110.0,180.0],   
     save_path = raw".\simulations\multiple_parameters\\",
     filename_start = "multiple_BTMC",    
     plot_save_path = raw".\simulations\analysis_plot\\",
-    plot_filename_start = "multiple_BTMC_3",
-    markershape_array=[:circle,:rect],
-    markersize_array=[1,2,3,4,5],
-    markerstrokewidth_array=[1,2,3,4,5]
+    plot_filename_start = "multiple_BTMC_g_1",
+    markershape_array=[:circle,:rect],                              #[:circle,:rect],       #[:circle,:rect#=,:star5,:cross,:+=#],
+    markersize_array=1.5 .*[1,2,3,4,5],                             #1.5 .*[1,2,3,4,5],
+    markerstrokewidth_array=[1,2,3,4,5]                             #[1,2,3,4,5]
 )

@@ -50,7 +50,7 @@ path=raw"C:\Users\GlauserV\OneDrive - Université de Fribourg\Anlagen\AMI\Projek
 
 function pretty_print(d::Dict, pre=1)
     for (k,v) in d
-        if k in ["total_energy_vec","move_accepted_vec","nr_monte_carlo_steps_per_temperature_vec"]
+        if k in ["temperature_vec","total_energy_vec","move_accepted_vec","nr_monte_carlo_steps_per_temperature_vec"]
             println("nothing")
         else
             if typeof(v) <: Dict
@@ -68,3 +68,5 @@ end
 dict=GU.load_h5_dict(path)
 
 pretty_print(dict)
+
+dict["theta_ground_state"]

@@ -97,3 +97,23 @@ P=Plots.scatter(x, y,
 #savefig(P,raw".\my_networks\KE_VS_BLSTD\KE_VS_BLSTD_3_N=216_beta=0_285_T=0-1-2_trials=4.png")
 
 #Do this all in a function => iterate over temperature (color?) and over beta (what we want to know) and stop at different Keating energies(?)
+
+
+
+
+#%%
+
+path="multiple_BTMC_N=216_T=0.1_Trial=1_Beta=0.21_GradT=1.0_StepsPerT=1.0_Theta_GS=180.0"
+A=split(path,"=")
+println(A)
+
+#%%
+
+import Glob
+
+path_array=Glob.glob("metric_E*.png",
+    raw"C:\Users\GlauserV\OneDrive - Université de Fribourg\Anlagen\AMI\Projekt\GitFlorin\code_photonic_structures\simulations\metric_E_str")
+
+for path in path_array
+    println(path)
+end
