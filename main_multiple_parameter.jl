@@ -108,10 +108,10 @@ end
 try
     save_multiple_N_T_trials_beta_gml(;
         nr_vertices_array=[216],
-        maximal_temperature_array=[0.1],
-        bond_bending_const_array=[0,0.1425,0.285,0.5,1],
-        temperature_gradient_array=[100,10,1,0.1,0.01],
-        nr_monte_carlo_steps_per_temperature_array=[0.0005,0.001,0.01,0.1],
+        maximal_temperature_array=[0.1,0.135,0.17,0.205,0.24],
+        bond_bending_const_array=[0,0.285,0.5,1,2],
+        temperature_gradient_array=[10,1,0.1,0.01,0.001],
+        nr_monte_carlo_steps_per_temperature_array=[0.01],
         theta_ground_state_array=[110.0,180.0],
         nr_trials_per_temperature=1,
         save_path ="/home/glauserv/Documents/GitLinux/GitF/code_photonic_structures/simulations/multiple_parameters/",

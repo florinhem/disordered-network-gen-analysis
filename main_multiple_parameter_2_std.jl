@@ -53,7 +53,7 @@ function scatter_plot_for_mulitple_gml(;
 
     # store array with all the paths in the directory to check if we have
     # this .h5 and .gml to be able to plot it.
-    path_array=Glob.glob(filename_start*"*.gml",save_path)
+    path_array=Glob.glob(filename_start*"*",save_path)
 
     P=Plots.scatter(
         title="Bond length std vs Bond angle std",
@@ -104,24 +104,25 @@ function scatter_plot_for_mulitple_gml(;
                                 filename = (filename_start
                                     *"_N="*"$nr_vertices"
                                     *"_T="*"$maximal_temperature"
-                                    *"_Trial="*"$i"
-                                    # TODO Take trial after theta_GS
                                     *"_Beta="*"$bond_bending_const"
                                     *"_GradT="*"$temperature_gradient"
                                     *"_StepsPerT="*"$nr_monte_carlo_steps_per_temperature"
                                     *"_Theta_GS="*"$theta_ground_state"
-                                    *".gml"
+                                    *"_Trial="*"$i"
                                     )
 
                                 total_path=save_path*filename
 
-                                if(total_path in path_array)
+                                if(total_path*".gml" in path_array)
                                     #println("scatter done")
 
-                                    spatial_network=NG.load_spatial_network_from_gml(total_path)
+                                    spatial_network=NG.load_spatial_network_from_gml(total_path*".gml")
 
                                     bond_length_std, bond_length_vec = NA.get_bond_length_std(spatial_network)
                                     bond_angle_std, bond_angle_vec = NA.get_bond_angle_std(spatial_network)
+
+                                    evolution_dict = GU.load_h5_dict(total_path*"_evolution.h5")
+                                    accepted_moves=sum(evolution_dict["move_accepted_vec"])
 
                                     println("["
                                         #*"$nr_vertices"*","
@@ -132,7 +133,8 @@ function scatter_plot_for_mulitple_gml(;
                                         *"$theta_ground_state"*","
                                         #*"$i"*","
                                         *"$bond_length_std"*","
-                                        *"$bond_angle_std"
+                                        *"$bond_angle_std"*","
+                                        *"$accepted_moves"
                                         *"],")
 
                                     Plots.scatter!(
@@ -194,16 +196,16 @@ end
 scatter_plot_for_mulitple_gml(
     nr_vertices_array=[216],
     maximal_temperature_array=[0.1],
-    nr_trials_per_temperature=1,
-    bond_bending_const_array=[0.135,0.21,0.285,0.36,0.435],                #[0.135,0.21,0.285,0.36,0.435],
-    temperature_gradient_array=[0.001,0.01,0.1,1,10],                      #[0.001,0.01,0.1,1,10],
-    nr_monte_carlo_steps_per_temperature_array=[0.0001,0.001,0.01,0.1,1],  #[0.0001,0.001,0.01,0.1,1],
-    theta_ground_state_array=[110.0,180.0],   
+    bond_bending_const_array=[0,0.1425,0.285,0.5,1],
+    temperature_gradient_array=[0.01,0.1,1,10,100], #[100,10,1,0.1,0.01],
+    nr_monte_carlo_steps_per_temperature_array=[0.0005,0.001,0.01,0.1],
+    theta_ground_state_array=[110.0,180.0],
+    nr_trials_per_temperature=1,   
     save_path = raw".\simulations\multiple_parameters\\",
-    filename_start = "multiple_BTMC",    
+    filename_start = "m_BTMC",    
     plot_save_path = raw".\simulations\analysis_plot\\",
-    plot_filename_start = "multiple_BTMC_g_1",
+    plot_filename_start = "m_BTMC_3",
     markershape_array=[:circle,:rect],                              #[:circle,:rect],       #[:circle,:rect#=,:star5,:cross,:+=#],
-    markersize_array=1.5 .*[1,2,3,4,5],                             #1.5 .*[1,2,3,4,5],
+    markersize_array=1.5 .*[1,2,3,4],                             #1.5 .*[1,2,3,4,5],
     markerstrokewidth_array=[1,2,3,4,5]                             #[1,2,3,4,5]
 )
