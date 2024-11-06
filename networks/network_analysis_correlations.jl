@@ -620,8 +620,11 @@ Get the second moment of the pore size distribution which, according to
 function get_pore_size_distribution_second_moment(
     pore_size_distribution_dict::Dict)
 
+    pore_size_step_length = (pore_size_distribution_dict["pore_size_vec"][2] 
+        - pore_size_distribution_dict["pore_size_vec"][1])
+
     # get second moment of pore size distribution
-    pore_size_distribution_second_moment = sum(
+    pore_size_distribution_second_moment = pore_size_step_length * sum(
         pore_size_distribution_dict["pore_size_vec"].^2 
         .* pore_size_distribution_dict["pore_size_distribution"])
 

@@ -1,15 +1,11 @@
 
 # include file where structure analysis modules are stored
-include("structure_analysis_modules_no_plotting.jl")
+include("structure_analysis_modules.jl")
 
 # import my module that contains all functions for the generation and analysis of networks
 import .NetworkGeneration as NG
 import .NetworkAnalysis as NA
 import .GeneralUtilities as GU
-
-import MetaGraphsNext
-import Graphs
-
 
 # possible choices of nr_vertices for diamond: 64, 216, 512, 216, that is (2*n)^3 with natural nr natural
 
@@ -20,43 +16,13 @@ import Graphs
 # 64 vertices: supercell_edge_length = 4.619802153517007
 # which is the cube root of the number of vertices times 2/sqrt(3)
 
-# calculate diamond correlation function and small scale order metrics
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_1\\"
 
-function my_func()
-    
-    current_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\diamonds\\"
-    current_analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\diamonds\\"
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\geometrical_models\216_vertices_bond_bending_0.21\run_1\\"
 
-    # get all files in the current path
-    files = readdir(current_path)
-    # get vector of all gml files
-    gml_files = [file for file in files if endswith(file, ".gml")]
-    
-    # loop through each file that is a gml file
-    for gml_file in gml_files
-        filename  = gml_file[1:end-4]
-        spatial_network = NG.load_spatial_network_from_gml(current_path*filename*".gml")
+filename = "216_vertices_T_0.1_heat_cool_0.1_per_mc_quenched"
 
-        # get correlation functions
-        correlation_functions_dict = NA.get_correlation_functions(
-            spatial_network;
-            distance_histogram_bin_width = 0.02,
-            save_result = true,
-            save_path = current_analysis_data_path*filename,
-            label = nothing)
-        # get all order metrics that contain information about small length scales
-        small_scale_order_metrics_dict = NA.get_small_length_scale_order_metrics(
-            filename,
-            current_path,
-            current_analysis_data_path;
-            l_max_steinhardt_q_l = 12,
-            structure_factor_diamond_std_value_ratio 
-                = 1,
-            spectral_density_diamond_std_value_ratio 
-                = 1,
-            save_result = true,
-            )
-    end
-end
+spatial_network = NG.load_spatial_network_from_gml(path * filename * ".gml")
 
-my_func()
+#NG.plot_spatial_network(spatial_network)
+NG.plot_spatial_network_2(spatial_network)

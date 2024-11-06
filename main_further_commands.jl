@@ -6711,3 +6711,70 @@ NA.get_all_dicts_from_networks_multithreading(
     print_progress = true,
     runs_vec = collect(1:5),
     print_lock = Threads.ReentrantLock())
+
+
+function my_func()
+    
+    path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\\"
+
+    nr_vertices_vec = [216, 512, 1000]
+    bond_bending_vec = [0.21, 0.285, 0.36]
+
+    for nr_vertices in nr_vertices_vec
+        for bond_bending in bond_bending_vec
+            for run in 1:5
+                current_path = path*string(nr_vertices)*"_vertices_bond_bending_"*string(bond_bending)*"\\run_"*string(run)*"\\"
+
+                save_path = path*"networks_for_simulation\\"*string(nr_vertices)*"_vertices_bond_bending_"*string(bond_bending)*"\\run_"*string(run)*"\\"
+
+                # get all files in the current path
+                files = readdir(current_path)
+                # get vector of all gml files
+                gml_files = [file for file in files if endswith(file, ".gml")]
+
+                # loop through each file that is a gml file
+                for gml_file in gml_files
+                    filename  = gml_file[1:end-4]
+                    spatial_network = NG.load_spatial_network_from_gml(current_path*filename*".gml")
+
+                    spatial_network_for_simulation = NG.get_spatial_network_for_simulation(
+                        spatial_network;
+                        vector_out_of_supercell_length = 1,
+                        duplicate_bonds_close_to_supercell_edge = true,
+                        bond_radius = 0.35,
+                        save_result = true,
+                        filename = filename,
+                        save_path = save_path)
+                end
+            end
+
+            println("finished run for ", nr_vertices, " vertices and bond bending ", bond_bending)
+        end
+    end
+
+    current_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\diamonds\\"
+    save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\networks_for_simulation\diamonds\\"
+
+    # get all files in the current path
+    files = readdir(current_path)
+    # get vector of all gml files
+    gml_files = [file for file in files if endswith(file, ".gml")]
+
+    # loop through each file that is a gml file
+    for gml_file in gml_files
+        filename  = gml_file[1:end-4]
+        spatial_network = NG.load_spatial_network_from_gml(current_path*filename*".gml")
+
+        spatial_network_for_simulation = NG.get_spatial_network_for_simulation(
+            spatial_network;
+            vector_out_of_supercell_length = 1,
+            duplicate_bonds_close_to_supercell_edge = true,
+            bond_radius = 0.35,
+            save_result = true,
+            filename = filename,
+            save_path = save_path)
+    end
+
+end
+
+my_func()
