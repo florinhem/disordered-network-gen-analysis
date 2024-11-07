@@ -67,7 +67,7 @@ function save_multiple_N_T_trials_beta_gml(
                 maximal_temperature;
                 temperature_gradient = temperature_gradient, 
                 nr_monte_carlo_steps_per_temperature = nr_monte_carlo_steps_per_temperature,
-                quench = false)
+                quench = true)
 
         evolution_dict["temperature_vec"] = temperature_vec
         evolution_dict["nr_monte_carlo_steps_per_temperature_vec"] = nr_monte_carlo_steps_per_temperature_vec
@@ -109,13 +109,13 @@ try
     save_multiple_N_T_trials_beta_gml(;
         nr_vertices_array=[216],
         maximal_temperature_array=[0.1,0.135,0.17,0.205,0.24],
-        bond_bending_const_array=[0,0.285,0.5,1,2],
-        temperature_gradient_array=[10,1,0.1,0.01,0.001],
+        bond_bending_const_array=[0,0.21,0.285,0.36,0.5],
+        temperature_gradient_array=[0.1],
         nr_monte_carlo_steps_per_temperature_array=[0.01],
         theta_ground_state_array=[110.0,180.0],
         nr_trials_per_temperature=1,
         save_path ="/home/glauserv/Documents/GitLinux/GitF/code_photonic_structures/simulations/multiple_parameters/",
-        filename_start="m_BTMC"
+        filename_start="m_BTMC_q_t_"
     )
 catch e
     error_msg = sprint(showerror, e)

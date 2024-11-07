@@ -12,6 +12,7 @@ import Graphs
 import Colors
 import Glob
 import DataFrames
+import LaTeXStrings
 using StatsPlots
 
 
@@ -110,69 +111,58 @@ function scatter_plot_for_multiple_gml(;
 
     plot_title="Bond length std vs Bond angle std"
 
-    A=@df df Plots.plot(
-        plot_title=plot_title,
+    A=@df df Plots.scatter(
+        #plot_title=plot_title,
+        plot_title=LaTeXStrings.LaTeXString("Bond length std vs Bond angle std\n\$^\\textrm{"*
+            "N=216, "*
+            "MaxT=0.1"*
+            "}\$"),
+        top_margin=5Plots.PlotMeasures.mm,
         titlefont = font(6),
         layout = (2,2),
-        size = (1000, 700))
+        size = (900, 700),
+        colorbar=:top,
+        legend=false,
+        xlabel="Bond length std / d", 
+        ylabel="Bond angle std / rad",
+        right_margin=5Plots.PlotMeasures.mm
+        )
 
     @df df StatsPlots.scatter!(
         :BondLenghtStd, 
         :BondAngleStd, 
         colorbar_title="Beta",
-        colorbar_tickfontsize = 5,
         zcolor=:Beta,
         color=cgrad(:roma, rev=true),
         shape=:Shape,
-        legend=false,
         subplot=1)
 
     @df df StatsPlots.scatter!(
         :BondLenghtStd, 
         :BondAngleStd, 
         colorbar_title="GradTLog10",
-        colorbar_tickfontsize = 5,
         zcolor=:GradTLog10,
         color=cgrad(:roma, rev=true),
         shape=:Shape,
-        legend=false,
         subplot=2)
 
     @df df StatsPlots.scatter!(
         :BondLenghtStd, 
         :BondAngleStd, 
-        colorbar_title="MCstepsLog10",
-        colorbar_tickfontsize = 5,
+        colorbar_title=" \nMCstepsLog10",
         zcolor=:MCstepsLog10,
         color=cgrad(:roma, rev=true),
         shape=:Shape,
-        legend=false,
         subplot=3)
-    #=
-    @df df StatsPlots.scatter!(
-        :BondLenghtStd, 
-        :BondAngleStd, 
-        colorbar_title="SurfaceLog10",
-        colorbar_tickfontsize = 5,
-        zcolor=:SurfaceLog10,
-        color=cgrad(:roma, rev=true),
-        shape=:Shape,
-        legend=false,
-        subplot=4)
-    =#
+    
     @df df StatsPlots.scatter!(
         :BondLenghtStd, 
         :BondAngleStd, 
         colorbar_title="AcceptedMovesLog10",
-        colorbar_tickfontsize = 5,
         zcolor=:AcceptedMovesLog10,
         color=cgrad(:roma, rev=true),
         shape=:Shape,
-        legend=false,
         subplot=4)
-
-
-    
 
     plot_total_path=(plot_save_path
         *plot_filename_start
@@ -467,5 +457,5 @@ data=
 scatter_plot_for_multiple_gml(;
     data,    
     plot_save_path = raw".\simulations\analysis_plot\\",
-    plot_filename_start = "m_BTMC_sub_1"
+    plot_filename_start = "m_BTMC_sub_2_"
 )

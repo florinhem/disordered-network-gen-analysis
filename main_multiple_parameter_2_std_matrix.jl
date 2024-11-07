@@ -12,6 +12,9 @@ import Graphs
 import Plots
 import Colors
 import Glob
+import DataFrames
+import LaTeXStrings
+using StatsPlots
 
 function scatter_plot_for_mulitple_gml(;
     nr_vertices_array,
@@ -24,10 +27,7 @@ function scatter_plot_for_mulitple_gml(;
     save_path,
     filename_start,
     plot_save_path,
-    plot_filename_start,
-    markershape_array,
-    markersize_array,
-    markerstrokewidth_array)
+    plot_filename_start)
 
     # test before we begin
     @assert length(nr_vertices_array)>=1
@@ -37,29 +37,13 @@ function scatter_plot_for_mulitple_gml(;
     @assert length(nr_monte_carlo_steps_per_temperature_array)>=1
     @assert length(theta_ground_state_array)>=1
     @assert nr_trials_per_temperature>=1
-    @assert length(markershape_array)>=1
-
-    @assert length(theta_ground_state_array)===length(markershape_array)
-
-
-    # generate color for the different temperatures
-    if length(temperature_gradient_array)===1
-        markercolor_array=[:blue]
-    else 
-        markercolor_array=range(Colors.colorant"blue", stop=Colors.colorant"red", length=length(temperature_gradient_array))
-    end
-    
-    @assert length(temperature_gradient_array)===length(markercolor_array)
 
     # store array with all the paths in the directory to check if we have
     # this .h5 and .gml to be able to plot it.
     path_array=Glob.glob(filename_start*"*",save_path)
 
-    P=Plots.scatter(
-        title="Bond length std vs Bond angle std",
-        xlabel="Bond length std",
-        ylabel="Bond angle std"
-    )
+    # for data storage 
+    data::Vector{Vector{Float64}}=[]
 
     for k in eachindex(nr_vertices_array)
 
@@ -72,35 +56,21 @@ function scatter_plot_for_mulitple_gml(;
             for m in eachindex(bond_bending_const_array)
 
                 bond_bending_const=bond_bending_const_array[m]
-                markerstrokewidth=markerstrokewidth_array[m]
 
                 for n in eachindex(temperature_gradient_array)
 
                     temperature_gradient=temperature_gradient_array[n]
-                    markercolor=markercolor_array[n]
                     
                     for o in eachindex(nr_monte_carlo_steps_per_temperature_array)
 
                         nr_monte_carlo_steps_per_temperature=nr_monte_carlo_steps_per_temperature_array[o]
-                        markersize=markersize_array[o]
                     
                         for p in eachindex(theta_ground_state_array)
                             
                             theta_ground_state=theta_ground_state_array[p]
-                            markershape=markershape_array[p]
 
                             for i in 1:nr_trials_per_temperature
                                 
-                                #=
-                                println("$nr_vertices"*", "*
-                                    "$maximal_temperature"*", "*
-                                    "$i"*", "*
-                                    "$bond_bending_const"*", "*
-                                    "$temperature_gradient"*", "*
-                                    "$nr_monte_carlo_steps_per_temperature"*", "*
-                                    "$theta_ground_state" )
-                                =#
-                        
                                 filename = (filename_start
                                     *"_N="*"$nr_vertices"
                                     *"_T="*"$maximal_temperature"
@@ -124,32 +94,39 @@ function scatter_plot_for_mulitple_gml(;
                                     evolution_dict = GU.load_h5_dict(total_path*"_evolution.h5")
                                     accepted_moves=sum(evolution_dict["move_accepted_vec"])
 
+                                    #=
                                     println("["
                                         #*"$nr_vertices"*","
-                                        #*"$maximal_temperature"*","
+                                        *"$maximal_temperature"*","
                                         *"$bond_bending_const"*","
                                         *"$temperature_gradient"*","
-                                        *"$nr_monte_carlo_steps_per_temperature"*","
+                                        #*"$nr_monte_carlo_steps_per_temperature"*","
                                         *"$theta_ground_state"*","
                                         #*"$i"*","
                                         *"$bond_length_std"*","
                                         *"$bond_angle_std"*","
                                         *"$accepted_moves"
                                         *"],")
+                                    =#
 
-                                    Plots.scatter!(
-                                        P,
-                                        [bond_length_std],
-                                        [bond_angle_std],
-                                        markercolor=markercolor,
-                                        markershape=markershape,
-                                        markersize=markersize,
-                                        markerstrokewidth=markerstrokewidth,
-                                        legend=false,
-                                        cbar=true,
-                                        show=true)
+                                    data=push!(data,
+                                        [
+                                            #nr_vertices,
+                                            maximal_temperature,
+                                            bond_bending_const,
+                                            temperature_gradient,
+                                            #nr_monte_carlo_steps_per_temperature,
+                                            theta_ground_state,
+                                            #i,
+                                            bond_length_std,
+                                            bond_angle_std,
+                                            accepted_moves
+                                        ])
+                                    
+                                    
+
                                 else
-                                    #println("file not in directory")
+                                    println("file not in directory")
                                 end
                             end
                         end
@@ -158,6 +135,83 @@ function scatter_plot_for_mulitple_gml(;
             end
         end
     end
+
+    
+    #println(data)
+    #println(typeof(data))
+
+    # data cleaning
+
+    matrix=mapreduce(permutedims, vcat, data)
+
+    df=DataFrames.DataFrame(matrix,:auto)
+
+    DataFrames.rename!(df, [:x1, :x2, :x3, :x4, :x5, :x6, :x7] .=>  [:MaxT, :Beta, :GradT,  :Theta, :BondLenghtStd, :BondAngleStd, :AcceptedMoves])
+
+
+    df.Shape = @. ifelse(df.Theta == 110.0, :diamond, :rect); df
+
+    df.GradTLog10 = log10.(df.GradT)
+    df.AcceptedMovesLog10 = log10.(df.AcceptedMoves .+ 1)
+   
+    #println(df)
+
+
+    # plot
+
+    A=@df df Plots.scatter(
+        #plot_title=plot_title,
+        plot_title=LaTeXStrings.LaTeXString("Bond length std vs Bond angle std\n\$^\\textrm{"*
+            "N="*"$(nr_vertices_array[1])" *", "*
+            "MCSteps="*"$(nr_monte_carlo_steps_per_temperature_array[1])"*
+            "}\$"),
+        top_margin=5Plots.PlotMeasures.mm,
+        titlefont = font(6),
+        layout = (2,2),
+        size = (900, 700),
+        colorbar=:top,
+        legend=false,
+        xlabel="Bond length std / d", 
+        ylabel="Bond angle std / rad"
+        )
+
+    @df df StatsPlots.scatter!(
+        :BondLenghtStd, 
+        :BondAngleStd, 
+        colorbar_title="MaxT",
+        zcolor=:MaxT,
+        color=cgrad(:roma, rev=true),
+        shape=:Shape,
+        subplot=1)
+
+    @df df StatsPlots.scatter!(
+        :BondLenghtStd, 
+        :BondAngleStd, 
+        colorbar_title="Beta",
+        zcolor=:Beta,
+        color=cgrad(:roma, rev=true),
+        shape=:Shape,
+        subplot=2)
+
+    @df df StatsPlots.scatter!(
+        :BondLenghtStd, 
+        :BondAngleStd, 
+        colorbar_title="GradTLog10",
+        zcolor=:GradTLog10,
+        color=cgrad(:roma, rev=true),
+        shape=:Shape,
+        subplot=3)
+    
+    @df df StatsPlots.scatter!(
+        :BondLenghtStd, 
+        :BondAngleStd, 
+        colorbar_title="AcceptedMovesLog10",
+        zcolor=:AcceptedMovesLog10,
+        color=cgrad(:roma, rev=true),
+        shape=:Shape,
+        subplot=4)
+
+    # plot path and name
 
     minimum_nr_vertices=minimum(nr_vertices_array)
     maximum_nr_vertices=maximum(nr_vertices_array)
@@ -177,7 +231,6 @@ function scatter_plot_for_mulitple_gml(;
     minimum_theta=minimum(theta_ground_state_array)
     maximum_theta=maximum(theta_ground_state_array)
 
-
     plot_filename = (plot_filename_start
         *"_N="*"$minimum_nr_vertices" * "-" * "$maximum_nr_vertices"
         *"_T="*"$minimum_temperature" * "-" * "$maximum_temperature"
@@ -189,23 +242,21 @@ function scatter_plot_for_mulitple_gml(;
         *".png")
     plot_total_path=plot_save_path*plot_filename
 
-    Plots.savefig(P,plot_total_path)
+    Plots.savefig(A,plot_total_path)
+
 end
 
 
 scatter_plot_for_mulitple_gml(
     nr_vertices_array=[216],
-    maximal_temperature_array=[0.1],
-    bond_bending_const_array=[0,0.1425,0.285,0.5,1],
-    temperature_gradient_array=[0.01,0.1,1,10,100], #[100,10,1,0.1,0.01],
-    nr_monte_carlo_steps_per_temperature_array=[0.0005,0.001,0.01,0.1],
+    maximal_temperature_array=[0.1,0.135,0.17,0.205,0.24],
+    bond_bending_const_array=[0,0.285,0.5,1,2],
+    temperature_gradient_array=[10,1,0.1,0.01,0.001],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
     theta_ground_state_array=[110.0,180.0],
-    nr_trials_per_temperature=1,   
+    nr_trials_per_temperature=1,  
     save_path = raw".\simulations\multiple_parameters\\",
     filename_start = "m_BTMC",    
     plot_save_path = raw".\simulations\analysis_plot\\",
-    plot_filename_start = "m_BTMC_T_1__",
-    markershape_array=[:circle,:rect],                              #[:circle,:rect],       #[:circle,:rect#=,:star5,:cross,:+=#],
-    markersize_array=1.5 .*[1,2,3,4],                             #1.5 .*[1,2,3,4,5],
-    markerstrokewidth_array=[1,2,3,4,5]                             #[1,2,3,4,5]
+    plot_filename_start = "m_BTMC_matrix_1"
 )

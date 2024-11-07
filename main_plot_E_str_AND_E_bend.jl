@@ -60,7 +60,7 @@ function plot_streching_energy(;
 
     # save picture
     save_path = raw".\simulations\metric_E_str\\"
-    save_filename = ("metric_E_str_1_"
+    save_filename = ("metric_E_str_2_"
         *characteristics
         *".png")
 
@@ -104,9 +104,16 @@ function plot_bending_energy(;
             for k in j+1:spatial_network[]["coordination_nr"]
                 b=sign(neighbor_label_vec[k] - vertex_label).* 
                     spatial_network[vertex_label, neighbor_label_vec[k]]["vector"]
+                #println(a)
+                #println(LinearAlgebra.norm(a))
+
+                #println(LinearAlgebra.dot(a,b))
+                
+
                 
                 append!(θ,acos(LinearAlgebra.dot(a,b)/(LinearAlgebra.norm(a)*LinearAlgebra.norm(b))))
                 append!(E,3/8*bond_bending_const*(LinearAlgebra.dot(a,b) + 1/3)^2)
+                #println(LinearAlgebra.dot(a,b))
                 #=
                 if(acos(LinearAlgebra.dot(a,b)/(LinearAlgebra.norm(a)*LinearAlgebra.norm(b)))>2.5)
                     println(acos(LinearAlgebra.dot(a,b)/(LinearAlgebra.norm(a)*LinearAlgebra.norm(b))))
@@ -180,7 +187,7 @@ function plot_bending_energy(;
     # SAVE
     # save picture
     save_path = raw".\simulations\metric_E_bend\\"
-    save_filename = ("metric_E_bend_1_"
+    save_filename = ("metric_E_bend_2_"
         *characteristics
         *".png")
 
@@ -193,15 +200,18 @@ end
 
 #call functions
 
+filename=raw"multiple_p_quench_false_theta_array_"
+characteristics=raw"N=216_T=0.1_Trial=1_Beta=0.285_Theta_GS=110.0_GradT=0.1_StepsPerT=0.01"
+
 plot_streching_energy(;
-    filename=raw"multiple_p_quench_false_theta_array_",
-    characteristics=raw"N=216_T=0.1_Trial=1_Beta=0.285_Theta_GS=110.0_GradT=0.1_StepsPerT=0.01"
+    filename=filename,
+    characteristics=characteristics
 )
 
-#=
+
 plot_bending_energy(;
-    filename=raw"multiple_p_quench_false_theta_array_",
-    characteristics=raw"N=216_T=0.1_Trial=1_Beta=0.285_Theta_GS=180.0_GradT=0.1_StepsPerT=0.01",
-    theta_equilibrium=179.0/360.0*2*pi
+    filename=filename,
+    characteristics=characteristics,
+    theta_equilibrium=110.0/360.0*2*pi
+    #theta_equilibrium=179.9/360.0*2*pi
 )
-=#
