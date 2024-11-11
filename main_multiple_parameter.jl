@@ -112,7 +112,7 @@ try
         bond_bending_const_array=[0,0.21,0.285,0.36,0.5],
         temperature_gradient_array=[0.1],
         nr_monte_carlo_steps_per_temperature_array=[0.01],
-        theta_ground_state_array=[90.0],
+        theta_ground_state_array=[30.0],
         nr_trials_per_temperature=1,
         save_path ="/home/glauserv/Documents/GitLinux/GitF/code_photonic_structures/simulations/multiple_parameters/",
         filename_start="m_BTMC_q_t_"
