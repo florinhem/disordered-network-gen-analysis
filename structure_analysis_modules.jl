@@ -92,6 +92,7 @@ import LinearAlgebra    # to perform linear algebra calculations like the dot pr
 import Optim    # for optimization such as relaxation of individual vertices
 import GLMakie  # Makie backend for plotting
 import GraphMakie   # additions to GLMakie for graph plotting
+import NetworkLayout  # required to plot networks
 import FileIO   # for file loading and saving
 import Random   # to access more features for random number generation like seeds
 import Statistics   # for statistical operations like mean()

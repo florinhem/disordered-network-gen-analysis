@@ -6778,3 +6778,19 @@ function my_func()
 end
 
 my_func()
+
+
+
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_1\\"
+
+filename = "216_vertices_T_0.1_heat_cool_0.1_per_mc_quenched"
+
+spatial_network = NG.load_spatial_network_from_gml(path * filename * ".gml")
+
+spatial_network_for_sim = NG.get_spatial_network_for_simulation!(
+    spatial_network;
+    vector_out_of_supercell_length = 1,
+    duplicate_bonds_close_to_supercell_edge = true,
+    save_result = false)
+
+NG.plot_spatial_network(spatial_network_for_sim)
