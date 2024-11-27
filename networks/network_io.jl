@@ -1223,14 +1223,9 @@ function save_mesh_from_spatial_network(
     # cut all bonds that reach out of the supercell and by duplicate those 
     # bonds that are close to the supercell edge on the other side of the
     # supercell just outside the supercell edge
-    spatial_network = get_spatial_network_for_simulation(
-        spatial_network;
-        vector_out_of_supercell_length 
-        = vector_out_of_supercell_length,
-        duplicate_bonds_close_to_supercell_edge 
-        = duplicate_bonds_close_to_supercell_edge,
-        bond_radius = bond_radius,
-        save_result = false)
+    spatial_network = cut_bonds_out_of_supercell!(
+        spatial_network; 
+        vector_out_of_supercell_length = 1)
 
     # loop through bonds
     for bond in MetaGraphsNext.edge_labels(spatial_network)

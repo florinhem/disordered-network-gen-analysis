@@ -6737,11 +6737,10 @@ function my_func()
                     filename  = gml_file[1:end-4]
                     spatial_network = NG.load_spatial_network_from_gml(current_path*filename*".gml")
 
-                    spatial_network_for_simulation = NG.get_spatial_network_for_simulation(
+                    spatial_network_for_simulation = NG.get_spatial_network_for_simulation!(
                         spatial_network;
                         vector_out_of_supercell_length = 1,
                         duplicate_bonds_close_to_supercell_edge = true,
-                        bond_radius = 0.35,
                         save_result = true,
                         filename = filename,
                         save_path = save_path)
@@ -6765,11 +6764,10 @@ function my_func()
         filename  = gml_file[1:end-4]
         spatial_network = NG.load_spatial_network_from_gml(current_path*filename*".gml")
 
-        spatial_network_for_simulation = NG.get_spatial_network_for_simulation(
+        spatial_network_for_simulation = NG.get_spatial_network_for_simulation!(
             spatial_network;
             vector_out_of_supercell_length = 1,
             duplicate_bonds_close_to_supercell_edge = true,
-            bond_radius = 0.35,
             save_result = true,
             filename = filename,
             save_path = save_path)
