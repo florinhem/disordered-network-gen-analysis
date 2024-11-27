@@ -252,46 +252,45 @@ function scatter_plot_for_mulitple_gml(;
 
     A=@df df Plots.scatter(
         #plot_title=plot_title,
-        plot_title=LaTeXStrings.LaTeXString("Bond length std vs Bond angle std\n\$^\\textrm{"*
+        plot_title=LaTeXStrings.LaTeXString("Bond length std vs Bond angle std \n\$^\\textrm{"*
             "N="*"$(nr_vertices_array[1])" *", "*
-            "Tmax="*"$(maximal_temperature_array[1])" *", "*
-            "MCSteps="*"$(nr_monte_carlo_steps_per_temperature_array[1])"*
+            "\\nabla T="*"$(maximal_temperature_array[1])" *", "*
+            "N_{MCSteps}="*"$(nr_monte_carlo_steps_per_temperature_array[1])"*
             "}\$"),
         top_margin=5Plots.PlotMeasures.mm,
-        titlefont = font(6),
+        left_margin=5Plots.PlotMeasures.mm,
         layout = (2,2),
         size = (900, 700),
-        colorbar=:top,
-        legend=false,
-        xlabel="Bond length std / d", 
-        ylabel="Bond angle std / rad"
         )
 
     @df df StatsPlots.scatter!(
         :BondLenghtStd, 
         :BondAngleStd, 
-        colorbar_title="MaxT",
-        zcolor=:MaxT,
-        color=cgrad(:roma, rev=true),
-        shape=:Shape,
+        color_palette=[:blue,:turquoise1,:yellow,:orange,:red],
+        legendtitle ="MaxT",
+        group=:MaxT,
+        xlim=[0,0.17],
+        ylabel="Bond angle std / rad",
         subplot=1)
 
     @df df StatsPlots.scatter!(
         :BondLenghtStd, 
         :BondAngleStd, 
-        colorbar_title="Beta",
-        zcolor=:Beta,
-        color=cgrad(:roma, rev=true),
-        shape=:Shape,
+        color_palette=[:purple3,:royalblue,:turquoise1, :green,:greenyellow,:yellow,:gold,:coral,:firebrick],
+        legendtitle ="Beta",
+        group=:Beta,
+        xlim=[0,0.17],
         subplot=2)
 
     @df df StatsPlots.scatter!(
         :BondLenghtStd, 
         :BondAngleStd, 
-        colorbar_title="Theta",
-        zcolor=:Theta,
-        color=cgrad(:roma, rev=true),
-        shape=:Shape,
+        color_palette=[:grey80,:gray20],
+        legendtitle ="Theta",
+        group=:Theta,
+        xlim=[0,0.17],
+        xlabel="Bond length std / d", 
+        ylabel="Bond angle std / rad",
         subplot=3)
     
     @df df StatsPlots.scatter!(
@@ -299,70 +298,14 @@ function scatter_plot_for_mulitple_gml(;
         :BondAngleStd, 
         colorbar_title="AcceptedMovesLog10",
         zcolor=:AcceptedMovesLog10,
-        color=cgrad(:roma, rev=true),
+        color=cgrad([:blue,:red]),#cgrad(:roma, rev=true),
+        colorbar=:top,
         shape=:Shape,
+        legend=false,
+        xlabel="Bond length std / d", 
         subplot=4)
 
 
-
-
-
-
-
-    # plot
-
-    B=@df df Plots.scatter(
-        #plot_title=plot_title,
-        plot_title=LaTeXStrings.LaTeXString("Bond length std diff log10 vs Bond angle std diff log10 \n\$^\\textrm{"*
-            "N="*"$(nr_vertices_array[1])" *", "*
-            "Tmax="*"$(maximal_temperature_array[1])" *", "*
-            "MCSteps="*"$(nr_monte_carlo_steps_per_temperature_array[1])"*
-            "}\$"),
-        top_margin=5Plots.PlotMeasures.mm,
-        titlefont = font(6),
-        layout = (2,2),
-        size = (900, 700),
-        colorbar=:top,
-        legend=false,
-        xlabel="Bond length std diff log10 / d", 
-        ylabel="Bond angle std diff log10 / rad"
-        )
-
-    @df df StatsPlots.scatter!(
-        :BondLenghtStdDiffLog10, 
-        :BondAngleStdDiffLog10, 
-        colorbar_title="MaxT",
-        zcolor=:MaxT,
-        color=cgrad(:roma, rev=true),
-        shape=:Shape,
-        subplot=1)
-
-    @df df StatsPlots.scatter!(
-        :BondLenghtStdDiffLog10, 
-        :BondAngleStdDiffLog10,
-        colorbar_title="Beta",
-        zcolor=:Beta,
-        color=cgrad(:roma, rev=true),
-        shape=:Shape,
-        subplot=2)
-
-    @df df StatsPlots.scatter!(
-        :BondLenghtStdDiffLog10, 
-        :BondAngleStdDiffLog10,
-        colorbar_title="Theta",
-        zcolor=:Theta,
-        color=cgrad(:roma, rev=true),
-        shape=:Shape,
-        subplot=3)
-    
-    @df df StatsPlots.scatter!(
-        :BondLenghtStdDiffLog10, 
-        :BondAngleStdDiffLog10,
-        colorbar_title="AcceptedMovesLog10",
-        zcolor=:AcceptedMovesLog10,
-        color=cgrad(:roma, rev=true),
-        shape=:Shape,
-        subplot=4)    
 
 
 
@@ -398,37 +341,22 @@ function scatter_plot_for_mulitple_gml(;
         *"_Trials="*"$nr_trials_per_temperature"
         *".png")
 
-    plot_filename_diff = (plot_filename_start
-        *"d_"
-        *"_N="*"$minimum_nr_vertices" * "-" * "$maximum_nr_vertices"
-        *"_T="*"$minimum_temperature" * "-" * "$maximum_temperature"
-        *"_Beta="*"$minimum_bond_bending_const" * "-" * "$maximum_bond_bending_const"
-        *"_GradT="*"$minimum_temperature_gradient" * "-" * "$maximum_temperature_gradient"
-        *"_StepsPerT="*"$minimum_nr_monte_carlo_steps_per_temperature" * "-" * "$maximum_nr_monte_carlo_steps_per_temperature"
-        *"_Theta_GS="*"$minimum_theta" * "-" * "$maximum_theta"
-        *"_Trials="*"$nr_trials_per_temperature"
-        *".png")
-
     plot_total_path=plot_save_path*plot_filename
-    plot_total_path_diff=plot_save_path*plot_filename_diff
-
     Plots.savefig(A,plot_total_path)
-
-    Plots.savefig(B,plot_total_path_diff)
 
 end
 
 
 scatter_plot_for_mulitple_gml(
     nr_vertices_array=[216],
-    maximal_temperature_array=[0.1,0.135,0.17,0.205,0.24],
-    bond_bending_const_array=[0,0.21,0.285,0.36,0.5],
+    maximal_temperature_array=[0.1,0.125,0.15,0.175,0.2],
+    bond_bending_const_array=[0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.5],
     temperature_gradient_array=[0.1],
     nr_monte_carlo_steps_per_temperature_array=[0.01],
-    theta_ground_state_array=[0.0,90.0,110.0,180.0],
+    theta_ground_state_array=[110.0,180.0],
     nr_trials_per_temperature=1, 
     save_path = raw".\simulations\multiple_parameters\\",
     filename_start = "m_BTMC_q_t_",    
     plot_save_path = raw".\simulations\analysis_plot\\",
-    plot_filename_start = "m_BTMC_matrix_q_t_8_"
+    plot_filename_start = "m_BTMC_matrix_p_2_"
 )

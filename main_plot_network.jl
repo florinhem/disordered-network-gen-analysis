@@ -3,11 +3,13 @@ include("structure_analysis_modules.jl")
 import .NetworkGeneration as NG
 import .NetworkAnalysis as NA
 import .GeneralUtilities as GU
+
+import Plots
 using MetaGraphsNext
 
 
 path=raw"C:\Users\GlauserV\OneDrive - Université de Fribourg\Anlagen\AMI\Projekt\GitFlorin\code_photonic_structures\simulations\multiple_parameters\\"
-filename=raw"m_BTMC_N=216_T=0.1_Beta=0.1425_GradT=0.01_StepsPerT=0.001_Theta_GS=180.0_Trial=1.gml"
+filename=raw"m_BTMC_q_t__N=216_T=0.205_Beta=0.0_GradT=0.1_StepsPerT=0.01_Theta_GS=30.0_Trial=1.gml"
 spatial_network = NG.load_spatial_network_from_gml(path*filename)
 
 #=

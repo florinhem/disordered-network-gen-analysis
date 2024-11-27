@@ -14,7 +14,11 @@ import Colors
 import Glob
 import DataFrames
 import LaTeXStrings
+import CairoMakie
+import FileIO
 using StatsPlots
+import PlotlyJS
+
 
 function scatter_plot_for_mulitple_gml(;
     nr_vertices_array,
@@ -85,9 +89,10 @@ function scatter_plot_for_mulitple_gml(;
 
                                 if(total_path*".gml" in path_array && 
                                     #filename!="m_BTMC_N=216_T=0.17_Beta=0.0_GradT=0.1_StepsPerT=0.01_Theta_GS=110.0_Trial=1" &&
-                                    filename!="m_BTMC_q_t__N=216_T=0.1_Beta=0.0_GradT=0.1_StepsPerT=0.01_Theta_GS=110.0_Trial=1" &&
-                                    filename!="m_BTMC_q_t__N=216_T=0.17_Beta=0.0_GradT=0.1_StepsPerT=0.01_Theta_GS=0.0_Trial=1" &&
-                                    filename!="m_BTMC_q_t__N=216_T=0.205_Beta=0.0_GradT=0.1_StepsPerT=0.01_Theta_GS=0.0_Trial=1"
+                                    filename!="m_BTMC_q_t__N=216_T=0.1_Beta=0.0_GradT=0.1_StepsPerT=0.01_Theta_GS=180.0_Trial=1" &&
+                                    filename!="m_BTMC_q_t__N=216_T=0.1_Beta=0.0_GradT=0.1_StepsPerT=0.01_Theta_GS=110.0_Trial=1" #&&
+                                    #filename!="m_BTMC_q_t__N=216_T=0.17_Beta=0.0_GradT=0.1_StepsPerT=0.01_Theta_GS=0.0_Trial=1" &&
+                                    #filename!="m_BTMC_q_t__N=216_T=0.205_Beta=0.0_GradT=0.1_StepsPerT=0.01_Theta_GS=0.0_Trial=1"
                                     )
                                     #println("scatter done")
                                     println(filename)
@@ -133,6 +138,21 @@ function scatter_plot_for_mulitple_gml(;
 
                                 else
                                     println("file not in directory")
+                                    #=
+                                    data=push!(data,
+                                        [
+                                            #nr_vertices,
+                                            maximal_temperature,
+                                            bond_bending_const,
+                                            temperature_gradient,
+                                            nr_monte_carlo_steps_per_temperature,
+                                            theta_ground_state,
+                                            #i,
+                                            0,
+                                            0,
+                                            0
+                                        ])
+                                    =#
                                 end
                             end
                         end
@@ -144,13 +164,16 @@ function scatter_plot_for_mulitple_gml(;
 
     
     #println(data)
-    #println(typeof(data))
+    println(typeof(data))
 
     # data cleaning
 
     matrix=mapreduce(permutedims, vcat, data)
+    println(typeof(matrix))
 
     df=DataFrames.DataFrame(matrix,:auto)
+
+    println(typeof(df))
 
     DataFrames.rename!(df, [:x1, :x2, :x3, :x4, :x5, :x6, :x7, :x8] .=>  [:MaxT, :Beta, :GradT, :MCsteps, :Theta, :BondLenghtStd, :BondAngleStd, :AcceptedMoves])
 
@@ -161,6 +184,8 @@ function scatter_plot_for_mulitple_gml(;
 
     df.BondLenghtStdDiff.=0.0
     df.BondAngleStdDiff.=0.0
+    df.BondLenghtStdRatio.=0.0
+    df.BondAngleStdRatio.=0.0
 
     for (i, row) in enumerate( eachrow( df ) ) 
         println(i)
@@ -176,11 +201,15 @@ function scatter_plot_for_mulitple_gml(;
 
                     df[i,"BondLenghtStdDiff"]=df[i,"BondLenghtStd"]-df[i+1,"BondLenghtStd"]
                     df[i,"BondAngleStdDiff"]=df[i,"BondAngleStd"]-df[i+1,"BondAngleStd"]
+                    df[i,"BondLenghtStdRatio"]=df[i,"BondLenghtStd"]/df[i+1,"BondLenghtStd"]
+                    df[i,"BondAngleStdRatio"]=df[i,"BondAngleStd"]/df[i+1,"BondAngleStd"]
 
                 elseif df[i+1,"Theta"]===180.0 && df[i,"Theta"]===110.0
 
                     df[i,"BondLenghtStdDiff"]=df[i+1,"BondLenghtStd"]-df[i,"BondLenghtStd"]
                     df[i,"BondAngleStdDiff"]=df[i+1,"BondAngleStd"]-df[i,"BondAngleStd"]
+                    df[i,"BondLenghtStdRatio"]=df[i+1,"BondLenghtStd"]/df[i,"BondLenghtStd"]
+                    df[i,"BondAngleStdRatio"]=df[i+1,"BondAngleStd"]/df[i,"BondAngleStd"]
                 
                 else
                     println("i+1: Theta not 180 and 110")
@@ -196,11 +225,15 @@ function scatter_plot_for_mulitple_gml(;
 
                     df[i,"BondLenghtStdDiff"]=df[i,"BondLenghtStd"]-df[i-1,"BondLenghtStd"]
                     df[i,"BondAngleStdDiff"]=df[i,"BondAngleStd"]-df[i-1,"BondAngleStd"]
+                    df[i,"BondLenghtStdRatio"]=df[i,"BondLenghtStd"]/df[i-1,"BondLenghtStd"]
+                    df[i,"BondAngleStdRatio"]=df[i,"BondAngleStd"]/df[i-1,"BondAngleStd"]
 
                 elseif df[i-1,"Theta"]===180.0 && df[i,"Theta"]===110.0
 
                     df[i,"BondLenghtStdDiff"]=df[i-1,"BondLenghtStd"]-df[i,"BondLenghtStd"]
                     df[i,"BondAngleStdDiff"]=df[i-1,"BondAngleStd"]-df[i,"BondAngleStd"]
+                    df[i,"BondLenghtStdRatio"]=df[i-1,"BondLenghtStd"]/df[i,"BondLenghtStd"]
+                    df[i,"BondAngleStdRatio"]=df[i-1,"BondAngleStd"]/df[i,"BondAngleStd"]
                 
                 else
                     println("i-1: Theta not 180 and 110")
@@ -219,11 +252,15 @@ function scatter_plot_for_mulitple_gml(;
 
                     df[i,"BondLenghtStdDiff"]=df[i,"BondLenghtStd"]-df[i-1,"BondLenghtStd"]
                     df[i,"BondAngleStdDiff"]=df[i,"BondAngleStd"]-df[i-1,"BondAngleStd"]
+                    df[i,"BondLenghtStdRatio"]=df[i,"BondLenghtStd"]/df[i-1,"BondLenghtStd"]
+                    df[i,"BondAngleStdRatio"]=df[i,"BondAngleStd"]/df[i-1,"BondAngleStd"]
 
                 elseif df[i-1,"Theta"]===180.0 && df[i,"Theta"]===110.0
 
                     df[i,"BondLenghtStdDiff"]=df[i-1,"BondLenghtStd"]-df[i,"BondLenghtStd"]
                     df[i,"BondAngleStdDiff"]=df[i-1,"BondAngleStd"]-df[i,"BondAngleStd"]
+                    df[i,"BondLenghtStdRatio"]=df[i-1,"BondLenghtStd"]/df[i,"BondLenghtStd"]
+                    df[i,"BondAngleStdRatio"]=df[i-1,"BondAngleStd"]/df[i,"BondAngleStd"]
                 
                 else
                     println("i-1: Theta not 180 and 110")
@@ -232,11 +269,9 @@ function scatter_plot_for_mulitple_gml(;
         end
     end
 
-
-    df.BondLenghtStdDiffLog10 = log10.(df.BondLenghtStdDiff .+ 1)
-    df.BondAngleStdDiffLog10 = log10.(df.BondAngleStdDiff .+ 1)
-
-
+    d=1
+    df.Delta1=sqrt.(df.BondLenghtStdDiff.^2 ./ d.^2 + df.BondAngleStdDiff.^2)
+    df.Delta2=sqrt.( (1 .- df.BondLenghtStdRatio).^2 + (1 .- df.BondAngleStdRatio).^2)
 
     df.Shape = @. ifelse(df.Theta == 180.0, :rect, 
                     ifelse(df.Theta == 110.0, :diamond, 
@@ -250,120 +285,101 @@ function scatter_plot_for_mulitple_gml(;
 
     # plot
 
-    A=@df df Plots.scatter(
-        #plot_title=plot_title,
-        plot_title=LaTeXStrings.LaTeXString("Bond length std vs Bond angle std\n\$^\\textrm{"*
+    A=@df df Plots.histogram(
+        :Delta1,
+        plot_title=LaTeXStrings.LaTeXString("Number of networks with a Delta1\n\$^\\textrm{"*
             "N="*"$(nr_vertices_array[1])" *", "*
-            "Tmax="*"$(maximal_temperature_array[1])" *", "*
+            "GradT="*"$(temperature_gradient_array[1])" *", "*
             "MCSteps="*"$(nr_monte_carlo_steps_per_temperature_array[1])"*
             "}\$"),
-        top_margin=5Plots.PlotMeasures.mm,
+    
+        top_margin=10Plots.PlotMeasures.mm,
         titlefont = font(6),
-        layout = (2,2),
-        size = (900, 700),
-        colorbar=:top,
         legend=false,
-        xlabel="Bond length std / d", 
-        ylabel="Bond angle std / rad"
+        xlabel="Delta1 / rad", 
+        ylabel="Number of networks"
         )
 
-    @df df StatsPlots.scatter!(
-        :BondLenghtStd, 
-        :BondAngleStd, 
-        colorbar_title="MaxT",
-        zcolor=:MaxT,
-        color=cgrad(:roma, rev=true),
-        shape=:Shape,
-        subplot=1)
-
-    @df df StatsPlots.scatter!(
-        :BondLenghtStd, 
-        :BondAngleStd, 
-        colorbar_title="Beta",
-        zcolor=:Beta,
-        color=cgrad(:roma, rev=true),
-        shape=:Shape,
-        subplot=2)
-
-    @df df StatsPlots.scatter!(
-        :BondLenghtStd, 
-        :BondAngleStd, 
-        colorbar_title="Theta",
-        zcolor=:Theta,
-        color=cgrad(:roma, rev=true),
-        shape=:Shape,
-        subplot=3)
-    
-    @df df StatsPlots.scatter!(
-        :BondLenghtStd, 
-        :BondAngleStd, 
-        colorbar_title="AcceptedMovesLog10",
-        zcolor=:AcceptedMovesLog10,
-        color=cgrad(:roma, rev=true),
-        shape=:Shape,
-        subplot=4)
-
-
-
-
-
-
-
-    # plot
-
-    B=@df df Plots.scatter(
-        #plot_title=plot_title,
-        plot_title=LaTeXStrings.LaTeXString("Bond length std diff log10 vs Bond angle std diff log10 \n\$^\\textrm{"*
+    B=@df df Plots.histogram(
+        :Delta2,
+        plot_title=LaTeXStrings.LaTeXString("Number of networks with a Delta2\n\$^\\textrm{"*
             "N="*"$(nr_vertices_array[1])" *", "*
-            "Tmax="*"$(maximal_temperature_array[1])" *", "*
+            "GradT="*"$(temperature_gradient_array[1])" *", "*
             "MCSteps="*"$(nr_monte_carlo_steps_per_temperature_array[1])"*
             "}\$"),
-        top_margin=5Plots.PlotMeasures.mm,
+        
+        top_margin=10Plots.PlotMeasures.mm,
         titlefont = font(6),
-        layout = (2,2),
-        size = (900, 700),
-        colorbar=:top,
         legend=false,
-        xlabel="Bond length std diff log10 / d", 
-        ylabel="Bond angle std diff log10 / rad"
+        xlabel="Delta2 / rad", 
+        ylabel="Number of networks"
         )
 
-    @df df StatsPlots.scatter!(
-        :BondLenghtStdDiffLog10, 
-        :BondAngleStdDiffLog10, 
-        colorbar_title="MaxT",
-        zcolor=:MaxT,
-        color=cgrad(:roma, rev=true),
-        shape=:Shape,
-        subplot=1)
-
-    @df df StatsPlots.scatter!(
-        :BondLenghtStdDiffLog10, 
-        :BondAngleStdDiffLog10,
-        colorbar_title="Beta",
-        zcolor=:Beta,
-        color=cgrad(:roma, rev=true),
-        shape=:Shape,
-        subplot=2)
-
-    @df df StatsPlots.scatter!(
-        :BondLenghtStdDiffLog10, 
-        :BondAngleStdDiffLog10,
-        colorbar_title="Theta",
-        zcolor=:Theta,
-        color=cgrad(:roma, rev=true),
-        shape=:Shape,
-        subplot=3)
     
-    @df df StatsPlots.scatter!(
-        :BondLenghtStdDiffLog10, 
-        :BondAngleStdDiffLog10,
-        colorbar_title="AcceptedMovesLog10",
-        zcolor=:AcceptedMovesLog10,
-        color=cgrad(:roma, rev=true),
-        shape=:Shape,
-        subplot=4)    
+    # D1
+    # take only Theta=180 and then take the delta dataframe array, convert to matrix and shuffle matrix
+    df180=df[(df.Theta .=== 180.0), :]
+    Delta1_array=Array(df180[:, 13])
+    Delta1_matrix=reshape(Delta1_array,length(bond_bending_const_array),length(maximal_temperature_array))
+    Delta1_permuted=permutedims(Delta1_matrix,[2,1])
 
+    # H1
+
+    Delta1_trace = PlotlyJS.heatmap(
+        x=bond_bending_const_array,
+        y=maximal_temperature_array,
+        z=Delta1_permuted
+    )
+
+    Delta1_layout = PlotlyJS.Layout(
+        title="Delta1 for different MaxT and Beta", 
+        xaxis = PlotlyJS.attr(
+            tickmode = "array",
+            ticktext=bond_bending_const_array,
+            tickvals=bond_bending_const_array
+        ),
+        yaxis = PlotlyJS.attr(
+            tickmode = "array",
+            ticktext=maximal_temperature_array,
+            tickvals=maximal_temperature_array
+        ),
+        xaxis_title="Beta",
+        yaxis_title="MaxT",
+    )
+
+    C=PlotlyJS.plot(Delta1_trace,Delta1_layout)
+
+    # D2
+
+    Delta2_array=Array(df180[:, 14])
+    Delta2_matrix=reshape(Delta2_array,length(bond_bending_const_array),length(maximal_temperature_array))
+    Delta2_permuted=permutedims(Delta2_matrix,[2,1])
+
+    # H2
+
+    Delta2_trace = PlotlyJS.heatmap(
+        x=bond_bending_const_array,
+        y=maximal_temperature_array,
+        z=Delta2_permuted
+    )
+
+    Delta2_layout = PlotlyJS.Layout(
+        title="Delta1 for different MaxT and Beta", 
+        xaxis = PlotlyJS.attr(
+            tickmode = "array",
+            ticktext=bond_bending_const_array,
+            tickvals=bond_bending_const_array
+        ),
+        yaxis = PlotlyJS.attr(
+            tickmode = "array",
+            ticktext=maximal_temperature_array,
+            tickvals=maximal_temperature_array
+        ),
+        xaxis_title="Beta",
+        yaxis_title="MaxT",
+    )
+
+    D=PlotlyJS.plot(Delta2_trace,Delta2_layout)
 
 
 
@@ -387,9 +403,9 @@ function scatter_plot_for_mulitple_gml(;
 
     minimum_theta=minimum(theta_ground_state_array)
     maximum_theta=maximum(theta_ground_state_array)
-
-    plot_filename = (plot_filename_start
-        *"_N="*"$minimum_nr_vertices" * "-" * "$maximum_nr_vertices"
+ 
+    plot_filename_end=(
+        "_N="*"$minimum_nr_vertices" * "-" * "$maximum_nr_vertices"
         *"_T="*"$minimum_temperature" * "-" * "$maximum_temperature"
         *"_Beta="*"$minimum_bond_bending_const" * "-" * "$maximum_bond_bending_const"
         *"_GradT="*"$minimum_temperature_gradient" * "-" * "$maximum_temperature_gradient"
@@ -398,37 +414,51 @@ function scatter_plot_for_mulitple_gml(;
         *"_Trials="*"$nr_trials_per_temperature"
         *".png")
 
-    plot_filename_diff = (plot_filename_start
-        *"d_"
-        *"_N="*"$minimum_nr_vertices" * "-" * "$maximum_nr_vertices"
-        *"_T="*"$minimum_temperature" * "-" * "$maximum_temperature"
-        *"_Beta="*"$minimum_bond_bending_const" * "-" * "$maximum_bond_bending_const"
-        *"_GradT="*"$minimum_temperature_gradient" * "-" * "$maximum_temperature_gradient"
-        *"_StepsPerT="*"$minimum_nr_monte_carlo_steps_per_temperature" * "-" * "$maximum_nr_monte_carlo_steps_per_temperature"
-        *"_Theta_GS="*"$minimum_theta" * "-" * "$maximum_theta"
-        *"_Trials="*"$nr_trials_per_temperature"
-        *".png")
+    plot_filename_A = (
+        plot_filename_start
+        *"_Hist_D1"
+        *plot_filename_end)
 
-    plot_total_path=plot_save_path*plot_filename
-    plot_total_path_diff=plot_save_path*plot_filename_diff
 
-    Plots.savefig(A,plot_total_path)
+    plot_filename_B = (
+        plot_filename_start
+        *"_Hist_D2"
+        *plot_filename_end)
 
-    Plots.savefig(B,plot_total_path_diff)
+    plot_filename_C = (
+        plot_filename_start
+        *"_Heat_D1"
+        *plot_filename_end)
+
+    plot_filename_D = (
+        plot_filename_start
+        *"_Heat_D2"
+        *plot_filename_end)
+
+    plot_total_path_A=plot_save_path*plot_filename_A
+    plot_total_path_B=plot_save_path*plot_filename_B
+    plot_total_path_C=plot_save_path*plot_filename_C
+    plot_total_path_D=plot_save_path*plot_filename_D
+
+    Plots.savefig(A,plot_total_path_A)
+    Plots.savefig(B,plot_total_path_B)
+    PlotlyJS.savefig(C,plot_total_path_C)
+    PlotlyJS.savefig(D,plot_total_path_D)
+
 
 end
 
 
 scatter_plot_for_mulitple_gml(
     nr_vertices_array=[216],
-    maximal_temperature_array=[0.1,0.135,0.17,0.205,0.24],
-    bond_bending_const_array=[0,0.21,0.285,0.36,0.5],
+    maximal_temperature_array=[0.1,0.125,0.15,0.175,0.2],
+    bond_bending_const_array=[0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.5],
     temperature_gradient_array=[0.1],
     nr_monte_carlo_steps_per_temperature_array=[0.01],
-    theta_ground_state_array=[0.0,90.0,110.0,180.0],
-    nr_trials_per_temperature=1, 
+    theta_ground_state_array=[110.0,180.0],
+    nr_trials_per_temperature=1,
     save_path = raw".\simulations\multiple_parameters\\",
     filename_start = "m_BTMC_q_t_",    
     plot_save_path = raw".\simulations\analysis_plot\\",
-    plot_filename_start = "m_BTMC_matrix_q_t_8_"
+    plot_filename_start = "m_delta_9_"
 )
