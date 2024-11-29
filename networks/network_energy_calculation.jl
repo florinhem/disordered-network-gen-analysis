@@ -29,7 +29,7 @@ function local_bond_bending_energy_keating(
         vertex_label))
 
     theta_ground_state=spatial_network[]["theta_ground_state"]/360.0*2*pi
-    println(cos(theta_ground_state))
+    #println(cos(theta_ground_state))
 
     bond_bending_sum::Float64 = 0.0
 
