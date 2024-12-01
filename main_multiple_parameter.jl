@@ -109,7 +109,7 @@ try
     save_multiple_N_T_trials_beta_gml(;
         nr_vertices_array=[216],
         maximal_temperature_array=[0.1,0.125,0.15,0.175,0.2],
-        bond_bending_const_array=[0.05,0.15,0.25,0.35,0.45],
+        bond_bending_const_array=[0.1,0.2,0.3,0.4,0.5],
         temperature_gradient_array=[0.1],
         nr_monte_carlo_steps_per_temperature_array=[0.01],
         theta_ground_state_array=[110.0,180.0],
