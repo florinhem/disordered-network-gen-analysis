@@ -317,3 +317,26 @@ function get_q_l_total_network_mean_dict(
     return q_l_total_network_mean_dict
 end
 
+
+"""
+Calculate the statistical difference between two networks by comparing their
+bond length and bond angle standard deviations
+"""
+function get_statistical_difference(
+    bond_length_std_1,
+    bond_length_std_2,
+    bond_angle_std_1,
+    bond_angle_std_2)
+
+    # calculate ratio in bond length standard deviation
+    bond_length_std_ratio = (bond_length_std_1 / bond_length_std_2)
+    
+    # calculate ratio in bond angle standard deviation
+    bond_angle_std_ratio = (bond_angle_std_1 / bond_angle_std_2)
+
+    # define difference metric delta
+    delta = sqrt( abs2(bond_length_std_ratio - 1) 
+        + abs2(bond_angle_std_ratio - 1))
+
+    return delta
+end

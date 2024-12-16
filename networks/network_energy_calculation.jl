@@ -32,15 +32,16 @@ function local_bond_bending_energy_keating(
 
     for j in 1:spatial_network[]["coordination_nr"]
 
+        vector_j = (float(sign(neighbor_label_vec[j] - vertex_label))
+            .* spatial_network[vertex_label, neighbor_label_vec[j]]["vector"])
+
         for k in j+1:spatial_network[]["coordination_nr"]
 
-            bond_bending_sum += (  LinearAlgebra.dot(
-                float(sign(neighbor_label_vec[j] - vertex_label))
-                    .* spatial_network[vertex_label, neighbor_label_vec[j]][
-                        "vector"], 
-                float(sign(neighbor_label_vec[k] - vertex_label))
-                    .* spatial_network[vertex_label, neighbor_label_vec[k]][
-                        "vector"]) + 1/3 )^2 
+            vector_k = (float(sign(neighbor_label_vec[k] - vertex_label))
+                .* spatial_network[vertex_label, neighbor_label_vec[k]][
+                    "vector"])
+
+            bond_bending_sum += (LinearAlgebra.dot(vector_j, vector_k) + 1/3)^2
             
         end
     end

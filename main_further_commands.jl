@@ -6792,3 +6792,162 @@ spatial_network_for_sim = NG.get_spatial_network_for_simulation!(
     save_result = false)
 
 NG.plot_spatial_network(spatial_network_for_sim)
+
+
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.285\run_1\\"
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\geometrical_models\216_vertices_bond_bending_0.285\run_1\\"
+
+temperatures = vcat(collect(0.1:0.01:0.18), collect(0.2:0.02:0.24))
+
+for temperature in temperatures
+    filename = string("216_vertices_T_", temperature, "_heat_cool_0.1_per_mc_quenched")
+
+    spatial_network = NG.load_spatial_network_from_gml(path*filename*".gml")
+
+    save_filename = string(filename, "_br_0.26")
+        
+    NG.save_mesh_from_spatial_network(spatial_network, save_filename; save_path = save_path, bond_radius = 0.26,
+        vector_out_of_supercell_length = 1)
+end
+
+
+
+evolution_dicts_directory_path = "../structures/random_networks_evolution/216_vertices_bond_bending_0.285/evolution_dicts/"
+
+temperatures = [0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.2, 0.22, 0.24]
+
+nr_vertices = 216
+bond_bending = 0.285
+temperature_increase_per_monte_carlo_step = 0.1
+nr_monte_carlo_steps_per_temperature = 0.1
+
+for temperature in temperatures
+    temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(temperature;
+        temperature_increase_per_monte_carlo_step = temperature_increase_per_monte_carlo_step, 
+        nr_monte_carlo_steps_per_temperature = nr_monte_carlo_steps_per_temperature,
+        quench = false )
+
+    # extend the temperature vec by 50 elements of 0 temperature and the corresponding number of monte carlo steps
+    temperature_vec = vcat(temperature_vec, zeros(Int(50/nr_monte_carlo_steps_per_temperature)))
+    nr_monte_carlo_steps_per_temperature_vec = vcat(nr_monte_carlo_steps_per_temperature_vec, ones(Int(50/nr_monte_carlo_steps_per_temperature)) .* nr_monte_carlo_steps_per_temperature)
+
+    evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,temperature_vec = temperature_vec,
+        nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
+        bond_bending_const = bond_bending, thermal_fluctuations = false)
+
+    filename = string(nr_vertices)*"_vertices_T_"*string(temperature)*"_heat_cool_"*string(temperature_increase_per_monte_carlo_step)*"_per_mc_quenched"
+    GU.save_dict_to_h5(evolution_dict, evolution_dicts_directory_path*filename*"_evolution.h5")
+end
+
+save_path = "../structures/random_networks_evolution/216_vertices_bond_bending_0.285/"
+
+NG.generate_graphs_from_evolution_dicts_in_directory(
+    evolution_dicts_directory_path,
+    save_path;
+    print_every_nr_attempted_bond_switches = 200,
+    print_progress = true,
+    save_network_after_each_temperature = true,
+    further_evolve_previous_networks = false,
+    print_lock = Threads.ReentrantLock())
+
+
+function get_order_metric_evolution()
+
+    # set the path to the directory where the networks are stored
+    load_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks_th_fluct\216_vertices_bond_bending_0.285\\"
+
+    save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks_th_fluct\216_vertices_bond_bending_0.285\\"
+
+    # get all filenames in the load_path directory that contain the string "T_0.1_heat_cool_0.1_per_mc_quenched"
+    temperature_vec = [0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.2, 0.22, 0.24]
+
+    bond_angle_std_vec_vec = []
+    bond_length_std_vec_vec = []
+
+    for temperature in temperature_vec
+        # get the filenames for the current temperature which contain the current temperature
+        # and the term "gml"
+        filenames = [f for f in readdir(load_path) if occursin("T_"*string(temperature)*"_heat_cool_0.1_per_mc_quenched_", f)]
+        filenames = [f for f in filenames if endswith(f, "0.gml")]
+
+        # get the integers in the end of all filenames and sort the filenames accordingly
+        for f in filenames
+            if match(r"quenched_(\d+)\.gml$", f) == nothing
+                println("Error: no match found for filename: $(f)")
+            end
+        end
+
+        filename_integers = [parse(Int, match(r"quenched_(\d+)\.gml$", f).captures[1]) for f in filenames]
+
+        # sort filenames and filename_integers according to filename_integers
+        order = sortperm(filename_integers)
+
+        sorted_filenames = filenames[order]
+        filename_integers = filename_integers[order]
+        
+        # for each file, load the network and calculate the bond angle and the bond length
+        # standard deviation
+        bond_angle_std_vec = Vector{Float64}()
+        bond_length_std_vec = Vector{Float64}()
+
+        filename_counter = 0
+
+        for filename in sorted_filenames
+            # load the network
+            network = NG.load_spatial_network_from_gml(load_path*filename)
+
+            # calculate the bond angle and bond length standard deviation
+            bond_angle_std, bond_angle_vec = NA.get_bond_angle_std(network)
+            bond_length_std, bond_length_vec = NA.get_bond_length_std(network)
+
+            if !isa(bond_angle_std, Float64) || !isa(bond_length_std, Float64)
+                println("Error: bond_angle_std or bond_length_std is not a float")
+                println("bond_angle_std: $(bond_angle_std), bond_length_std: $(bond_length_std)")
+                println("filename: $(filename)")
+                continue
+            end
+
+            push!(bond_angle_std_vec, float(bond_angle_std))
+            push!(bond_length_std_vec, float(bond_length_std))
+
+            # every 100th network, print Progress
+            if filename_counter % 100 == 0
+                println("Temperature: $(temperature), progress: $(filename_counter)/$(length(sorted_filenames))")
+                println("Bond angle std: $(bond_angle_std), bond length std: $(bond_length_std)")
+            end
+
+            filename_counter += 1
+
+        end
+
+        # create a dictionary with the bond angle and bond length standard deviations
+        order_metric_evolution_dict = Dict{String, Any}(
+            "temperature" => temperature,
+            "filename_integers" => filename_integers,
+            "bond_angle_std_vec" => bond_angle_std_vec,
+            "bond_length_std_vec"  => bond_length_std_vec)
+
+        GU.save_dict_to_h5(order_metric_evolution_dict, save_path*"T_$(temperature)_order_metric_evolution.h5")
+        
+    end
+
+end
+
+get_order_metric_evolution()
+
+
+
+temperature_vec = [0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.2, 0.22, 0.24]
+
+load_path = load_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks_evolution\216_vertices_bond_bending_0.285\\"
+
+# load network
+network = NG.load_spatial_network_from_gml(load_path*"216_vertices_T_0.2_heat_cool_0.1_per_mc_quenched_3000.gml")
+
+evolution_dict = GU.load_h5_dict(load_path*"216_vertices_T_0.2_heat_cool_0.1_per_mc_quenched_3000_evolution.h5")
+
+println(sum(evolution_dict["move_accepted_vec"]))
+
+# plot network
+NG.plot_spatial_network(network)
