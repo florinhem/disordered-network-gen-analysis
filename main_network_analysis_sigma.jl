@@ -247,62 +247,64 @@ function scatter_plot_for_mulitple_gml(;
    
     #println(df)
 
+    fontsize=10
 
     # plot
 
     A=@df df Plots.scatter(
-        #plot_title=plot_title,
-        plot_title=LaTeXStrings.LaTeXString("Bond length std vs Bond angle std \n\$^\\textrm{"*
-            "N="*"$(nr_vertices_array[1])" *", "*
-            "\\nabla T="*"$(maximal_temperature_array[1])" *", "*
-            "N_{MCSteps}="*"$(nr_monte_carlo_steps_per_temperature_array[1])"*
-            "}\$"),
-        top_margin=5Plots.PlotMeasures.mm,
         left_margin=5Plots.PlotMeasures.mm,
         layout = (2,2),
         size = (900, 700),
+        xtickfont = font(fontsize),  # Set x-axis tick font size
+        ytickfont = font(fontsize),   # Set y-axis tick font size
+        xlim=[-0.005,0.18+0.005],
+        xticks = (
+            0:0.025:0.175, 
+            ["0","0.025","0.05","0.075","0.1", "0.125", "0.15", "0.175"]
+        ),
+        xlabel=LaTeXStrings.L"\sigma_\mathrm{length} / d",
+        ylabel=LaTeXStrings.L"\sigma_\mathrm{angle} / \mathrm{rad}",
+        xguidefont = font(fontsize),
+        yguidefont = font(fontsize),
         )
 
     @df df StatsPlots.scatter!(
         :BondLenghtStd, 
         :BondAngleStd, 
         color_palette=[:blue,:turquoise1,:yellow,:orange,:red],
-        legendtitle ="MaxT",
+        legendtitle =LaTeXStrings.L"T_\mathrm{max}",
         group=:MaxT,
-        xlim=[0,0.17],
-        ylabel="Bond angle std / rad",
         subplot=1)
 
     @df df StatsPlots.scatter!(
         :BondLenghtStd, 
         :BondAngleStd, 
-        color_palette=[:purple3,:royalblue,:turquoise1, :green,:greenyellow,:yellow,:gold,:coral,:firebrick],
-        legendtitle ="Beta",
+        color_palette=[:purple3,:royalblue,:turquoise1, :green,:greenyellow,:yellow,:gold,:coral,:firebrick,:maroon],
+        legendtitle =LaTeXStrings.L"\beta",
         group=:Beta,
-        xlim=[0,0.17],
         subplot=2)
 
     @df df StatsPlots.scatter!(
         :BondLenghtStd, 
         :BondAngleStd, 
         color_palette=[:grey80,:gray20],
-        legendtitle ="Theta",
+        legendtitle =LaTeXStrings.L"\theta_\mathrm{eq}",
         group=:Theta,
-        xlim=[0,0.17],
-        xlabel="Bond length std / d", 
-        ylabel="Bond angle std / rad",
         subplot=3)
     
     @df df StatsPlots.scatter!(
         :BondLenghtStd, 
         :BondAngleStd, 
-        colorbar_title="AcceptedMovesLog10",
+        colorbar_title=LaTeXStrings.L"\mathrm{Log_{10}} \left( N_\mathrm{Acc} \right)",
         zcolor=:AcceptedMovesLog10,
-        color=cgrad([:blue,:red]),#cgrad(:roma, rev=true),
+        color=cgrad([:blue,:red]),
         colorbar=:top,
-        shape=:Shape,
         legend=false,
-        xlabel="Bond length std / d", 
+        xlim=[-0.005,0.1375],
+        xticks = (
+            0:0.025:0.125, 
+            ["0","0.025","0.05","0.075","0.1", "0.125"]
+        ),
         subplot=4)
 
 
@@ -350,13 +352,13 @@ end
 scatter_plot_for_mulitple_gml(
     nr_vertices_array=[216],
     maximal_temperature_array=[0.1,0.125,0.15,0.175,0.2],
-    bond_bending_const_array=[0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.5],
+    bond_bending_const_array=[0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5],
     temperature_gradient_array=[0.1],
     nr_monte_carlo_steps_per_temperature_array=[0.01],
     theta_ground_state_array=[110.0,180.0],
     nr_trials_per_temperature=1, 
     save_path = raw".\simulations\multiple_parameters\\",
-    filename_start = "m_BTMC_q_t_",    
+    filename_start = "m_rad_",    
     plot_save_path = raw".\simulations\analysis_plot\\",
-    plot_filename_start = "m_BTMC_matrix_p_2_"
+    plot_filename_start = "m_rad_ma_png_2_"
 )

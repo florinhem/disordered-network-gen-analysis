@@ -89,12 +89,13 @@ function scatter_plot_for_mulitple_gml(;
 
                                 total_path=save_path*filename
 
-                                if(total_path*".gml" in path_array && 
-                                    #filename!="m_BTMC_N=216_T=0.17_Beta=0.0_GradT=0.1_StepsPerT=0.01_Theta_GS=110.0_Trial=1" &&
-                                    filename!="m_BTMC_q_t__N=216_T=0.1_Beta=0.0_GradT=0.1_StepsPerT=0.01_Theta_GS=180.0_Trial=1" &&
-                                    filename!="m_BTMC_q_t__N=216_T=0.1_Beta=0.0_GradT=0.1_StepsPerT=0.01_Theta_GS=110.0_Trial=1" #&&
-                                    #filename!="m_BTMC_q_t__N=216_T=0.17_Beta=0.0_GradT=0.1_StepsPerT=0.01_Theta_GS=0.0_Trial=1" &&
-                                    #filename!="m_BTMC_q_t__N=216_T=0.205_Beta=0.0_GradT=0.1_StepsPerT=0.01_Theta_GS=0.0_Trial=1"
+                                if(total_path*".gml" in path_array #=&& 
+                                    filename!="m_BTMC_q_t__N=216_T=0.125_Beta=0.25_GradT=0.1_StepsPerT=0.01_Theta_GS=110.0_Trial=1" &&
+                                    filename!="m_BTMC_q_t__N=216_T=0.125_Beta=0.3_GradT=0.1_StepsPerT=0.01_Theta_GS=110.0_Trial=1" &&
+                                    filename!="m_BTMC_q_t__N=216_T=0.125_Beta=0.3_GradT=0.1_StepsPerT=0.01_Theta_GS=180.0_Trial=1" &&
+                                    filename!="m_BTMC_q_t__N=216_T=0.15_Beta=0.3_GradT=0.1_StepsPerT=0.01_Theta_GS=180.0_Trial=1" &&
+                                    filename!="m_BTMC_q_t__N=216_T=0.15_Beta=0.25_GradT=0.1_StepsPerT=0.01_Theta_GS=110.0_Trial=1" &&
+                                    filename!="m_BTMC_q_t__N=216_T=0.15_Beta=0.25_GradT=0.1_StepsPerT=0.01_Theta_GS=180.0_Trial=1"=#
                                     )
                                     #println("scatter done")
                                     println(filename)
@@ -166,16 +167,16 @@ function scatter_plot_for_mulitple_gml(;
 
     
     #println(data)
-    println(typeof(data))
+    #println(typeof(data))
 
     # data cleaning
 
     matrix=mapreduce(permutedims, vcat, data)
-    println(typeof(matrix))
+    #println(typeof(matrix))
 
     df=DataFrames.DataFrame(matrix,:auto)
 
-    println(typeof(df))
+    #println(typeof(df))
 
     DataFrames.rename!(df, [:x1, :x2, :x3, :x4, :x5, :x6, :x7, :x8] .=>  [:MaxT, :Beta, :GradT, :MCsteps, :Theta, :BondLenghtStd, :BondAngleStd, :AcceptedMoves])
 
@@ -184,174 +185,248 @@ function scatter_plot_for_mulitple_gml(;
     # Delta2
     #-----------------------
 
-    Delta2Matrix=zeros(size(df,1),size(df,1),3)
+    Delta2Matrix=zeros(size(df,1),size(df,1),7)
     #println(Delta2Matrix)
     for i in 1:size(df,1)
         for j in 1:size(df,1)
             delta2=sqrt((1-df[i,6]/df[j,6])^2+(1-df[i,7]/df[j,7])^2)
-            if df[i,5]===df[j,5] || i===j #i>=j ||
-                Delta2Matrix[i,j,3]=Inf64
-            elseif df[i,5]===110.0 && df[j,5]===180.0
-                Delta2Matrix[i,j,1]=df[i,2]-df[j,2]
-                Delta2Matrix[i,j,2]=df[i,1]-df[j,1]
-                Delta2Matrix[i,j,3]=delta2
-            elseif df[i,5]===180.0 && df[j,5]===110.0
-                Delta2Matrix[i,j,1]=df[j,2]-df[i,2]
-                Delta2Matrix[i,j,2]=df[j,1]-df[i,1]
-                Delta2Matrix[i,j,3]=delta2
+            Delta2Matrix[i,j,1]=df[i,2]
+            Delta2Matrix[i,j,2]=df[j,2]
+            Delta2Matrix[i,j,3]=df[i,1]
+            Delta2Matrix[i,j,4]=df[j,1]
+            Delta2Matrix[i,j,5]=delta2
+            if  i===j || df[i,5]===df[j,5]
+                Delta2Matrix[i,j,5]=Inf64
             end
-            
+            Delta2Matrix[i,j,6]=df[i,5]
+            Delta2Matrix[i,j,7]=df[j,5]
         end
     end
     #display(Delta2Matrix)
 
-    # SCATTER
+    Delta2MatrixRound=zeros(size(df,1),size(df,1),7)
+    #display(Delta2Matrix)
+    for i in 1:size(Delta2Matrix,1)
+        for j in 1:size(Delta2Matrix,2)
+            for k in 1:size(Delta2Matrix,3)
+                Delta2MatrixRound[i,j,k]=round(Delta2Matrix[i,j,k],digits=3)
+            end
+        end
+    end
+    #display(Delta2MatrixRound)
 
-    #ratio_small=0.24
-    ratio_small=1
-    number_of_smallest=ceil(Int,ratio_small*size(df,1)^2)
-    max=maximum(first(Delta2Matrix[:,:,3] |> vec |> sort, number_of_smallest), dims = 1)
+
+
+
+    b1=Delta2MatrixRound[:,:,1] |> unique |> sort
+    b1=filter(!iszero,b1)
+    b2=Delta2MatrixRound[:,:,2] |> unique |> sort
+    b2=filter(!iszero,b2)
+    t1=Delta2MatrixRound[:,:,3] |> unique |> sort
+    t1=filter(!iszero,t1)
+    t2=Delta2MatrixRound[:,:,4] |> unique |> sort
+    t2=filter(!iszero,t2)
+    d=Delta2MatrixRound[:,:,5] |> vec |> sort
+    d=filter(!isinf,d)
+    theta1=Delta2MatrixRound[:,:,6] |> unique |> sort
+    theta1=filter(!iszero,theta1)
+    theta2=Delta2MatrixRound[:,:,7] |> unique |> sort
+    theta2=filter(!iszero,theta2)
+
+    #display(b1)
+    #display(b2)
+    #display(t1)
+    #display(t2)
+    #display(d)
+    #display(theta1)
+    #display(theta2)
+
+    #ratio_small=0.025
+    ratio_small=0.2
+    #ratio_small=0.5
+    number_of_smallest=ceil(Int,ratio_small*size(d,1))
+    max=maximum(first(d, number_of_smallest), dims = 1)[1]
     #display("max: $max")
-    Delta2Sort=Delta2Matrix[Delta2Matrix[:,:,3].<max,:]
-    display(Delta2Sort)
-
-    # plot
-    Plot_S2=Plots.scatter(
-        Delta2Sort[:,1],
-        Delta2Sort[:,2],
-        title=LaTeXStrings.LaTeXString(
-            "Distribution of smallest $(ratio_small*100)% of Delta2 \n\$^\\textrm{"*
-            "N="*"$(nr_vertices_array[1])" *", "*
-            "GradT="*"$(temperature_gradient_array[1])" *", "*
-            "MCSteps="*"$(nr_monte_carlo_steps_per_temperature_array[1])"*
-            "}\$"),
-        xlabel=LaTeXStrings.LaTeXString("\$ \\Delta \\beta \$"),
-        ylabel=LaTeXStrings.LaTeXString("\$ \\Delta T_{max} \$"),
-        legend=false
-    )
-
-    # statistics
-    #display(Delta2Sort[:,1])
-    #println(Delta2Sort[:,2])
-
-    x_mean=Statistics.mean(Delta2Sort[:,1])
-    y_mean=Statistics.mean(Delta2Sort[:,2])
-    x_std=Statistics.std(Delta2Sort[:,1])
-    y_std=Statistics.std(Delta2Sort[:,2])
-    # plot one red point
-    Plots.scatter!(
-        [x_mean],
-        [y_mean],
-        xerr=x_std,
-        yerr=y_std,
-        color=:red
-        )
-
-    #display(Plot_S2)
-
-
-    # HISTOGRAM
     
+
+
+    Countsb1b2=zeros(size(b1,1),size(b2,1))
+    PossibleCountsb1b2=zeros(size(b1,1),size(b2,1))
+    Countst1t2=zeros(size(t1,1),size(t2,1))
+    PossibleCountst1t2=zeros(size(t1,1),size(t2,1))
+    for i in 1:size(Delta2MatrixRound,1)
+        for j in 1:size(Delta2MatrixRound,2)
+            B1=Delta2MatrixRound[i,j,1]
+            B2=Delta2MatrixRound[i,j,2]
+            T1=Delta2MatrixRound[i,j,3]
+            T2=Delta2MatrixRound[i,j,4]
+            D=Delta2MatrixRound[i,j,5]
+            Theta1=Delta2MatrixRound[i,j,6]
+            Theta2=Delta2MatrixRound[i,j,7]
+            #display("$B1, $B2, $T1, $T2, $D")
+            #display(B)
+            #display(D)
+           
+            for k in 1:size(b1,1)
+                for m in 1:size(b2,1)
+                    if B1===b1[k] && B2===b2[m] && Theta1===180.0 && Theta2===110.0
+                        if D<=max
+                            #display("$B1, $B2")
+                            Countsb1b2[k,m]+=1
+                        end
+                        if D!=Inf64
+                            #display("$T,$B,$D")
+                            PossibleCountsb1b2[k,m]+=1
+                        end
+                    end
+                end
+            end
+
+            for k in 1:size(t1,1)
+                for m in 1:size(t2,1)
+                    if T1===t1[k] && T2===t2[m] && Theta1===180.0 && Theta2===110.0 && B2-B1===0.1
+                        if D<=max
+                            display("$B1, $B2")
+                            Countst1t2[k,m]+=1
+                        end
+                        if D!=Inf64
+                            #display("$T,$B,$D")
+                            PossibleCountst1t2[k,m]+=1
+                        end
+                    end
+                end
+            end
+        end
+    end
+    #display(Countsb1b2)
+    #display(PossibleCountsb1b2)
+    #display(Countst1t2)
+    #display(PossibleCountst1t2)
+
+    NormalizedCountsb1b2=zeros(size(b1,1),size(b2,1))
+    for i in 1:size(b1,1)
+        for j in 1:size(b2,1)
+            NormalizedCountsb1b2[i,j]=Countsb1b2[i,j]/PossibleCountsb1b2[i,j]
+        end
+    end
+
+    #display(NormalizedCountsb1b2)
+
+    NormalizedCountst1t2=zeros(size(t1,1),size(t2,1))
+    for i in 1:size(t1,1)
+        for j in 1:size(t2,1)
+            NormalizedCountst1t2[i,j]=Countst1t2[i,j]/PossibleCountst1t2[i,j]
+        end
+    end
+
+    #display(NormalizedCountst1t2)
+
+
+
+    
+
+
+
+
+    
+
+    
+    
+   
+    
+    # HISTOGRAM
+    Delta2Sort=Delta2MatrixRound[Delta2MatrixRound[:,:,5].<=max,:]
+    #=
+    display("Delta2Sort:")
+    println("[")
+    for i in 1:size(Delta2Sort,1)
+        print("[")
+        for j in 1:size(Delta2Sort,2)-1
+            print("$(Delta2Sort[i,j]), ")
+        end
+        print("$(Delta2Sort[i,size(Delta2Sort,2)])")
+        println("],")
+    end
+    println("]")
+    =#
+
     # plot
     Plot_H2=Plots.histogram(
-        Delta2Sort[:,3],
+        Delta2Sort[:,5],
         title=LaTeXStrings.LaTeXString(
-            "Distribution of smallest $(ratio_small*100)% of Delta2 \n\$^\\textrm{"*
+            "Distribution of smallest $(ratio_small*100)% of Delta \n\$^\\textrm{"*
             "N="*"$(nr_vertices_array[1])" *", "*
             "GradT="*"$(temperature_gradient_array[1])" *", "*
             "MCSteps="*"$(nr_monte_carlo_steps_per_temperature_array[1])"*
             "}\$"),
-        xlabel=LaTeXStrings.LaTeXString("\$ \\Delta_2 \$"),
+        xlabel=LaTeXStrings.LaTeXString("\$ \\Delta \$"),
         ylabel="Number of networks",
         legend=false
     )
 
     #display(Plot_H2)
 
+    
+
+
+
+
     # HEATMAP
-
-    # calculate counts
-    Delta2Round=zeros(size(Delta2Sort))
-
-    for i in 1:size(Delta2Sort,1)
-        for j in 1:size(Delta2Sort,2)
-            Delta2Round[i,j]=round(Delta2Sort[i,j],digits=3)
-        end
-    end
-
-    x=Delta2Round[:,1] |> unique |> sort
-    y=Delta2Round[:,2] |> unique |> sort
-    
-    Counts=zeros(size(x,1),size(y,1))
-    for k in 1:size(Delta2Round,1)
-        T=Delta2Round[k,1]
-        B=Delta2Round[k,2]
-        for i in 1:size(x,1)
-            for j in 1:size(y,1)
-                if T===x[i] && B===y[j]
-                    Counts[i,j]+=1
-                end
-            end
-        end
-    end
-
-    display(Counts)
   
-    Counts_permuted=permutedims(Counts,[2,1])
+    NormalizedCounts_permutedb1b2=permutedims(NormalizedCountsb1b2,[2,1])
+    #display(NormalizedCounts_permutedb1b2)
     
-    # plot
-    Delta2_trace=PlotlyJS.heatmap(
-        x=x,
-        y=y,
-        z=Counts_permuted,
+    
+    # Plot_Heatb1b2
+    Delta2_traceb1b2=PlotlyJS.heatmap(
+        x=b1,
+        y=b2,
+        z=NormalizedCounts_permutedb1b2,
         vline=0
     )
-
-    #PlotlyJS.line(0,0,-1,1)
-    #vline=PlotlyJS.add_vline!(x=0)
     
 
-    Delta2_layout = PlotlyJS.Layout(
+    Delta2_layoutb1b2 = PlotlyJS.Layout(
         title=
-            "Number of instances of smallest $(ratio_small*100)% of Delta2, <br>"*
+            "Number of instances of smallest $(ratio_small*100)% of Delta, <br>"*
             "N="*"$(nr_vertices_array[1])" *", "*
             "GradT="*"$(temperature_gradient_array[1])" *", "*
             "MCSteps="*"$(nr_monte_carlo_steps_per_temperature_array[1])",
         xaxis = PlotlyJS.attr(
             tickmode = "array",
-            ticktext=x,
-            tickvals=x
+            ticktext=b1,
+            tickvals=b1
         ),
         yaxis = PlotlyJS.attr(
             tickmode = "array",
-            ticktext=y,
-            tickvals=y
+            ticktext=b2,
+            tickvals=b2
         ),
-        xaxis_title="Delta beta",
-        yaxis_title="Delta MaxT",
+        xaxis_title="Beta 1, Theta 180°",
+        yaxis_title="Beta 2, Theta 110°",
+        autosize=false
         
     )
 
-    Plot_Heat2=PlotlyJS.plot(Delta2_trace,Delta2_layout)
+    Plot_Heatb1b2=PlotlyJS.plot(Delta2_traceb1b2,Delta2_layoutb1b2)
 
 
-    PlotlyJS.add_shape!(Plot_Heat2, PlotlyJS.line(
-        x0=0, 
-        x1=0, 
-        y0=minimum(y)-0.0125,
-        y1=maximum(y)+0.0125,
-        line=PlotlyJS.attr(color=:lightgreen, width=3),
-    ))
+    # statistics
+    x_mean=Statistics.mean(Delta2Sort[:,1])
+    y_mean=Statistics.mean(Delta2Sort[:,2])
+    x_std=Statistics.std(Delta2Sort[:,1])
+    y_std=Statistics.std(Delta2Sort[:,2])
 
-    PlotlyJS.add_shape!(Plot_Heat2, PlotlyJS.line(
-        x0=minimum(x)-0.025, 
-        x1=maximum(x)+0.025, 
-        y0=0,
-        y1=0,
-        line=PlotlyJS.attr(color=:lightgreen, width=3),
-    ))
+    if isnan(x_std)
+        x_std=0
+    end
+    if isnan(y_std)
+        y_std=0
+    end
 
-    PlotlyJS.add_shape!(Plot_Heat2, PlotlyJS.line(
+    #println("$x_mean, $y_mean, $x_std, $y_std")
+
+    PlotlyJS.add_shape!(Plot_Heatb1b2, PlotlyJS.line(
         x0=x_mean-x_std, 
         x1=x_mean+x_std,
         y0=y_mean,
@@ -359,7 +434,7 @@ function scatter_plot_for_mulitple_gml(;
         line=PlotlyJS.attr(color=:red, width=3),
     ))
 
-    PlotlyJS.add_shape!(Plot_Heat2, PlotlyJS.line(
+    PlotlyJS.add_shape!(Plot_Heatb1b2, PlotlyJS.line(
         x0=x_mean, 
         x1=x_mean,
         y0=y_mean-y_std,
@@ -367,17 +442,96 @@ function scatter_plot_for_mulitple_gml(;
         line=PlotlyJS.attr(color=:red, width=3),
     ))
 
-    PlotlyJS.add_shape!(Plot_Heat2, PlotlyJS.circle(
-        x0=x_mean*0.95, 
-        x1=x_mean*1.05,
-        y0=y_mean*0.95,
-        y1=y_mean*1.05,
+    PlotlyJS.add_shape!(Plot_Heatb1b2, PlotlyJS.circle(
+        x0=x_mean-0.025*x_std, 
+        x1=x_mean+0.025*x_std,
+        y0=y_mean-0.025*y_std,
+        y1=y_mean+0.025*y_std,
         line=PlotlyJS.attr(color=:red, width=3),
     ))
-    #display(Plot_Heat2)
-
     
-  
+
+
+
+# ------------------------------------------------
+
+
+    NormalizedCounts_permutedt1t2=permutedims(NormalizedCountst1t2,[2,1])
+    #display(NormalizedCounts_permutedt1t2)
+
+    # Plot_Heatt1t2
+    Delta2_tracet1t2=PlotlyJS.heatmap(
+        x=t1,
+        y=t2,
+        z=NormalizedCounts_permutedt1t2,
+        vline=0
+    )
+    
+
+    Delta2_layoutt1t2 = PlotlyJS.Layout(
+        title=
+            "Number of instances of smallest $(ratio_small*100)% of Delta, <br>"*
+            "N="*"$(nr_vertices_array[1])" *", "*
+            "GradT="*"$(temperature_gradient_array[1])" *", "*
+            "MCSteps="*"$(nr_monte_carlo_steps_per_temperature_array[1])" *", "*
+            "B2-B1=0.1",
+        xaxis = PlotlyJS.attr(
+            tickmode = "array",
+            ticktext=t1,
+            tickvals=t1
+        ),
+        yaxis = PlotlyJS.attr(
+            tickmode = "array",
+            ticktext=t2,
+            tickvals=t2
+        ),
+        xaxis_title="MaxT 1, Theta 180°",
+        yaxis_title="MaxT 2, Theta 110°",
+        autosize=false
+        
+    )
+
+    Plot_Heatt1t2=PlotlyJS.plot(Delta2_tracet1t2,Delta2_layoutt1t2)
+
+
+    # statistics
+    x_mean=Statistics.mean(Delta2Sort[:,3])
+    y_mean=Statistics.mean(Delta2Sort[:,4])
+    x_std=Statistics.std(Delta2Sort[:,3])
+    y_std=Statistics.std(Delta2Sort[:,4])
+
+    if isnan(x_std)
+        x_std=0
+    end
+    if isnan(y_std)
+        y_std=0
+    end
+
+    #println("$x_mean, $y_mean, $x_std, $y_std")
+
+    PlotlyJS.add_shape!(Plot_Heatt1t2, PlotlyJS.line(
+        x0=x_mean-x_std, 
+        x1=x_mean+x_std,
+        y0=y_mean,
+        y1=y_mean,
+        line=PlotlyJS.attr(color=:red, width=3),
+    ))
+
+    PlotlyJS.add_shape!(Plot_Heatt1t2, PlotlyJS.line(
+        x0=x_mean, 
+        x1=x_mean,
+        y0=y_mean-y_std,
+        y1=y_mean+y_std,
+        line=PlotlyJS.attr(color=:red, width=3),
+    ))
+
+    PlotlyJS.add_shape!(Plot_Heatt1t2, PlotlyJS.circle(
+        x0=x_mean-0.025*x_std, 
+        x1=x_mean+0.025*x_std,
+        y0=y_mean-0.025*y_std,
+        y1=y_mean+0.025*y_std,
+        line=PlotlyJS.attr(color=:red, width=3),
+    ))
 
 
     # plot path and name
@@ -410,10 +564,7 @@ function scatter_plot_for_mulitple_gml(;
         *"_Trials="*"$nr_trials_per_temperature"
         *".png")
 
-    plot_filename_A = (
-        plot_filename_start
-        *"_Scatter"
-        *plot_filename_end)
+   
 
     plot_filename_B = (
         plot_filename_start
@@ -422,16 +573,23 @@ function scatter_plot_for_mulitple_gml(;
 
     plot_filename_C = (
         plot_filename_start
-        *"_Heatmap"
+        *"_HeatmapB"
         *plot_filename_end)
 
-    plot_total_path_A=plot_save_path*plot_filename_A
+    plot_filename_D = (
+        plot_filename_start
+        *"_HeatmapT"
+        *plot_filename_end)
+
+    
     plot_total_path_B=plot_save_path*plot_filename_B
     plot_total_path_C=plot_save_path*plot_filename_C
+    plot_total_path_D=plot_save_path*plot_filename_D
 
-    Plots.savefig(Plot_S2,plot_total_path_A)
+    
     Plots.savefig(Plot_H2,plot_total_path_B)
-    PlotlyJS.savefig(Plot_Heat2,plot_total_path_C)
+    PlotlyJS.savefig(Plot_Heatb1b2,plot_total_path_C)
+    PlotlyJS.savefig(Plot_Heatt1t2,plot_total_path_D)
 
 
 end
@@ -439,14 +597,14 @@ end
 
 scatter_plot_for_mulitple_gml(
     nr_vertices_array=[216],
-    maximal_temperature_array=[0.1,0.125,0.15,0.175,0.2],
-    bond_bending_const_array=[0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.5],
+    maximal_temperature_array=[0.075,0.1,0.125,0.15,0.175,0.2,0.225,0.25,0.275], 
+    bond_bending_const_array=[0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5],
     temperature_gradient_array=[0.1],
     nr_monte_carlo_steps_per_temperature_array=[0.01],
     theta_ground_state_array=[110.0,180.0],
     nr_trials_per_temperature=1,
     save_path = raw".\simulations\multiple_parameters\\",
-    filename_start = "m_BTMC_q_t_",    
+    filename_start = "m_rad_",    
     plot_save_path = raw".\simulations\analysis_plot\\",
-    plot_filename_start = "m_delta2_6_"
+    plot_filename_start = "m_r_d6_8"
 )
