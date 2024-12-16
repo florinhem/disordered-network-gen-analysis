@@ -2,7 +2,10 @@
 *.log
 *.json
 *.png
+*.h5
+*.gml
 
 # ignore ALL files in ANY directory
 my_networks/ 
 simulations/
+.vscode/
