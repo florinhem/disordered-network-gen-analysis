@@ -29,20 +29,18 @@ function local_bond_bending_energy_keating(
         vertex_label))
 
     theta_ground_state=spatial_network[]["theta_ground_state"]/360.0*2*pi
-    #println(cos(theta_ground_state))
 
     bond_bending_sum::Float64 = 0.0
 
     for j in 1:(spatial_network[]["coordination_nr"]-1)
-        s1::Int64=sign(neighbor_label_vec[j] - vertex_label)
-        v1::Vector{Float64}=spatial_network[vertex_label, neighbor_label_vec[j]][
+        sign1::Int64=sign(neighbor_label_vec[j] - vertex_label)
+        vector_j::Vector{Float64}=spatial_network[vertex_label, neighbor_label_vec[j]][
             "vector"]
         
         for k in j+1:spatial_network[]["coordination_nr"]
-            s::Int64=s1*sign(neighbor_label_vec[k] - vertex_label)
-            v2::Vector{Float64}=spatial_network[vertex_label, neighbor_label_vec[k]]["vector"]
-            #bond_bending_sum += (s*LinearAlgebra.dot(v1,v2) + 1/3 )^2
-            bond_bending_sum += (s*LinearAlgebra.dot(v1,v2) - cos(theta_ground_state) )^2 
+            sign::Int64=sign1*sign(neighbor_label_vec[k] - vertex_label)
+            vector_k::Vector{Float64}=spatial_network[vertex_label, neighbor_label_vec[k]]["vector"]
+            bond_bending_sum += (sign*LinearAlgebra.dot(vector_j,vector_k) - cos(theta_ground_state) )^2 
             
         end
     end
