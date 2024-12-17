@@ -500,8 +500,9 @@ end
 
 
 """
-Calculate pair angle averaged pair correlation function and total correlation
-function from vertex position of spatial network
+Calculate pair correlation function, total correlation function and
+cumulative coordination number as defined in equations 3-5 of
+10.1016/j.physrep.2018.03.001
 """
 function get_correlation_functions(
     spatial_network::MetaGraphsNext.MetaGraph;
@@ -551,11 +552,6 @@ function get_correlation_functions(
     vertex_density = spatial_network[]["nr_vertices"] / spatial_network[][
         "supercell_edge_length"]^3
 
-    # calculate ripley's K function / cumulative coordination number 
-    # (eq. 5 in 10.1016/j.physrep.2018.03.001)
-    ripley_k_vec = cumsum(vertex_nr_vec) ./(spatial_network[]["nr_vertices"] 
-        * vertex_density)
-
     # calculate pair correlaion function
     # (eq. 3 in 10.1016/j.physrep.2018.03.001)
     pair_correlation_fct_vec = ((1/(4*pi*vertex_density 
@@ -567,10 +563,15 @@ function get_correlation_functions(
     # (eq. 4 in 10.1016/j.physrep.2018.03.001)
     total_correlation_fct_vec = pair_correlation_fct_vec .- 1
 
+    # calculate cumulative coordination number 
+    # (eq. 5 in 10.1016/j.physrep.2018.03.001)
+    cumulative_coord_nr_vec = (4*pi*vertex_density*distance_histogram_bin_width
+        * cumsum(vertex_distance_vec.^2 .* pair_correlation_fct_vec ))
+
     # create dict to save
     correlation_functions_dict = Dict{String, Any}(
         "vertex_distance_vec" => vertex_distance_vec, 
-        "ripley_k_vec" => ripley_k_vec,
+        "cumulative_coord_nr_vec" => cumulative_coord_nr_vec,
         "pair_correlation_fct_vec" => pair_correlation_fct_vec,
         "total_correlation_fct_vec" => total_correlation_fct_vec)
 
@@ -590,17 +591,22 @@ end
 
 
 """
-Define a cluster metric as the average ball radius within which there are 12 
-vertices, which would be the second neighbor shell in a perfect diamond
-lattice, normalized by the second neighbor distance of the diamond lattice.
-For clusters, this metric is typically below 0.7
+Define a cluster metric as the average ball radius within which there is the
+given number of vertices, which would be the second neighbor shell in a 
+periodic lattice, normalized by the second neighbor distance of the diamond
+lattice. For clusters, this metric is typically below 0.7
 """
-function get_cluster_metric(correlation_functions_dict::Dict)
+function get_cluster_metric(correlation_functions_dict::Dict;
+    nr_vertices_second_neighbor_shell::Int = 17,
+    second_neighbor_distance_periodic_network::Float64 = 2*sqrt(6)/3)
 
-    # get distance where ripley's K function is 12
+    # get distance where cumulative coordination nr equals the given number of 
+    # vertices minus one to account for the fact that the central vertex is not
+    # contained in the cumulative coordination number 
     cluster_metric = correlation_functions_dict["vertex_distance_vec"][
-        findfirst(x -> x > 12, correlation_functions_dict["ripley_k_vec"])
-        ]/1.63
+        findfirst(x -> x > nr_vertices_second_neighbor_shell, 
+        correlation_functions_dict["cumulative_coord_nr_vec"])
+        ]/second_neighbor_distance_periodic_network
 
     return cluster_metric
 end
@@ -608,14 +614,17 @@ end
 
 """
 Get the second moment of the pore size distribution which, according to 
-10.1103/PhysRevE.104.014127 is an estimate of the critical pore radius
+10.1103/PhysRevE.104.014127 is an estimate of the critical pore radius squared
 (although they use another definition of the pore size distribution)
 """
 function get_pore_size_distribution_second_moment(
     pore_size_distribution_dict::Dict)
 
+    pore_size_step_length = (pore_size_distribution_dict["pore_size_vec"][2] 
+        - pore_size_distribution_dict["pore_size_vec"][1])
+
     # get second moment of pore size distribution
-    pore_size_distribution_second_moment = sum(
+    pore_size_distribution_second_moment = pore_size_step_length * sum(
         pore_size_distribution_dict["pore_size_vec"].^2 
         .* pore_size_distribution_dict["pore_size_distribution"])
 
@@ -641,7 +650,7 @@ function get_anisotropy_metric_from_structure_factor(
         "wavenumber_vec"] .- wavenumbers_to_check_vec[i])) 
         for i in eachindex(wavenumbers_to_check_vec)]
 
-    # sum the checked spectral densities
+    # sum the checked structure factors
     summed_structure_factor_to_check = sum( 
         structure_factor_angle_averaged_dict[
             "structure_factor_vec"][index_vec] )

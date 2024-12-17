@@ -209,7 +209,7 @@ end
 
 
 """
-Plot a spatial network in 2d or 3d
+Plot a spatial network in 3d
 """
 function plot_spatial_network(
     spatial_network::MetaGraphsNext.MetaGraph;
@@ -239,7 +239,7 @@ function plot_spatial_network(
 
     # generate plot
     f, ax, p = GraphMakie.graphplot(spatial_network,
-        layout=GraphMakie.NetworkLayout.Spring(dim=3),
+        layout=NetworkLayout.Spring(dim=3),
         node_size = node_size_vec,
         node_color = node_color_vec,
         edge_color = edge_color_vec) 
@@ -256,7 +256,71 @@ function plot_spatial_network(
 end
 
 
-function get_rainbow_color_vecs(spatial_network)
+"""
+Plot a spatial network in 3d without the need of GraphMakie.graphplot which
+does not always work
+"""
+function plot_spatial_network_2(spatial_network::MetaGraphsNext.MetaGraph)
+
+    # create spatial network to plot
+    spatial_network = deepcopy(spatial_network)
+    
+    # cut all bonds that reach out of supercell and replace
+    # them by half way bonds
+    spatial_network = cut_bonds_out_of_supercell!(spatial_network)
+
+    # change Plots backend to plotlyjs
+    Plots.plotlyjs()
+
+    # create a line plot for each bond
+    figure = Plots.plot()
+    for bond in MetaGraphsNext.edge_labels(spatial_network)
+        pos_1 = spatial_network[bond[1]]["position"]
+        pos_2 = spatial_network[bond[2]]["position"]
+        Plots.plot!([pos_1[1], pos_2[1]], 
+        [pos_1[2], pos_2[2]], 
+        [pos_1[3], pos_2[3]], 
+        type="scatter3d", mode="lines", color="black", showlegend=false)
+    end
+
+    Plots.gr()
+    return figure
+end
+
+
+"""
+Plot a spatial network in 3d without the need of GraphMakie.graphplot which
+does not always work
+"""
+function plot_spatial_network_2(spatial_network::MetaGraphsNext.MetaGraph)
+
+    # create spatial network to plot
+    spatial_network = deepcopy(spatial_network)
+    
+    # cut all bonds that reach out of supercell and replace
+    # them by half way bonds
+    spatial_network = cut_bonds_out_of_supercell!(spatial_network)
+
+    # change Plots backend to plotlyjs
+    Plots.plotlyjs()
+
+    # create a line plot for each bond
+    figure = Plots.plot()
+    for bond in MetaGraphsNext.edge_labels(spatial_network)
+        pos_1 = spatial_network[bond[1]]["position"]
+        pos_2 = spatial_network[bond[2]]["position"]
+        Plots.plot!([pos_1[1], pos_2[1]], 
+        [pos_1[2], pos_2[2]], 
+        [pos_1[3], pos_2[3]], 
+        type="scatter3d", mode="lines", color="black", showlegend=false)
+    end
+
+    Plots.gr()
+    return figure
+end
+
+
+function get_rainbow_color_vecs(spatial_network )
 
     # get node color vector
     node_color_vec = [GLMakie.Colors.HSV(rand(1:360), rand(1:360), rand(1:360)) 

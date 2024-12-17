@@ -7,6 +7,15 @@ import .NetworkGeneration as NG
 import .NetworkAnalysis as NA
 import .GeneralUtilities as GU
 
+# possible choices of nr_vertices for diamond: 64, 216, 512, 1000, that is (2*n)^3 with natural nr natural
+
+# the supercell edge lengths are 
+# 1000 vertices: supercell_edge_length = 11.547005383792516
+# 512 vertices: supercell_edge_length = 9.237604307034013
+# 216 vertices: supercell_edge_length = 6.9282032302755105
+# 64 vertices: supercell_edge_length = 4.619802153517007
+# which is the cube root of the number of vertices times 2/sqrt(3)
+
 import MetaGraphsNext
 import Graphs
 import Plots
@@ -15,6 +24,7 @@ import Glob
 import DataFrames
 import LaTeXStrings
 using StatsPlots
+
 
 function scatter_plot_for_mulitple_gml(;
     nr_vertices_array,
@@ -380,3 +390,4 @@ scatter_plot_for_mulitple_gml(
     plot_save_path = raw".\simulations\analysis_plot\\",
     plot_filename_start = "m_rad_ma_png_2_"
 )
+

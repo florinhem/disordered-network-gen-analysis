@@ -6,7 +6,12 @@ import .NetworkAnalysis as NA
 import .GeneralUtilities as GU
 
 import Plots
+import Random
 import LaTeXStrings as Latex
+import Measurements
+import Polynomials
+import FFTW
+import Statistics
 
 
 path = raw"..\..\presentations\material\\"
@@ -2314,112 +2319,584 @@ Plots.savefig(path*"volume_fraction_variance_high_t.png")
 
 
 
-plots_save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\random_networks\heat_cool_bond_bending_0.285\\"
+bond_bending_vec = [0.21, 0.285, 0.36]
 
-diamonds_analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\diamonds\\"
+for bond_bending in bond_bending_vec
+    
+    plots_save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\random_networks\heat_cool_bond_bending_"*string(bond_bending)*"\\"
 
-diamond_order_metrics_dicts = [GU.load_h5_dict(diamonds_analysis_data_path*"216_vertices_perfect_diamond_small_scale_order_metrics.h5"),
-GU.load_h5_dict(diamonds_analysis_data_path*"512_vertices_perfect_diamond_small_scale_order_metrics.h5"),
-GU.load_h5_dict(diamonds_analysis_data_path*"1000_vertices_perfect_diamond_small_scale_order_metrics.h5")]
+    diamonds_analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\diamonds\\"
 
-
-analysis_data_paths = [
-raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_bond_bending_0.285_heat_cool\\",
-raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\512_vertices_bond_bending_0.285\\",
-raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\1000_vertices_bond_bending_0.285\\"]
-
-order_metrics_names = ["bond_length_std_vec", "bond_angle_std_vec", "dihedral_angle_std_vec", "cluster_metric_vec", 
-"pore_size_distribution_second_moment_vec",
-"anisotropy_metric_from_structure_factor_vec", "anisotropy_metric_from_spectral_density_vec"]
+    diamond_order_metrics_dicts = [GU.load_h5_dict(diamonds_analysis_data_path*"216_vertices_perfect_diamond_small_scale_order_metrics.h5"),
+    GU.load_h5_dict(diamonds_analysis_data_path*"512_vertices_perfect_diamond_small_scale_order_metrics.h5"),
+    GU.load_h5_dict(diamonds_analysis_data_path*"1000_vertices_perfect_diamond_small_scale_order_metrics.h5")]
 
 
-order_metrics_labels = ["Bond length std", "Bond angle std", "Dihedral angle std", "Cluster metric",
-"Pore size dist. 2nd m.",
-"Anisotropy from s. f.", "Anisotropy from s. d."]
+    analysis_data_paths = [
+    raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_bond_bending_"*string(bond_bending)*"\\",
+    raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\512_vertices_bond_bending_"*string(bond_bending)*"\\",
+    raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\1000_vertices_bond_bending_"*string(bond_bending)*"\\"]
 
-order_metrics_dicts = []
+    order_metrics_names = ["bond_length_std_vec", "bond_angle_std_vec", "dihedral_angle_std_vec", "cluster_metric_vec", 
+    "pore_size_distribution_second_moment_vec",
+    "anisotropy_metric_from_structure_factor_vec", "anisotropy_metric_from_spectral_density_vec"]
 
-# loop through folders and append all order metrics to the order_metrics_dict
-for analysis_data_path in analysis_data_paths 
 
-    order_metrics_dict = Dict()
+    order_metrics_labels = ["Bond length std", "Bond angle std", "Dihedral angle std", "Cluster metric",
+    "Pore size dist. 2nd m.",
+    "Anisotropy from s. f.", "Anisotropy from s. d."]
 
-    for i in 1:5
+    order_metrics_dicts = []
 
-        current_analysis_data_path = analysis_data_path*"run_"*string(i)*"\\"
+    # loop through folders and append all order metrics to the order_metrics_dict
+    for analysis_data_path in analysis_data_paths 
 
-        current_order_metrics_dict = GU.load_h5_dict(current_analysis_data_path*"all_order_metrics.h5")
+        order_metrics_dict = Dict()
 
-        for (key, value) in current_order_metrics_dict
-            if haskey(order_metrics_dict, key)
-                order_metrics_dict[key] = vcat(order_metrics_dict[key], value)
-            else
-                order_metrics_dict[key] = value
+        for i in 1:5
+
+            current_analysis_data_path = analysis_data_path*"run_"*string(i)*"\\"
+
+            current_order_metrics_dict = GU.load_h5_dict(current_analysis_data_path*"all_order_metrics.h5")
+
+            for (key, value) in current_order_metrics_dict
+                if haskey(order_metrics_dict, key)
+                    order_metrics_dict[key] = vcat(order_metrics_dict[key], value)
+                else
+                    order_metrics_dict[key] = value
+                end
             end
+
         end
 
+        # sort all vectors in order of the total keating energy
+        for order_metric_name in order_metrics_names
+            order_metrics_dict[order_metric_name] = order_metrics_dict[order_metric_name][sortperm(order_metrics_dict["total_keating_energy_vec"])]
+        end
+        order_metrics_dict["filenames_vec"] = order_metrics_dict["filenames_vec"][sortperm(order_metrics_dict["total_keating_energy_vec"])]
+        sort!(order_metrics_dict["total_keating_energy_vec"])
+
+        push!(order_metrics_dicts, order_metrics_dict)
+
     end
 
-    # sort all vectors in order of the total keating energy
-    for order_metric_name in order_metrics_names
-        order_metrics_dict[order_metric_name] = order_metrics_dict[order_metric_name][sortperm(order_metrics_dict["total_keating_energy_vec"])]
-    end
-    order_metrics_dict["filenames_vec"] = order_metrics_dict["filenames_vec"][sortperm(order_metrics_dict["total_keating_energy_vec"])]
-    sort!(order_metrics_dict["total_keating_energy_vec"])
+    markershapes = [:circle, :rect, :diamond]
 
-    push!(order_metrics_dicts, order_metrics_dict)
-    
+    nr_vertices = [216, 512, 1000]
+
+    for i in eachindex(order_metrics_names)
+
+        Plots.scatter()
+
+        for j in 1:3
+
+
+            # get the temperature from the filtered filenames
+            pattern = r"T_([0-9\.]+)"
+            extracted_numbers = [match(pattern, s).captures[1] for s in order_metrics_dicts[j]["filenames_vec"]]
+            temperatures = parse.(Float64, extracted_numbers)
+
+            min_temp = minimum(temperatures)
+            max_temp = maximum(temperatures)
+            normalized_temperatures = (temperatures .- min_temp) ./ (max_temp - min_temp)
+            colormap = Plots.cgrad(:roma, rev = true, scale = :exp)
+            mapped_colors = [colormap[normalized_temperature] for normalized_temperature in  normalized_temperatures]
+
+            if order_metrics_names[i] == "anisotropy_metric_from_structure_factor_vec" || order_metrics_names[i] == "anisotropy_metric_from_spectral_density_vec"
+                Plots.scatter!(order_metrics_dicts[j]["total_keating_energy_vec"] ./ nr_vertices[j], order_metrics_dicts[j][order_metrics_names[i]] ./ Statistics.mean(order_metrics_dicts[j][order_metrics_names[i]]),
+                color = mapped_colors, markershape = markershapes[j], yscale = :log10)
+            else
+
+                Plots.scatter!([0], [diamond_order_metrics_dicts[j][order_metrics_names[i][1:end-4]]], markershape = markershapes[j], color = :black)
+
+                Plots.scatter!(order_metrics_dicts[j]["total_keating_energy_vec"] ./ nr_vertices[j], order_metrics_dicts[j][order_metrics_names[i]],
+                color = mapped_colors, markershape = markershapes[j])
+            end
+
+        end
+
+        if order_metrics_names[i] == "pore_size_distribution_second_moment_vec"
+            #Plots.scatter!( yscale = :log10)
+            #fancylogscale!()
+            Plots.scatter!(yscale = :lin)
+        else
+            Plots.scatter!(yscale = :lin)
+
+        end
+
+        Plots.scatter!(legend = false, ylabel = order_metrics_labels[i], xlabel = "Keating energy per vertex")
+        Plots.savefig(plots_save_path*order_metrics_names[i]*".png")
+    end
+
 end
+
+
+path = raw"..\..\presentations\material\\"
+
+# Set the size of the checkerboard
+n_rows, n_cols = 8, 8  # 8x8 checkerboard
+
+# Create an empty grid to hold the colors
+checkerboard = [Random.rand() for i in 1:n_rows, j in 1:n_cols]
+
+colormap = Plots.cgrad(:roma)
+
+checkerboard_colors = [colormap[checkerboard[i,j]] for i in 1:n_rows, j in 1:n_cols]
+
+# Plot the checkerboard
+Plots.plot(Plots.heatmap(1:n_rows, 1:n_cols, checkerboard_colors, aspect_ratio=:equal))
+Plots.savefig(path*"checkerboard.png")
+
+colormap = Plots.cgrad(:roma, scale=:lin)
+checkerboard_fft = FFTW.fft(checkerboard)
+checkerboard_fft_normalized = abs.(checkerboard_fft) ./ 4
+checkerboard_fft_colors = [colormap[abs(checkerboard_fft_normalized[i,j])] for i in 1:n_rows, j in 1:n_cols]
+Plots.plot(Plots.heatmap(1:n_rows, 1:n_cols, checkerboard_fft_colors, aspect_ratio=:equal))
+Plots.savefig(path*"checkerboard_fft.png")
+
+
+
+
+
+function heat_cool_temperature_vec(x, max_temp, heat_cool_rate)
+
+    if x < max_temp/heat_cool_rate 
+        return heat_cool_rate * x
+    elseif x < 2*max_temp/heat_cool_rate 
+        return 2* max_temp - heat_cool_rate*x
+    else
+        return 0
+    end
+end
+
+path = raw"..\..\presentations\material\\"
+
+x_vec = collect(0:0.01:5)
+y_vec = heat_cool_temperature_vec.(x_vec, 0.1, 0.1)
+
+min_temp = 0.1
+max_temp = 0.5
+temperatures = [0.1, 0.125, 0.15,  0.2, 0.25, 0.3, 0.4, 0.5]
+normalized_temperatures = (temperatures .- min_temp) ./ (max_temp - min_temp)
+colormap = Plots.cgrad(:roma, rev = true, scale = :exp)
+mapped_colors = [colormap[normalized_temperature] for normalized_temperature in  normalized_temperatures]
+
+Plots.plot()
+
+Plots.plot!(x_vec, heat_cool_temperature_vec.(x_vec, 0.2, 0.1),  alpha=1.0, color=mapped_colors[4])
+Plots.plot!(x_vec, heat_cool_temperature_vec.(x_vec, 0.1, 0.1),  alpha=1.0, color=mapped_colors[1])
+Plots.plot!(legend = false, xlabel="Attempts per bond chain", ylabel=Latex.L"kT", right_margin = 2Plots.mm, size = (500, 400))
+
+Plots.savefig(path*"heat_cool_0.1_temperature_profile_3.png")
+
+
+x = collect(-0.2:0.01:0.6)
+
+plot_1 = min.(1, exp.( .-  x ./ 0.1  ) )  
+plot_2 = min.(1, exp.( .-  x ./ 0.2  ) )  
+
+myplot = Plots.plot(x, plot_2, label = Latex.L"kT=0.2", linecolor=mapped_colors[4])
+myplot = Plots.plot!(x, plot_1, label = Latex.L"kT=0.1", linecolor=mapped_colors[1])
+
+Plots.plot!(grid=false, xlabel="Energy difference",
+ylabel = "Acceptance probability")
+
+Plots.savefig(path*"boltzmann_metropolis_temperatures_0.1_0.2.png")
+
+
+
+plots_save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\random_networks\heat_cool_bond_bending_comparison\\"
+
+bond_bending_vec = [0.21, 0.285, 0.36]
+
+nr_vertices_vec = [216, 512, 1000]
 
 markershapes = [:circle, :rect, :diamond]
 
-nr_vertices = [216, 512, 1000]
+markersizes = [3, 5, 7]
 
-for i in eachindex(order_metrics_names)
+color_palette = Plots.palette(:tab10)
 
-    Plots.scatter()
+order_metrics_names = ["bond_length_std_vec", "bond_angle_std_vec", "dihedral_angle_std_vec", "cluster_metric_vec", 
+    "pore_size_distribution_second_moment_vec",
+    "anisotropy_metric_from_structure_factor_vec", "anisotropy_metric_from_spectral_density_vec"]
 
-    for j in 1:3
 
+order_metrics_labels = ["Bond length std", "Bond angle std", "Dihedral angle std", "Cluster metric",
+    "Pore size dist. 2nd m.",
+    "Anisotropy from s. f.", "Anisotropy from s. d."]
+
+
+
+order_metrics_dict_arr = Array{Dict{Any, Any}, 2}(undef, length(bond_bending_vec), length(nr_vertices_vec))
+
+for j in eachindex(bond_bending_vec) 
+
+    # loop through folders and append all order metrics to the order_metrics_dict
+    for k in eachindex(nr_vertices_vec)
+
+        analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\\"*string(nr_vertices_vec[k])*"_vertices_bond_bending_"*string(bond_bending_vec[j])*"\\"
+
+        order_metrics_dict = Dict()
+
+        for i in 1:5
+
+            current_analysis_data_path = analysis_data_path*"run_"*string(i)*"\\"
+
+            current_order_metrics_dict = GU.load_h5_dict(current_analysis_data_path*"all_order_metrics.h5")
+
+            for (key, value) in current_order_metrics_dict
+                if haskey(order_metrics_dict, key)
+                    order_metrics_dict[key] = vcat(order_metrics_dict[key], value)
+                else
+                    order_metrics_dict[key] = value
+                end
+            end
+
+        end
+
+        # sort all vectors in order of the total keating energy
+        for order_metric_name in order_metrics_names
+            order_metrics_dict[order_metric_name] = order_metrics_dict[order_metric_name][sortperm(order_metrics_dict["total_keating_energy_vec"])]
+        end
+        order_metrics_dict["filenames_vec"] = order_metrics_dict["filenames_vec"][sortperm(order_metrics_dict["total_keating_energy_vec"])]
+        sort!(order_metrics_dict["total_keating_energy_vec"])
+
+        order_metrics_dict_arr[j, k] = order_metrics_dict
+
+    end
+
+end
+
+Plots.scatter()
+
+for j in eachindex(bond_bending_vec) 
+    for k in eachindex(nr_vertices_vec)
 
         # get the temperature from the filtered filenames
         pattern = r"T_([0-9\.]+)"
-        extracted_numbers = [match(pattern, s).captures[1] for s in order_metrics_dicts[j]["filenames_vec"]]
+        extracted_numbers = [match(pattern, s).captures[1] for s in order_metrics_dict_arr[j, k]["filenames_vec"]]
         temperatures = parse.(Float64, extracted_numbers)
 
-        min_temp = minimum(temperatures)
-        max_temp = maximum(temperatures)
+        min_temp = 0.08
+        max_temp = 0.26
         normalized_temperatures = (temperatures .- min_temp) ./ (max_temp - min_temp)
         colormap = Plots.cgrad(:roma, rev = true, scale = :exp)
         mapped_colors = [colormap[normalized_temperature] for normalized_temperature in  normalized_temperatures]
 
-        if order_metrics_names[i] == "anisotropy_metric_from_structure_factor_vec" || order_metrics_names[i] == "anisotropy_metric_from_spectral_density_vec"
-            Plots.scatter!(order_metrics_dicts[j]["total_keating_energy_vec"] ./ nr_vertices[j], order_metrics_dicts[j][order_metrics_names[i]] ./ diamond_order_metrics_dicts[j][order_metrics_names[i][1:end-4]],
-            color = mapped_colors, markershape = markershapes[j], yscale = :log10)
-        else
-            
-            Plots.scatter!([0], [diamond_order_metrics_dicts[j][order_metrics_names[i][1:end-4]]], markershape = markershapes[j], color = :black)
-
-            Plots.scatter!(order_metrics_dicts[j]["total_keating_energy_vec"] ./ nr_vertices[j], order_metrics_dicts[j][order_metrics_names[i]],
-            color = mapped_colors, markershape = markershapes[j])
-        end
-
+        Plots.scatter!(order_metrics_dict_arr[j, k]["bond_length_std_vec"], order_metrics_dict_arr[j, k]["bond_angle_std_vec"], 
+        markershape = markershapes[j], color = mapped_colors, label = Latex.L"\beta = "*string(bond_bending_vec[j])*", "*string(nr_vertices_vec[k])*" vertices", legend=:topleft, markersize=markersizes[k], alpha = 0.5)
     end
-
-    if order_metrics_names[i] == "pore_size_distribution_second_moment_vec"
-        #Plots.scatter!( yscale = :log10)
-        #fancylogscale!()
-        Plots.scatter!(yscale = :lin)
-    else
-        Plots.scatter!(yscale = :lin)
-        
-    end
-
-    Plots.scatter!(legend = false, ylabel = order_metrics_labels[i], xlabel = "Keating energy per vertex")
-    Plots.savefig(plots_save_path*order_metrics_names[i]*".png")
 end
 
-#%%
+Plots.scatter!(legend = false, xlabel = "Bond length st. d. / "*Latex.L"d", ylabel = "Bond angle st. d. / rad", rightmargin=5Plots.mm)
+
+Plots.savefig(plots_save_path*"bond_stretching_bending.png")
+
+
+
+Plots.scatter()
+
+for j in eachindex(bond_bending_vec) 
+    for k in eachindex(nr_vertices_vec)
+
+        # get the temperature from the filtered filenames
+        pattern = r"T_([0-9\.]+)"
+        extracted_numbers = [match(pattern, s).captures[1] for s in order_metrics_dict_arr[j, k]["filenames_vec"]]
+        temperatures = parse.(Float64, extracted_numbers)
+
+        min_temp = 0.08
+        max_temp = 0.26
+        normalized_temperatures = (temperatures .- min_temp) ./ (max_temp - min_temp)
+        colormap = Plots.cgrad(:roma, rev = true, scale = :exp)
+        mapped_colors = [colormap[normalized_temperature] for normalized_temperature in  normalized_temperatures]
+
+        Plots.scatter!(order_metrics_dict_arr[j, k]["bond_length_std_vec"], sqrt.(order_metrics_dict_arr[j, k]["pore_size_distribution_second_moment_vec"] ), 
+        markershape = markershapes[j], color = mapped_colors, label = Latex.L"\beta = "*string(bond_bending_vec[j])*", "*string(nr_vertices_vec[k])*" vertices", legend=:topleft, markersize=markersizes[k], alpha = 0.5)
+    end
+end
+
+Plots.scatter!(legend = false, xlabel = "Bond length st. d. / "*Latex.L"d", ylabel = "Critical pore radius / "*Latex.L"d", rightmargin=5Plots.mm)
+
+Plots.savefig(plots_save_path*"bond_stretching_pore_radius.png")
+
+Plots.scatter()
+
+for j in eachindex(bond_bending_vec) 
+    for k in eachindex(nr_vertices_vec)
+        # get the temperature from the filtered filenames
+        pattern = r"T_([0-9\.]+)"
+        extracted_numbers = [match(pattern, s).captures[1] for s in order_metrics_dict_arr[j, k]["filenames_vec"]]
+        temperatures = parse.(Float64, extracted_numbers)
+
+        min_temp = 0.08
+        max_temp = 0.26
+        normalized_temperatures = (temperatures .- min_temp) ./ (max_temp - min_temp)
+        colormap = Plots.cgrad(:roma, rev = true, scale = :exp)
+        mapped_colors = [colormap[normalized_temperature] for normalized_temperature in  normalized_temperatures]
+
+        Plots.scatter!(order_metrics_dict_arr[j, k]["bond_length_std_vec"], order_metrics_dict_arr[j, k]["anisotropy_metric_from_spectral_density_vec"] ./ minimum(order_metrics_dict_arr[j, k]["anisotropy_metric_from_spectral_density_vec"]), 
+        markershape = markershapes[j], color = mapped_colors, label = Latex.L"\beta = "*string(bond_bending_vec[j])*", "*string(nr_vertices_vec[k])*" vertices", legend=:topleft, markersize=markersizes[k], alpha = 0.5)
+    end
+end
+
+Plots.scatter!(legend = false, xlabel = "Bond length st. d. / "*Latex.L"d", ylabel = "Anisotropy metric", rightmargin=5Plots.mm)
+
+Plots.savefig(plots_save_path*"bond_stretching_anisotropy_spectral_density.png")
+
+Plots.scatter()
+
+for j in eachindex(bond_bending_vec) 
+    for k in eachindex(nr_vertices_vec)
+        # get the temperature from the filtered filenames
+        pattern = r"T_([0-9\.]+)"
+        extracted_numbers = [match(pattern, s).captures[1] for s in order_metrics_dict_arr[j, k]["filenames_vec"]]
+        temperatures = parse.(Float64, extracted_numbers)
+
+        min_temp = 0.08
+        max_temp = 0.26
+        normalized_temperatures = (temperatures .- min_temp) ./ (max_temp - min_temp)
+        colormap = Plots.cgrad(:roma, rev = true, scale = :exp)
+        mapped_colors = [colormap[normalized_temperature] for normalized_temperature in  normalized_temperatures]
+
+        Plots.scatter!(order_metrics_dict_arr[j, k]["bond_angle_std_vec"], order_metrics_dict_arr[j, k]["bond_length_std_vec"], 
+        markershape = markershapes[j], color = mapped_colors, label = Latex.L"\beta = "*string(bond_bending_vec[j])*", "*string(nr_vertices_vec[k])*" vertices", legend=:topleft, markersize=markersizes[k], alpha = 0.5)
+    end
+end
+
+Plots.scatter!(legend = false, xlabel = "Bond angle st. d. / rad", ylabel = "Bond length st. d. / "*Latex.L"d", rightmargin=5Plots.mm)
+
+Plots.savefig(plots_save_path*"bond_bending_stretching.png")
+
+Plots.scatter()
+
+for j in eachindex(bond_bending_vec) 
+    for k in eachindex(nr_vertices_vec)
+        # get the temperature from the filtered filenames
+        pattern = r"T_([0-9\.]+)"
+        extracted_numbers = [match(pattern, s).captures[1] for s in order_metrics_dict_arr[j, k]["filenames_vec"]]
+        temperatures = parse.(Float64, extracted_numbers)
+
+        min_temp = 0.08
+        max_temp = 0.26
+        normalized_temperatures = (temperatures .- min_temp) ./ (max_temp - min_temp)
+        colormap = Plots.cgrad(:roma, rev = true, scale = :exp)
+        mapped_colors = [colormap[normalized_temperature] for normalized_temperature in  normalized_temperatures]
+
+        Plots.scatter!(order_metrics_dict_arr[j, k]["bond_angle_std_vec"], sqrt.( order_metrics_dict_arr[j, k]["pore_size_distribution_second_moment_vec"] ), 
+        markershape = markershapes[j], color = mapped_colors, label = Latex.L"\beta = "*string(bond_bending_vec[j])*", "*string(nr_vertices_vec[k])*" vertices", legend=:topleft, markersize=markersizes[k], alpha = 0.5)
+    end
+end
+
+Plots.scatter!(legend = false,xlabel = "Bond angle st. d. / rad", ylabel = "Critical pore radius / "*Latex.L"d", rightmargin=5Plots.mm)
+
+Plots.savefig(plots_save_path*"bond_bending_pore_radius.png")
+
+
+Plots.scatter()
+
+for j in eachindex(bond_bending_vec) 
+    for k in eachindex(nr_vertices_vec)
+        # get the temperature from the filtered filenames
+        pattern = r"T_([0-9\.]+)"
+        extracted_numbers = [match(pattern, s).captures[1] for s in order_metrics_dict_arr[j, k]["filenames_vec"]]
+        temperatures = parse.(Float64, extracted_numbers)
+
+        min_temp = 0.08
+        max_temp = 0.26
+        normalized_temperatures = (temperatures .- min_temp) ./ (max_temp - min_temp)
+        colormap = Plots.cgrad(:roma, rev = true, scale = :exp)
+        mapped_colors = [colormap[normalized_temperature] for normalized_temperature in  normalized_temperatures]
+
+        Plots.scatter!(order_metrics_dict_arr[j, k]["bond_angle_std_vec"], order_metrics_dict_arr[j, k]["anisotropy_metric_from_spectral_density_vec"] ./ minimum(order_metrics_dict_arr[j, k]["anisotropy_metric_from_spectral_density_vec"]), 
+        markershape = markershapes[j], color = mapped_colors, label = Latex.L"\beta = "*string(bond_bending_vec[j])*", "*string(nr_vertices_vec[k])*" vertices", legend=:topleft, markersize=markersizes[k], alpha = 0.5)
+    end
+end
+
+Plots.scatter!(legend = false,xlabel = "Bond angle st. d. / rad", ylabel = "Anisotropy metric", rightmargin=5Plots.mm)
+
+Plots.savefig(plots_save_path*"bond_bending_anisotropy_spectral_density.png")
+
+
+plots_save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\random_networks\\"
+
+bond_bending_vec = [0.21, 0.285, 0.36]
+nr_vertices_vec = [216, 512, 1000]
+
+markershapes = [:circle, :rect, :diamond]
+markersizes = [3, 5, 7]
+order_metrics_names = ["bond_length_std_vec", "bond_angle_std_vec", "dihedral_angle_std_vec", "cluster_metric_vec", 
+    "pore_size_distribution_second_moment_vec",
+    "anisotropy_metric_from_structure_factor_vec", "anisotropy_metric_from_spectral_density_vec"]
+
+order_metrics_dict_arr = Array{Dict{Any, Any}, 2}(undef, length(bond_bending_vec), length(nr_vertices_vec))
+
+for j in eachindex(bond_bending_vec) 
+
+    # loop through folders and append all order metrics to the order_metrics_dict
+    for k in eachindex(nr_vertices_vec)
+
+        analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\\"*string(nr_vertices_vec[k])*"_vertices_bond_bending_"*string(bond_bending_vec[j])*"\\"
+
+        order_metrics_dict = Dict()
+
+        for i in 1:5
+
+            current_analysis_data_path = analysis_data_path*"run_"*string(i)*"\\"
+
+            current_order_metrics_dict = GU.load_h5_dict(current_analysis_data_path*"all_order_metrics.h5")
+
+            for (key, value) in current_order_metrics_dict
+                if haskey(order_metrics_dict, key)
+                    order_metrics_dict[key] = vcat(order_metrics_dict[key], value)
+                else
+                    order_metrics_dict[key] = value
+                end
+            end
+
+        end
+
+        # sort all vectors in order of the total keating energy
+        for order_metric_name in order_metrics_names
+            order_metrics_dict[order_metric_name] = order_metrics_dict[order_metric_name][sortperm(order_metrics_dict["total_keating_energy_vec"])]
+        end
+        order_metrics_dict["filenames_vec"] = order_metrics_dict["filenames_vec"][sortperm(order_metrics_dict["total_keating_energy_vec"])]
+        sort!(order_metrics_dict["total_keating_energy_vec"])
+
+        order_metrics_dict_arr[j, k] = order_metrics_dict
+
+    end
+
+end
+
+delta_vec = []
+
+for j in eachindex(bond_bending_vec) 
+    for k in eachindex(nr_vertices_vec)
+
+        # get the temperature from the filtered filenames
+        pattern = r"T_([0-9\.]+)"
+        extracted_numbers = [match(pattern, s).captures[1] for s in order_metrics_dict_arr[j, k]["filenames_vec"]]
+        temperatures = parse.(Float64, extracted_numbers)
+
+        # get vector that contains each temperature only once
+        unique_temperatures = unique(temperatures)
+
+        # loop through the unique temperatures get all order_metrics dicts that have the same temperature
+        for temperature in unique_temperatures
+
+            indices = findall(x->x==temperature, temperatures)
+
+            # get the order_metrics dict for the current temperature
+            order_metrics_dict = Dict()
+            for order_metric_name in order_metrics_names
+                order_metrics_dict[order_metric_name] = vcat([order_metrics_dict_arr[j, k][order_metric_name][i] for i in indices]...)
+            end
+
+            # get all combinations of the networks with the current temperature
+            combinations = collect(
+                Combinatorics.combinations(1:length(indices), 2))
+
+            # for each combination, calculate the statistical difference metric
+            # delta
+            for combination in combinations
+                delta = NA.get_statistical_difference(order_metrics_dict["bond_length_std_vec"][combination[1]],
+                    order_metrics_dict["bond_length_std_vec"][combination[2]],
+                    order_metrics_dict["bond_angle_std_vec"][combination[1]],
+                    order_metrics_dict["bond_angle_std_vec"][combination[2]])
+
+                push!(delta_vec, delta)
+            end
+        end
+    end
+end
+
+# plot the delta values
+Plots.histogram(delta_vec, xlabel="delta", ylabel="count", legend=false, right_margin = 3Plots.mm,)
+Plots.xlims!(0, 1)
+
+# save the plot
+Plots.savefig(plots_save_path * "delta_histogram.png")
+
+
+
+load_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks_th_fluct\216_vertices_bond_bending_0.285\\"
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\random_networks_th_fluct\216_vertices_bond_bending_0.285\\"
+
+# plot the bond angle and bond length standard deviation evolution for all
+# temperatures in two plots, one for low temperatures and one for high temperatures
+temperature_vec = [0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.2, 0.22, 0.24]
+
+# create a color map for the temperatures from blue to red
+min_temp = minimum(temperature_vec)
+max_temp = maximum(temperature_vec)
+normalized_temperatures = (temperature_vec .- min_temp) ./ (max_temp - min_temp)
+colormap = Plots.cgrad(:roma, rev = true, scale = :exp)
+mapped_colors = [colormap[normalized_temperature] for normalized_temperature in  normalized_temperatures]
+
+split_index = 6
+
+# low temperatures
+p1 = Plots.plot()
+p2 = Plots.plot()
+
+for i in 1:length(temperature_vec[1:split_index])
+
+    temperature = temperature_vec[i]
+
+    # load dictionary for current temperature
+    order_metric_evolution_dict = GU.load_h5_dict(load_path*"T_$(temperature_vec[i])_order_metric_evolution.h5")
+
+    filename_integers = order_metric_evolution_dict["filename_integers"]
+    bond_angle_std_vec = order_metric_evolution_dict["bond_angle_std_vec"]
+    bond_length_std_vec = order_metric_evolution_dict["bond_length_std_vec"]
+
+    Plots.plot!(p1, filename_integers ./ 100, bond_angle_std_vec, label="T = $(temperature)", color=mapped_colors[i])
+    Plots.plot!(p2, filename_integers ./ 100, bond_length_std_vec, label="T = $(temperature)", color=mapped_colors[i])
+
+end
+
+Plots.hline!(p1, [0.3665], label="Weevil", color=:black, linestyle=:dash)
+Plots.hline!(p2, [0.18], label="Weevil", color=:black, linestyle=:dash)
+
+Plots.plot!(p1, xlabel="MC step", ylabel="Bond angle st. d.")
+Plots.plot!(p2, xlabel="MC step", ylabel="Bond length st. d.")
+
+# save both plots
+Plots.savefig(p1, save_path*"bond_angle_std_evolution_low_temperatures.png")
+Plots.savefig(p2, save_path*"bond_length_std_evolution_low_temperatures.png")
+
+
+# high temperatures
+p3 = Plots.plot()
+p4 = Plots.plot()
+
+for i in 1:length(temperature_vec[split_index+1:end])
+
+    temperature = temperature_vec[split_index+i]
+
+    # load dictionary for current temperature
+    order_metric_evolution_dict = GU.load_h5_dict(load_path*"T_$(temperature_vec[split_index+i])_order_metric_evolution.h5")
+
+    filename_integers = order_metric_evolution_dict["filename_integers"]
+    bond_angle_std_vec = order_metric_evolution_dict["bond_angle_std_vec"]
+    bond_length_std_vec = order_metric_evolution_dict["bond_length_std_vec"]
+
+    Plots.plot!(p3, filename_integers ./ 100, bond_angle_std_vec, label="T = $(temperature)", color=mapped_colors[split_index+i])
+    Plots.plot!(p4, filename_integers ./ 100, bond_length_std_vec, label="T = $(temperature)", color=mapped_colors[split_index+i])
+
+end
+
+Plots.hline!(p3, [0.3665], label="Weevil", color=:black, linestyle=:dash)
+Plots.hline!(p4, [0.18], label="Weevil", color=:black, linestyle=:dash)
+
+Plots.plot!(p3, xlabel="MC step", ylabel="Bond angle st. d.")
+Plots.plot!(p4, xlabel="MC step", ylabel="Bond length st. d.")
+
+# save both plots
+Plots.savefig(p3, save_path*"bond_angle_std_evolution_high_temperatures.png")
+Plots.savefig(p4, save_path*"bond_length_std_evolution_high_temperatures.png")#%%
 
 
 using Base.Iterators
