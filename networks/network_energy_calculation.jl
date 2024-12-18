@@ -38,9 +38,9 @@ function local_bond_bending_energy_keating(
             "vector"]
         
         for k in j+1:spatial_network[]["coordination_nr"]
-            sign::Int64=sign1*sign(neighbor_label_vec[k] - vertex_label)
+            sign2::Int64=sign1*sign(neighbor_label_vec[k] - vertex_label)
             vector_k::Vector{Float64}=spatial_network[vertex_label, neighbor_label_vec[k]]["vector"]
-            bond_bending_sum += (sign*LinearAlgebra.dot(vector_j,vector_k) - cos(theta_ground_state) )^2 
+            bond_bending_sum += (sign2*LinearAlgebra.dot(vector_j,vector_k) - cos(theta_ground_state) )^2 
             
         end
     end
