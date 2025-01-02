@@ -83,11 +83,8 @@ function scatter_plot_for_mulitple_gml(;
 
                                 total_path=save_path*filename
 
-                                if(total_path*".gml" in path_array && 
+                                if(total_path*".gml" in path_array #&& 
                                     #filename!="m_BTMC_N=216_T=0.17_Beta=0.0_GradT=0.1_StepsPerT=0.01_Theta_GS=110.0_Trial=1" &&
-                                    filename!="m_BTMC_q_t__N=216_T=0.1_Beta=0.0_GradT=0.1_StepsPerT=0.01_Theta_GS=110.0_Trial=1" &&
-                                    filename!="m_BTMC_q_t__N=216_T=0.17_Beta=0.0_GradT=0.1_StepsPerT=0.01_Theta_GS=0.0_Trial=1" &&
-                                    filename!="m_BTMC_q_t__N=216_T=0.205_Beta=0.0_GradT=0.1_StepsPerT=0.01_Theta_GS=0.0_Trial=1"
                                     )
                                     #println("scatter done")
                                     println(filename)
@@ -158,7 +155,7 @@ function scatter_plot_for_mulitple_gml(;
 
     println(df)
 
-
+    #=
     df.BondLenghtStdDiff.=0.0
     df.BondAngleStdDiff.=0.0
 
@@ -235,14 +232,16 @@ function scatter_plot_for_mulitple_gml(;
 
     df.BondLenghtStdDiffLog10 = log10.(df.BondLenghtStdDiff .+ 1)
     df.BondAngleStdDiffLog10 = log10.(df.BondAngleStdDiff .+ 1)
+    =#
 
 
-
+    #=
     df.Shape = @. ifelse(df.Theta == 180.0, :rect, 
                     ifelse(df.Theta == 110.0, :diamond, 
-                    ifelse(df.Theta == 90.0, :circle, :x))); df
+                    ifelse(df.Theta == 100.0, :circle, :x))); df
+                    =#
 
-    df.GradTLog10 = log10.(df.GradT)
+    #df.GradTLog10 = log10.(df.GradT)
     df.AcceptedMovesLog10 = log10.(df.AcceptedMoves .+ 1)
    
     #println(df)
@@ -287,7 +286,7 @@ function scatter_plot_for_mulitple_gml(;
     @df df StatsPlots.scatter!(
         :BondLenghtStd, 
         :BondAngleStd, 
-        color_palette=[:grey80,:gray20],
+        color_palette=[:grey90,:gray50,:gray20],
         legendtitle =LaTeXStrings.L"\theta_\mathrm{eq}",
         group=:Theta,
         subplot=3)
@@ -355,10 +354,10 @@ scatter_plot_for_mulitple_gml(
     bond_bending_const_array=[0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5],
     temperature_gradient_array=[0.1],
     nr_monte_carlo_steps_per_temperature_array=[0.01],
-    theta_ground_state_array=[110.0,180.0],
+    theta_ground_state_array=[100.0,110.0,180.0],
     nr_trials_per_temperature=1, 
     save_path = raw".\simulations\multiple_parameters\\",
     filename_start = "m_rad_",    
     plot_save_path = raw".\simulations\analysis_plot\\",
-    plot_filename_start = "m_rad_ma_png_2_"
+    plot_filename_start = "m_rad_s_2_"
 )

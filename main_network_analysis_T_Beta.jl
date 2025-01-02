@@ -19,7 +19,17 @@ import FileIO
 using StatsPlots
 import PlotlyJS
 import Statistics
+import LsqFit
 
+
+function linear_f(x, p)
+    a1, b1 = p
+    display("x= $x")
+    display("a1= $a1")
+    display("b1= $b1")
+    display("a1 * x .+ b1= $(a1 * x .+ b1)")
+    return a1 * x .+ b1
+end
 
 
 function scatter_plot_for_mulitple_gml(;
@@ -30,6 +40,7 @@ function scatter_plot_for_mulitple_gml(;
     nr_monte_carlo_steps_per_temperature_array,
     theta_ground_state_array,
     nr_trials_per_temperature,
+    theta_compare,
     save_path,
     filename_start,
     plot_save_path,
@@ -90,12 +101,7 @@ function scatter_plot_for_mulitple_gml(;
                                 total_path=save_path*filename
 
                                 if(total_path*".gml" in path_array #=&& 
-                                    filename!="m_BTMC_q_t__N=216_T=0.125_Beta=0.25_GradT=0.1_StepsPerT=0.01_Theta_GS=110.0_Trial=1" &&
-                                    filename!="m_BTMC_q_t__N=216_T=0.125_Beta=0.3_GradT=0.1_StepsPerT=0.01_Theta_GS=110.0_Trial=1" &&
-                                    filename!="m_BTMC_q_t__N=216_T=0.125_Beta=0.3_GradT=0.1_StepsPerT=0.01_Theta_GS=180.0_Trial=1" &&
-                                    filename!="m_BTMC_q_t__N=216_T=0.15_Beta=0.3_GradT=0.1_StepsPerT=0.01_Theta_GS=180.0_Trial=1" &&
-                                    filename!="m_BTMC_q_t__N=216_T=0.15_Beta=0.25_GradT=0.1_StepsPerT=0.01_Theta_GS=110.0_Trial=1" &&
-                                    filename!="m_BTMC_q_t__N=216_T=0.15_Beta=0.25_GradT=0.1_StepsPerT=0.01_Theta_GS=180.0_Trial=1"=#
+                                    filename!="m_BTMC_q_t__N=216_T=0.125_Beta=0.25_GradT=0.1_StepsPerT=0.01_Theta_GS=110.0_Trial=1"=#
                                     )
                                     #println("scatter done")
                                     println(filename)
@@ -241,8 +247,8 @@ function scatter_plot_for_mulitple_gml(;
     #display(theta1)
     #display(theta2)
 
-    #ratio_small=0.025
-    ratio_small=0.2
+    ratio_small=0.025
+    #ratio_small=0.2
     #ratio_small=0.5
     number_of_smallest=ceil(Int,ratio_small*size(d,1))
     max=maximum(first(d, number_of_smallest), dims = 1)[1]
@@ -269,7 +275,7 @@ function scatter_plot_for_mulitple_gml(;
            
             for k in 1:size(b1,1)
                 for m in 1:size(b2,1)
-                    if B1===b1[k] && B2===b2[m] && Theta1===180.0 && Theta2===110.0
+                    if B1===b1[k] && B2===b2[m] && Theta1===180.0 && Theta2===theta_compare
                         if D<=max
                             #display("$B1, $B2")
                             Countsb1b2[k,m]+=1
@@ -284,7 +290,7 @@ function scatter_plot_for_mulitple_gml(;
 
             for k in 1:size(t1,1)
                 for m in 1:size(t2,1)
-                    if T1===t1[k] && T2===t2[m] && Theta1===180.0 && Theta2===110.0 && B2-B1===0.1
+                    if T1===t1[k] && T2===t2[m] && Theta1===180.0 && Theta2===theta_compare && B2-B1===0.1
                         if D<=max
                             display("$B1, $B2")
                             Countst1t2[k,m]+=1
@@ -327,12 +333,6 @@ function scatter_plot_for_mulitple_gml(;
 
 
 
-
-    
-
-    
-    
-   
     
     # HISTOGRAM
     Delta2Sort=Delta2MatrixRound[Delta2MatrixRound[:,:,5].<=max,:]
@@ -373,7 +373,7 @@ function scatter_plot_for_mulitple_gml(;
 
     # HEATMAP
   
-    NormalizedCounts_permutedb1b2=permutedims(NormalizedCountsb1b2,[2,1])
+    #NormalizedCounts_permutedb1b2=permutedims(NormalizedCountsb1b2,[2,1])
     #display(NormalizedCounts_permutedb1b2)
     
     
@@ -381,7 +381,7 @@ function scatter_plot_for_mulitple_gml(;
     Delta2_traceb1b2=PlotlyJS.heatmap(
         x=b1,
         y=b2,
-        z=NormalizedCounts_permutedb1b2,
+        z=NormalizedCountsb1b2,
         vline=0
     )
     
@@ -402,68 +402,82 @@ function scatter_plot_for_mulitple_gml(;
             ticktext=b2,
             tickvals=b2
         ),
-        xaxis_title="Beta 1, Theta 180°",
-        yaxis_title="Beta 2, Theta 110°",
+        xaxis_title="Beta 2, Theta $(theta_compare)°",
+        yaxis_title="Beta 1, Theta 180°",
         autosize=false
         
     )
 
-    Plot_Heatb1b2=PlotlyJS.plot(Delta2_traceb1b2,Delta2_layoutb1b2)
-
-
-    # statistics
-    x_mean=Statistics.mean(Delta2Sort[:,1])
-    y_mean=Statistics.mean(Delta2Sort[:,2])
-    x_std=Statistics.std(Delta2Sort[:,1])
-    y_std=Statistics.std(Delta2Sort[:,2])
-
-    if isnan(x_std)
-        x_std=0
-    end
-    if isnan(y_std)
-        y_std=0
-    end
-
-    #println("$x_mean, $y_mean, $x_std, $y_std")
-
-    PlotlyJS.add_shape!(Plot_Heatb1b2, PlotlyJS.line(
-        x0=x_mean-x_std, 
-        x1=x_mean+x_std,
-        y0=y_mean,
-        y1=y_mean,
-        line=PlotlyJS.attr(color=:red, width=3),
-    ))
-
-    PlotlyJS.add_shape!(Plot_Heatb1b2, PlotlyJS.line(
-        x0=x_mean, 
-        x1=x_mean,
-        y0=y_mean-y_std,
-        y1=y_mean+y_std,
-        line=PlotlyJS.attr(color=:red, width=3),
-    ))
-
-    PlotlyJS.add_shape!(Plot_Heatb1b2, PlotlyJS.circle(
-        x0=x_mean-0.025*x_std, 
-        x1=x_mean+0.025*x_std,
-        y0=y_mean-0.025*y_std,
-        y1=y_mean+0.025*y_std,
-        line=PlotlyJS.attr(color=:red, width=3),
-    ))
     
 
+   
 
+    #Linear fit
+    x=[]
+    y=[]
+    w=[]
+    for i in 1:size(NormalizedCountsb1b2,1)
+        for j in 1:size(NormalizedCountsb1b2,2)
+            #display(NormalizedCounts_permutedb1b2[i,j])
+            #display(b1[i])
+            #display(b2[j])
+            if NormalizedCountsb1b2[i,j]>0.0
+                append!(y,b1[i])
+                append!(x,b2[j])
+                #print(NormalizedCounts_permutedb1b2[i,j])
+                append!(w,1 ./ NormalizedCountsb1b2[i,j] .^2)
+            end
+        end
+    end
+    display("x:")
+    display(x)
+    display("y")
+    display(y)
+    display("w:")
+    display(w)
+    
+    p0=[1,0.1]
 
+    fit=LsqFit.curve_fit(linear_f,x,y,w,p0)
+
+    cf=LsqFit.coef(fit)
+
+    display("cf:")
+    display(cf)
+
+    #display("cf[1] .+ cf[2]*x= $(cf[1]*x .+ cf[2])")
+
+    #Prepare plot
+    x=[minimum(b1),maximum(b1)]
+    y=cf[1]*x .+ cf[2]
+
+    df_plot = DataFrames.DataFrame(
+        x=x,
+        y=y,
+    )
+
+    Delta2_traceb1b2_line=PlotlyJS.scatter(
+        df_plot,
+        x=:x, 
+        y=:y, 
+        mode="lines",
+        line = PlotlyJS.attr(color = "green")
+        ) 
+
+    display("finished")
+
+    Plot_Heatb1b2=PlotlyJS.plot([Delta2_traceb1b2,Delta2_traceb1b2_line],Delta2_layoutb1b2)
 # ------------------------------------------------
 
 
-    NormalizedCounts_permutedt1t2=permutedims(NormalizedCountst1t2,[2,1])
+    #NormalizedCounts_permutedt1t2=permutedims(NormalizedCountst1t2,[2,1])
     #display(NormalizedCounts_permutedt1t2)
 
     # Plot_Heatt1t2
     Delta2_tracet1t2=PlotlyJS.heatmap(
         x=t1,
         y=t2,
-        z=NormalizedCounts_permutedt1t2,
+        z=NormalizedCountst1t2,
         vline=0
     )
     
@@ -485,53 +499,13 @@ function scatter_plot_for_mulitple_gml(;
             ticktext=t2,
             tickvals=t2
         ),
-        xaxis_title="MaxT 1, Theta 180°",
-        yaxis_title="MaxT 2, Theta 110°",
+        xaxis_title="MaxT 2, Theta $(theta_compare)°",
+        yaxis_title="MaxT 1, Theta 180°",
         autosize=false
         
     )
 
     Plot_Heatt1t2=PlotlyJS.plot(Delta2_tracet1t2,Delta2_layoutt1t2)
-
-
-    # statistics
-    x_mean=Statistics.mean(Delta2Sort[:,3])
-    y_mean=Statistics.mean(Delta2Sort[:,4])
-    x_std=Statistics.std(Delta2Sort[:,3])
-    y_std=Statistics.std(Delta2Sort[:,4])
-
-    if isnan(x_std)
-        x_std=0
-    end
-    if isnan(y_std)
-        y_std=0
-    end
-
-    #println("$x_mean, $y_mean, $x_std, $y_std")
-
-    PlotlyJS.add_shape!(Plot_Heatt1t2, PlotlyJS.line(
-        x0=x_mean-x_std, 
-        x1=x_mean+x_std,
-        y0=y_mean,
-        y1=y_mean,
-        line=PlotlyJS.attr(color=:red, width=3),
-    ))
-
-    PlotlyJS.add_shape!(Plot_Heatt1t2, PlotlyJS.line(
-        x0=x_mean, 
-        x1=x_mean,
-        y0=y_mean-y_std,
-        y1=y_mean+y_std,
-        line=PlotlyJS.attr(color=:red, width=3),
-    ))
-
-    PlotlyJS.add_shape!(Plot_Heatt1t2, PlotlyJS.circle(
-        x0=x_mean-0.025*x_std, 
-        x1=x_mean+0.025*x_std,
-        y0=y_mean-0.025*y_std,
-        y1=y_mean+0.025*y_std,
-        line=PlotlyJS.attr(color=:red, width=3),
-    ))
 
 
     # plot path and name
@@ -597,14 +571,15 @@ end
 
 scatter_plot_for_mulitple_gml(
     nr_vertices_array=[216],
-    maximal_temperature_array=[0.075,0.1,0.125,0.15,0.175,0.2,0.225,0.25,0.275], 
+    maximal_temperature_array=[0.1,0.125,0.15,0.175,0.2], 
     bond_bending_const_array=[0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5],
     temperature_gradient_array=[0.1],
     nr_monte_carlo_steps_per_temperature_array=[0.01],
-    theta_ground_state_array=[110.0,180.0],
+    theta_ground_state_array=[110.0,180.0],                 #change 110 to 100
     nr_trials_per_temperature=1,
+    theta_compare=110.0,                                    #change 110 to 100
     save_path = raw".\simulations\multiple_parameters\\",
     filename_start = "m_rad_",    
     plot_save_path = raw".\simulations\analysis_plot\\",
-    plot_filename_start = "m_r_d6_8"
+    plot_filename_start = "m_r_1_"
 )
