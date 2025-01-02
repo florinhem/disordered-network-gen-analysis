@@ -24,10 +24,10 @@ import LsqFit
 
 function linear_f(x, p)
     a1, b1 = p
-    display("x= $x")
-    display("a1= $a1")
-    display("b1= $b1")
-    display("a1 * x .+ b1= $(a1 * x .+ b1)")
+    #display("x= $x")
+    #display("a1= $a1")
+    #display("b1= $b1")
+    #display("a1 * x .+ b1= $(a1 * x .+ b1)")
     return a1 * x .+ b1
 end
 
@@ -41,6 +41,8 @@ function scatter_plot_for_mulitple_gml(;
     theta_ground_state_array,
     nr_trials_per_temperature,
     theta_compare,
+    theta_compare2,
+    ratio_small,
     save_path,
     filename_start,
     plot_save_path,
@@ -247,9 +249,8 @@ function scatter_plot_for_mulitple_gml(;
     #display(theta1)
     #display(theta2)
 
-    ratio_small=0.025
-    #ratio_small=0.2
-    #ratio_small=0.5
+    
+    
     number_of_smallest=ceil(Int,ratio_small*size(d,1))
     max=maximum(first(d, number_of_smallest), dims = 1)[1]
     #display("max: $max")
@@ -275,7 +276,7 @@ function scatter_plot_for_mulitple_gml(;
            
             for k in 1:size(b1,1)
                 for m in 1:size(b2,1)
-                    if B1===b1[k] && B2===b2[m] && Theta1===180.0 && Theta2===theta_compare
+                    if B1===b1[k] && B2===b2[m] && Theta1===theta_compare2 && Theta2===theta_compare
                         if D<=max
                             #display("$B1, $B2")
                             Countsb1b2[k,m]+=1
@@ -290,7 +291,7 @@ function scatter_plot_for_mulitple_gml(;
 
             for k in 1:size(t1,1)
                 for m in 1:size(t2,1)
-                    if T1===t1[k] && T2===t2[m] && Theta1===180.0 && Theta2===theta_compare && B2-B1===0.1
+                    if T1===t1[k] && T2===t2[m] && Theta1===theta_compare2 && Theta2===theta_compare && B2-B1===0.1
                         if D<=max
                             display("$B1, $B2")
                             Countst1t2[k,m]+=1
@@ -403,7 +404,7 @@ function scatter_plot_for_mulitple_gml(;
             tickvals=b2
         ),
         xaxis_title="Beta 2, Theta $(theta_compare)°",
-        yaxis_title="Beta 1, Theta 180°",
+        yaxis_title="Beta 1, Theta $(theta_compare2)°",
         autosize=false
         
     )
@@ -425,7 +426,7 @@ function scatter_plot_for_mulitple_gml(;
                 append!(y,b1[i])
                 append!(x,b2[j])
                 #print(NormalizedCounts_permutedb1b2[i,j])
-                append!(w,1 ./ NormalizedCountsb1b2[i,j] .^2)
+                append!(w,1 ./ NormalizedCountsb1b2[i,j] .^-2)
             end
         end
     end
@@ -500,7 +501,7 @@ function scatter_plot_for_mulitple_gml(;
             tickvals=t2
         ),
         xaxis_title="MaxT 2, Theta $(theta_compare)°",
-        yaxis_title="MaxT 1, Theta 180°",
+        yaxis_title="MaxT 1, Theta $(theta_compare2)",
         autosize=false
         
     )
@@ -575,11 +576,13 @@ scatter_plot_for_mulitple_gml(
     bond_bending_const_array=[0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5],
     temperature_gradient_array=[0.1],
     nr_monte_carlo_steps_per_temperature_array=[0.01],
-    theta_ground_state_array=[110.0,180.0],                 #change 110 to 100
+    theta_ground_state_array=[110.0,100.0],                 #change 110 
     nr_trials_per_temperature=1,
-    theta_compare=110.0,                                    #change 110 to 100
+    theta_compare=110.0,                                    #change 110 
+    theta_compare2=100.0,
+    ratio_small=0.025,
     save_path = raw".\simulations\multiple_parameters\\",
     filename_start = "m_rad_",    
     plot_save_path = raw".\simulations\analysis_plot\\",
-    plot_filename_start = "m_r_1_"
+    plot_filename_start = "m_r_6_"
 )
