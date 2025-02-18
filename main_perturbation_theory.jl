@@ -12,27 +12,18 @@ function energy(r,a_List,theta_eq_degree,beta)
     E=0
     for i in 1:size(a_List,1)
         @assert length(a_List[i])===3
-        #display(r-a_List[i])
-        dE=(LinearAlgebra.dot(r-a_List[i],r-a_List[i])-1)^2
-        #display("dE, $dE")
+        dE=(LinearAlgebra.dot(r-a_List[i],r-a_List[i])/(3/16)-1)^2
+    
         E+=dE
         
     end
-
-    #display("E, $E")
-
-    #display("2:")
-
+   
     theta_eq_radian=theta_eq_degree/360.0*2*pi
 
     for i in 1:size(a_List,1)
         for j in 1:size(a_List,1)
             if i > j
-                #display("i, $i")
-                #display("j, $j")
-                #display("cos(theta_eq_radian), $(cos(theta_eq_radian))")
-                dE=2*beta*(LinearAlgebra.dot(r-a_List[i],r-a_List[j])-cos(theta_eq_radian))^2   #Factor 2 because of i>j symmetry
-                #display("dE, $dE")
+                dE=2*beta*(LinearAlgebra.dot(r-a_List[i],r-a_List[j])/(3/16)-cos(theta_eq_radian))^2   #Factor 2 because of i>j symmetry
                 E+=dE
             end
         end
@@ -108,7 +99,7 @@ function plot_perturbation_theory(
 
     Plot_PT=PlotlyJS.plot(PT,Delta2_layoutb1b2)
 
-    plot_total_path=raw".\simulations\analysis_plot\PT_8.png"
+    plot_total_path=raw".\simulations\analysis_plot\PT_11.png"
 
     PlotlyJS.savefig(Plot_PT,plot_total_path)
 
@@ -117,21 +108,23 @@ function plot_perturbation_theory(
 end
 
 display("------------")
-r=[0.01,0,0]
+r=[1/4,1/4,1/4]
 display(r)
-r_List=0.01*rand(3, 50)
+r_List=0.00*rand(3, 1) .+ r
 display(r_List)
 r_List= [r_List[:,i] for i in 1:size(r_List,2)]
 display(r_List)
 A=2/sqrt(3)
-theta_eq_degree_List=100.47122063449:0.5:118.47122063449
+theta_eq_degree_List=0:10:180
 display(theta_eq_degree_List)
 #[0,20,40,60,80,90,95,100,105,109.47122063449,115.0,120,125,130,140,160,180]
 
+
 energy_theta_List=perturbation_theory(
     r_List=r_List,#[r],     #Make random number array
-    a_List=[A*[-1/2,-1/2,-1/2], A*[1/2,1/2,-1/2], A*[1/2,-1/2,1/2], A*[-1/2,1/2,1/2]],      
+    #a_List=[A*[-1/2,-1/2,-1/2], A*[1/2,1/2,-1/2], A*[1/2,-1/2,1/2], A*[-1/2,1/2,1/2]],      
     #a_List=[[0,0,0], [0,0,1], [2*sqrt(2)/3,0,-1/3], [sqrt(23)/6 , 1/2, -1/3],[sqrt(23)/6 , -1/2, -1/3] ],
+    a_List=[[1/2,1/2,0], [1/2,0,1/2], [0,1/2,1/2], [0,0,0]],  
     theta_eq_degree_List=theta_eq_degree_List,
     beta=0.285
     )

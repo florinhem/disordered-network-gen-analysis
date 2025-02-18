@@ -14,27 +14,18 @@ import .Threads
 
 function save_multiple_N_T_trials_beta_gml(
     ;
-    nr_vertices_array,
-    maximal_temperature_array,
-    bond_bending_const_array,
-    temperature_gradient_array,
-    nr_monte_carlo_steps_per_temperature_array,
-    theta_ground_state_array,
-    nr_trials_per_temperature,
+    network_array,
     save_path,
     filename_start
     )
     
     println(Threads.nthreads())
 
-    Iter=collect(Iterators.product(
-        nr_vertices_array,
-        maximal_temperature_array,
-        bond_bending_const_array,
-        temperature_gradient_array,
-        nr_monte_carlo_steps_per_temperature_array,
-        theta_ground_state_array,
-        1:nr_trials_per_temperature))
+    @assert length(network_array[1])===7
+
+    Iter=collect(network_array)
+    println(Iter)
+    
 
     Threads.@threads for (
         nr_vertices,
@@ -43,7 +34,10 @@ function save_multiple_N_T_trials_beta_gml(
         temperature_gradient,
         nr_monte_carlo_steps_per_temperature,
         theta_ground_state,
-        i) in Iter
+        trial) in Iter
+
+        nr_vertices=Int(nr_vertices)
+        trial=Int(trial)
                 
         println("$nr_vertices"*", "*
 		"$maximal_temperature"*", "*
@@ -51,7 +45,7 @@ function save_multiple_N_T_trials_beta_gml(
 		"$temperature_gradient"*", "*
         "$nr_monte_carlo_steps_per_temperature"*", "*
         "$theta_ground_state"*", "*
-        "$i" )
+        "$trial" )
     
         evolution_dict = NA.get_evolution_dict(;
             nr_vertices = nr_vertices, 
@@ -93,7 +87,7 @@ function save_multiple_N_T_trials_beta_gml(
             *"_GradT="*"$temperature_gradient"
             *"_StepsPerT="*"$nr_monte_carlo_steps_per_temperature"
             *"_Theta_GS="*"$theta_ground_state"
-            *"_Trial="*"$i"
+            *"_Trial="*"$trial"
             )
 	
         NG.save_spatial_network_to_gml(
@@ -107,15 +101,24 @@ end
 
 try
     save_multiple_N_T_trials_beta_gml(;
-        nr_vertices_array=[64],             #[216],
-        maximal_temperature_array=[0.1,0.125,0.15,0.175,0.2],
-        bond_bending_const_array=[0.15,0.2,0.25,0.3,0.35],
-        temperature_gradient_array=[0.1],     
-        nr_monte_carlo_steps_per_temperature_array=[0.01],    
-        theta_ground_state_array=[100.0,110.0,],
-        nr_trials_per_temperature=5,
-        save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/multiple_parameters/",     
-        filename_start="m_a3_CN"
+        network_array=[
+            [216,0.1,0.4,0.1,0.01,100.0,2],
+            [216,0.2,0.3,0.1,0.01,100.0,2],
+
+            [216,0.2,0.35,0.1,0.01,100.0,2],
+            [216,0.15,0.3,0.1,0.01,100.0,2],
+
+            [216,0.15,0.35,0.1,0.01,100.0,2],
+            [216,0.125,0.4,0.1,0.01,100.0,2],
+
+            [216,0.125,0.25,0.1,0.01,100.0,2],
+            [216,0.175,0.3,0.1,0.01,100.0,2],
+            [216,0.175,0.3,0.1,0.01,100.0,3],
+
+            [216,0.175,0.35,0.1,0.01,100.0,2]
+            ],
+        save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/multiple_trials/",     
+        filename_start="m_t_"
     )
 catch e
     error_msg = sprint(showerror, e)

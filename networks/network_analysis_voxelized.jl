@@ -177,7 +177,6 @@ function get_binary_data_from_spatial_network(
         "nr_dimensions_data" => spatial_network[]["nr_dimensions"],
         "voxel_edge_length" => voxel_edge_length ,
         "label" => filename,
-        "coordination_nr" => spatial_network[]["coordination_nr"],
         "nr_vertices" => spatial_network[]["nr_vertices"],
         "bond_radius" => bond_radius )
 

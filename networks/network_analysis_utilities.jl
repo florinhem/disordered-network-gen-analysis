@@ -89,7 +89,8 @@ Calculate the average nr of monte carlo steps for quenching for all evolution
 dicts. I got the result 13.7 +- 6.74 for 216 vertices
 """
 function get_monte_carlo_steps_for_quenching_vec(
-    evolution_dicts_directory_path::String; nr_runs = 5)
+    evolution_dicts_directory_path::String; 
+    nr_runs = 5)
 
     nr_monte_carlo_steps_for_quenching_vec = Vector{Float64}()
 

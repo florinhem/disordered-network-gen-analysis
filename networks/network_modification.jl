@@ -129,13 +129,13 @@ function relax_single_vertex_keating!(
 
     # set energy, gradient and hessian for energy minimization
     energy(x) = energy_from_position_keating(x, spatial_network,
-        neighbor_positions_mat, next_neighbor_positions_arr )
+        neighbor_positions_mat, next_neighbor_positions_arr, vertex_to_relax )
                                                 
     gradient!(gradient, x) = gradient_keating!(gradient, x, spatial_network, 
-        neighbor_positions_mat, next_neighbor_positions_arr)
+        neighbor_positions_mat, next_neighbor_positions_arr, vertex_to_relax)
     
     hessian!(hessian, x) = hessian_keating!(hessian, x, spatial_network,
-        neighbor_positions_mat, next_neighbor_positions_arr)
+        neighbor_positions_mat, next_neighbor_positions_arr, vertex_to_relax)
 
     # find energy minimum
     minimizer_result = Optim.optimize(
@@ -772,10 +772,7 @@ function evolve_network!(
     end
 
     # determine nr of chains of four vertices
-    nr_chains = Int(spatial_network[]["nr_vertices"] 
-        * spatial_network[]["coordination_nr"] 
-        * (spatial_network[]["coordination_nr"]-1) 
-        * (spatial_network[]["coordination_nr"]-1) /2 ) 
+    nr_chains=length(get_all_chains(spatial_network))
 
     # attempt given number of bond switches
     for i in 1:nr_attempted_bond_switches
@@ -913,6 +910,10 @@ function evolve_network!(
         # update total energy
         push!(total_energy_vec, spatial_network[]["total_energy"])
 
+        if(move_accepted)   #*#
+            break
+        end
+
     end
 
     return [spatial_network, total_energy_vec, move_accepted_vec]
@@ -943,15 +944,13 @@ function evolve_network_temperature_sequence!(
     end
 
     # determine nr of chains of four vertices
-    nr_chains = Int(spatial_network[]["nr_vertices"] 
-        * spatial_network[]["coordination_nr"] 
-        * (spatial_network[]["coordination_nr"]-1) 
-        * (spatial_network[]["coordination_nr"]-1) /2 ) 
+    nr_chains=length(get_all_chains(spatial_network))
 
     # count finished quenches
     quench_counter = 0
 
     # evolve network according to given temperature sequence 
+    println("(evolution_dict[\"temperature_vec\"]), $(evolution_dict["temperature_vec"])")
     for i in eachindex(evolution_dict["temperature_vec"])
 
         nr_attempted_bond_switches = Int(round(nr_chains
@@ -1000,6 +999,13 @@ function evolve_network_temperature_sequence!(
                 evolution_dict = evolution_dict,
                 save_path = save_path)
 
+        end
+
+        if(sum(move_accepted_vec_new)>=1)   #*#
+            println("move_accepted_vec_new, $move_accepted_vec_new")
+            println("i,$i")
+            break
+            println("i,$i")
         end
     end
 

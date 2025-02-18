@@ -63,7 +63,7 @@ function get_primitive_cubic_network(
 
     original_spatial_network = Dict("original_graph" => original_graph,
                     "edge_length_vec" => edge_length_vec,
-                    "coordination_nr" => 2*nr_dimensions,
+                    "coordination_nr_vec" => fill(2*nr_dimensions,nr_vertices),
                     "nr_vertices" => nr_vertices,
                     "nr_dimensions" => nr_dimensions,
                     "supercell_edge_length" => supercell_edge_length,
@@ -149,7 +149,7 @@ function get_bcc_network(nr_vertices)
 
     original_spatial_network = Dict("original_graph" => original_graph,
                     "edge_length_vec" => edge_length_vec,
-                    "coordination_nr" => 8,
+                    "coordination_nr_vec" => fill(8,nr_vertices),
                     "nr_vertices" => nr_vertices,
                     "nr_dimensions" => 3,
                     "supercell_edge_length" => supercell_edge_length,
@@ -245,7 +245,7 @@ function get_fcc_network(nr_vertices )
     # create dictionary out of original graph and its properties
     original_spatial_network = Dict("original_graph" => original_graph,
                     "edge_length_vec" => edge_length_vec,
-                    "coordination_nr" => 12,
+                    "coordination_nr_vec" => fill(12,nr_vertices),
                     "nr_vertices" => nr_vertices,
                     "nr_dimensions" => 3,
                     "supercell_edge_length" => supercell_edge_length,
@@ -312,7 +312,7 @@ generate a diamond network using the graphs package. This algorithm is based on
 the information that the unit cell contains 8 vertices
 """
 function get_diamond_network(nr_vertices)
-
+    
     edge_length_unit_cell = 4/sqrt(3)
 
     # calculate the actual nr vertices, given that we require a 
@@ -341,7 +341,7 @@ function get_diamond_network(nr_vertices)
 
     original_spatial_network = Dict("original_graph" => original_graph,
                     "edge_length_vec" => edge_length_vec,
-                    "coordination_nr" => 4,
+                    "coordination_nr_vec" => fill(4,nr_vertices),
                     "nr_vertices" => nr_vertices,
                     "nr_dimensions" => 3,
                     "supercell_edge_length" => supercell_edge_length,
@@ -350,6 +350,241 @@ function get_diamond_network(nr_vertices)
     
     return original_spatial_network
 end
+
+
+
+"""
+generate matrix of vertex positions in the cubic gyroid structure,
+where each column is a position vector.
+Inside a unit cell, the vertex positions in units of the nearest
+neighbor distance are
+(1/8) .* [[7, 5, 1], [5, 3, 1], [3, 3, 3], [1, 5, 3], 
+          [1, 7, 5], [3, 1, 5], [5, 1, 7], [7, 7, 7]]
+"""
+function get_gyroid_vertex_position_mat(
+    nr_unit_cells_per_dimension::Int64, 
+    nr_vertices,
+    edge_length_unit_cell)
+
+    # generate empty matrix for vertex positions
+    vertex_position_mat = Matrix{Float64}(undef, 3, nr_vertices)
+
+    # set the coordinates inside a unit cell in units of the equilibrium bond
+    # length
+    coordinates_inside_unit_cell_vec = (
+        ((sqrt(8)/8)) .*    [[7, 5, 1], [5, 3, 1], [3, 3, 3], [1, 5, 3], 
+                     [1, 7, 5], [3, 1, 5], [5, 1, 7], [7, 7, 7]] )
+
+    current_vertex_nr = 1
+
+    for i in 0:nr_unit_cells_per_dimension-1
+        for j in 0:nr_unit_cells_per_dimension-1
+            for k in 0:nr_unit_cells_per_dimension-1
+
+                for nr_vertex_inside_unit_cell in 1:8   #TODO Change 8 to eachindex
+
+                    vertex_position_mat[:, current_vertex_nr] = ( 
+                        [i,j,k] .* edge_length_unit_cell
+                        .+ coordinates_inside_unit_cell_vec[
+                            nr_vertex_inside_unit_cell]
+                        )
+
+                    current_vertex_nr += 1
+
+                end
+
+            end
+        end
+    end
+
+    return vertex_position_mat
+end
+
+
+"""
+generate a gyroid network using the graphs package. This algorithm is based on
+the information that the unit cell contains 8 vertices
+"""
+function get_gyroid_network(nr_vertices)
+    
+    edge_length_unit_cell = sqrt(8) #TODO: Ask if this is correct
+
+    # calculate the actual nr vertices, given that we require a 
+    # cubic supercell and using the fact that the unit cell contains 8 vertices 
+    nr_unit_cells_per_dimension = max(1, Int(round( (nr_vertices/8)^(1/3) )) )
+    nr_vertices = 8 * nr_unit_cells_per_dimension^3
+
+    supercell_edge_length = nr_unit_cells_per_dimension*edge_length_unit_cell
+
+
+    # get matrix of vertex positions, where each column is a position vector
+    vertex_position_mat = get_gyroid_vertex_position_mat(
+        nr_unit_cells_per_dimension, 
+        nr_vertices,
+        edge_length_unit_cell)
+
+    # generate a graph by connecting all vertices of specified vertex positions
+    # that are closer to each other than the distance cutoff
+    # p=2 is the Euclidean distance
+    original_graph, edge_length_vec = Graphs.euclidean_graph(
+        vertex_position_mat, 
+        L= supercell_edge_length,
+        p=2, 
+        cutoff=1.1,
+        bc=:periodic)
+
+    original_spatial_network = Dict("original_graph" => original_graph,
+                    "edge_length_vec" => edge_length_vec,
+                    "coordination_nr_vec" => fill(3,nr_vertices),
+                    "nr_vertices" => nr_vertices,
+                    "nr_dimensions" => 3,
+                    "supercell_edge_length" => supercell_edge_length,
+                    "vertex_position_mat" => vertex_position_mat
+                    )
+    
+    return original_spatial_network
+end
+
+
+
+
+"""
+generate matrix of vertex positions in the cubic ctn structure,
+where each column is a position vector.
+Inside a unit cell, the vertex positions are given
+"""
+function get_ctn_vertex_position_mat(
+    nr_unit_cells_per_dimension::Int64, 
+    nr_vertices,
+    edge_length_unit_cell)
+
+    # generate empty matrix for vertex positions
+    vertex_position_mat = Matrix{Float64}(undef, 3, nr_vertices)
+
+    # set the coordinates inside a unit cell in units of the equilibrium bond
+    # length
+    coordinates_inside_unit_cell_vec = 
+    1/(sqrt((3/8-0.2083)^2+(0-0.2083)^2+(1/4-0.2083)^2)) .*
+    ([
+        [0,0.25,0.375],
+        [0,0.75,0.125],
+        [0.0417000000000001,0.4583000000000002,0.5416999999999998],
+        [0.0417000000000001,0.5416999999999996,0.9583000000000002],
+        [0.1249999999999998,0,0.7499999999999998],
+        [0.2083000000000002,0.2083000000000002,0.2083000000000002],
+        [0.2083000000000002,0.7916999999999998,0.2916999999999998],
+        [0.25,0.375,0],
+        [0.25,0.625,0.5],
+        [0.2916999999999998,0.2083000000000002,0.7916999999999998],
+        [0.2916999999999998,0.7916999999999998,0.7083000000000002],
+        [0.375,0,0.25],
+        [0.4583000000000002,0.4583000000000002,0.4583000000000002],
+        [0.4582999999999999,0.5417000000000001,0.0416999999999998],
+        [0.5000000000000002,0.25,0.625],
+        [0.4999999999999998,0.75,0.8750000000000002],
+        [0.5417000000000001,0.0416999999999996,0.4583000000000002],
+        [0.5417000000000001,0.9583000000000002,0.0416999999999998],
+        [0.625,0.5000000000000002,0.2499999999999998],
+        [0.7083000000000002,0.2916999999999998,0.7916999999999998],
+        [0.7083000000000002,0.7083000000000002,0.7083000000000002],
+        [0.75,0.125,0],
+        [0.75,0.8750000000000002,0.4999999999999998],
+        [0.7916999999999998,0.2916999999999998,0.2083000000000002],
+        [0.7916999999999998,0.7083000000000002,0.2916999999999998],
+        [0.8750000000000002,0.4999999999999998,0.75],
+        [0.9583000000000002,0.0417000000000001,0.5416999999999998],
+        [0.9583000000000002,0.9583000000000002,0.9583000000000002],
+    ] )
+
+    current_vertex_nr = 1
+
+    for i in 0:nr_unit_cells_per_dimension-1
+        for j in 0:nr_unit_cells_per_dimension-1
+            for k in 0:nr_unit_cells_per_dimension-1
+
+                for nr_vertex_inside_unit_cell in eachindex(coordinates_inside_unit_cell_vec)
+
+                    vertex_position_mat[:, current_vertex_nr] = ( 
+                        [i,j,k] .* edge_length_unit_cell
+                        .+ coordinates_inside_unit_cell_vec[
+                            nr_vertex_inside_unit_cell]
+                        )
+
+                    current_vertex_nr += 1
+
+                end
+
+            end
+        end
+    end
+
+    return vertex_position_mat
+end
+
+
+"""
+generate a ctn network using the graphs package. This algorithm is based on
+the information that the unit cell contains 28 vertices
+"""
+function get_ctn_network(nr_vertices)
+    
+    edge_length_unit_cell = 1/(sqrt((3/8-0.2083)^2+(0-0.2083)^2+(1/4-0.2083)^2)) #TODO Check this
+
+    # calculate the actual nr vertices, given that we require a 
+    # cubic supercell and using the fact that the unit cell contains 28 vertices 
+    nr_unit_cells_per_dimension = max(1, Int(round( (nr_vertices/28)^(1/3) )) )
+    nr_vertices = 28 * nr_unit_cells_per_dimension^3
+
+    supercell_edge_length = nr_unit_cells_per_dimension*edge_length_unit_cell
+
+
+    # get matrix of vertex positions, where each column is a position vector
+    vertex_position_mat = get_ctn_vertex_position_mat(
+        nr_unit_cells_per_dimension, 
+        nr_vertices,
+        edge_length_unit_cell)
+
+    # generate a graph by connecting all vertices of specified vertex positions
+    # that are closer to each other than the distance cutoff
+    # p=2 is the Euclidean distance
+    original_graph, edge_length_vec = Graphs.euclidean_graph(
+        vertex_position_mat, 
+        L= supercell_edge_length,
+        p=2, 
+        cutoff=1.1,
+        bc=:periodic)
+
+        println(vertex_position_mat)
+        println(size(vertex_position_mat))
+
+    coordination_nr_vec::Vector{Int64}=fill(-1,size(vertex_position_mat,2))
+   
+    for vertex in Graphs.vertices(original_graph)
+        nr_vertex=0
+        for edge in Graphs.neighbors(original_graph,vertex)
+            #println("edge, $edge")
+            nr_vertex+=1
+        end
+        coordination_nr_vec[vertex]=nr_vertex
+    end
+
+    println("coordination_nr_vec, $coordination_nr_vec")
+
+    original_spatial_network = Dict("original_graph" => original_graph,
+                    "edge_length_vec" => edge_length_vec,
+                    "coordination_nr_vec" => coordination_nr_vec,
+                    "nr_vertices" => nr_vertices,
+                    "nr_dimensions" => 3,
+                    "supercell_edge_length" => supercell_edge_length,
+                    "vertex_position_mat" => vertex_position_mat
+                    )
+    
+    return original_spatial_network
+end
+
+
+
+
 
 
 """
@@ -363,10 +598,9 @@ function convert_original_graph_to_spatial_network(
     spatial_network = MetaGraphsNext.MetaGraph(
         Graphs.Graph(); 
         label_type = Int64,
-        vertex_data_type = Dict{String, Vector{Float64}},
+        vertex_data_type = Dict{String, Any},
         edge_data_type = Dict{String, Union{Float64, Vector{Float64}}},
         graph_data = Dict{String, Any}(
-            "coordination_nr" => original_spatial_network["coordination_nr"],
             "nr_vertices" => original_spatial_network["nr_vertices"],
             "nr_dimensions" => original_spatial_network["nr_dimensions"],
             "supercell_edge_length" 
@@ -375,10 +609,12 @@ function convert_original_graph_to_spatial_network(
 
     # label each vertex by its code integer and assign it its position vector
     for vertex in Graphs.vertices(original_spatial_network["original_graph"])
-
-        spatial_network[vertex] = Dict( 
+        
+        spatial_network[vertex] = Dict{String, Any}( 
             "position" => original_spatial_network["vertex_position_mat"][
-                :,vertex])
+                :,vertex],
+            "coordination_nr" => original_spatial_network["coordination_nr_vec"][vertex]
+        )
 
     end
 
@@ -461,6 +697,26 @@ function get_periodic_network(evolution_dict)
             @error "The diamond network is only defined in 3d."
         end
 
+    elseif cmp(evolution_dict["network_type"], "gyroid") == 0
+
+        if evolution_dict["nr_dimensions"] == 3
+
+            original_spatial_network = get_gyroid_network(
+                evolution_dict["nr_vertices"] ) 
+        else
+            @error "The gyroid network is only defined in 3d."
+        end
+
+    elseif cmp(evolution_dict["network_type"], "ctn") == 0
+
+        if evolution_dict["nr_dimensions"] == 3
+
+            original_spatial_network = get_ctn_network(
+                evolution_dict["nr_vertices"] ) 
+        else
+            @error "The ctn network is only defined in 3d."
+        end
+
     else
         @error "Only primitive cubic and diamond networks are implemented so
             far."
@@ -489,7 +745,6 @@ function get_periodic_network(evolution_dict)
 
     # otherwise just get total energy
     else
-
         spatial_network[]["total_energy"] = get_total_energy_keating(
             spatial_network)
         spatial_network[]["total_energy_up_to_date"] = true
@@ -517,8 +772,7 @@ function get_poisson_random_network(evolution_dict::Dict)
         end
 
     else
-        @error "Only primitive cubic and diamond networks are implemented so
-            far."
+        @error "Only diamond networks are implemented so far."
 
     end
 
@@ -530,7 +784,6 @@ function get_poisson_random_network(evolution_dict::Dict)
         vertex_data_type = Dict{String, Any},
         edge_data_type = Dict{String, Any},
         graph_data = Dict{String, Any}(
-            "coordination_nr" => original_spatial_network["coordination_nr"],
             "nr_vertices" => original_spatial_network["nr_vertices"],
             "nr_dimensions" => original_spatial_network["nr_dimensions"],
             "supercell_edge_length" 
@@ -542,7 +795,9 @@ function get_poisson_random_network(evolution_dict::Dict)
 
         spatial_network[vertex] = Dict( 
             "position" => rand(Float64, (3)) 
-                .* original_spatial_network["supercell_edge_length"] )
+                .* original_spatial_network["supercell_edge_length"],
+            "coordination_nr" => original_spatial_network["coordination_nr_vec"][vertex]
+        )
 
     end
 
@@ -572,6 +827,9 @@ function get_poisson_random_network(evolution_dict::Dict)
 
     spatial_network[]["bond_bending_const"] = evolution_dict[
         "bond_bending_const"]
+
+    spatial_network[]["theta_ground_state"] = evolution_dict[
+        "theta_ground_state"]
     
     # thermally excite network if desired
     if evolution_dict["thermal_fluctuations"]
@@ -584,7 +842,6 @@ function get_poisson_random_network(evolution_dict::Dict)
 
     # otherwise just get total energy
     else
-
         spatial_network[]["total_energy"] = get_total_energy_keating(
             spatial_network)
         spatial_network[]["total_energy_up_to_date"] = true

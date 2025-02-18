@@ -1,6 +1,261 @@
 
 # there are some depreciated functions
 
+
+
+
+"""
+Calculate the Hessian matrix for a given vertex and Keating energy
+which is the a matrix of second derivatives of its energy
+"""
+function hessian_keating!(
+    hessian::Matrix{Float64},
+    x::Vector{Float64}, 
+    spatial_network::MetaGraphsNext.MetaGraph, 
+    neighbor_positions_mat::Matrix{Float64},
+    next_neighbor_positions_arr::Array{Float64},
+    vertex_to_relax::Int64)
+
+    # get constants that we use
+    nr_dimensions=spatial_network[]["nr_dimensions"]
+    theta_ground_state=spatial_network[]["theta_ground_state"] 
+    bond_bending_const=spatial_network[]["bond_bending_const"]
+
+    hessian[:,:] = zeros(nr_dimensions, nr_dimensions)
+
+    vertex_to_relax_coordination_nr=spatial_network[vertex_to_relax]["coordination_nr"]
+
+    for a in 1:nr_dimensions
+
+        # since the hessian is symmetric, it only needs to be calculated for
+        # the lower left half
+        for b in a:nr_dimensions
+
+            for j in 1:vertex_to_relax_coordination_nr
+        
+                bond_stretching_term = (
+                    3/2 * (x[b]-neighbor_positions_mat[b,j] ) 
+                    * (x[a]-neighbor_positions_mat[a,j] )
+                    + ==(a,b) * 3/4 * ( LinearAlgebra.norm( 
+                        neighbor_positions_mat[:,j] .- x )^2 - 1 ) )
+        
+                bond_bending_sum = 0.0
+        
+                for k in j+1:vertex_to_relax_coordination_nr
+        
+                    bond_bending_sum += (  
+                        3/4 * bond_bending_const  
+                        *( (2*x[b] - ( neighbor_positions_mat[b,j] 
+                                + neighbor_positions_mat[b,k] ))
+                            *(2*x[a] - ( neighbor_positions_mat[a,j] 
+                                + neighbor_positions_mat[a,k] ))
+                            + ==(a,b) * 2 *( LinearAlgebra.dot( 
+                                neighbor_positions_mat[:,j] .- x, 
+                                neighbor_positions_mat[:,k] .- x ) 
+                                - cosd(theta_ground_state) ) ))
+                    
+                end
+
+                # get bond bending terms due to next to nearest neighbors
+                neighbor_bond_bending_sum = 0.0
+        
+                for l in 1:vertex_to_relax_coordination_nr-1
+        
+                    neighbor_bond_bending_sum += ( 
+                        3/4 * bond_bending_const 
+                        *( next_neighbor_positions_arr[j,b,l] 
+                            - neighbor_positions_mat[b,j] )
+                        *( next_neighbor_positions_arr[j,a,l] 
+                            - neighbor_positions_mat[a,j] ) )
+                    
+                end
+        
+                # sum bond stretching and bending terms
+                hessian[a,b] += (bond_stretching_term 
+                    + bond_bending_sum 
+                    + neighbor_bond_bending_sum)
+        
+            end
+            
+        end
+
+        # use symmetry of hessian and copy entries from lower left to upper 
+        # right half
+        for b in 1:a-1
+            hessian[a,b] = hessian[b,a]
+        end
+    end
+end
+
+
+"""
+Calculate the negative Keating force (-f) on a given vertex
+which is the gradient of its local Keating energy.
+x is the position vector of the vertex
+"""
+function gradient_keating!(
+    gradient::Vector, 
+    x::Vector{Float64}, 
+    spatial_network::MetaGraphsNext.MetaGraph,
+    neighbor_positions_mat::Matrix{Float64},
+    next_neighbor_positions_arr::Array{Float64},
+    vertex_to_relax::Int64)
+
+    # get constants that we use
+    nr_dimensions=spatial_network[]["nr_dimensions"]
+    theta_ground_state=spatial_network[]["theta_ground_state"] 
+    bond_bending_const=spatial_network[]["bond_bending_const"] 
+
+    # reset gradient (for some reason the optimization does not
+    # work if this is done vectorized)
+    gradient[:] = zeros(nr_dimensions)
+
+    # get coodination_nr
+    vertex_to_relax_coordination_nr=spatial_network[vertex_to_relax]["coordination_nr"] 
+
+    neighbor_label_vec = collect(MetaGraphsNext.neighbor_labels(
+        spatial_network, 
+        vertex_to_relax))
+
+    for j in 1:vertex_to_relax_coordination_nr-1
+
+        # get vector pointing from central vertex to neighbor
+        distance_vector_j = neighbor_positions_mat[:,j] .- x
+
+        # get bond stretching term
+        bond_stretching_term = (
+                - 3/4 * ( LinearAlgebra.norm(distance_vector_j)^2 - 1 ) 
+            ) .* distance_vector_j
+
+        # get bond bending term
+        bond_bending_sum = zeros(nr_dimensions)
+
+        for k in j+1:vertex_to_relax_coordination_nr
+
+            bond_bending_sum .+= ( (
+                3/4 * bond_bending_const 
+                * ( LinearAlgebra.dot( distance_vector_j, 
+                    neighbor_positions_mat[:,k] .- x ) - cosd(theta_ground_state) ) )  
+                .* ( 2 .* x .- ( neighbor_positions_mat[:,j] 
+                    .+ neighbor_positions_mat[:,k] ) ) )
+            
+        end
+    end
+
+    # get bond bending terms due to next to nearest neighbors
+    neighbor_bond_bending_sum = zeros(nr_dimensions)
+
+    nbr_next_neighbor=size(next_neighbor_positions_arr,1)
+
+    for l in 1:nbr_next_neighbor
+
+        neighbor_bond_bending_sum .+= (
+                3/4 * bond_bending_const 
+                * ( LinearAlgebra.dot( distance_vector_j, 
+                    (neighbor_positions_mat[:,j] 
+                        .- next_neighbor_positions_arr[j,l]) ) - cosd(theta_ground_state))   
+            .* (next_neighbor_positions_arr[j,l] 
+            .- neighbor_positions_mat[:,j]) )
+        
+    end
+
+    # sum bond stretching and bending terms
+    gradient .+= (bond_stretching_term 
+        .+ bond_bending_sum 
+        .+ neighbor_bond_bending_sum)
+
+end
+
+
+###
+"""
+Measure the standard deviation of dihedral angles. This function might need to
+be revisited when considering other coordination numbers than 4 because the
+dihedral angle might have a peak around 0 which is not considered here
+"""
+function get_dihedral_angle_std(spatial_network::MetaGraphsNext.MetaGraph)
+
+    # initialize vector of diehedral angles
+    dihedral_angle_vec = Vector{Float64}()
+
+    # loop through all bonds
+    for bond in MetaGraphsNext.edge_labels(spatial_network)
+
+        # TODO: store bond[1] and bond[2] here, instead of calculating it always
+
+        # get vector along bond
+        bond_vec = spatial_network[bond...]["vector"]
+
+        # loop through all neighbors of one vertex 
+        for first_neighbor in setdiff( MetaGraphsNext.neighbor_labels(
+            spatial_network, bond[1]), bond[2])
+
+            # get vector from first neighbor to first bond vertex
+            first_neighbor_to_bond_vertex_vec = ( sign(bond[1] 
+                - first_neighbor)*spatial_network[first_neighbor, 
+                    bond[1]]["vector"])
+
+            # loop through all neighbors of other vertex
+            for second_neighbor in setdiff( MetaGraphsNext.neighbor_labels(
+                spatial_network, bond[2]), bond[1])
+
+                # get vector from second bond vertex to second neighbor
+                bond_vertex_to_second_neighbor_vec = ( sign(second_neighbor 
+                    - bond[2])*spatial_network[bond[2], 
+                        second_neighbor]["vector"])
+
+                # calculate dihedral angle according to the equation given in
+                # https://en.wikipedia.org/wiki/Dihedral_angle# 
+                dihedral_angle = atan( LinearAlgebra.norm(bond_vec)
+                        *LinearAlgebra.dot(first_neighbor_to_bond_vertex_vec,
+                            LinearAlgebra.cross(bond_vec,
+                                bond_vertex_to_second_neighbor_vec )),
+                    LinearAlgebra.dot(
+                        LinearAlgebra.cross(first_neighbor_to_bond_vertex_vec,
+                            bond_vec ),
+                        LinearAlgebra.cross(bond_vec,
+                              bond_vertex_to_second_neighbor_vec )))
+
+                # save dihedral angle
+                push!(dihedral_angle_vec, dihedral_angle)
+            end
+        end
+    end
+
+    # save one peak of dihedral angle distribution
+    lower_limit = 0
+    #upper_limit =  2 * pi / (spatial_network[]["coordination_nr"] - 1)    
+
+    max_coordination_nr=0
+    for vertex in MetaGraphsNext.labels(spatial_network)
+
+        # get iterator of bond combinations
+        bond_combinations_iter = Combinatorics.combinations(collect(
+            MetaGraphsNext.neighbor_labels(spatial_network, vertex)), 2)
+
+        vertex_coordination_nr=length(bond_combinations_iter)
+
+        if vertex_coordination_nr>max_coordination_nr
+
+            max_coordination_nr=vertex_coordination_nr
+            
+        end
+    end
+    upper_limit =  2 * pi / (max_coordination_nr - 1)
+    
+
+    dihedral_angle_one_peak_vec = dihedral_angle_vec[
+        (dihedral_angle_vec .> lower_limit) .& (dihedral_angle_vec .< upper_limit)]
+
+    # determine standard deviation
+    dihedral_angle_std = Statistics.std(dihedral_angle_one_peak_vec)
+
+    return [dihedral_angle_std, dihedral_angle_vec]
+end
+###
+
+
+
 """
 determine uncertainty on the local volume fraction for given window size
 """

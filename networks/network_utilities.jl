@@ -76,8 +76,8 @@ function get_neighbor_positions_mat(
     # create matrix to store neighbors coordinates
     neighbor_positions_mat = Matrix{Float64}(undef, 
         spatial_network[]["nr_dimensions"],
-        spatial_network[]["coordination_nr"] - length(exclude_vertices))
-    
+        spatial_network[central_vertex]["coordination_nr"] - length(exclude_vertices))
+
     # save coordinates to matrix and array
     current_neighbor = 1
 
@@ -110,6 +110,10 @@ function get_next_neighbor_positions_arr(
     spatial_network::MetaGraphsNext.MetaGraph,
     central_vertex::Int64)
 
+    # constants
+    vertex_coordination_nr=spatial_network[central_vertex]["coordination_nr"]
+    nr_dimensions=spatial_network[]["nr_dimensions"]
+
     # get central vertex's position
     central_vertex_position = spatial_network[central_vertex]["position"]
 
@@ -117,15 +121,24 @@ function get_next_neighbor_positions_arr(
     neighbor_vec = collect(
         MetaGraphsNext.neighbor_labels(spatial_network, central_vertex))
 
+    # get the maximal number of next nearest neighbors
+    max_coordination_nr=0
+    for neighbor in neighbor_vec
+        current_coordination_nr=spatial_network[neighbor]["coordination_nr"]
+        if current_coordination_nr>max_coordination_nr
+            max_coordination_nr=current_coordination_nr
+        end
+    end
+
     # create array to store next to nearest neighbors coordinates
     # The first array index labels the number of the direct neighbor
     next_neighbor_positions_arr = Array{Float64}(undef, 
-        spatial_network[]["coordination_nr"],
-        spatial_network[]["nr_dimensions"],
-        spatial_network[]["coordination_nr"]-1)
-    
+        vertex_coordination_nr,
+        nr_dimensions,
+        max_coordination_nr-1)
+
     # loop through central vertices neighbors
-    for i in 1:spatial_network[]["coordination_nr"]
+    for i in 1:vertex_coordination_nr
 
         current_next_neighbor = 1
 
@@ -167,9 +180,6 @@ function get_cluster_bonds_vec(
     # initialize vectors for bonds
     cluster_bonds_inside_vec = []
     cluster_bonds_edge_vec = []
-
-    #println(cluster_vertices_to_move_vec)
-    #println(cluster_vertices_outer_shell_vec)
 
     # get vector of all cluster vertices
     all_cluster_vertices_vec = vcat(cluster_vertices_to_move_vec, 
@@ -398,6 +408,27 @@ function introduces_ring_up_to_member(
 end
 
 
+
+"""
+Get all 4-vertex-chains where the first index label is lower than 
+the last index label in order to not count chains twice
+"""
+function get_all_chains(spatial_network::MetaGraphsNext.MetaGraph)
+    # We want all possible chains
+    declined_chains::Vector=[]
+    # We dont want connected rings that are smaller than 3
+    min_ring_size::Int64=3
+
+    all_chains=get_remaining_chains(
+        spatial_network,
+        declined_chains;
+        min_ring_size=min_ring_size)
+
+    return all_chains
+end
+
+
+
 """
 Get all remaining 4-vertex-chains that have not been declined yet and where the
 first index label is lower than the last index label in order to not count
@@ -425,7 +456,7 @@ function get_remaining_chains(
                         spatial_network, third_vertex), 
                     first_vertex, second_vertex, third_vertex)
 
-                    # creat current chain
+                    # create current chain
                     current_chain = (first_vertex, second_vertex, third_vertex,
                         fourth_vertex)
 
@@ -464,7 +495,8 @@ label in order to not count chains twice
 function get_random_chain(
     spatial_network::MetaGraphsNext.MetaGraph; 
     declined_chains::Vector = [], 
-    remaining_chains::Vector = [], seed = nothing,
+    remaining_chains::Vector = [], 
+    seed = nothing,
     min_ring_size::Int64 = 5)
 
     # set seed if desired
@@ -533,7 +565,7 @@ function get_incorrectly_coordinated_vertices(
     for vertex in MetaGraphsNext.labels(spatial_network)
         if (length( collect( MetaGraphsNext.neighbor_labels(
                                 spatial_network, vertex) ) ) 
-            !== spatial_network[]["coordination_nr"])
+            !== spatial_network[vertex]["coordination_nr"])
 
             push!(incorrectly_coordinated_vertices, vertex)
         end

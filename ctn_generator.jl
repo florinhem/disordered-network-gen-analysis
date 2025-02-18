@@ -1,6 +1,6 @@
 
 # include file where structure analysis modules are stored
-include("structure_analysis_modules_no_plotting.jl")
+include("structure_analysis_modules.jl")    #*#
 
 # import my module that contains all functions for the generation and analysis of networks
 import .NetworkGeneration as NG
@@ -10,9 +10,10 @@ import .GeneralUtilities as GU
 import MetaGraphsNext
 import Graphs
 import Plots
+Plots.plotlyjs()
 import .Threads
 
-function save_multiple_N_T_trials_beta_gml(
+function ctn_generator(
     ;
     nr_vertices_array,
     maximal_temperature_array,
@@ -20,7 +21,7 @@ function save_multiple_N_T_trials_beta_gml(
     temperature_gradient_array,
     nr_monte_carlo_steps_per_temperature_array,
     theta_ground_state_array,
-    nr_trials_per_temperature,
+    nr_trials_per_temperature_array,
     save_path,
     filename_start
     )
@@ -34,7 +35,7 @@ function save_multiple_N_T_trials_beta_gml(
         temperature_gradient_array,
         nr_monte_carlo_steps_per_temperature_array,
         theta_ground_state_array,
-        1:nr_trials_per_temperature))
+        nr_trials_per_temperature_array))
 
     Threads.@threads for (
         nr_vertices,
@@ -43,7 +44,7 @@ function save_multiple_N_T_trials_beta_gml(
         temperature_gradient,
         nr_monte_carlo_steps_per_temperature,
         theta_ground_state,
-        i) in Iter
+        trial) in Iter
                 
         println("$nr_vertices"*", "*
 		"$maximal_temperature"*", "*
@@ -51,29 +52,37 @@ function save_multiple_N_T_trials_beta_gml(
 		"$temperature_gradient"*", "*
         "$nr_monte_carlo_steps_per_temperature"*", "*
         "$theta_ground_state"*", "*
-        "$i" )
+        "$trial" )
     
         evolution_dict = NA.get_evolution_dict(;
             nr_vertices = nr_vertices, 
-            network_type="diamond", 
+            network_type="ctn", 
             bond_bending_const=bond_bending_const, 
             min_ring_size=3,
             theta_ground_state=theta_ground_state
             )
         spatial_network = NG.get_periodic_network(evolution_dict)
+
+        plot1=NG.plot_spatial_network_2(spatial_network, "black")
+        #display(plot1)
+
+        println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
+        println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
     
         temperature_vec, nr_monte_carlo_steps_per_temperature_vec = 
             NA.get_temperature_sequence_heating_cooling_gradient(
                 maximal_temperature;
                 temperature_gradient = temperature_gradient, 
                 nr_monte_carlo_steps_per_temperature = nr_monte_carlo_steps_per_temperature,
-                quench = true)
+                quench = false) #*#
 
         evolution_dict["temperature_vec"] = temperature_vec
         evolution_dict["nr_monte_carlo_steps_per_temperature_vec"] = nr_monte_carlo_steps_per_temperature_vec
 
         total_energy_vec::Vector{Float64}=[]
         move_accepted_vec::Vector{Bool}=[]
+
+        println("evolve_network_temperature_sequence begin")
 
         spatial_network, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_sequence!(
             spatial_network,
@@ -82,6 +91,18 @@ function save_multiple_N_T_trials_beta_gml(
             move_accepted_vec= move_accepted_vec,
             print_progress = true,
             print_every_nr_attempted_bond_switches = 1000)
+
+        println("nbr acc moves, $(length(move_accepted_vec)), $(sum(move_accepted_vec))")
+        
+        plot2=NG.plot_spatial_network_2(spatial_network, "red")
+        Plots.plot!(plot1,plot2)
+        display(plot1)
+        println("plot1")
+
+        println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
+        println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
+        
+        println("evolve_network_temperature_sequence end")
 
         evolution_dict["total_energy_vec"] = total_energy_vec
         evolution_dict["move_accepted_vec"] = move_accepted_vec
@@ -93,7 +114,7 @@ function save_multiple_N_T_trials_beta_gml(
             *"_GradT="*"$temperature_gradient"
             *"_StepsPerT="*"$nr_monte_carlo_steps_per_temperature"
             *"_Theta_GS="*"$theta_ground_state"
-            *"_Trial="*"$i"
+            *"_Trial="*"$trial"
             )
 	
         NG.save_spatial_network_to_gml(
@@ -106,16 +127,16 @@ function save_multiple_N_T_trials_beta_gml(
 end
 
 try
-    save_multiple_N_T_trials_beta_gml(;
-        nr_vertices_array=[64],             #[216],
-        maximal_temperature_array=[0.1,0.125,0.15,0.175,0.2],
-        bond_bending_const_array=[0.15,0.2,0.25,0.3,0.35],
-        temperature_gradient_array=[0.1],     
+    ctn_generator(;
+        nr_vertices_array=[28*8],          
+        maximal_temperature_array=[0.1*15],
+        bond_bending_const_array=[0.285],
+        temperature_gradient_array=[1],
         nr_monte_carlo_steps_per_temperature_array=[0.01],    
-        theta_ground_state_array=[100.0,110.0,],
-        nr_trials_per_temperature=5,
+        theta_ground_state_array=[180.0],
+        nr_trials_per_temperature_array=[1],
         save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/multiple_parameters/",     
-        filename_start="m_a3_CN"
+        filename_start="m_a_ctn_21"
     )
 catch e
     error_msg = sprint(showerror, e)

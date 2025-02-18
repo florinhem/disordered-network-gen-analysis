@@ -286,7 +286,7 @@ function scatter_plot_for_mulitple_gml(;
     @df df StatsPlots.scatter!(
         :BondLenghtStd, 
         :BondAngleStd, 
-        color_palette=[:grey90,:gray70,:grey40,:gray10],
+        color_palette=[:grey90,:gray70,:grey50,:grey40,:gray10],
         legendtitle =LaTeXStrings.L"\theta_\mathrm{eq}",
         group=:Theta,
         subplot=3)
@@ -354,10 +354,10 @@ scatter_plot_for_mulitple_gml(
     bond_bending_const_array=[0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5],
     temperature_gradient_array=[0.1],
     nr_monte_carlo_steps_per_temperature_array=[0.01],
-    theta_ground_state_array=[100.0,110.0,150.0,180.0],
+    theta_ground_state_array=[100.0,110.0,130.0,150.0,180.0],
     nr_trials_per_temperature=1, 
     save_path = raw".\simulations\multiple_parameters\\",
     filename_start = "m_rad_",    
     plot_save_path = raw".\simulations\analysis_plot\\",
-    plot_filename_start = "m_rad_s_4_"
+    plot_filename_start = "m_rad_s_5_"
 )
