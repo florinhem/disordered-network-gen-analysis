@@ -1,6 +1,644 @@
 
 
 
+
+
+function rotation_matrix(axis::Vector{Float64}, angle::Float64)
+    axis = axis / LinearAlgebra.norm(axis)
+    angle=angle/360*2*pi
+    cos_angle = LinearAlgebra.cos(angle)
+    sin_angle = LinearAlgebra.sin(angle)
+    one_minus_cos = 1 - cos_angle
+    x, y, z = axis
+
+    return [
+        cos_angle + x^2 * one_minus_cos  x * y * one_minus_cos - z * sin_angle  x * z * one_minus_cos + y * sin_angle;
+        y * x * one_minus_cos + z * sin_angle  cos_angle + y^2 * one_minus_cos  y * z * one_minus_cos - x * sin_angle;
+        z * x * one_minus_cos - y * sin_angle  z * y * one_minus_cos + x * sin_angle  cos_angle + z^2 * one_minus_cos
+    ]
+end
+
+function copy_and_rotate_and_translate(
+    edges,
+    axis::Vector{Float64}, 
+    shift::Vector{Float64}, 
+    translate::Vector{Float64}, 
+    n_fold::Int64)
+
+    new_edges=deepcopy(edges)
+    current_edge=length(edges)+1
+    for n in 1:(n_fold-1)
+        angle=360/n_fold*n
+        rot_matrix=rotation_matrix(axis,angle)
+
+        for (edge_nr,(vertex_position_start,vertex_position_end,length)) in edges
+            new_vertex_position_start=rot_matrix * (vertex_position_start .- shift) .+ shift .+ translate
+            new_vertex_position_end=rot_matrix * (vertex_position_end .- shift) .+ shift .+ translate
+            new_edges[current_edge]=(new_vertex_position_start,new_vertex_position_end,length)
+            current_edge+=1
+        end
+    end
+
+    #println(new_edges)
+    return new_edges
+end
+
+function copy_and_translate(
+    edges, 
+    translate::Vector{Float64})
+
+    new_edges=deepcopy(edges)
+    current_edge=length(edges)+1
+    for (edge_nr,(vertex_position_start,vertex_position_end,length)) in edges
+        new_vertex_position_start=vertex_position_start .+ translate
+        new_vertex_position_end=vertex_position_end .+ translate
+        new_edges[current_edge]=(new_vertex_position_start,new_vertex_position_end,length)
+        current_edge+=1
+    end
+    
+    #println(new_edges)
+    return new_edges
+end
+
+
+function calculate_edge_lengths(graph, vertex_nbrs_for_edges, vertex_edges, bc, L)
+    edge_length_vec = Dict{Graphs.SimpleGraphs.SimpleEdge{Int64}, Float64}()
+
+    for edge in Graphs.edges(graph)
+        source = Graphs.src(edge)
+        target = Graphs.dst(edge)
+        
+        #println("edge, $edge")
+        source_index = findfirst(x -> x == source, vertex_nbrs_for_positions)
+        target_index = findfirst(x -> x == target, vertex_nbrs_for_positions)
+        #println("After")
+
+        if source_index !== nothing && target_index !== nothing
+            #=
+            println("A")
+            println("source_index, $source_index")
+            println("vertex_positions[source_index], $(vertex_positions[source_index])")
+            println("target_index, $target_index")
+            println("vertex_positions[target_index], $(vertex_positions[target_index])")
+            =#
+            
+            if bc==:open
+                Δ = vertex_positions[source_index] - vertex_positions[target_index]
+            elseif bc==:periodic
+                Δ = abs.(vertex_positions[source_index] - vertex_positions[target_index])
+                Δ = min.(L .- Δ, Δ)
+            else 
+                throw(ArgumentError("$bc is not a valid boundary condition"))
+            end
+
+            distance=LinearAlgebra.norm(Δ)
+           
+            edge_length_vec[edge] = distance
+        else
+            println("cannot find index of source or target of edge to calculate edge lengths")
+        end
+    end
+
+    return edge_length_vec
+end
+
+function dict_to_matrix(vertex_positions::Dict{Int, Vector{Float64}})
+    nr_vertices = length(vertex_positions)
+    #println("nr_vertices, $nr_vertices")
+    nr_dimensions = length(vertex_positions[1])
+    #println("nr_dimensions, $nr_dimensions")
+    vertex_positions_mat = Matrix{Float64}(undef, nr_dimensions, nr_vertices)
+    #println("length(vertex_positions_mat), $(length(vertex_positions_mat))")
+
+    for (vertex, position) in vertex_positions
+        vertex_positions_mat[:, vertex] = position
+    end
+
+    println("length(vertex_positions_mat), $(length(vertex_positions_mat))")
+
+    return vertex_positions_mat
+end
+
+
+function create_vertex_nbrs_for_positions(
+    positions, 
+    bc,
+    L)
+
+    epsilon=0.001
+
+    distinct_positions=Dict(1=>positions[1])
+    current_vertex=2
+    
+    for pos in positions
+        reject=false
+
+        # look if there is already a vertex at this position
+        for (dict_vertex,dict_pos) in distinct_positions
+
+            # The idea of this if-elseif-else with "bc" and Δ comes from:
+            # function euclidean_graph from Graphs.jl
+            # Link:
+            # https://github.com/JuliaGraphs/Graphs.jl/blob/
+            # ec6ab1b0e267e2b1722837aa113e8da9a405785b/src/SimpleGraphs/
+            # generators/euclideangraphs.jl#L1-L24
+
+            if bc==:open
+                Δ = pos-dict_pos
+            elseif bc==:periodic
+                Δ = abs.(pos-dict_pos)
+                Δ = min.(L .- Δ, Δ)
+            else 
+                throw(ArgumentError("$bc is not a valid boundary condition"))
+            end
+
+            distance=LinearAlgebra.norm(Δ)
+
+            #println("$dict_vertex, $dict_pos, $distance")
+            if distance<epsilon
+                #println("reject adding pos, $dict_vertex") 
+                reject=true
+            end
+        end
+        
+        if(reject===false)
+            #println("accept adding pos, $pos")
+            distinct_positions[current_vertex]=pos
+            current_vertex+=1
+        end
+    end
+
+    println("distinct_positions, $distinct_positions")
+    nbr_distinct_positions=length(distinct_positions)
+
+    vertex_nbrs_for_positions=[]
+    for i in eachindex(positions)
+        pos=positions[i]
+        for (dict_vertex,dict_pos) in distinct_positions
+
+            if bc==:open
+                Δ = pos-dict_pos
+            elseif bc==:periodic
+                Δ = abs.(pos-dict_pos)
+                Δ = min.(L .- Δ, Δ)
+            else 
+                throw(ArgumentError("$bc is not a valid boundary condition"))
+            end
+
+            distance=LinearAlgebra.norm(Δ)
+
+            if distance<epsilon
+                push!(vertex_nbrs_for_positions,dict_vertex)
+            end
+        end
+    end
+
+    #println(vertex_nbrs_for_positions)
+    
+    
+    vertex_position_mat=dict_to_matrix(distinct_positions)
+    
+
+    return vertex_nbrs_for_positions, nbr_distinct_positions, vertex_position_mat
+end
+
+function create_graph(
+    positions,
+    bc,
+    L)
+
+    #println("(length(positions)) 4, $(length(positions))")
+    vertex_nbrs_for_positions, nbr_distinct_positions, vertex_position_mat=
+        create_vertex_nbrs_for_positions(positions, bc, L)
+    #println("(length(positions)) 2, $(length(positions))")
+
+    #println("nbr_distinct_positions, $nbr_distinct_positions")
+    
+    g = Graphs.SimpleGraph(nbr_distinct_positions)
+    #println("Graphs.vertices(g), $(Graphs.vertices(g))")
+
+    for i in eachindex(vertex_nbrs_for_positions)
+        if mod(i,2)===1
+            v1=vertex_nbrs_for_positions[i]
+            v2=vertex_nbrs_for_positions[i+1]
+            
+            
+            if !Graphs.has_edge(g, v1, v2)
+                Graphs.add_edge!(g, v1, v2)
+                #println(Graphs.edges(g))
+                #println("$v1,$v2")
+            end
+        end
+    end
+    
+    return g, vertex_nbrs_for_positions, vertex_position_mat
+end
+
+function filter_with_block(
+    edges,
+    x_min,
+    x_max,
+    y_min,
+    y_max,
+    z_min,
+    z_max)
+
+    new_edges=deepcopy(edges)
+
+    for (edge_nr,(vertex_position_start,vertex_position_end,length)) in edges
+           
+        x,y,z=vertex_position_start
+        x2,y2,z2=vertex_position_end
+        if (x_min>x || x_max<x || y_min>y || y_max<y || z_min>z || z_max<z) &&
+           (x_min>x2 || x_max<x2 || y_min>y2 || y_max<y2 || z_min>z2 || z_max<z2)
+            
+           delete!(new_edges, edge_nr)
+        end
+    end
+
+    return new_edges
+end
+
+function copy_and_translate_n_times(
+    edges, 
+    translate,
+    n)
+
+    new_edges=deepcopy(edges)
+    current_edge=length(edges)+1
+    println("*")
+    println("new_edges, $new_edges")
+    println("translate, $translate")
+
+    for i in 1:(n-1)
+        for (edge_nr,(vertex_position_start,vertex_position_end,length)) in edges 
+            new_vertex_position_start=vertex_position_start .+ translate*i
+            new_vertex_position_end=vertex_position_end .+ translate*i
+            new_edges[current_edge]=(new_vertex_position_start,new_vertex_position_end,length)
+            println("new_edges, $new_edges")
+            println("current_edge, $current_edge")
+            current_edge+=1
+        end
+    end
+    
+    return new_edges
+end
+
+function array_3D(
+    edges, 
+    translate_x,
+    nbr_x,
+    translate_y,
+    nbr_y, 
+    translate_z,
+    nbr_z)
+    
+    edges = copy_and_translate_n_times(edges,translate_x,nbr_x)
+    edges = copy_and_translate_n_times(edges,translate_y,nbr_y)
+    edges = copy_and_translate_n_times(edges,translate_z,nbr_z)
+    
+    return edges
+end
+
+function delete_copys(edges)
+
+    epsilon=0.001
+    new_edges=deepcopy(edges)
+
+    for (edge_nr_1,(vertex_position_start_1,vertex_position_end_1,length_1)) in edges
+        for (edge_nr_2,(vertex_position_start_2,vertex_position_end_2,length_2)) in edges
+            if edge_nr_1<edge_nr_2
+                if (length_1-length_2)<epsilon
+                    if ((LinearAlgebra.norm(vertex_position_start_1-vertex_position_start_2)<epsilon &&
+                       LinearAlgebra.norm(vertex_position_end_1-vertex_position_end_2)<epsilon) 
+                       ||
+                       (LinearAlgebra.norm(vertex_position_start_1-vertex_position_end_2)<epsilon &&
+                       LinearAlgebra.norm(vertex_position_end_1-vertex_position_start_2)<epsilon))
+
+                       delete!(new_edges, edge_nr_2)
+                    end
+                end
+            end
+        end
+    end
+    return new_edges
+end 
+
+function distance_periodic_bc(position_1, position_2, L)
+    Δ = abs.(position_1-position_2)
+    Δ = min.(L .- Δ, Δ)
+    distance=LinearAlgebra.norm(Δ)
+
+    return distance
+end
+
+function get_vertex_positions_dict(edges, epsilon, L)
+    
+    vertex_positions_dict=Dict()
+    next_vertex_nr=1
+    
+    for (edge_nr,(vertex_position_start,vertex_position_end,length)) in edges 
+        add_start_to_vertex_positions_dict=true
+        add_end_to_vertex_positions_dict=true
+        for (vertex_nr, vertex_position) in vertex_positions_dict
+            
+            if (distance_periodic_bc(vertex_position_start,vertex_position,L)<epsilon)
+                add_start_to_vertex_positions_dict=false
+            end
+
+            if (distance_periodic_bc(vertex_position_end,vertex_position,L)<epsilon)
+                add_end_to_vertex_positions_dict=false
+            end
+        end
+
+        if add_start_to_vertex_positions_dict==true
+            vertex_positions_dict[next_vertex_nr]=vertex_position_start
+            next_vertex_nr+=1
+        end
+
+        if add_end_to_vertex_positions_dict==true
+            vertex_positions_dict[next_vertex_nr]=vertex_position_end
+            next_vertex_nr+=1
+        end
+
+    end
+
+    println("(length(vertex_positions_dict)), $(length(vertex_positions_dict))")
+    return vertex_positions_dict
+end
+
+function get_mat_from_dict(vertex_positions_dict)
+
+
+    nr_vertices = length(vertex_positions_dict)
+    #println("nr_vertices, $nr_vertices")
+    nr_dimensions = length(vertex_positions_dict[1])
+    #println("nr_dimensions, $nr_dimensions")
+    vertex_position_mat = Matrix{Float64}(undef, nr_dimensions, nr_vertices)
+    #println("length(vertex_position_mat), $(length(vertex_position_mat))")
+
+    for (vertex_nr, vertex_position) in vertex_positions_dict
+        vertex_position_mat[:, vertex_nr] = vertex_position
+    end
+
+    println("(length(vertex_position_mat)/3), $(length(vertex_position_mat)/3)")
+    return vertex_position_mat
+end
+
+function get_edges_with_vertex(edges, vertex_positions_dict, epsilon, L)
+
+    edges_with_vertex=Dict()
+
+    for (edge_nr,(vertex_position_start,vertex_position_end,length)) in edges
+        vertex_start=nothing
+        vertex_end=nothing
+        for (vertex_nr, vertex_position) in vertex_positions_dict
+            if vertex_start===nothing && distance_periodic_bc(vertex_position_start, vertex_position, L)<epsilon
+                vertex_start=vertex_nr
+            end
+            if vertex_end===nothing && distance_periodic_bc(vertex_position_end, vertex_position, L)<epsilon
+                vertex_end=vertex_nr
+            end
+        end
+        if vertex_start<vertex_end
+            edges_with_vertex[edge_nr]=(vertex_position_start,vertex_position_end,length,vertex_start, vertex_end)
+        else
+            edges_with_vertex[edge_nr]=(vertex_position_start,vertex_position_end,length,vertex_end, vertex_start)
+        end
+    end
+
+    println("(length(edges_with_vertex)), $(length(edges_with_vertex))")
+    println("edges_with_vertex, $edges_with_vertex")
+    return edges_with_vertex
+end
+
+function create_graph(edges_with_vertex, nr_vertices)
+    
+    original_graph=Graphs.SimpleGraph(nr_vertices)
+    #println("(Graphs.vertices(original_graph)), $(Graphs.vertices(original_graph)),")
+   
+    for (edge_nr,(vertex_position_start,vertex_position_end,length,vertex_start,vertex_end)) in edges_with_vertex
+        Graphs.add_edge!(original_graph, vertex_start, vertex_end)
+    end
+    
+
+    return original_graph
+end
+
+function get_edge_length_vec(original_graph, edges_with_vertex)
+    edge_length_vec = Dict{Graphs.SimpleGraphs.SimpleEdge{Int64}, Float64}()
+
+    println("(Graphs.edges(original_graph)), $(Graphs.edges(original_graph))")
+    #println("(edges_with_vertex, $edges_with_vertex)")
+
+    #println("edge_length_vec, $edge_length_vec")
+    for edge in Graphs.edges(original_graph)
+        #println("edge, $edge")
+        v1 = Graphs.src(edge)
+        v2 = Graphs.dst(edge)
+        #println("v1, $v1")
+        #println("v2, $v2")
+        for (edge_nr,(vertex_position_start,vertex_position_end,length,vertex_start,vertex_end)) in edges_with_vertex
+            #println("v1, $v1, vertex_start, $vertex_start")
+            if v1==vertex_start && v2==vertex_end
+                edge_length_vec[edge]=length
+            end
+            
+        end
+
+        #println("edge, $edge")
+        #println("edge_length_vec, $edge_length_vec")
+        
+    end
+
+    println("(length(edge_length_vec)), $(length(edge_length_vec))")
+
+    return edge_length_vec
+end
+
+function fold_to_unitcell(edges)
+
+    old_edges=deepcopy(edges)
+    new_edges=Dict()
+    current_edge=1
+
+    for (edge_nr,(vertex_position_start,vertex_position_end,length)) in old_edges
+        new_vertex_position_start=mod.(vertex_position_start,1)
+        new_vertex_position_end=mod.(vertex_position_end,1)
+        new_edges[current_edge]=(new_vertex_position_start,new_vertex_position_end,length)
+        current_edge+=1
+    end
+
+    return new_edges
+end
+
+
+
+
+
+"""
+generate a srd network using the graphs package. This algorithm is based on
+the information that the unit cell contains 18 vertices
+"""
+function get_srd_network(nr_vertices)
+    
+    edge_length_unit_cell = 1/(sqrt(2)*1/8) #TODO Check this
+
+    # calculate the actual nr vertices, given that we require a 
+    # cubic supercell and using the fact that the unit cell contains 18 vertices    #TODO: Check 18
+    nr_unit_cells_per_dimension = max(1, Int(round( (nr_vertices/18)^(1/3) )) )
+    nr_vertices = 18 * nr_unit_cells_per_dimension^3
+
+    supercell_edge_length = nr_unit_cells_per_dimension*edge_length_unit_cell
+
+    #=
+    edges = Dict(1 => ([0.0, 1/4, 1/2], [0.0, 3/4, 1/2], 1/2),
+                 2 => ([1/4, 1/4, 1/4], [0.0, 1/4, 1/2], sqrt(2)/4))
+
+    # Symmetry operations             
+    edges = copy_and_rotate_and_translate(edges,[0.0,0.0,1.0],[0.0,0.0,0.0],[0.0,0.0,0.0],2)
+    println("(length(edges))1 , $(length(edges))")
+    #edges = copy_and_rotate_and_translate(edges,[0.0,1.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],2)
+    edges = copy_and_rotate_and_translate(edges,[1.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],2)
+    edges = copy_and_rotate_and_translate(edges,[1.0,1.0,1.0],[0.0,0.0,0.0],[0.0,0.0,0.0],3)
+    edges = copy_and_rotate_and_translate(edges,[1.0,1.0,0.0],[0.0,0.0,1/4],[1/2,1/2,0.0],2)
+    edges = copy_and_rotate_and_translate(edges,[1.0,0.0,0.0],[0.0,1/2,0.0],[1/2,0.0,0.0],4)
+    =#
+
+    edges = Dict(1 => ([0.0,0.0,0.0], [0.0,0.0,1.0], 1),
+                 2 => ([0.0,0.0,1.0], [0.0,1.0,1.0], 1),
+                 3 => ([0.0,1.0,1.0], [1.0,1.0,1.0], 1))
+
+    # Symmetry operations             
+    edges = copy_and_rotate_and_translate(edges,[1.0,1.0,1.0],[0.0,0.0,0.0],[0.0,0.0,0.0],3)
+    #edges = copy_and_rotate_and_translate(edges,[1.0,1.0,0.0],[0.0,-1/4,3/8],[1/2,1/2,0.0],2)
+    #edges = copy_and_rotate_and_translate(edges,[1.0,0.0,0.0],[0.0,1/2,1/4],[3/4,0.0,0.0],4)
+    
+    
+    # Array
+    #edges = copy_and_translate_n_times(edges, [1.0,0.0,0.0], 2)
+    
+    #edges = copy_and_translate_n_times(edges, [0.0,1.0,0.0], 3)
+    
+    #edges = copy_and_translate_n_times(edges, [0.0,0.0,1.0], 4)
+    
+    
+    println("(length(edges))2 , $(length(edges))")
+
+    #edges = fold_to_unitcell(edges)
+    println("edges, $edges")
+
+    delta=0.01
+    min=1
+    maximum=2
+    
+    x_min=min-delta
+    x_max=maximum-delta
+    y_min=min-delta
+    y_max=maximum-delta
+    z_min=min-delta
+    z_max=maximum-delta
+
+
+    #edges = filter_with_block(edges,x_min,x_max,y_min,y_max,z_min,z_max)
+
+    println("(length(edges))2b , $(length(edges))")
+
+    #edges = delete_copys(edges)
+
+
+   
+    println("(length(edges))3 , $(length(edges))")
+    L=2
+    translate_x=[1.0,0.0,0.0]
+    nbr_x=L
+    translate_y=[0.0,1.0,0.0]
+    nbr_y=L
+    translate_z=[0.0,0.0,1.0]
+    nbr_z=L
+
+    
+    edges = array_3D(
+        edges, 
+        translate_x, 
+        nbr_x,
+        translate_y,
+        nbr_y,
+        translate_z,
+        nbr_z)
+        
+
+    #bc=:periodic
+
+    # HERE
+    epsilon=0.001
+    vertex_positions_dict=get_vertex_positions_dict(edges, epsilon, L)
+    vertex_position_mat=get_mat_from_dict(vertex_positions_dict)
+    #println(0)
+    edges_with_vertex=get_edges_with_vertex(edges, vertex_positions_dict, epsilon, L)
+    #println(1)
+    nr_vertices=length(vertex_positions_dict)
+    original_graph=create_graph(edges_with_vertex, nr_vertices)
+    edge_length_vec=get_edge_length_vec(original_graph, edges_with_vertex)
+
+
+
+    #=
+    # graph and vertex nbrs for edges
+    original_graph, vertex_nbrs_for_edges, vertex_position_mat = 
+        create_graph(edges, bc, L)
+
+    # edge_length_vec
+    edge_length_vec = 
+        calculate_edge_lengths(original_graph, vertex_nbrs_for_edges, edges, bc, L)
+    =#
+
+    # coordination_nbr
+    coordination_nr_vec::Vector{Int64}=fill(-1,size(Graphs.vertices(original_graph)))
+    for vertex in Graphs.vertices(original_graph)
+        nr_vertex=0
+        for edge in Graphs.neighbors(original_graph,vertex)
+            #println("edge, $edge")
+            nr_vertex+=1
+        end
+        coordination_nr_vec[vertex]=nr_vertex
+    end
+
+    println("coordination_nr_vec, $coordination_nr_vec")
+    println("(length(coordination_nr_vec)), $(length(coordination_nr_vec))")
+
+    #=
+    println("vertex_nbrs_for_edges, $vertex_nbrs_for_edges")
+    println("vertex_position_mat, $vertex_position_mat")
+    println("edge_length_vec, $edge_length_vec")
+    println("coordination_nr_vec, $coordination_nr_vec")
+
+    println("(length(vertex_nbrs_for_edges)), $(length(vertex_nbrs_for_edges))")
+    println("(length(vertex_position_mat)/dimensions), $(length(vertex_position_mat)/3)")
+    println("(length(edge_length_vec)), $(length(edge_length_vec))")
+    println("(length(coordination_nr_vec)), $(length(coordination_nr_vec))")
+    =#
+
+    original_spatial_network = Dict(
+        "original_graph" => original_graph,
+        "edge_length_vec" => edge_length_vec,
+        "coordination_nr_vec" => coordination_nr_vec,
+        "nr_vertices" => nr_vertices,
+        "nr_dimensions" => 3,
+        "supercell_edge_length" => supercell_edge_length,
+        "vertex_position_mat" => vertex_position_mat
+        )
+    
+    println("get_srd_network end")
+    return original_spatial_network
+end
+
+
+
+
+
+
+
 ###
 
 # include file where structure analysis modules are stored

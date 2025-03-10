@@ -100,6 +100,7 @@ import GeometryBasics   # to create meshes out of networks
 import Plots    # for plotting
 import LaTeXStrings as Latex # to display latex symbols in plot labels
 import Format   # for python-like string formatting 
+import Colors
 
 # set path to files
 if Sys.iswindows()

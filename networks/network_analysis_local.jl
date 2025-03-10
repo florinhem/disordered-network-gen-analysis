@@ -63,18 +63,18 @@ function get_bond_angle_std(spatial_network::MetaGraphsNext.MetaGraph)
 
             # get scalar product of vectors representing the current bond
             # combination
+
+            vector_1=spatial_network[vertex, bond_combination[1]]["vector"]
+            vector_2=spatial_network[vertex, bond_combination[2]]["vector"]
+
             scalar_product = (sign(bond_combination[1] - vertex)
                 * sign(bond_combination[2] - vertex)
-                * LinearAlgebra.dot(spatial_network[vertex, 
-                        bond_combination[1]]["vector"], 
-                    spatial_network[vertex, bond_combination[2]]["vector"] ))
+                * LinearAlgebra.dot(vector_1, vector_2))
 
             # calculate bond angle
             bond_angle = acos( scalar_product/ sqrt(
-                spatial_network[vertex, bond_combination[1]][
-                        "distance_squared"]
-                    *spatial_network[vertex, bond_combination[2]][
-                        "distance_squared"]) )
+                LinearAlgebra.dot(vector_1,vector_1)*
+                LinearAlgebra.dot(vector_2,vector_2)) )
 
             bond_angle_vec[angle_count] = bond_angle
 

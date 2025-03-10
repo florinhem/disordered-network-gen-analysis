@@ -279,10 +279,27 @@ function plot_spatial_network_2(
     for bond in MetaGraphsNext.edge_labels(spatial_network)
         pos_1 = spatial_network[bond[1]]["position"]
         pos_2 = spatial_network[bond[2]]["position"]
-        Plots.plot!([pos_1[1], pos_2[1]], 
-        [pos_1[2], pos_2[2]], 
-        [pos_1[3], pos_2[3]], 
-        type="scatter3d", mode="lines", color=color, showlegend=false)
+
+        len=2.0
+        if LinearAlgebra.norm(pos_1 .- pos_2)<len
+
+            Plots.plot!([pos_1[1], pos_2[1]], 
+                        [pos_1[2], pos_2[2]], 
+                        [pos_1[3], pos_2[3]], 
+            type="scatter3d", mode="lines", color=color, showlegend=false)
+        else
+            println("We ignored the line in the plot from $pos_1 to $pos_2")
+        end
+        #=
+        markersize_1 = rand(1:2)
+        markersize_2 = rand(1:2)
+        color_1 = :black #Colors.RGB(rand(), rand(), rand())
+        color_2 = :black #Colors.RGB(rand(), rand(), rand())
+        Plots.scatter!([pos_1[1]], [pos_1[2]], [pos_1[3]], 
+                       markersize=markersize_1, marker=:circle, color=color_1, showlegend=false)
+        Plots.scatter!([pos_2[1]], [pos_2[2]], [pos_2[3]], 
+                       markersize=markersize_2, marker=:circle, color=color_2, showlegend=false)
+        =#
     end
 
     Plots.gr()
