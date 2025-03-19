@@ -4,6 +4,288 @@
 
 
 
+
+
+
+"""
+generate a srd network using the graphs package. This algorithm is based on
+the information that the unit cell contains 10 vertices
+"""
+function get_srd_network(nr_vertices)
+    
+    edge_length_unit_cell = 2
+    nr_vertices_per_unit_cell= 10
+
+    # calculate the actual nr vertices, given that we require a 
+    # cubic supercell and using the fact that the unit cell contains 10 vertices 
+    nr_unit_cells_per_dimension = max(1, Int(round( (nr_vertices/nr_vertices_per_unit_cell)^(1/3) )) )
+    nr_vertices = nr_vertices_per_unit_cell * nr_unit_cells_per_dimension^3
+    supercell_edge_length = nr_unit_cells_per_dimension*edge_length_unit_cell
+
+    edges= get_edges_srd(edge_length_unit_cell)
+    
+  
+    # copy all edges L times in x,y,z direction to get all edges 
+    L=5
+    epsilon=0.001
+    x=[1.0,0.0,0.0].* edge_length_unit_cell
+    y=[0.0,1.0,0.0].* edge_length_unit_cell
+    z=[0.0,0.0,1.0].* edge_length_unit_cell
+
+    edges = array_3D(edges,x,L,y,L,z,L)
+    edges = delete_copys(edges)
+
+    # look at the cube spanning from (1,1,1) and (2,2,2), only take these edges
+    delta=0.01
+    filter_min=(2.0-delta).* edge_length_unit_cell
+    filter_max=(3.0+delta).* edge_length_unit_cell
+    edges = filter_to_unitcell(edges, filter_min, filter_max, filter_min, filter_max, filter_min, filter_max)
+
+
+    # copy the unitcell in all 3 dimensions to get the actual network
+    edges = array_3D(edges,x,nr_unit_cells_per_dimension,y,nr_unit_cells_per_dimension,z,nr_unit_cells_per_dimension)
+    edges = delete_copys(edges)
+
+    # fold all edges back into the supercell
+    edges = fold_to_block(edges, supercell_edge_length)
+    edges = delete_copys(edges)
+
+
+    
+    # get the positions, edges, nr_vertices, original_graph and edges lengths
+    vertex_positions_dict=get_vertex_positions_dict(edges, epsilon, supercell_edge_length)
+    vertex_position_mat=get_mat_from_dict(vertex_positions_dict)
+    edges_with_vertex=get_edges_with_vertex(edges, vertex_positions_dict, epsilon, supercell_edge_length)
+    nr_vertices=length(vertex_positions_dict)
+    original_graph=create_graph(edges_with_vertex, nr_vertices)
+    edge_length_vec=get_edge_length_vec(original_graph, edges_with_vertex)
+
+    println("edge_length_vec:, $(length(edge_length_vec))")
+    println("edge_length_vec in unitcell should be 18=?=$(length(edge_length_vec)/(nr_unit_cells_per_dimension^3))")
+
+    # calculate the coordination number
+    coordination_nr_vec=get_coordination_nr_vec(original_graph)
+    println("coordination_nr_vec, $coordination_nr_vec")
+
+    count_3 = count(x -> x == 3, coordination_nr_vec)
+    count_4 = count(x -> x == 4, coordination_nr_vec)
+
+    println("CN3/CN4=4/6=0.666=?=$(count_3/count_4)")
+
+    # create original spatial network
+    original_spatial_network = Dict(
+        "original_graph" => original_graph,
+        "edge_length_vec" => edge_length_vec,
+        "coordination_nr_vec" => coordination_nr_vec,
+        "nr_vertices" => nr_vertices,
+        "nr_dimensions" => 3,
+        "supercell_edge_length" => supercell_edge_length,
+        "vertex_position_mat" => vertex_position_mat
+        )
+    
+    return original_spatial_network
+end
+
+
+
+"""
+generate a diamond network using the graphs package. This algorithm is based on
+the information that the unit cell contains 8 vertices
+"""
+function get_diamond_network(nr_vertices)
+    
+    edge_length_unit_cell = 4/sqrt(3)
+    nr_vertices_per_unit_cell= 8
+
+    # calculate the actual nr vertices, given that we require a 
+    # cubic supercell and using the fact that the unit cell contains 10 vertices 
+    nr_unit_cells_per_dimension = max(1, Int(round( (nr_vertices/nr_vertices_per_unit_cell)^(1/3) )) )
+    nr_vertices = nr_vertices_per_unit_cell * nr_unit_cells_per_dimension^3
+    supercell_edge_length = nr_unit_cells_per_dimension*edge_length_unit_cell
+
+    edges= get_edges_dia(edge_length_unit_cell)
+  
+    # copy all edges L times in x,y,z direction to get all edges 
+    L=5
+    epsilon=0.001
+    x=[1.0,0.0,0.0].* edge_length_unit_cell
+    y=[0.0,1.0,0.0].* edge_length_unit_cell
+    z=[0.0,0.0,1.0].* edge_length_unit_cell
+
+    edges = array_3D(edges,x,L,y,L,z,L)
+    edges = delete_copys(edges)
+
+    # look at the cube spanning from (1,1,1) and (2,2,2), only take these edges
+    delta=0.01
+    filter_min=(2.0-delta).* edge_length_unit_cell
+    filter_max=(3.0+delta).* edge_length_unit_cell
+    edges = filter_to_unitcell(edges, filter_min, filter_max, filter_min, filter_max, filter_min, filter_max)
+
+    # copy the unitcell in all 3 dimensions to get the actual network
+    edges = array_3D(edges,x,nr_unit_cells_per_dimension,y,nr_unit_cells_per_dimension,z,nr_unit_cells_per_dimension)
+    edges = delete_copys(edges)
+
+    # fold all edges back into the supercell
+    edges = fold_to_block(edges, supercell_edge_length)
+    edges = delete_copys(edges)
+  
+    # get the positions, edges, nr_vertices, original_graph and edges lengths
+    vertex_positions_dict=get_vertex_positions_dict(edges, epsilon, supercell_edge_length)
+    vertex_position_mat=get_mat_from_dict(vertex_positions_dict)
+    edges_with_vertex=get_edges_with_vertex(edges, vertex_positions_dict, epsilon, supercell_edge_length)
+    nr_vertices=length(vertex_positions_dict)
+    original_graph=create_graph(edges_with_vertex, nr_vertices)
+    edge_length_vec=get_edge_length_vec(original_graph, edges_with_vertex)
+
+    println("edge_length_vec:, $(length(edge_length_vec))")
+    println("edge_length_vec in unitcell should be 16=?=$(length(edge_length_vec)/(nr_unit_cells_per_dimension^3))")
+
+    # calculate the coordination number
+    coordination_nr_vec=get_coordination_nr_vec(original_graph)
+    println("coordination_nr_vec, $coordination_nr_vec")
+
+    count_4 = count(x -> x == 4, coordination_nr_vec)
+
+    println("CN_all=$(length(coordination_nr_vec))=?=CN4=$(count_4)")
+
+    # create original spatial network
+    original_spatial_network = Dict(
+        "original_graph" => original_graph,
+        "edge_length_vec" => edge_length_vec,
+        "coordination_nr_vec" => coordination_nr_vec,
+        "nr_vertices" => nr_vertices,
+        "nr_dimensions" => 3,
+        "supercell_edge_length" => supercell_edge_length,
+        "vertex_position_mat" => vertex_position_mat
+        )
+    
+    return original_spatial_network
+end
+
+
+
+
+
+
+
+
+"""
+create a network graph representing the given network structure
+"""
+function get_periodic_network(evolution_dict)
+
+    # depending on the network structure, create an original graph that does not
+    # contain vertex positions and bond information
+
+    # primitive cubic which is defined for any dimensionality
+    if cmp(evolution_dict["network_type"], "primitive cubic") == 0
+
+        original_spatial_network = get_primitive_cubic_network(
+            evolution_dict["nr_vertices"];
+            nr_dimensions = evolution_dict["nr_dimensions"]) 
+
+    # bcc which is only defined for 3d
+    elseif cmp(evolution_dict["network_type"], "bcc") == 0
+
+        if evolution_dict["nr_dimensions"] == 3
+
+            original_spatial_network = get_bcc_network(
+                evolution_dict["nr_vertices"] ) 
+        else
+            @error "The bcc network is only defined in 3d."
+        end
+
+    # fcc which is only defined for 3d
+    elseif cmp(evolution_dict["network_type"], "fcc") == 0
+
+        if evolution_dict["nr_dimensions"] == 3
+
+            original_spatial_network = get_fcc_network(
+                evolution_dict["nr_vertices"] ) 
+        else
+            @error "The fcc network is only defined in 3d."
+        end
+
+    # diamond which is only defined for 3d
+    elseif cmp(evolution_dict["network_type"], "diamond") == 0
+
+        if evolution_dict["nr_dimensions"] == 3
+
+            original_spatial_network = get_diamond_network(
+                evolution_dict["nr_vertices"] ) 
+        else
+            @error "The diamond network is only defined in 3d."
+        end
+
+    elseif cmp(evolution_dict["network_type"], "gyroid") == 0
+
+        if evolution_dict["nr_dimensions"] == 3
+
+            original_spatial_network = get_gyroid_network(
+                evolution_dict["nr_vertices"] ) 
+        else
+            @error "The gyroid network is only defined in 3d."
+        end
+
+    elseif cmp(evolution_dict["network_type"], "ctn") == 0
+
+        if evolution_dict["nr_dimensions"] == 3
+
+            original_spatial_network = get_ctn_network(
+                evolution_dict["nr_vertices"] ) 
+        else
+            @error "The ctn network is only defined in 3d."
+        end
+
+    elseif cmp(evolution_dict["network_type"], "srd") == 0
+
+        if evolution_dict["nr_dimensions"] == 3
+
+            original_spatial_network = get_srd_network(
+                evolution_dict["nr_vertices"] ) 
+        else
+            @error "The srd network is only defined in 3d."
+        end
+
+    else
+        @error "Only primitive cubic and diamond networks are implemented so
+            far."
+
+    end
+
+    # convert original graph into a network graph that contains positional
+    # information
+    spatial_network = convert_original_graph_to_spatial_network(
+        original_spatial_network)
+
+    spatial_network[]["bond_bending_const"] = evolution_dict[
+        "bond_bending_const"]
+    
+    spatial_network[]["theta_ground_state"] = evolution_dict[
+        "theta_ground_state"]
+
+    # thermally excite network if desired
+    if evolution_dict["thermal_fluctuations"]
+        spatial_network[]["total_energy_up_to_date"] = false
+
+        spatial_network = excite_entire_network!(spatial_network,
+            evolution_dict;
+            relax_first = false,
+            update_total_energy = true)
+
+    # otherwise just get total energy
+    else
+        spatial_network[]["total_energy"] = get_total_energy_keating(
+            spatial_network)
+        spatial_network[]["total_energy_up_to_date"] = true
+
+    end
+
+    return spatial_network
+end
+
+
+
 """
 Calculate the Hessian matrix for a given vertex and Keating energy
 which is the a matrix of second derivatives of its energy

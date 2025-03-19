@@ -291,8 +291,8 @@ function plot_spatial_network_2(
             println("We ignored the line in the plot from $pos_1 to $pos_2")
         end
         #=
-        markersize_1 = rand(1:2)
-        markersize_2 = rand(1:2)
+        markersize_1 = 1 #rand(1:2)
+        markersize_2 = 2 #rand(1:2)
         color_1 = :black #Colors.RGB(rand(), rand(), rand())
         color_2 = :black #Colors.RGB(rand(), rand(), rand())
         Plots.scatter!([pos_1[1]], [pos_1[2]], [pos_1[3]], 

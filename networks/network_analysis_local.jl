@@ -71,10 +71,18 @@ function get_bond_angle_std(spatial_network::MetaGraphsNext.MetaGraph)
                 * sign(bond_combination[2] - vertex)
                 * LinearAlgebra.dot(vector_1, vector_2))
 
-            # calculate bond angle
-            bond_angle = acos( scalar_product/ sqrt(
+            cosinus_of_bond_angle=scalar_product/ sqrt(
                 LinearAlgebra.dot(vector_1,vector_1)*
-                LinearAlgebra.dot(vector_2,vector_2)) )
+                LinearAlgebra.dot(vector_2,vector_2))
+            
+            if cosinus_of_bond_angle ≈ 1
+                cosinus_of_bond_angle=1
+            elseif cosinus_of_bond_angle ≈ -1
+                cosinus_of_bond_angle=-1
+            end
+
+            # calculate bond angle
+            bond_angle = acos(cosinus_of_bond_angle)
 
             bond_angle_vec[angle_count] = bond_angle
 

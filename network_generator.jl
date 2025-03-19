@@ -22,6 +22,8 @@ function save_multiple_N_T_trials_beta_gml(
     nr_monte_carlo_steps_per_temperature_array,
     theta_ground_state_array,
     nr_trials_per_temperature_array,
+    network_type,
+    quench,
     save_path,
     filename_start
     )
@@ -56,7 +58,7 @@ function save_multiple_N_T_trials_beta_gml(
     
         evolution_dict = NA.get_evolution_dict(;
             nr_vertices = nr_vertices, 
-            network_type="gyroid", 
+            network_type=network_type, 
             bond_bending_const=bond_bending_const, 
             min_ring_size=3,
             theta_ground_state=theta_ground_state
@@ -64,7 +66,12 @@ function save_multiple_N_T_trials_beta_gml(
         spatial_network = NG.get_periodic_network(evolution_dict)
 
         plot1=NG.plot_spatial_network_2(spatial_network)
+        Plots.xlabel!("x")
+        Plots.ylabel!("y")
+        Plots.zlabel!("z")
         display(plot1)
+
+        break
 
         println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
         println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
@@ -74,7 +81,7 @@ function save_multiple_N_T_trials_beta_gml(
                 maximal_temperature;
                 temperature_gradient = temperature_gradient, 
                 nr_monte_carlo_steps_per_temperature = nr_monte_carlo_steps_per_temperature,
-                quench = false) #*#
+                quench = quench) 
 
         evolution_dict["temperature_vec"] = temperature_vec
         evolution_dict["nr_monte_carlo_steps_per_temperature_vec"] = nr_monte_carlo_steps_per_temperature_vec
@@ -82,7 +89,7 @@ function save_multiple_N_T_trials_beta_gml(
         total_energy_vec::Vector{Float64}=[]
         move_accepted_vec::Vector{Bool}=[]
 
-        println("evolve_network_temperature_sequence begin")
+        #println("evolve_network_temperature_sequence begin")
 
         spatial_network, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_sequence!(
             spatial_network,
@@ -124,22 +131,49 @@ function save_multiple_N_T_trials_beta_gml(
     end
 end
 
+#network_type="dia"     #diamond
+#network_type="srd"
+network_type="srs"      #gyroid
 
-try
-    save_multiple_N_T_trials_beta_gml(;
-        nr_vertices_array=[216],          
-        maximal_temperature_array=[0.3],
-        bond_bending_const_array=[0.285],
-        temperature_gradient_array=[0.1],
-        nr_monte_carlo_steps_per_temperature_array=[0.01],    
-        theta_ground_state_array=[120.0],
-        nr_trials_per_temperature_array=[1],
-        save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/multiple_parameters/",     
-        filename_start="m_a_g_56"
-    )
-catch e
-    error_msg = sprint(showerror, e)
-    st = sprint((io,v) -> show(io, "text/plain", v), stacktrace(catch_backtrace()))
-    @warn "Trouble doing things:\n$(error_msg)\n$(st)"
-    println("Trouble doing things:\n$(error_msg)\n$(st)")
-end
+save_multiple_N_T_trials_beta_gml(;
+    nr_vertices_array=[216],
+    maximal_temperature_array=[0.001],
+    bond_bending_const_array=[0.1],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    network_type=network_type,
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/networks_dia_srd_ctn/",     
+    filename_start="m_$(network_type)_1"
+)
+
+# TODO: Relax directly after srd creation
+
+
+#=
+nr_vertices_array=[216],
+maximal_temperature_array=[0.1,0.2],
+bond_bending_const_array=[0.2,0.3],
+temperature_gradient_array=[0.1],
+nr_monte_carlo_steps_per_temperature_array=[0.01],
+theta_ground_state_array=[110.0,180.0],
+nr_trials_per_temperature_array=[1,2],
+network_type=network_type,
+quench=true,
+save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/networks_dia_srd_ctn/",     
+filename_start="m_$(network_type)_1"
+=#
+
+
+
+#=
+    nr_vertices_array=[216],
+    maximal_temperature_array=[0.1,0.125,0.15,0.175,0.2],
+    bond_bending_const_array=[0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[110.0,180.0],
+    nr_trials_per_temperature_array=[1], 
+    =#

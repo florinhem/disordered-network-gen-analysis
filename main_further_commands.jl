@@ -3,6 +3,2144 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+import Plots
+plotlyjs()
+
+# Point between
+vertex_list = [
+    [7, 5, 1],
+    [5, 3, 1],
+    [3, 3, 3],
+    [1, 5, 3],
+    [1, 7, 5],
+    [3, 1, 5],
+    [5, 1, 7],
+    [7, 7, 7],
+]
+
+vertex_list=vertex_list ./ 8
+
+#=
+[7/8, 5/8, 1/8],
+    [5/8, 3/8, 1/8],
+    [3/8, 3/8, 3/8],
+    [1/8, 5/8, 3/8],
+    [1/8, 7/8, 5/8],
+    [3/8, 1/8, 5/8],
+    [5/8, 1/8, 7/8],
+    [7/8, 7/8, 7/8],
+=#
+
+#=[0.875, 0.625, 1.125],
+    [0.625, 0.375, 1.125],
+    [0.375, 0.375, 1.375],
+    [0.125, 0.625, 1.375],
+    [0.125, 0.875, 1.625],
+    [0.375, 1.125, 1.625],
+    [0.625, 1.125, 1.875],
+    [0.875, 0.875, 1.875],=#
+
+println("vertex_list, $vertex_list")
+
+vertex_mod_array = []
+
+for vertex in vertex_list
+    vertex_mod = mod.(vertex, [1, 1, 1])
+    push!(vertex_mod_array, vertex_mod)
+end
+
+println("vertex_mod_array, $vertex_mod_array")
+
+# Extract x, y, z coordinates
+x = [v[1] for v in vertex_mod_array]
+y = [v[2] for v in vertex_mod_array]
+z = [v[3] for v in vertex_mod_array]
+
+# Create 3D plot
+Plots.scatter3d(x, y, z, markersize=5, marker=:sphere, label="Vertices")
+Plots.xlims!(0,1)
+Plots.ylims!(0,1)
+Plots.zlims!(0,1)
+Plots.xlabel!("X-axis")
+Plots.ylabel!("Y-axis")
+Plots.zlabel!("Z-axis")
+Plots.title!("3D Plot of Vertex List")
+
+# Save the plot as an image file
+#Plots.savefig("vertex_list_plot.png")
+
+
+
+
+
+
+# include file where structure analysis modules are stored
+include("structure_analysis_modules.jl")
+
+# import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+import MetaGraphsNext
+import Graphs
+import Plots
+import Colors
+import Glob
+import DataFrames
+import LaTeXStrings
+using StatsPlots
+import GraphMakie
+
+function main_test()
+    #=diamond=NG.get_diamond_network(8)
+    println("(typeof(diamond)), $(typeof(diamond))")
+    println("diamond, $diamond")
+    SN=NG.convert_original_graph_to_spatial_network(diamond)
+    f=NG.plot_spatial_network_2(SN)=#
+
+    #=
+    gyroid=NG.get_gyroid_network(8*8)
+    println("gyroid, $gyroid")
+    SN=NG.convert_original_graph_to_spatial_network(gyroid)
+    f=NG.plot_spatial_network_2(SN)
+    =#
+
+    #=
+    gyroid=NG.get_gyroid_network(8*8*8)
+    println("gyroid, $gyroid")
+    SN=NG.convert_original_graph_to_spatial_network(gyroid)
+    f=NG.plot_spatial_network_2(SN)
+    =#
+end
+
+main_test()
+
+
+
+
+
+# include file where structure analysis modules are stored
+include("structure_analysis_modules.jl")
+
+# import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+import MetaGraphsNext
+import Graphs
+import Plots
+import Colors
+import Glob
+import DataFrames
+import LaTeXStrings
+import IterTools
+import Combinatorics
+import Statistics
+using StatsPlots
+
+function scatter_plot_for_mulitple_gml(;
+    nr_vertices_array,
+    maximal_temperature_array,
+    bond_bending_const_array,
+    temperature_gradient_array,
+    nr_monte_carlo_steps_per_temperature_array,
+    theta_ground_state_array,
+    nr_trials_per_temperature_array,
+    save_path,
+    filename_start,
+    plot_save_path,
+    plot_filename_start)
+
+    # test before we begin
+    @assert length(nr_vertices_array)>=1
+    @assert length(maximal_temperature_array)>=1
+    @assert length(bond_bending_const_array)>=1
+    @assert length(temperature_gradient_array)>=1
+    @assert length(nr_monte_carlo_steps_per_temperature_array)>=1
+    @assert length(theta_ground_state_array)>=1
+    @assert length(nr_trials_per_temperature_array)>=1
+
+    path_array=Glob.glob(filename_start*"*",save_path)
+
+    for k in eachindex(nr_vertices_array)
+
+        nr_vertices=nr_vertices_array[k]
+
+        for j in eachindex(maximal_temperature_array)
+
+            maximal_temperature=maximal_temperature_array[j]
+
+            for m in eachindex(bond_bending_const_array)
+
+                bond_bending_const=bond_bending_const_array[m]
+
+                for n in eachindex(temperature_gradient_array)
+
+                    temperature_gradient=temperature_gradient_array[n]
+                    
+                    for o in eachindex(nr_monte_carlo_steps_per_temperature_array)
+
+                        nr_monte_carlo_steps_per_temperature=nr_monte_carlo_steps_per_temperature_array[o]
+                    
+                        for p in eachindex(theta_ground_state_array)
+                            
+                            theta_ground_state=theta_ground_state_array[p]
+
+                            for i in eachindex(nr_trials_per_temperature_array)
+
+                                trial=nr_trials_per_temperature_array[i]
+                                
+                                filename = (filename_start
+                                    *"_N="*"$nr_vertices"
+                                    *"_T="*"$maximal_temperature"
+                                    *"_Beta="*"$bond_bending_const"
+                                    *"_GradT="*"$temperature_gradient"
+                                    *"_StepsPerT="*"$nr_monte_carlo_steps_per_temperature"
+                                    *"_Theta_GS="*"$theta_ground_state"
+                                    *"_Trial="*"$trial"
+                                    )
+
+                                total_path=save_path*filename
+
+                                if(total_path*".gml" in path_array)
+                                    println(filename)
+
+                                    spatial_network=NG.load_spatial_network_from_gml(total_path*".gml")
+                                    println(spatial_network)
+
+                                    plot1=NG.plot_spatial_network_2(spatial_network)
+                                    display(plot1)
+
+                                else
+                                    println("file not in directory")
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+   
+end
+
+
+scatter_plot_for_mulitple_gml(
+    nr_vertices_array=[8*8],          
+    maximal_temperature_array=[0.1],
+    bond_bending_const_array=[0.15],
+    temperature_gradient_array=[1],     
+    nr_monte_carlo_steps_per_temperature_array=[0.1],    
+    theta_ground_state_array=[120.0],
+    nr_trials_per_temperature_array=[1],
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/multiple_parameters/",     
+    filename_start="m_a_g_1",  
+    plot_save_path = raw".\simulations\analysis_plot\\",
+    plot_filename_start = "m_a_g_1"
+)
+
+
+
+
+# include file where structure analysis modules are stored
+include("structure_analysis_modules.jl")    #*#
+
+# import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+import MetaGraphsNext
+import Graphs
+import Plots
+Plots.plotlyjs()
+import .Threads
+
+function save_multiple_N_T_trials_beta_gml(
+    ;
+    nr_vertices_array,
+    maximal_temperature_array,
+    bond_bending_const_array,
+    temperature_gradient_array,
+    nr_monte_carlo_steps_per_temperature_array,
+    theta_ground_state_array,
+    nr_trials_per_temperature_array,
+    save_path,
+    filename_start
+    )
+    
+    println(Threads.nthreads())
+
+    Iter=collect(Iterators.product(
+        nr_vertices_array,
+        maximal_temperature_array,
+        bond_bending_const_array,
+        temperature_gradient_array,
+        nr_monte_carlo_steps_per_temperature_array,
+        theta_ground_state_array,
+        nr_trials_per_temperature_array))
+
+    Threads.@threads for (
+        nr_vertices,
+        maximal_temperature,
+        bond_bending_const,
+        temperature_gradient,
+        nr_monte_carlo_steps_per_temperature,
+        theta_ground_state,
+        trial) in Iter
+                
+        println("$nr_vertices"*", "*
+		"$maximal_temperature"*", "*
+		"$bond_bending_const"*", "*
+		"$temperature_gradient"*", "*
+        "$nr_monte_carlo_steps_per_temperature"*", "*
+        "$theta_ground_state"*", "*
+        "$trial" )
+    
+        evolution_dict = NA.get_evolution_dict(;
+            nr_vertices = nr_vertices, 
+            network_type="gyroid", 
+            bond_bending_const=bond_bending_const, 
+            min_ring_size=3,
+            theta_ground_state=theta_ground_state
+            )
+        spatial_network = NG.get_periodic_network(evolution_dict)
+
+        plot1=NG.plot_spatial_network_2(spatial_network)
+        display(plot1)
+
+        println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
+        println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
+    
+        temperature_vec, nr_monte_carlo_steps_per_temperature_vec = 
+            NA.get_temperature_sequence_heating_cooling_gradient(
+                maximal_temperature;
+                temperature_gradient = temperature_gradient, 
+                nr_monte_carlo_steps_per_temperature = nr_monte_carlo_steps_per_temperature,
+                quench = false) #*#
+
+        evolution_dict["temperature_vec"] = temperature_vec
+        evolution_dict["nr_monte_carlo_steps_per_temperature_vec"] = nr_monte_carlo_steps_per_temperature_vec
+
+        total_energy_vec::Vector{Float64}=[]
+        move_accepted_vec::Vector{Bool}=[]
+
+        println("evolve_network_temperature_sequence begin")
+
+        spatial_network, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_sequence!(
+            spatial_network,
+            evolution_dict;
+            total_energy_vec = total_energy_vec,
+            move_accepted_vec= move_accepted_vec,
+            print_progress = true,
+            print_every_nr_attempted_bond_switches = 1000)
+
+        println("nbr acc moves, $(length(move_accepted_vec)), $(sum(move_accepted_vec))")
+        
+        plot1=NG.plot_spatial_network_2(spatial_network)
+        display(plot1)
+
+        println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
+        println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
+        
+        println("evolve_network_temperature_sequence end")
+
+        evolution_dict["total_energy_vec"] = total_energy_vec
+        evolution_dict["move_accepted_vec"] = move_accepted_vec
+
+        filename = (filename_start
+            *"_N="*"$nr_vertices"
+            *"_T="*"$maximal_temperature"
+            *"_Beta="*"$bond_bending_const"
+            *"_GradT="*"$temperature_gradient"
+            *"_StepsPerT="*"$nr_monte_carlo_steps_per_temperature"
+            *"_Theta_GS="*"$theta_ground_state"
+            *"_Trial="*"$trial"
+            )
+	
+        NG.save_spatial_network_to_gml(
+            spatial_network,
+            filename;
+            evolution_dict = evolution_dict,
+            save_path = save_path)
+                    
+    end
+end
+
+
+try
+    save_multiple_N_T_trials_beta_gml(;
+        nr_vertices_array=[216],          
+        maximal_temperature_array=[0.3],
+        bond_bending_const_array=[0.285],
+        temperature_gradient_array=[0.1],
+        nr_monte_carlo_steps_per_temperature_array=[0.01],    
+        theta_ground_state_array=[120.0],
+        nr_trials_per_temperature_array=[1],
+        save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/multiple_parameters/",     
+        filename_start="m_a_g_56"
+    )
+catch e
+    error_msg = sprint(showerror, e)
+    st = sprint((io,v) -> show(io, "text/plain", v), stacktrace(catch_backtrace()))
+    @warn "Trouble doing things:\n$(error_msg)\n$(st)"
+    println("Trouble doing things:\n$(error_msg)\n$(st)")
+end
+
+
+
+
+
+
+import Plots
+Plots.plotlyjs()
+
+
+#=
+[10.0321,-17.4587,15.8790],
+    [9.1423,-0.4853,11.2443],
+    [9.9865, 7.8686, 5.2123],
+    [9.2827,-9.1241,9.8078],
+    [-0.3498,-2.2765,15.3491],
+    [0.7536,-19.4044,11.3755],
+    [10.5224,-0.3115,19.8917],
+    [17.7808,-14.9061,10.9198],
+    [0.6923,-10.8227,9.6251],
+    [14.9805,-9.6978,18.4154],
+    [11.0899,-9.2592,1.2387],
+    [5.4106,-10.2793,-7.3399],
+    [-7.8454,-5.0121,10.1065],
+    [15.2407,0.2318,2.9268],
+    [2.7299,-15.2752,0.3417],
+    [19.7176,-10.7483,1.4794],
+    #[14.9735,-19.8104,23.7021],
+    [14.5494,-15.8209,6.5479],
+    [15.4867,-10.0638,-1.9881],
+    [14.3172,-14.0726,15.1270],
+    [5.1505,-20.2090,8.1487],
+    #[5.4738,-15.5883,25.1461],
+    #[14.7345,0.5978,23.3302],
+    [16.0049,-4.0035,6.3720],
+    #[22.6290,-14.6611,21.2469],
+    [5.6687,-14.1487,16.5088],
+    #[20.2946,-22.4366,16.2229],
+    [15.8100,-5.4431,15.0093],
+    #[23.1352,-15.0271,0.8435],
+    [5.9800,-15.9542,4.7426],
+    [9.7931,2.9495,15.5070],
+    [-2.6245,-15.1542,10.4180],
+    [20.3684,-7.3135,5.7422],
+    #[16.2439,-24.4117,6.7440],
+    #[7.2056,-4.6431,20.6846],
+    #[24.3795,-5.3098,16.8145],
+    #[-0.1108,-22.6848,15.7211],
+    [3.9741,-5.5579,16.3127],
+    #[20.6074,-27.7217,6.1141],
+    [20.0555,-2.0284,15.8509],
+    #[19.3518,-19.0212,20.4463],
+    #[0.2021,-27.9698,5.6123],
+    #[27.6109,-4.3950,21.1864],
+    #[4.6443,-19.8430,28.5522],
+    #[28.1171,-4.7609,0.7830],
+    [15.4797,-20.1764,3.2987],
+    #[2.2237,-14.9093,20.7451],
+    #[4.4053,0.5652,28.1802],
+    [4.9044,-9.9134,13.0635],
+    [4.4803,-5.9239,-4.0907],
+    [4.9115,0.1993,7.7768],
+    #[3.7419,-3.8096,24.8918],
+    [6.1749,-14.5147,-3.8946],
+    [12.5600,-4.7641,10.6083],
+    [-4.4004,-4.2517,5.8702],
+    [10.2255,-12.5396,5.5843],
+    [5.7410,4.4540,4.3707],
+    [-4.5953,-5.6912,14.5075],
+    [-0.0369,-7.5616,5.2404],
+    #[4.4871,-24.5838,4.8604],
+    [7.7118,-5.0091,0.2812],
+    #[24.6534,-3.9274,4.9902],
+    [14.3104,4.5873,6.1759],
+=#
+
+function cubePlot()
+    min=0
+    max=1
+    vertices = [
+       (min, min, min),
+       (max,min,min),
+       (max,max,min),
+       (min,max,min),
+       (min,min,max),
+       (max,min,max),
+       (max,max,max),
+       (min,max,max)
+    ]
+
+    # Define the edges of the cube
+    edges = [
+        (1, 2), (2, 3), (3, 4), (4, 1), # Bottom face
+        (5, 6), (6, 7), (7, 8), (8, 5), # Top face
+        (1, 5), (2, 6), (3, 7), (4, 8)  # Vertical edges
+    ]
+
+    # Extract x, y, z coordinates
+    x = [v[1] for v in vertices]
+    y = [v[2] for v in vertices]
+    z = [v[3] for v in vertices]
+
+    #println(x)
+
+    # Plot the cube
+    Plots.plot3d(x, y, z, seriestype = :scatter, markersize = 5, label = "Vertices")
+    for (i, j) in edges
+        Plots.plot3d!([x[i], x[j]], [y[i], y[j]], [z[i], z[j]], seriestype = :line, label = "")
+    end
+
+    display(Plots.plot3d)
+end
+
+# Point between
+vertex_list = [
+    [10.0321,-17.4587,15.8790],
+    [9.1423,-0.4853,11.2443],
+    [9.9865, 7.8686, 5.2123],
+    [9.2827,-9.1241,9.8078],
+    [-0.3498,-2.2765,15.3491],
+    [0.7536,-19.4044,11.3755],
+    [10.5224,-0.3115,19.8917],
+    [17.7808,-14.9061,10.9198],
+    [0.6923,-10.8227,9.6251],
+    [14.9805,-9.6978,18.4154],
+    [11.0899,-9.2592,1.2387],
+    [5.4106,-10.2793,-7.3399],
+    [-7.8454,-5.0121,10.1065],
+    [15.2407,0.2318,2.9268],
+    [2.7299,-15.2752,0.3417],
+    [19.7176,-10.7483,1.4794],
+    [14.9735,-19.8104,23.7021],
+    [14.5494,-15.8209,6.5479],
+    [15.4867,-10.0638,-1.9881],
+    [14.3172,-14.0726,15.1270],
+    [5.1505,-20.2090,8.1487],
+    [5.4738,-15.5883,25.1461],
+    [14.7345,0.5978,23.3302],
+    [16.0049,-4.0035,6.3720],
+    [22.6290,-14.6611,21.2469],
+    [5.6687,-14.1487,16.5088],
+    [20.2946,-22.4366,16.2229],
+    [15.8100,-5.4431,15.0093],
+    [23.1352,-15.0271,0.8435],
+    [5.9800,-15.9542,4.7426],
+    [9.7931,2.9495,15.5070],
+    [-2.6245,-15.1542,10.4180],
+    [20.3684,-7.3135,5.7422],
+    [16.2439,-24.4117,6.7440],
+    [7.2056,-4.6431,20.6846],
+    [24.3795,-5.3098,16.8145],
+    [-0.1108,-22.6848,15.7211],
+    [3.9741,-5.5579,16.3127],
+    [20.6074,-27.7217,6.1141],
+    [20.0555,-2.0284,15.8509],
+    [19.3518,-19.0212,20.4463],
+    [0.2021,-27.9698,5.6123],
+    [27.6109,-4.3950,21.1864],
+    [4.6443,-19.8430,28.5522],
+    [28.1171,-4.7609,0.7830],
+    [15.4797,-20.1764,3.2987],
+    [2.2237,-14.9093,20.7451],
+    [4.4053,0.5652,28.1802],
+    [4.9044,-9.9134,13.0635],
+    [4.4803,-5.9239,-4.0907],
+    [4.9115,0.1993,7.7768],
+    [3.7419,-3.8096,24.8918],
+    [6.1749,-14.5147,-3.8946],
+    [12.5600,-4.7641,10.6083],
+    [-4.4004,-4.2517,5.8702],
+    [10.2255,-12.5396,5.5843],
+    [5.7410,4.4540,4.3707],
+    [-4.5953,-5.6912,14.5075],
+    [-0.0369,-7.5616,5.2404],
+    [4.4871,-24.5838,4.8604],
+    [7.7118,-5.0091,0.2812],
+    [24.6534,-3.9274,4.9902],
+    [14.3104,4.5873,6.1759],
+]
+
+#Filter
+
+vertex_list_filtered=[]
+min=0
+max=20.413
+for vector in vertex_list
+    x,y,z=vector
+    y=-y
+    #println("x, $x")
+    #println("y, $y")
+    #println("z, $z")
+
+    if(min<x && x<max && min<y && y<max && min<z && z<max)
+        #println("[$(x/max),$(y/max),$(z/max)]")
+        push!(vertex_list_filtered,[x/max,y/max,z/max])
+    end
+end
+
+println(vertex_list_filtered)
+
+println()
+
+vertex_list=vertex_list_filtered
+
+#println("vertex_list, $vertex_list")
+
+vertex_mod_array = []
+
+for vertex in vertex_list
+    vertex_mod = mod.(vertex, [1, 1, 1])
+    push!(vertex_mod_array, vertex_mod)
+end
+
+vertex_mod_array=vertex_list
+println("vertex_mod_array, $vertex_mod_array")
+
+# Extract x, y, z coordinates
+x = [v[1] for v in vertex_mod_array]
+y = [v[2] for v in vertex_mod_array]
+z = [v[3] for v in vertex_mod_array]
+
+cubePlot()
+
+# Create 3D plot
+Plots.scatter3d!(x, y, z, markersize=1, marker=:sphere, label="Vertices")
+a=-Inf
+b=Inf
+Plots.xlims!(a,b)
+Plots.ylims!(a,b)
+Plots.zlims!(a,b)
+Plots.xlabel!("X-axis")
+Plots.ylabel!("Y-axis")
+Plots.zlabel!("Z-axis")
+Plots.title!("3D Plot of Vertex List")
+
+# Save the plot as an image file
+#Plots.savefig("vertex_list_plot.png")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import Plots
+Plots.plotlyjs()
+
+function cubePlot()
+    min=0
+    max=1
+    vertices = [
+       (min, min, min),
+       (max,min,min),
+       (max,max,min),
+       (min,max,min),
+       (min,min,max),
+       (max,min,max),
+       (max,max,max),
+       (min,max,max)
+    ]
+
+    # Define the edges of the cube
+    edges = [
+        (1, 2), (2, 3), (3, 4), (4, 1), # Bottom face
+        (5, 6), (6, 7), (7, 8), (8, 5), # Top face
+        (1, 5), (2, 6), (3, 7), (4, 8)  # Vertical edges
+    ]
+
+    # Extract x, y, z coordinates
+    x = [v[1] for v in vertices]
+    y = [v[2] for v in vertices]
+    z = [v[3] for v in vertices]
+
+    #println(x)
+
+    # Plot the cube
+    Plots.plot3d(x, y, z, seriestype = :scatter, markersize = 5, label = "Vertices")
+    for (i, j) in edges
+        Plots.plot3d!([x[i], x[j]], [y[i], y[j]], [z[i], z[j]], seriestype = :line, label = "")
+    end
+
+    display(Plots.plot3d)
+end
+
+# Point between
+vertex_list = [
+  [0,0.25,0.375],
+  [0,0.75,0.125],
+  [0.0417000000000001,0.4583000000000002,0.5416999999999998],
+  [0.0417000000000001,0.5416999999999996,0.9583000000000002],
+  [0.1249999999999998,0,0.7499999999999998],
+  [0.2083000000000002,0.2083000000000002,0.2083000000000002],
+  [0.2083000000000002,0.7916999999999998,0.2916999999999998],
+  [0.25,0.375,0],
+  [0.25,0.625,0.5],
+  [0.2916999999999998,0.2083000000000002,0.7916999999999998],
+  [0.2916999999999998,0.7916999999999998,0.7083000000000002],
+  [0.375,0,0.25],
+  [0.4583000000000002,0.4583000000000002,0.4583000000000002],
+  [0.4582999999999999,0.5417000000000001,0.0416999999999998],
+  [0.5000000000000002,0.25,0.625],
+  [0.4999999999999998,0.75,0.8750000000000002],
+  [0.5417000000000001,0.0416999999999996,0.4583000000000002],
+  [0.5417000000000001,0.9583000000000002,0.0416999999999998],
+  [0.625,0.5000000000000002,0.2499999999999998],
+  [0.7083000000000002,0.2916999999999998,0.7916999999999998],
+  [0.7083000000000002,0.7083000000000002,0.7083000000000002],
+  [0.75,0.125,0],
+  [0.75,0.8750000000000002,0.4999999999999998],
+  [0.7916999999999998,0.2916999999999998,0.2083000000000002],
+  [0.7916999999999998,0.7083000000000002,0.2916999999999998],
+  [0.8750000000000002,0.4999999999999998,0.75],
+  [0.9583000000000002,0.0417000000000001,0.5416999999999998],
+  [0.9583000000000002,0.9583000000000002,0.9583000000000002],
+]
+
+vertex_mod_array = []
+
+for vertex in vertex_list
+    vertex_mod = mod.(vertex, [1, 1, 1])
+    push!(vertex_mod_array, vertex_mod)
+end
+
+vertex_mod_array=vertex_list
+println("vertex_mod_array, $vertex_mod_array")
+
+# Extract x, y, z coordinates
+x = [v[1] for v in vertex_mod_array]
+y = [v[2] for v in vertex_mod_array]
+z = [v[3] for v in vertex_mod_array]
+
+cubePlot()
+
+# Create 3D plot
+Plots.scatter3d!(x, y, z, markersize=1, marker=:sphere, label="Vertices")
+a=0
+b=1
+Plots.xlims!(a,b)
+Plots.ylims!(a,b)
+Plots.zlims!(a,b)
+Plots.xlabel!("X-axis")
+Plots.ylabel!("Y-axis")
+Plots.zlabel!("Z-axis")
+Plots.title!("3D Plot of Vertex List")
+
+# Save the plot as an image file
+#Plots.savefig("vertex_list_plot.png")
+
+
+
+
+
+# include file where structure analysis modules are stored
+include("structure_analysis_modules.jl")    #*#
+
+# import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+import MetaGraphsNext
+import Graphs
+import Plots
+Plots.plotlyjs()
+import .Threads
+
+function ctn_generator(
+    ;
+    nr_vertices_array,
+    maximal_temperature_array,
+    bond_bending_const_array,
+    temperature_gradient_array,
+    nr_monte_carlo_steps_per_temperature_array,
+    theta_ground_state_array,
+    nr_trials_per_temperature_array,
+    save_path,
+    filename_start
+    )
+    
+    println(Threads.nthreads())
+
+    Iter=collect(Iterators.product(
+        nr_vertices_array,
+        maximal_temperature_array,
+        bond_bending_const_array,
+        temperature_gradient_array,
+        nr_monte_carlo_steps_per_temperature_array,
+        theta_ground_state_array,
+        nr_trials_per_temperature_array))
+
+    Threads.@threads for (
+        nr_vertices,
+        maximal_temperature,
+        bond_bending_const,
+        temperature_gradient,
+        nr_monte_carlo_steps_per_temperature,
+        theta_ground_state,
+        trial) in Iter
+                
+        println("$nr_vertices"*", "*
+		"$maximal_temperature"*", "*
+		"$bond_bending_const"*", "*
+		"$temperature_gradient"*", "*
+        "$nr_monte_carlo_steps_per_temperature"*", "*
+        "$theta_ground_state"*", "*
+        "$trial" )
+    
+        evolution_dict = NA.get_evolution_dict(;
+            nr_vertices = nr_vertices, 
+            network_type="ctn", 
+            bond_bending_const=bond_bending_const, 
+            min_ring_size=3,
+            theta_ground_state=theta_ground_state
+            )
+        spatial_network = NG.get_periodic_network(evolution_dict)
+
+        plot1=NG.plot_spatial_network_2(spatial_network, "black")
+        #display(plot1)
+
+        println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
+        println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
+    
+        temperature_vec, nr_monte_carlo_steps_per_temperature_vec = 
+            NA.get_temperature_sequence_heating_cooling_gradient(
+                maximal_temperature;
+                temperature_gradient = temperature_gradient, 
+                nr_monte_carlo_steps_per_temperature = nr_monte_carlo_steps_per_temperature,
+                quench = false) #*#
+
+        evolution_dict["temperature_vec"] = temperature_vec
+        evolution_dict["nr_monte_carlo_steps_per_temperature_vec"] = nr_monte_carlo_steps_per_temperature_vec
+
+        total_energy_vec::Vector{Float64}=[]
+        move_accepted_vec::Vector{Bool}=[]
+
+        println("evolve_network_temperature_sequence begin")
+
+        spatial_network, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_sequence!(
+            spatial_network,
+            evolution_dict;
+            total_energy_vec = total_energy_vec,
+            move_accepted_vec= move_accepted_vec,
+            print_progress = true,
+            print_every_nr_attempted_bond_switches = 1000)
+
+        println("nbr acc moves, $(length(move_accepted_vec)), $(sum(move_accepted_vec))")
+        
+        plot2=NG.plot_spatial_network_2(spatial_network, "red")
+        Plots.plot!(plot1,plot2)
+        display(plot1)
+        println("plot1")
+
+        println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
+        println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
+        
+        println("evolve_network_temperature_sequence end")
+
+        evolution_dict["total_energy_vec"] = total_energy_vec
+        evolution_dict["move_accepted_vec"] = move_accepted_vec
+
+        filename = (filename_start
+            *"_N="*"$nr_vertices"
+            *"_T="*"$maximal_temperature"
+            *"_Beta="*"$bond_bending_const"
+            *"_GradT="*"$temperature_gradient"
+            *"_StepsPerT="*"$nr_monte_carlo_steps_per_temperature"
+            *"_Theta_GS="*"$theta_ground_state"
+            *"_Trial="*"$trial"
+            )
+	
+        NG.save_spatial_network_to_gml(
+            spatial_network,
+            filename;
+            evolution_dict = evolution_dict,
+            save_path = save_path)
+                    
+    end
+end
+
+try
+    ctn_generator(;
+        nr_vertices_array=[28*8],          
+        maximal_temperature_array=[0.1*15],
+        bond_bending_const_array=[0.285],
+        temperature_gradient_array=[1],
+        nr_monte_carlo_steps_per_temperature_array=[0.01],    
+        theta_ground_state_array=[180.0],
+        nr_trials_per_temperature_array=[1],
+        save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/multiple_parameters/",     
+        filename_start="m_a_ctn_21"
+    )
+catch e
+    error_msg = sprint(showerror, e)
+    st = sprint((io,v) -> show(io, "text/plain", v), stacktrace(catch_backtrace()))
+    @warn "Trouble doing things:\n$(error_msg)\n$(st)"
+    println("Trouble doing things:\n$(error_msg)\n$(st)")
+end
+
+
+
+
+
+
+
+using SymPy
+
+const sympy_parsing_mathematica = SymPy.PyCall.pyimport("sympy.parsing.mathematica")
+
+# define a string which is converted into a Mathematica expression
+s = "1/Sqrt[(x+y)^3]"
+ex = sympy_parsing_mathematica.parse_mathematica(s)
+f_expr = SymPy.SymPyCore.walk_expression(Sym(ex))
+
+# generates a function
+@generated ftest(x,y) = f_expr
+ftest(1,0)
+
+
+
+
+
+
+include("structure_analysis_modules.jl")
+
+# import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+import Plots
+import LaTeXStrings as Latex
+
+fontsize=18
+
+Plots.gr()
+Plots.default(grid=false, 
+legend = true, 
+dpi=250,
+xtickfontsize=fontsize,
+ytickfontsize=fontsize,
+xguidefontsize=fontsize,
+yguidefontsize=fontsize,
+legendfontsize=fontsize,
+bottom_margin = 3Plots.mm,
+linewidth=3, 
+thickness_scaling = 1,
+framestyle = :box)
+
+# functions to have pi ticks
+function pitick(start, stop, denom; mode=:text)
+    a = Int(cld(start, 2*π/denom))
+    b = Int(fld(stop, 2*π/denom))
+    tick = range(a*2*π/denom, b*2*π/denom; step=2*π/denom)
+    ticklabel = piticklabel.( 2 .* (a:b) .// denom, Val(mode))
+    tick, ticklabel
+end
+
+function piticklabel(x::Rational, ::Val{:text})
+    iszero(x) && return "0"
+    S = x < 0 ? "-" : ""
+    n, d = abs(numerator(x)), denominator(x)
+    N = n == 1 ? "" : repr(n)
+    d == 1 && return S * N * "π"
+    S * N * "π\\" * repr(d)
+end
+
+function piticklabel(x::Rational, ::Val{:latex})
+    iszero(x) && return Latex.L"0"
+    S = x < 0 ? "-" : ""
+    n, d = abs(numerator(x)), denominator(x)
+    N = n == 1 ? "" : repr(n)
+    d == 1 && return Latex.L"%$S%$N\pi"
+    Latex.L"%$S\frac{%$N\pi}{%$d}"
+end
+
+
+"""
+    get_tickslogscale(lims; skiplog=false)
+Return a tuple (ticks, ticklabels) for the axis limit `lims`
+where multiples of 10 are major ticks with label and minor ticks have no label
+skiplog argument should be set to true if `lims` is already in log scale.
+"""
+function get_tickslogscale(lims::Tuple{T, T}; skiplog::Bool=false) where {T<:AbstractFloat}
+    mags = if skiplog
+        # if the limits are already in log scale
+        floor.(lims)
+    else
+        floor.(log10.(lims))
+    end
+    rlims = if skiplog; 10 .^(lims) else lims end
+
+    total_tickvalues = []
+    total_ticknames = []
+
+    rgs = range(mags..., step=1)
+    for (i, m) in enumerate(rgs)
+        if m >= 0
+            tickvalues = range(Int(10^m), Int(10^(m+1)); step=Int(10^m))
+            ticknames  = vcat([string(round(Int, 10^(m)))],
+                              ["" for i in 2:9],
+                              [string(round(Int, 10^(m+1)))])
+        else
+            tickvalues = range(10^m, 10^(m+1); step=10^m)
+            ticknames  = vcat([string(10^(m))], ["" for i in 2:9], [string(10^(m+1))])
+        end
+
+        if i==1
+            # lower bound
+            indexlb = findlast(x->x<rlims[1], tickvalues)
+            if isnothing(indexlb); indexlb=1 end
+        else
+            indexlb = 1
+        end
+        if i==length(rgs)
+            # higher bound
+            indexhb = findfirst(x->x>rlims[2], tickvalues)
+            if isnothing(indexhb); indexhb=10 end
+        else
+            # do not take the last index if not the last magnitude
+            indexhb = 9
+        end
+
+        total_tickvalues = vcat(total_tickvalues, tickvalues[indexlb:indexhb])
+        total_ticknames = vcat(total_ticknames, ticknames[indexlb:indexhb])
+    end
+    return (total_tickvalues, total_ticknames)
+end
+
+"""
+    fancylogscale!(p; forcex=false, forcey=false)
+Transform the ticks to log scale for the axis with scale=:log10.
+forcex and forcey can be set to true to force the transformation
+if the variable is already expressed in log10 units.
+"""
+function fancylogscale!(p::Plots.Subplot; forcex::Bool=false, forcey::Bool=false)
+    kwargs = Dict()
+    for (ax, force, lims) in zip((:x, :y), (forcex, forcey), (Plots.xlims, Plots.ylims))
+        axis = Symbol("$(ax)axis")
+        ticks = Symbol("$(ax)ticks")
+
+        if force || p.attr[axis][:scale] == :log10
+            # Get limits of the plot and convert to Float
+            ls = float.(lims(p))
+            ts = if force
+                (vals, labs) = get_tickslogscale(ls; skiplog=true)
+                (log10.(vals), labs)
+            else
+                get_tickslogscale(ls)
+            end
+            kwargs[ticks] = ts
+        end
+    end
+
+    if length(kwargs) > 0
+        Plots.plot!(p; kwargs...)
+    end
+    p
+end
+fancylogscale!(p::Plots.Plot; kwargs...) = (fancylogscale!(p.subplots[1]; kwargs...); return p)
+fancylogscale!(; kwargs...) = fancylogscale!(Plots.plot!(); kwargs...)
+
+
+
+
+
+
+
+
+
+
+# include file where structure analysis modules are stored
+include("structure_analysis_modules.jl")
+
+# import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+# possible choices of nr_vertices for diamond: 64, 216, 512, 1000, that is (2*n)^3 with natural nr natural
+
+# the supercell edge lengths are 
+# 1000 vertices: supercell_edge_length = 11.547005383792516
+# 512 vertices: supercell_edge_length = 9.237604307034013
+# 216 vertices: supercell_edge_length = 6.9282032302755105
+# 64 vertices: supercell_edge_length = 4.619802153517007
+# which is the cube root of the number of vertices times 2/sqrt(3)
+
+import MetaGraphsNext
+import Graphs
+import Plots
+import Colors
+import Glob
+import DataFrames
+import LaTeXStrings
+using StatsPlots
+
+
+function scatter_plot_for_mulitple_gml(;
+    nr_vertices_array,
+    maximal_temperature_array,
+    bond_bending_const_array,
+    temperature_gradient_array,
+    nr_monte_carlo_steps_per_temperature_array,
+    theta_ground_state_array,
+    nr_trials_per_temperature_array,
+    save_path,
+    filename_start,
+    plot_save_path,
+    plot_filename_start)
+
+    # test before we begin
+    @assert length(nr_vertices_array)>=1
+    @assert length(maximal_temperature_array)>=1
+    @assert length(bond_bending_const_array)>=1
+    @assert length(temperature_gradient_array)>=1
+    @assert length(nr_monte_carlo_steps_per_temperature_array)>=1
+    @assert length(theta_ground_state_array)>=1
+    @assert length(nr_trials_per_temperature_array)>=1
+
+    # store array with all the paths in the directory to check if we have
+    # this .h5 and .gml to be able to plot it.
+    path_array=Glob.glob(filename_start*"*",save_path)
+
+    # for data storage 
+    data::Vector{Vector{Float64}}=[]
+
+    for k in eachindex(nr_vertices_array)
+
+        nr_vertices=nr_vertices_array[k]
+
+        for j in eachindex(maximal_temperature_array)
+
+            maximal_temperature=maximal_temperature_array[j]
+
+            for m in eachindex(bond_bending_const_array)
+
+                bond_bending_const=bond_bending_const_array[m]
+
+                for n in eachindex(temperature_gradient_array)
+
+                    temperature_gradient=temperature_gradient_array[n]
+                    
+                    for o in eachindex(nr_monte_carlo_steps_per_temperature_array)
+
+                        nr_monte_carlo_steps_per_temperature=nr_monte_carlo_steps_per_temperature_array[o]
+                    
+                        for p in eachindex(theta_ground_state_array)
+                            
+                            theta_ground_state=theta_ground_state_array[p]
+
+                            for i in eachindex(nr_trials_per_temperature_array)
+
+                                trial=nr_trials_per_temperature_array[i]
+                                
+                                filename = (filename_start
+                                    *"_N="*"$nr_vertices"
+                                    *"_T="*"$maximal_temperature"
+                                    *"_Beta="*"$bond_bending_const"
+                                    *"_GradT="*"$temperature_gradient"
+                                    *"_StepsPerT="*"$nr_monte_carlo_steps_per_temperature"
+                                    *"_Theta_GS="*"$theta_ground_state"
+                                    *"_Trial="*"$trial"
+                                    )
+
+                                total_path=save_path*filename
+
+                                if(total_path*".gml" in path_array)
+                                    println(filename)
+
+                                    spatial_network=NG.load_spatial_network_from_gml(total_path*".gml")
+
+                                    #println(NG.relax_single_vertex_keating!(spatial_network,1))
+
+                                    #println(NG.gradient_keating_efficient(spatial_network,1))
+
+                                    #println(NG.hessian_keating_efficient(spatial_network,1))
+
+                                    println(length(NG.get_all_chains(spatial_network)))
+
+                                    #println(NG.get_incorrectly_coordinated_vertices(spatial_network))
+
+                                    #=println(spatial_network)
+                                    println(spatial_network[])
+                                    println(spatial_network[1])
+                                    println(spatial_network[]["coordination_nr"])
+                                    println(spatial_network[1]["coordination_nr"])=#
+                                    
+                                else
+                                    println("file not in directory")
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+
+scatter_plot_for_mulitple_gml(
+    nr_vertices_array=[216],
+    maximal_temperature_array=[0.1,0.125,0.15,0.175,0.2],
+    bond_bending_const_array=[0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[110.0,180.0],
+    nr_trials_per_temperature_array=[1], 
+    save_path = raw".\simulations\multiple_parameters\\",
+    filename_start = "m_rad_",    
+    plot_save_path = raw".\simulations\analysis_plot\\",
+    plot_filename_start = "m_rad_ma_png_2_"
+)
+
+
+
+
+
+
+
+
+# include file where structure analysis modules are stored
+include("structure_analysis_modules.jl")
+
+# import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+# possible choices of nr_vertices for diamond: 64, 216, 512, 1000, that is (2*n)^3 with natural nr natural
+
+# the supercell edge lengths are 
+# 1000 vertices: supercell_edge_length = 11.547005383792516
+# 512 vertices: supercell_edge_length = 9.237604307034013
+# 216 vertices: supercell_edge_length = 6.9282032302755105
+# 64 vertices: supercell_edge_length = 4.619802153517007
+# which is the cube root of the number of vertices times 2/sqrt(3)
+
+import MetaGraphsNext
+import Graphs
+import Plots
+import Colors
+import Glob
+import DataFrames
+import LaTeXStrings
+using StatsPlots
+
+
+function scatter_plot_for_mulitple_gml(;
+    nr_vertices_array,
+    maximal_temperature_array,
+    bond_bending_const_array,
+    temperature_gradient_array,
+    nr_monte_carlo_steps_per_temperature_array,
+    theta_ground_state_array,
+    nr_trials_per_temperature_array,
+    save_path,
+    filename_start,
+    plot_save_path,
+    plot_filename_start)
+
+    # test before we begin
+    @assert length(nr_vertices_array)>=1
+    @assert length(maximal_temperature_array)>=1
+    @assert length(bond_bending_const_array)>=1
+    @assert length(temperature_gradient_array)>=1
+    @assert length(nr_monte_carlo_steps_per_temperature_array)>=1
+    @assert length(theta_ground_state_array)>=1
+    @assert length(nr_trials_per_temperature_array)>=1
+
+    # store array with all the paths in the directory to check if we have
+    # this .h5 and .gml to be able to plot it.
+    path_array=Glob.glob(filename_start*"*",save_path)
+
+    # for data storage 
+    data::Vector{Vector{Float64}}=[]
+
+    for k in eachindex(nr_vertices_array)
+
+        nr_vertices=nr_vertices_array[k]
+
+        for j in eachindex(maximal_temperature_array)
+
+            maximal_temperature=maximal_temperature_array[j]
+
+            for m in eachindex(bond_bending_const_array)
+
+                bond_bending_const=bond_bending_const_array[m]
+
+                for n in eachindex(temperature_gradient_array)
+
+                    temperature_gradient=temperature_gradient_array[n]
+                    
+                    for o in eachindex(nr_monte_carlo_steps_per_temperature_array)
+
+                        nr_monte_carlo_steps_per_temperature=nr_monte_carlo_steps_per_temperature_array[o]
+                    
+                        for p in eachindex(theta_ground_state_array)
+                            
+                            theta_ground_state=theta_ground_state_array[p]
+
+                            for i in eachindex(nr_trials_per_temperature_array)
+
+                                trial=nr_trials_per_temperature_array[i]
+                                
+                                filename = (filename_start
+                                    *"_N="*"$nr_vertices"
+                                    *"_T="*"$maximal_temperature"
+                                    *"_Beta="*"$bond_bending_const"
+                                    *"_GradT="*"$temperature_gradient"
+                                    *"_StepsPerT="*"$nr_monte_carlo_steps_per_temperature"
+                                    *"_Theta_GS="*"$theta_ground_state"
+                                    *"_Trial="*"$trial"
+                                    )
+
+                                total_path=save_path*filename
+
+                                if(total_path*".gml" in path_array)
+                                    println(filename)
+
+                                    spatial_network=NG.load_spatial_network_from_gml(total_path*".gml")
+
+                                    
+                                    for vertex in MetaGraphsNext.labels(spatial_network)
+                                        println(spatial_network[vertex]["coordination_nr"])
+                                    end
+                                    
+
+                                    println(NA.get_dihedral_angle_vec(spatial_network))
+                                    println(length(NA.get_dihedral_angle_vec(spatial_network)))
+                                    println(NA.get_dihedral_angle_ratio_peak_to_avg(spatial_network,10/360*2*pi))
+
+            
+
+                                    println(NG.relax_single_vertex_keating_efficiently!(spatial_network,1))
+
+                                    println(NG.gradient_keating_efficient(spatial_network,1))
+
+                                    println(NG.hessian_keating_efficient(spatial_network,1))
+
+                                    println(length(NG.get_all_chains(spatial_network)))
+
+                                    
+
+                                    #=println(spatial_network)
+                                    println(spatial_network[])
+                                    println(spatial_network[1])
+                                    #println(spatial_network[]["coordination_nr_vec"])
+                                    println(spatial_network[1]["coordination_nr"])=#
+
+
+                                    
+                                    evolution_dict=GU.load_h5_dict(total_path*"_evolution.h5")
+                                    #println(evolution_dict)
+                                    println(NG.get_poisson_random_network(evolution_dict))
+
+                                    #println(NG.load_spatial_network_from_gml(total_path*".gml"))
+
+                                    println(NG.get_neighbor_positions_mat(spatial_network,1;exclude_vertices=[]))
+
+                                    display(NG.get_next_neighbor_positions_arr(spatial_network,1))
+                                    
+                                    display(NG.get_next_neighbor_positions_arr(spatial_network,2))
+
+                                    println(NG.get_incorrectly_coordinated_vertices(spatial_network))
+                                    
+                                else
+                                    println("file not in directory")
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+
+scatter_plot_for_mulitple_gml(
+    nr_vertices_array=[64],             #[216],
+    maximal_temperature_array=[0.2],    #[0.1,0.125,0.15,0.175,0.2],
+    bond_bending_const_array=[0.3],     #[0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5],
+    temperature_gradient_array=[0.1],     #[0.1],   
+    nr_monte_carlo_steps_per_temperature_array=[0.01],     #[0.01], 
+    theta_ground_state_array=[110.0],
+    nr_trials_per_temperature_array=[1],
+    save_path = raw".\simulations\multiple_parameters\\",
+    filename_start = "m_a2_CN",    
+    plot_save_path = raw".\simulations\analysis_plot\\",
+    plot_filename_start = "m_rad_ma_png_2_"
+)
+
+
+
+
+
+
+
+
+
+import Plots
+import MetaGraphsNext
+import LightGraphs
+
+# Point between
+vertex_list = [
+    [7, 7, 3],
+    [1, 7, 5],
+    [1, 3, 5],
+    [3, 3, 3],
+    [5, 1, 3],
+    [5, 1, 7],
+    [3, 7, 7],
+    [3, 5, 1],
+    [7, 5, 1],
+    [7, 3, 7],
+]
+
+vertex_list=vertex_list ./ 8
+
+println("vertex_list, $vertex_list")
+
+vertex_mod_array = []
+
+for vertex in vertex_list
+    vertex_mod = mod.(vertex, [1, 1, 1])
+    push!(vertex_mod_array, vertex_mod)
+end
+
+println("vertex_mod_array, $vertex_mod_array")
+
+# Extract x, y, z coordinates
+x = [v[1] for v in vertex_mod_array]
+y = [v[2] for v in vertex_mod_array]
+z = [v[3] for v in vertex_mod_array]
+
+# Create 3D plot
+Plots.plotlyjs()
+
+Plots.scatter3d(x, y, z, markersize=5, marker=:sphere, label="Vertices")
+Plots.xlims!(0,1)
+Plots.ylims!(0,1)
+Plots.zlims!(0,1)
+Plots.xlabel!("X-axis")
+Plots.ylabel!("Y-axis")
+Plots.zlabel!("Z-axis")
+Plots.title!("3D Plot of Vertex List")
+
+
+
+
+
+
+nr_vertices=10
+vertex_position_mat=vertex_mod_array
+original_graph = MetaGraphsNext.MetaGraph(LightGraphs.SimpleGraph(nr_vertices); label_type=Int)
+
+# add edges based on custom logic
+for i in 1:nr_vertices
+    for j in i+1:nr_vertices
+        # Add your custom logic to decide if an edge should be added
+        # For example, you can add an edge if the distance between vertices is less than a certain value
+        if norm(vertex_position_mat[:, i] - vertex_position_mat[:, j]) < 0.6
+            MetaGraphsNext.add_edge!(original_graph, i, j)
+        end
+
+        #coordination_nr_vec
+    end
+end
+
+edge_length_vec = [norm(vertex_position_mat[:, e.src] - vertex_position_mat[:, e.dst]) for e in edges(original_graph)]
+
+
+#Plot
+
+# create a line plot for each bond
+figure = Plots.plot()
+for bond in MetaGraphsNext.edge_labels(original_graph)
+    pos_1 = original_graph[bond[1]]
+    pos_2 = original_graph[bond[2]]
+    Plots.plot!([pos_1[1], pos_2[1]], 
+    [pos_1[2], pos_2[2]], 
+    [pos_1[3], pos_2[3]], 
+    type="scatter3d", mode="lines", color="black", showlegend=false)
+end
+
+Plots.gr()
+return figure
+
+
+
+
+
+
+
+import Plots
+Plots.plotlyjs()
+
+# Point between
+vertex_list = [
+    [7, 7, 3],
+    [1, 7, 5],
+    [1, 3, 5],
+    [3, 3, 3],
+    [5, 1, 3],
+    [5, 1, 7],
+    [3, 7, 7],
+    [3, 5, 1],
+    [7, 5, 1],
+    [7, 3, 7],
+]
+
+#=
+[6, 6, 2],
+    [0, 6, 4],
+    [0, 2, 4],
+    [2, 2, 2],
+    [4, 0, 2],
+    [4, 0, 6],
+    [2, 6, 6],
+    [2, 4, 0],
+    [6, 4, 0],
+    [6, 2, 6],
+    =#
+
+#=
+[3, 3, 1],
+    [0, 3, 2],
+    [0, 1, 2],
+    [1, 1, 1],
+    [2, 0, 1],
+    [2, 0, 3],
+    [1, 3, 3],
+    [1, 2, 0],
+    [3, 2, 0],
+    [3, 1, 3],
+    =#
+
+#=
+[0.75, 0.75, 1.25],
+    [1, 0.75, 1.5],
+    [1, 1.25, 1.5],
+    [1.25, 1.25, 1.25],
+    [1.5, 1, 1.25],
+    [1.5, 1, 0.75],
+    [1.25, 0.75, 0.75],
+    [1.25, 1.5, 1],
+    [0.75, 1.5, 1],
+    [0.75, 1.25, 0.75],
+    =#
+
+vertex_list=vertex_list ./ 8
+
+println("vertex_list, $vertex_list")
+
+vertex_mod_array = []
+
+for vertex in vertex_list
+    vertex_mod = mod.(vertex, [1, 1, 1])
+    push!(vertex_mod_array, vertex_mod)
+end
+
+println("vertex_mod_array, $vertex_mod_array")
+
+# Extract x, y, z coordinates
+x = [v[1] for v in vertex_mod_array]
+y = [v[2] for v in vertex_mod_array]
+z = [v[3] for v in vertex_mod_array]
+# Create 3D plot
+Plots.scatter3d(x, y, z, markersize=5, marker=:sphere, label="Vertices")
+Plots.xlims!(0,1)
+Plots.ylims!(0,1)
+Plots.zlims!(0,1)
+Plots.xlabel!("X-axis")
+Plots.ylabel!("Y-axis")
+Plots.zlabel!("Z-axis")
+Plots.title!("3D Plot of Vertex List")
+
+# Save the plot as an image file
+#Plots.savefig("vertex_list_plot.png")
+
+
+# Initialize an empty vector to hold 3D arrays
+next_neighbor_positions_arr = Vector{Array{Float64, 2}}()
+
+# Example of populating the vector with 3D arrays of varying third dimension
+for i in 1:4  # 4 vertices
+    n = rand(2:7)  # Randomly choose a value between 2 and 7 for the third dimension
+    arr = Array{Float64}(undef, 3, n)  # Create a 3D array with dimensions (3, n)
+    
+    # Populate the array with some values (e.g., random values)
+    for j in 1:3
+        for k in 1:n
+            arr[j, k] = rand()
+        end
+    end
+    
+    # Push the array into the vector
+    push!(next_neighbor_positions_arr, arr)
+end
+
+#=
+# Print the vector of 3D arrays
+for (i, arr) in enumerate(next_neighbor_positions_arr)
+    println("Array for vertex $i:")
+    println(arr)
+end
+=#
+println(next_neighbor_positions_arr)
+
+
+
+
+
+
+
+
+
+using Graphs
+using GraphPlot3D
+using Colors
+
+# Example arrays of vertices and edges
+vertices = 1:5
+edges = [(1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
+
+# Create an empty graph with the specified number of vertices
+g = SimpleGraph(length(vertices))
+
+# Add edges to the graph
+for (u, v) in edges
+    add_edge!(g, u, v)
+end
+
+# Define the 3D positions of each vertex
+positions = Dict(
+    1 => (0.0, 0.0, 0.0),
+    2 => (1.0, 0.0, 0.0), 
+    3 => (1.0, 1.0, 0.0),
+    4 => (0.0, 1.0, 0.0),
+    5 => (0.5, 0.5, 1.0)
+)
+
+# Convert positions to a format suitable for gplot3d
+x = [positions[v][1] for v in vertices]
+y = [positions[v][2] for v in vertices]
+z = [positions[v][3] for v in vertices]
+
+# Plot the graph with the specified 3D positions
+gplot3d(g, layout=(x, y, z), node_color=colorant"blue", node_labels=1:nv(g))
+
+
+
+#=
+using Graphs
+using GraphPlot
+using Colors
+
+# Example arrays of vertices and edges
+vertices = 1:5
+edges = [(1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
+
+# Create an empty graph with the specified number of vertices
+g = SimpleGraph(length(vertices))
+
+# Add edges to the graph
+for (u, v) in edges
+    add_edge!(g, u, v)
+end
+
+# Define the positions of each vertex
+positions = Dict(
+    1 => (0.0, 0.0),
+    2 => (1.0, 0.0),
+    3 => (1.0, 1.0),
+    4 => (0.0, 1.0),
+    5 => (0.5, 0.5)
+)
+
+# Convert positions to a format suitable for gplot
+x = [positions[v][1] for v in vertices]
+y = [positions[v][2] for v in vertices]
+
+# Plot the graph with the specified positions
+gplot(g, layout=(x, y), node_color=colorant"blue", node_labels=1:nv(g))
+=#
+
+
+
+#=using Graphs
+using GraphPlot
+
+# Example arrays of vertices and edges
+vertices = 1:5
+edges = [(1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
+
+# Create an empty graph with the specified number of vertices
+g = Graphs.Graph(length(vertices))
+
+# Add edges to the graph
+for (u, v) in edges
+    add_edge!(g, u, v)
+end
+
+# Print the graph to verify
+println(g)
+gplot(g)
+=#
+
+
+
+#=
+using LightGraphs
+using GraphPlot
+using Colors
+
+# Create a simple graph with 2 points and a connection between them
+g = SimpleGraph(2)
+add_edge!(g, 1, 2)
+
+# Function to apply rotation symmetry operation and add edges
+function apply_rotation_symmetry!(g, angle)
+    n = nv(g)  # number of vertices
+    for i in 1:n
+        for j in i+1:n
+            if has_edge(g, i, j)
+                # Example rotation operation: add edges to the rotated vertices
+                new_i = mod(i + angle, n) + 1
+                new_j = mod(j + angle, n) + 1
+                add_edge!(g, new_i, new_j)
+            end
+        end
+    end
+end
+
+# Function to apply translation symmetry operation and add edges
+function apply_translation_symmetry!(g, translation)
+    n = nv(g)  # number of vertices
+    for i in 1:n
+        for j in i+1:n
+            if has_edge(g, i, j)
+                # Example translation operation: add edges to the translated vertices
+                new_i = mod(i + translation, n) + 1
+                new_j = mod(j + translation, n) + 1
+                add_edge!(g, new_i, new_j)
+            end
+        end
+    end
+end
+
+# Apply rotation symmetry with angle 1
+apply_rotation_symmetry!(g, 1)
+
+# Apply translation symmetry with translation 1
+apply_translation_symmetry!(g, 1)
+
+# Plot the graph
+gplot(g, layout=spring_layout, node_color=colorant"blue", node_labels=1:nv(g))
+=#
+
+
+
+# include file where structure analysis modules are stored
+include("structure_analysis_modules.jl")
+
+# import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+import MetaGraphsNext
+import Graphs
+import Plots
+import Colors
+import Glob
+import DataFrames
+import LaTeXStrings
+using StatsPlots
+
+function scatter_plot_for_mulitple_gml(;
+    nr_vertices_array,
+    maximal_temperature_array,
+    bond_bending_const_array,
+    temperature_gradient_array,
+    nr_monte_carlo_steps_per_temperature_array,
+    theta_ground_state_array,
+    nr_trials_per_temperature,
+    save_path,
+    filename_start,
+    plot_save_path,
+    plot_filename_start)
+
+    # test before we begin
+    @assert length(nr_vertices_array)>=1
+    @assert length(maximal_temperature_array)>=1
+    @assert length(bond_bending_const_array)>=1
+    @assert length(temperature_gradient_array)>=1
+    @assert length(nr_monte_carlo_steps_per_temperature_array)>=1
+    @assert length(theta_ground_state_array)>=1
+    @assert nr_trials_per_temperature>=1
+
+    # store array with all the paths in the directory to check if we have
+    # this .h5 and .gml to be able to plot it.
+    path_array=Glob.glob(filename_start*"*",save_path)
+
+    # for data storage 
+    data::Vector{Vector{Float64}}=[]
+
+    for k in eachindex(nr_vertices_array)
+
+        nr_vertices=nr_vertices_array[k]
+
+        for j in eachindex(maximal_temperature_array)
+
+            maximal_temperature=maximal_temperature_array[j]
+
+            for m in eachindex(bond_bending_const_array)
+
+                bond_bending_const=bond_bending_const_array[m]
+
+                for n in eachindex(temperature_gradient_array)
+
+                    temperature_gradient=temperature_gradient_array[n]
+                    
+                    for o in eachindex(nr_monte_carlo_steps_per_temperature_array)
+
+                        nr_monte_carlo_steps_per_temperature=nr_monte_carlo_steps_per_temperature_array[o]
+                    
+                        for p in eachindex(theta_ground_state_array)
+                            
+                            theta_ground_state=theta_ground_state_array[p]
+
+                            for i in 1:nr_trials_per_temperature
+                                
+                                filename = (filename_start
+                                    *"_N="*"$nr_vertices"
+                                    *"_T="*"$maximal_temperature"
+                                    *"_Beta="*"$bond_bending_const"
+                                    *"_GradT="*"$temperature_gradient"
+                                    *"_StepsPerT="*"$nr_monte_carlo_steps_per_temperature"
+                                    *"_Theta_GS="*"$theta_ground_state"
+                                    *"_Trial="*"$i"
+                                    )
+
+                                total_path=save_path*filename
+
+                                if(total_path*".gml" in path_array #&& 
+                                    #filename!="m_BTMC_N=216_T=0.17_Beta=0.0_GradT=0.1_StepsPerT=0.01_Theta_GS=110.0_Trial=1" &&
+                                    )
+                                    #println("scatter done")
+                                    println(filename)
+
+                                    spatial_network=NG.load_spatial_network_from_gml(total_path*".gml")
+
+                                    bond_length_std, bond_length_vec = NA.get_bond_length_std(spatial_network)
+                                    bond_angle_std, bond_angle_vec = NA.get_bond_angle_std(spatial_network)
+
+                                    evolution_dict = GU.load_h5_dict(total_path*"_evolution.h5")
+                                    accepted_moves=sum(evolution_dict["move_accepted_vec"])
+
+                                    #=
+                                    println("["
+                                        #*"$nr_vertices"*","
+                                        *"$maximal_temperature"*","
+                                        *"$bond_bending_const"*","
+                                        *"$temperature_gradient"*","
+                                        #*"$nr_monte_carlo_steps_per_temperature"*","
+                                        *"$theta_ground_state"*","
+                                        #*"$i"*","
+                                        *"$bond_length_std"*","
+                                        *"$bond_angle_std"*","
+                                        *"$accepted_moves"
+                                        *"],")
+                                    =#
+
+                                    data=push!(data,
+                                        [
+                                            #nr_vertices,
+                                            maximal_temperature,
+                                            bond_bending_const,
+                                            temperature_gradient,
+                                            nr_monte_carlo_steps_per_temperature,
+                                            theta_ground_state,
+                                            #i,
+                                            bond_length_std,
+                                            bond_angle_std,
+                                            accepted_moves
+                                        ])
+                                    
+                                    
+
+                                else
+                                    println("file not in directory")
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    
+    #println(data)
+    #println(typeof(data))
+
+    # data cleaning
+
+    matrix=mapreduce(permutedims, vcat, data)
+
+    df=DataFrames.DataFrame(matrix,:auto)
+
+    DataFrames.rename!(df, [:x1, :x2, :x3, :x4, :x5, :x6, :x7, :x8] .=>  [:MaxT, :Beta, :GradT, :MCsteps, :Theta, :BondLenghtStd, :BondAngleStd, :AcceptedMoves])
+
+
+
+    println(df)
+
+    #=
+    df.BondLenghtStdDiff.=0.0
+    df.BondAngleStdDiff.=0.0
+
+    for (i, row) in enumerate( eachrow( df ) ) 
+        println(i)
+        
+        if i<size(df,1)
+            if ((df[i,"MaxT"]===df[i+1,"MaxT"]) &&
+                (df[i,"Beta"]===df[i+1,"Beta"]) && 
+                (df[i,"GradT"]===df[i+1,"GradT"]) && 
+                (df[i,"MCsteps"]===df[i+1,"MCsteps"]) && 
+                (df[i,"Theta"]!=df[i+1,"Theta"]))
+
+                if df[i,"Theta"]===180.0 && df[i+1,"Theta"]===110.0
+
+                    df[i,"BondLenghtStdDiff"]=df[i,"BondLenghtStd"]-df[i+1,"BondLenghtStd"]
+                    df[i,"BondAngleStdDiff"]=df[i,"BondAngleStd"]-df[i+1,"BondAngleStd"]
+
+                elseif df[i+1,"Theta"]===180.0 && df[i,"Theta"]===110.0
+
+                    df[i,"BondLenghtStdDiff"]=df[i+1,"BondLenghtStd"]-df[i,"BondLenghtStd"]
+                    df[i,"BondAngleStdDiff"]=df[i+1,"BondAngleStd"]-df[i,"BondAngleStd"]
+                
+                else
+                    println("i+1: Theta not 180 and 110")
+                end
+            elseif (i>1 && (
+                (df[i,"MaxT"]===df[i-1,"MaxT"]) && 
+                (df[i,"Beta"]===df[i-1,"Beta"]) && 
+                (df[i,"GradT"]===df[i-1,"GradT"]) && 
+                (df[i,"MCsteps"]===df[i-1,"MCsteps"]) && 
+                (df[i,"Theta"]!=df[i-1,"Theta"])))
+
+                if df[i,"Theta"]===180.0 && df[i-1,"Theta"]===110.0
+
+                    df[i,"BondLenghtStdDiff"]=df[i,"BondLenghtStd"]-df[i-1,"BondLenghtStd"]
+                    df[i,"BondAngleStdDiff"]=df[i,"BondAngleStd"]-df[i-1,"BondAngleStd"]
+
+                elseif df[i-1,"Theta"]===180.0 && df[i,"Theta"]===110.0
+
+                    df[i,"BondLenghtStdDiff"]=df[i-1,"BondLenghtStd"]-df[i,"BondLenghtStd"]
+                    df[i,"BondAngleStdDiff"]=df[i-1,"BondAngleStd"]-df[i,"BondAngleStd"]
+                
+                else
+                    println("i-1: Theta not 180 and 110")
+                end
+            else
+                println("Beta, GradT, MCsteps not the same OR Theta the same")
+            end
+        else
+            if ((df[i,"MaxT"]===df[i-1,"MaxT"]) &&
+                (df[i,"Beta"]===df[i-1,"Beta"]) && 
+                (df[i,"GradT"]===df[i-1,"GradT"]) && 
+                (df[i,"MCsteps"]===df[i-1,"MCsteps"]) && 
+                (df[i,"Theta"]!=df[i-1,"Theta"]))
+
+                if df[i,"Theta"]===180.0 && df[i-1,"Theta"]===110.0
+
+                    df[i,"BondLenghtStdDiff"]=df[i,"BondLenghtStd"]-df[i-1,"BondLenghtStd"]
+                    df[i,"BondAngleStdDiff"]=df[i,"BondAngleStd"]-df[i-1,"BondAngleStd"]
+
+                elseif df[i-1,"Theta"]===180.0 && df[i,"Theta"]===110.0
+
+                    df[i,"BondLenghtStdDiff"]=df[i-1,"BondLenghtStd"]-df[i,"BondLenghtStd"]
+                    df[i,"BondAngleStdDiff"]=df[i-1,"BondAngleStd"]-df[i,"BondAngleStd"]
+                
+                else
+                    println("i-1: Theta not 180 and 110")
+                end
+            end
+        end
+    end
+
+
+    df.BondLenghtStdDiffLog10 = log10.(df.BondLenghtStdDiff .+ 1)
+    df.BondAngleStdDiffLog10 = log10.(df.BondAngleStdDiff .+ 1)
+    =#
+
+
+    #=
+    df.Shape = @. ifelse(df.Theta == 180.0, :rect, 
+                    ifelse(df.Theta == 110.0, :diamond, 
+                    ifelse(df.Theta == 100.0, :circle, :x))); df
+                    =#
+
+    #df.GradTLog10 = log10.(df.GradT)
+    df.AcceptedMovesLog10 = log10.(df.AcceptedMoves .+ 1)
+   
+    #println(df)
+
+    fontsize=10
+
+    # plot
+
+    A=@df df Plots.scatter(
+        left_margin=5Plots.PlotMeasures.mm,
+        layout = (2,2),
+        size = (900, 700),
+        xtickfont = font(fontsize),  # Set x-axis tick font size
+        ytickfont = font(fontsize),   # Set y-axis tick font size
+        xlim=[-0.005,0.18+0.005],
+        xticks = (
+            0:0.025:0.175, 
+            ["0","0.025","0.05","0.075","0.1", "0.125", "0.15", "0.175"]
+        ),
+        xlabel=LaTeXStrings.L"\sigma_\mathrm{length} / d",
+        ylabel=LaTeXStrings.L"\sigma_\mathrm{angle} / \mathrm{rad}",
+        xguidefont = font(fontsize),
+        yguidefont = font(fontsize),
+        )
+
+    @df df StatsPlots.scatter!(
+        :BondLenghtStd, 
+        :BondAngleStd, 
+        color_palette=[:blue,:turquoise1,:yellow,:orange,:red],
+        legendtitle =LaTeXStrings.L"T_\mathrm{max}",
+        group=:MaxT,
+        subplot=1)
+
+    @df df StatsPlots.scatter!(
+        :BondLenghtStd, 
+        :BondAngleStd, 
+        color_palette=[:purple3,:royalblue,:turquoise1, :green,:greenyellow,:yellow,:gold,:coral,:firebrick,:maroon],
+        legendtitle =LaTeXStrings.L"\beta",
+        group=:Beta,
+        subplot=2)
+
+    @df df StatsPlots.scatter!(
+        :BondLenghtStd, 
+        :BondAngleStd, 
+        color_palette=[:grey90,:gray70,:grey50,:grey40,:gray10],
+        legendtitle =LaTeXStrings.L"\theta_\mathrm{eq}",
+        group=:Theta,
+        subplot=3)
+    
+    @df df StatsPlots.scatter!(
+        :BondLenghtStd, 
+        :BondAngleStd, 
+        colorbar_title=LaTeXStrings.L"\mathrm{Log_{10}} \left( N_\mathrm{Acc} \right)",
+        zcolor=:AcceptedMovesLog10,
+        color=cgrad([:blue,:red]),
+        colorbar=:top,
+        legend=false,
+        xlim=[-0.005,0.1375],
+        xticks = (
+            0:0.025:0.125, 
+            ["0","0.025","0.05","0.075","0.1", "0.125"]
+        ),
+        subplot=4)
+
+
+
+
+
+
+
+    # plot path and name
+
+    minimum_nr_vertices=minimum(nr_vertices_array)
+    maximum_nr_vertices=maximum(nr_vertices_array)
+
+    minimum_temperature=minimum(maximal_temperature_array)
+    maximum_temperature=maximum(maximal_temperature_array)
+    
+    minimum_bond_bending_const=minimum(bond_bending_const_array)
+    maximum_bond_bending_const=maximum(bond_bending_const_array)
+
+    minimum_temperature_gradient=minimum(temperature_gradient_array)
+    maximum_temperature_gradient=maximum(temperature_gradient_array)
+
+    minimum_nr_monte_carlo_steps_per_temperature=minimum(nr_monte_carlo_steps_per_temperature_array)
+    maximum_nr_monte_carlo_steps_per_temperature=maximum(nr_monte_carlo_steps_per_temperature_array)
+
+    minimum_theta=minimum(theta_ground_state_array)
+    maximum_theta=maximum(theta_ground_state_array)
+
+    plot_filename = (plot_filename_start
+        *"_N="*"$minimum_nr_vertices" * "-" * "$maximum_nr_vertices"
+        *"_T="*"$minimum_temperature" * "-" * "$maximum_temperature"
+        *"_Beta="*"$minimum_bond_bending_const" * "-" * "$maximum_bond_bending_const"
+        *"_GradT="*"$minimum_temperature_gradient" * "-" * "$maximum_temperature_gradient"
+        *"_StepsPerT="*"$minimum_nr_monte_carlo_steps_per_temperature" * "-" * "$maximum_nr_monte_carlo_steps_per_temperature"
+        *"_Theta_GS="*"$minimum_theta" * "-" * "$maximum_theta"
+        *"_Trials="*"$nr_trials_per_temperature"
+        *".png")
+
+    plot_total_path=plot_save_path*plot_filename
+    Plots.savefig(A,plot_total_path)
+
+end
+
+
+scatter_plot_for_mulitple_gml(
+    nr_vertices_array=[216],
+    maximal_temperature_array=[0.1,0.125,0.15,0.175,0.2],
+    bond_bending_const_array=[0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[100.0,110.0,130.0,150.0,180.0],
+    nr_trials_per_temperature=1, 
+    save_path = raw".\simulations\multiple_parameters\\",
+    filename_start = "m_rad_",    
+    plot_save_path = raw".\simulations\analysis_plot\\",
+    plot_filename_start = "m_rad_s_6_"
+)
+
+
+
+
 function rotation_matrix(axis::Vector{Float64}, angle::Float64)
     axis = axis / LinearAlgebra.norm(axis)
     angle=angle/360*2*pi

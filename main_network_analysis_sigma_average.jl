@@ -14,6 +14,7 @@ import Colors
 import Glob
 import DataFrames
 import LaTeXStrings
+import Statistics
 using StatsPlots
 
 function scatter_plot_for_mulitple_gml(;
@@ -99,21 +100,6 @@ function scatter_plot_for_mulitple_gml(;
                                     evolution_dict = GU.load_h5_dict(total_path*"_evolution.h5")
                                     accepted_moves=sum(evolution_dict["move_accepted_vec"])
 
-                                    #=
-                                    println("["
-                                        #*"$nr_vertices"*","
-                                        *"$maximal_temperature"*","
-                                        *"$bond_bending_const"*","
-                                        *"$temperature_gradient"*","
-                                        #*"$nr_monte_carlo_steps_per_temperature"*","
-                                        *"$theta_ground_state"*","
-                                        #*"$nr_trials_per_temperature"*","
-                                        *"$bond_length_std"*","
-                                        *"$bond_angle_std"*","
-                                        *"$accepted_moves"
-                                        *"],")
-                                    =#
-
                                     data=push!(data,
                                         [
                                             #nr_vertices,
@@ -151,103 +137,34 @@ function scatter_plot_for_mulitple_gml(;
 
     df=DataFrames.DataFrame(matrix,:auto)
 
-    DataFrames.rename!(df, [:x1, :x2, :x3, :x4, :x5, :x6, :x7, :x8, :x9] .=>  [:MaxT, :Beta, :GradT, :MCsteps, :Theta, :Trial, :BondLenghtStd, :BondAngleStd, :AcceptedMoves])
+    DataFrames.rename!(df, [:x1, :x2, :x3, :x4, :x5, :x6, :x7, :x8, :x9] .=>  [:MaxT, :Beta, :GradT, :MCsteps, :Theta, :Trial, :BondLengthStd, :BondAngleStd, :AcceptedMoves])
 
-
-
+    println("df")
     println(df)
 
-    #=
-    df.BondLenghtStdDiff.=0.0
-    df.BondAngleStdDiff.=0.0
-
-    for (i, row) in enumerate( eachrow( df ) ) 
-        println(i)
-        
-        if i<size(df,1)
-            if ((df[i,"MaxT"]===df[i+1,"MaxT"]) &&
-                (df[i,"Beta"]===df[i+1,"Beta"]) && 
-                (df[i,"GradT"]===df[i+1,"GradT"]) && 
-                (df[i,"MCsteps"]===df[i+1,"MCsteps"]) && 
-                (df[i,"Theta"]!=df[i+1,"Theta"]))
-
-                if df[i,"Theta"]===180.0 && df[i+1,"Theta"]===110.0
-
-                    df[i,"BondLenghtStdDiff"]=df[i,"BondLenghtStd"]-df[i+1,"BondLenghtStd"]
-                    df[i,"BondAngleStdDiff"]=df[i,"BondAngleStd"]-df[i+1,"BondAngleStd"]
-
-                elseif df[i+1,"Theta"]===180.0 && df[i,"Theta"]===110.0
-
-                    df[i,"BondLenghtStdDiff"]=df[i+1,"BondLenghtStd"]-df[i,"BondLenghtStd"]
-                    df[i,"BondAngleStdDiff"]=df[i+1,"BondAngleStd"]-df[i,"BondAngleStd"]
-                
-                else
-                    println("i+1: Theta not 180 and 110")
-                end
-            elseif (i>1 && (
-                (df[i,"MaxT"]===df[i-1,"MaxT"]) && 
-                (df[i,"Beta"]===df[i-1,"Beta"]) && 
-                (df[i,"GradT"]===df[i-1,"GradT"]) && 
-                (df[i,"MCsteps"]===df[i-1,"MCsteps"]) && 
-                (df[i,"Theta"]!=df[i-1,"Theta"])))
-
-                if df[i,"Theta"]===180.0 && df[i-1,"Theta"]===110.0
-
-                    df[i,"BondLenghtStdDiff"]=df[i,"BondLenghtStd"]-df[i-1,"BondLenghtStd"]
-                    df[i,"BondAngleStdDiff"]=df[i,"BondAngleStd"]-df[i-1,"BondAngleStd"]
-
-                elseif df[i-1,"Theta"]===180.0 && df[i,"Theta"]===110.0
-
-                    df[i,"BondLenghtStdDiff"]=df[i-1,"BondLenghtStd"]-df[i,"BondLenghtStd"]
-                    df[i,"BondAngleStdDiff"]=df[i-1,"BondAngleStd"]-df[i,"BondAngleStd"]
-                
-                else
-                    println("i-1: Theta not 180 and 110")
-                end
-            else
-                println("Beta, GradT, MCsteps not the same OR Theta the same")
-            end
-        else
-            if ((df[i,"MaxT"]===df[i-1,"MaxT"]) &&
-                (df[i,"Beta"]===df[i-1,"Beta"]) && 
-                (df[i,"GradT"]===df[i-1,"GradT"]) && 
-                (df[i,"MCsteps"]===df[i-1,"MCsteps"]) && 
-                (df[i,"Theta"]!=df[i-1,"Theta"]))
-
-                if df[i,"Theta"]===180.0 && df[i-1,"Theta"]===110.0
-
-                    df[i,"BondLenghtStdDiff"]=df[i,"BondLenghtStd"]-df[i-1,"BondLenghtStd"]
-                    df[i,"BondAngleStdDiff"]=df[i,"BondAngleStd"]-df[i-1,"BondAngleStd"]
-
-                elseif df[i-1,"Theta"]===180.0 && df[i,"Theta"]===110.0
-
-                    df[i,"BondLenghtStdDiff"]=df[i-1,"BondLenghtStd"]-df[i,"BondLenghtStd"]
-                    df[i,"BondAngleStdDiff"]=df[i-1,"BondAngleStd"]-df[i,"BondAngleStd"]
-                
-                else
-                    println("i-1: Theta not 180 and 110")
-                end
-            end
-        end
-    end
-
-
-    df.BondLenghtStdDiffLog10 = log10.(df.BondLenghtStdDiff .+ 1)
-    df.BondAngleStdDiffLog10 = log10.(df.BondAngleStdDiff .+ 1)
-    =#
-
-
-    #=
-    df.Shape = @. ifelse(df.Theta == 180.0, :rect, 
-                    ifelse(df.Theta == 110.0, :diamond, 
-                    ifelse(df.Theta == 100.0, :circle, :x))); df
-                    =#
-
-    #df.GradTLog10 = log10.(df.GradT)
     df.AcceptedMovesLog10 = log10.(df.AcceptedMoves .+ 1)
-   
-    #println(df)
+    
+    
+    # Group by MaxT, Beta, and Theta
+    grouped_df = DataFrames.groupby(df, [:MaxT, :Beta, :Theta])
 
+    println("grouped_df")
+    println(grouped_df)
+
+    # Compute the mean for each group
+    average_df = DataFrames.combine(grouped_df, 
+        :BondLengthStd => Statistics.mean => :AvgBondLengthStd,
+        :BondAngleStd => Statistics.mean => :AvgBondAngleStd,
+        :AcceptedMovesLog10 => Statistics.mean => :AvgAcceptedMovesLog10,
+        :BondLengthStd => Statistics.std => :StdBondLengthStd,
+        :BondAngleStd => Statistics.std => :StdBondAngleStd,
+    )
+
+    println("average_df")
+    println(average_df)
+
+    df=average_df
+    
     fontsize=10
 
     # plot
@@ -270,34 +187,55 @@ function scatter_plot_for_mulitple_gml(;
         )
 
     @df df StatsPlots.scatter!(
-        :BondLenghtStd, 
-        :BondAngleStd, 
+        :AvgBondLengthStd, 
+        :AvgBondAngleStd, 
         color_palette=[:blue,:turquoise1,:yellow,:orange,:red],
         legendtitle =LaTeXStrings.L"T_\mathrm{max}",
         group=:MaxT,
         subplot=1)
 
+    @df df Plots.errorbar!(
+        :AvgBondLengthStd, 
+        :AvgBondAngleStd, 
+        xerr=:StdBondLengthStd,
+        yerr=:StdBondAngleStd,
+        subplot=1)
+
     @df df StatsPlots.scatter!(
-        :BondLenghtStd, 
-        :BondAngleStd, 
+        :AvgBondLengthStd, 
+        :AvgBondAngleStd, 
         color_palette=[:purple3,:royalblue,:turquoise1, :green,:greenyellow,:yellow,:gold,:coral,:firebrick,:maroon],
         legendtitle =LaTeXStrings.L"\beta",
         group=:Beta,
         subplot=2)
 
+    @df df Plots.errorbar!(
+        :AvgBondLengthStd, 
+        :AvgBondAngleStd, 
+        xerr=:StdBondLengthStd,
+        yerr=:StdBondAngleStd,
+        subplot=2)
+
     @df df StatsPlots.scatter!(
-        :BondLenghtStd, 
-        :BondAngleStd, 
+        :AvgBondLengthStd, 
+        :AvgBondAngleStd, 
         color_palette=[:grey90,:gray70,:grey50,:grey40,:gray10],
         legendtitle =LaTeXStrings.L"\theta_\mathrm{eq}",
         group=:Theta,
         subplot=3)
+
+    @df df Plots.errorbar!(
+        :AvgBondLengthStd, 
+        :AvgBondAngleStd, 
+        xerr=:StdBondLengthStd,
+        yerr=:StdBondAngleStd,
+        subplot=3)
     
     @df df StatsPlots.scatter!(
-        :BondLenghtStd, 
-        :BondAngleStd, 
+        :AvgBondLengthStd, 
+        :AvgBondAngleStd, 
         colorbar_title=LaTeXStrings.L"\mathrm{Log_{10}} \left( N_\mathrm{Acc} \right)",
-        zcolor=:AcceptedMovesLog10,
+        zcolor=:AvgAcceptedMovesLog10,
         color=cgrad([:blue,:red]),
         colorbar=:top,
         legend=false,
@@ -308,7 +246,12 @@ function scatter_plot_for_mulitple_gml(;
         ),
         subplot=4)
 
-
+    @df df Plots.errorbar!(
+        :AvgBondLengthStd, 
+        :AvgBondAngleStd, 
+        xerr=:StdBondLengthStd,
+        yerr=:StdBondAngleStd,
+        subplot=4)
 
 
 
@@ -353,76 +296,16 @@ function scatter_plot_for_mulitple_gml(;
 end
 
 
-network_type="diamond"
-#network_type="srd"
-
 scatter_plot_for_mulitple_gml(
     nr_vertices_array=[216],
     maximal_temperature_array=[0.1,0.125,0.15,0.175,0.2],
-    bond_bending_const_array=[0.1,0.2,0.3,0.4,0.5],
+    bond_bending_const_array=[0.2,0.25,0.3,0.35,0.4],
     temperature_gradient_array=[0.1],
     nr_monte_carlo_steps_per_temperature_array=[0.01],
     theta_ground_state_array=[100.0,120.0,140.0,160.0,180.0],
-    nr_trials_per_temperature_array=[1], 
-    save_path = raw".\simulations\networks_dia_test\\",
-    filename_start = "m_$(network_type)_noBr_1",
+    nr_trials_per_temperature_array=[1,2,3,4,5,6,7,8,9], 
+    save_path = raw".\simulations\multiple_trials\\",
+    filename_start = "m_t_",
     plot_save_path = raw".\simulations\analysis_plot\\",
-    plot_filename_start = "m_$(network_type)_noBr_2"
+    plot_filename_start = "m_t_avg_1_"
 )
-
-
-
-#=
-network_type="diamond"
-#network_type="srd"
-
-scatter_plot_for_mulitple_gml(
-    nr_vertices_array=[216],
-    maximal_temperature_array=[0.1,0.125,0.15,0.175,0.2],
-    bond_bending_const_array=[0.1,0.2,0.3,0.4,0.5],
-    temperature_gradient_array=[0.1],
-    nr_monte_carlo_steps_per_temperature_array=[0.01],
-    theta_ground_state_array=[110.0,180.0],
-    nr_trials_per_temperature_array=[1], 
-    save_path = raw".\simulations\networks_dia_test\\",
-    filename_start = "m_$(network_type)_q_1",
-    plot_save_path = raw".\simulations\analysis_plot\\",
-    plot_filename_start = "m_$(network_type)_3_"
-)
-=#
-
-
-#=
-scatter_plot_for_mulitple_gml(
-    nr_vertices_array=[216],
-    maximal_temperature_array=[0.0,0.001],
-    bond_bending_const_array=[0.1,0.2,0.3],
-    temperature_gradient_array=[0.1],
-    nr_monte_carlo_steps_per_temperature_array=[0.01],
-    theta_ground_state_array=[110.0,180.0],
-    nr_trials_per_temperature_array=[1,2], 
-    save_path = raw".\simulations\networks_dia_srd_ctn\\",
-    filename_start = "m_srd_1",    
-    plot_save_path = raw".\simulations\analysis_plot\\",
-    plot_filename_start = "m_srd_1_"
-)
-=#
-
-#=
-network_type="diamond"
-#network_type="srd"
-
-scatter_plot_for_mulitple_gml(
-    nr_vertices_array=[216],
-    maximal_temperature_array=[0.1,0.125,0.15,0.175,0.2],
-    bond_bending_const_array=[0.1,0.2,0.3,0.4,0.5],
-    temperature_gradient_array=[0.1],
-    nr_monte_carlo_steps_per_temperature_array=[0.01],
-    theta_ground_state_array=[110.0,180.0],
-    nr_trials_per_temperature_array=[1], 
-    save_path = raw".\simulations\multiple_parameters\\",
-    filename_start = "m_rad_",
-    plot_save_path = raw".\simulations\analysis_plot\\",
-    plot_filename_start = "m_rad_2_"
-)
-    =#
