@@ -15730,3 +15730,311 @@ println(sum(evolution_dict["move_accepted_vec"]))
 
 # plot network
 NG.plot_spatial_network(network)
+
+
+
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_bond_bending_"
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_bond_bending_comparison\\"
+
+bond_bending_vec = [0.21, 0.285, 0.36]
+
+run_vec = [1, 2, 3, 4, 5]
+
+# loop through all bond bending values and runs. For each run,
+# load the dicitionary all_order_metrics.h5. Save each vector in the dictionary in a column of
+# DataFrame all_data_dict
+
+all_data_dict = Dict()
+
+for bond_bending in bond_bending_vec
+    for run in run_vec
+        filename = path * string(bond_bending) * raw"\run_" * string(run) * raw"\all_order_metrics.h5"
+        
+        if bond_bending == 0.21 && run == 1
+            current_order_metrics_dict = GU.load_h5_dict(filename)
+
+            for key in keys(current_order_metrics_dict)
+                all_data_dict[key] = current_order_metrics_dict[key]
+            end
+
+            all_data_dict["run"] = fill(run, length(current_order_metrics_dict["filenames_vec"]))
+            all_data_dict["bond_bending_const"] = fill(bond_bending, length(current_order_metrics_dict["filenames_vec"]))
+        else
+            current_order_metrics_dict = GU.load_h5_dict(filename)
+
+            for key in keys(current_order_metrics_dict)
+                all_data_dict[key] = vcat(all_data_dict[key], current_order_metrics_dict[key])
+            end
+
+            all_data_dict["run"] = vcat(all_data_dict["run"], fill(run, length(current_order_metrics_dict["filenames_vec"])) )
+            all_data_dict["bond_bending_const"] = vcat(all_data_dict["bond_bending_const"], fill(bond_bending, length(current_order_metrics_dict["filenames_vec"])) ) 
+        end
+    end
+end
+
+all_data_frame = DataFrames.DataFrame(all_data_dict)
+CSV.write(save_path * "order_metrics_all_networks.csv", all_data_frame)
+
+
+
+path_vec = [raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_5\\",
+            raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.36\run_1\\"]
+
+save_path_vec = [raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\geometrical_models\216_vertices_bond_bending_0.21\run_5\\",
+                 raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\geometrical_models\216_vertices_bond_bending_0.36\run_1\\"]
+
+filename_vec = ["216_vertices_T_0.11_heat_cool_0.1_per_mc_quenched", "216_vertices_T_0.11_heat_cool_0.1_per_mc_quenched"]
+
+for i in eachindex(path_vec)
+
+    spatial_network = NG.load_spatial_network_from_gml(path_vec[i]*filename_vec[i]*".gml")
+
+    save_filename = string(filename_vec[i], "_br_0.26")
+        
+    NG.save_mesh_from_spatial_network(spatial_network, save_filename; save_path = save_path_vec[i], bond_radius = 0.26,
+        vector_out_of_supercell_length = 1)
+end
+
+
+
+nr_vertices = 216
+temperature_gradient = 0.1
+bond_bending_const_vec = [0.135, 0.435]
+
+temperatures_vec = [collect(0.07:0.01:0.17), vcat(collect(0.12:0.01:0.2), collect(0.22:0.02:0.26))]
+
+#for bond_bending in bond_bending_const_vec
+for i in eachindex(bond_bending_const_vec)
+    bond_bending = bond_bending_const_vec[i]
+    temperatures = temperatures_vec[i]
+
+    save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\\"* string(nr_vertices)*"_vertices_bond_bending_"*string(bond_bending)*"\\evolution_dicts\\"
+
+    for temperature in temperatures
+
+        temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(temperature;
+        temperature_gradient = temperature_gradient, 
+            nr_monte_carlo_steps_per_temperature = 0.01,
+            quench = true )
+
+        evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,temperature_vec = temperature_vec,
+            nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
+            bond_bending_const = bond_bending)
+
+        filename = string(nr_vertices)*"_vertices_T_"*string(temperature)*"_heat_cool_"*string(temperature_gradient)*"_per_mc_quenched"
+
+        GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
+
+    end
+end
+
+
+nr_vertices = 216
+temperature_gradient = 0.1
+bond_bending_const_vec = [0.06, 0.51]
+
+temperatures_vec = [collect(0.06:0.01:0.16), vcat(collect(0.13:0.01:0.21), collect(0.23:0.02:0.27))]
+
+#for bond_bending in bond_bending_const_vec
+for i in eachindex(bond_bending_const_vec)
+    bond_bending = bond_bending_const_vec[i]
+    temperatures = temperatures_vec[i]
+
+    save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\\"* string(nr_vertices)*"_vertices_bond_bending_"*string(bond_bending)*"\\evolution_dicts\\"
+
+    for temperature in temperatures
+
+        temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(temperature;
+        temperature_gradient = temperature_gradient, 
+            nr_monte_carlo_steps_per_temperature = 0.01,
+            quench = true )
+
+        evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,temperature_vec = temperature_vec,
+            nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
+            bond_bending_const = bond_bending)
+
+        filename = string(nr_vertices)*"_vertices_T_"*string(temperature)*"_heat_cool_"*string(temperature_gradient)*"_per_mc_quenched"
+
+        GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
+
+    end
+end
+
+
+evolution_dicts_directory_path = "../structures/random_networks/216_vertices_bond_bending_0.135/evolution_dicts/"
+save_path = "../structures/random_networks/216_vertices_bond_bending_0.135/"
+
+NG.generate_spatial_networks_from_evolution_dicts_in_directory_multiple_runs(
+    evolution_dicts_directory_path,
+    save_path;
+    print_every_nr_attempted_bond_switches = 200,
+    print_progress = true,
+    save_network_after_each_temperature = false,
+    further_evolve_previous_networks = false,
+    runs_vec = collect(1:5),
+    print_lock = Threads.ReentrantLock())
+
+
+
+bond_bending = 0.06
+
+spatial_network_path = "../structures/random_networks/216_vertices_bond_bending_"*string(bond_bending)*"/"
+structure_dict_path = "../structures/random_networks/binary_structures/216_vertices_bond_bending_"*string(bond_bending)*"/"
+analysis_data_path = "../analysis_data/random_networks/216_vertices_bond_bending_"*string(bond_bending)*"/"
+
+NA.get_all_dicts_from_networks_multithreading(
+    spatial_network_path,
+    structure_dict_path,
+    analysis_data_path;
+    bond_radius = 0.35,
+    voxel_edge_length = 0.1,
+    structure_factor_diamond_std_value_ratio = 1,
+    spectral_density_diamond_std_value_ratio = 1,
+    pore_size_distribution_nr_sampled_voxels = 20000,
+    print_progress = true,
+    runs_vec = collect(1:5),
+    print_lock = Threads.ReentrantLock())
+
+
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_bond_bending_"
+
+bond_bending_vec = [0.06, 0.135,  0.435, 0.51] #0.21, 0.285, 0.36,
+
+for bond_bending in bond_bending_vec
+
+    for run in 1:5
+        NA.get_small_length_scale_order_metrics_all_files(
+            analysis_data_path*string(bond_bending)*"\\run_"*string(run)*"\\",;
+            l_max_steinhardt_q_l = 12,
+            save_result = true,)
+    end
+
+    println("Finished bond_bending = ", bond_bending)
+end
+
+
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_bond_bending_"
+
+bond_bending_vec = [0.06, 0.135, 0.21, 0.285, 0.36, 0.435, 0.51]
+
+for bond_bending in bond_bending_vec
+
+    for run in 1:5
+        # for the current folder, get all filenames that contain the string "pore_size_distribution"
+        all_filenames = readdir(analysis_data_path*string(bond_bending)*"\\run_"*string(run)*"\\")
+        pore_size_distribution_filenames = [filename for filename in all_filenames
+            if occursin("pore_size_distribution", filename)]
+
+        # get the second moment of the pore size distribution for each file
+        for pore_size_distribution_filename in pore_size_distribution_filenames
+            pore_size_distribution_dict = GU.load_h5_dict(analysis_data_path*string(bond_bending)*"\\run_"*string(run)*"\\"*pore_size_distribution_filename)
+
+            small_scale_filename = pore_size_distribution_filename[1:end-26]*"_small_scale_order_metrics.h5"
+            small_scale_order_metrics_dict = GU.load_h5_dict(analysis_data_path*string(bond_bending)*"\\run_"*string(run)*"\\"*small_scale_filename)
+
+            second_moment = NA.get_pore_size_distribution_second_moment(pore_size_distribution_dict)
+            small_scale_order_metrics_dict["pore_size_distribution_second_moment"] = second_moment
+
+            GU.save_dict_to_h5(small_scale_order_metrics_dict, analysis_data_path*string(bond_bending)*"\\run_"*string(run)*"\\"*small_scale_filename)
+
+        end
+
+        NA.get_small_length_scale_order_metrics_all_files(
+            analysis_data_path*string(bond_bending)*"\\run_"*string(run)*"\\",;
+            l_max_steinhardt_q_l = 12,
+            save_result = true,)
+    end
+
+    println("Finished bond_bending = ", bond_bending)
+end
+
+
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_bond_bending_"
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_bond_bending_comparison\\"
+
+bond_bending_vec = [0.06, 0.135, 0.21, 0.285, 0.36, 0.435, 0.51]
+
+run_vec = [1, 2, 3, 4, 5]
+
+# loop through all bond bending values and runs. For each run,
+# load the dicitionary all_order_metrics.h5. Save each vector in the dictionary in a column of
+# DataFrame all_data_dict
+
+all_data_dict = Dict()
+
+for bond_bending in bond_bending_vec
+    for run in run_vec
+        filename = path * string(bond_bending) * raw"\run_" * string(run) * raw"\all_order_metrics.h5"
+        
+        if bond_bending == 0.06 && run == 1
+            current_order_metrics_dict = GU.load_h5_dict(filename)
+
+            for key in keys(current_order_metrics_dict)
+                all_data_dict[key] = current_order_metrics_dict[key]
+            end
+
+            all_data_dict["run"] = fill(run, length(current_order_metrics_dict["filenames_vec"]))
+            all_data_dict["bond_bending_const"] = fill(bond_bending, length(current_order_metrics_dict["filenames_vec"]))
+        else
+            current_order_metrics_dict = GU.load_h5_dict(filename)
+
+            for key in keys(current_order_metrics_dict)
+                all_data_dict[key] = vcat(all_data_dict[key], current_order_metrics_dict[key])
+            end
+
+            all_data_dict["run"] = vcat(all_data_dict["run"], fill(run, length(current_order_metrics_dict["filenames_vec"])) )
+            all_data_dict["bond_bending_const"] = vcat(all_data_dict["bond_bending_const"], fill(bond_bending, length(current_order_metrics_dict["filenames_vec"])) ) 
+        end
+    end
+end
+
+all_data_frame = DataFrames.DataFrame(all_data_dict)
+CSV.write(save_path * "more_order_metrics_all_networks.csv", all_data_frame)
+
+
+
+function my_func()
+    
+    path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\\"
+
+    nr_vertices_vec = [216]
+    bond_bending_vec = [0.06, 0.135, 0.435, 0.51]
+
+    for nr_vertices in nr_vertices_vec
+        for bond_bending in bond_bending_vec
+            for run in 1:5
+                current_path = path*string(nr_vertices)*"_vertices_bond_bending_"*string(bond_bending)*"\\run_"*string(run)*"\\"
+
+                save_path = path*"networks_for_simulation\\"*string(nr_vertices)*"_vertices_bond_bending_"*string(bond_bending)*"\\run_"*string(run)*"\\"
+
+                # get all files in the current path
+                files = readdir(current_path)
+                # get vector of all gml files
+                gml_files = [file for file in files if endswith(file, ".gml")]
+
+                # loop through each file that is a gml file
+                for gml_file in gml_files
+                    filename  = gml_file[1:end-4]
+                    spatial_network = NG.load_spatial_network_from_gml(current_path*filename*".gml")
+
+                    spatial_network_for_simulation = NG.get_spatial_network_for_simulation!(
+                        spatial_network;
+                        vector_out_of_supercell_length = 1,
+                        duplicate_bonds_close_to_supercell_edge = true,
+                        save_result = true,
+                        filename = filename,
+                        save_path = save_path)
+                end
+            end
+
+            println("finished run for ", nr_vertices, " vertices and bond bending ", bond_bending)
+        end
+    end
+
+end
+
+my_func()
