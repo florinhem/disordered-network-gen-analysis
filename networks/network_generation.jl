@@ -643,6 +643,41 @@ function copy_and_rotate_and_translate(
     return new_edges
 end
 
+
+"""
+makes a copy of edges and applies a glide plane (mirror at a plane and then
+translate along the mirror)
+"""
+function copy_and_glide(
+    edges,
+    translate::Vector{Float64},
+    normal_vector_to_mirror_plane::Vector{Float64}
+)
+    # Normalize the normal vector
+    normal_vector_to_mirror_plane = normal_vector_to_mirror_plane / LinearAlgebra.norm(normal_vector_to_mirror_plane)
+    
+    new_edges = deepcopy(edges)
+    current_edge = length(edges) + 1
+
+    for (edge_nr, (vertex_position_start, vertex_position_end, length)) in edges
+        # Mirror the start and end positions
+        mirrored_start = vertex_position_start - 2 * LinearAlgebra.dot(vertex_position_start, normal_vector_to_mirror_plane) * normal_vector_to_mirror_plane
+        mirrored_end = vertex_position_end - 2 * LinearAlgebra.dot(vertex_position_end, normal_vector_to_mirror_plane) * normal_vector_to_mirror_plane
+        
+        # Translate the mirrored positions
+        new_vertex_position_start = mirrored_start .+ translate
+        new_vertex_position_end = mirrored_end .+ translate
+        
+        # Add the new edge to the dictionary
+        new_edges[current_edge] = (new_vertex_position_start, new_vertex_position_end, length)
+        current_edge += 1
+    end
+    
+    return new_edges
+end
+
+
+
 """
 makes a copy of edges and translates all edges once in translate direction
 """
@@ -948,6 +983,33 @@ end
 
 """
 returns a dictionary with edges (starting position, ending position, length)
+for the srs (gyroid) structure with the symmetry operations
+"""
+function get_edges_srs(edge_length_unit_cell)
+    # define the edges with the help of rcsr.net
+    # look at the spacegroup name and find the spacegroup number
+    edges = Dict(
+        1 => ([1/8, 1/8, 1/8] .* edge_length_unit_cell, [-1/8, 3/8, 1/8] .* edge_length_unit_cell, sqrt(2)/4 .* edge_length_unit_cell),
+        )
+    
+    # symmetry operations for space group number with the help of the book:
+    # "International Tables for Crystallography"
+    edges = copy_and_rotate_and_translate(edges,[0.0,0.0,1.0],[1/4,0.0,0.0].* edge_length_unit_cell,[0.0,0.0,1/2] .* edge_length_unit_cell,2)
+    edges = copy_and_rotate_and_translate(edges,[0.0,1.0,0.0],[0.0,0.0,1/4].* edge_length_unit_cell,[0.0,1/2,0.0] .* edge_length_unit_cell,2)
+    edges = copy_and_rotate_and_translate(edges,[1.0,1.0,1.0],[0.0,0.0,0.0].* edge_length_unit_cell,[0.0,0.0,0.0] .* edge_length_unit_cell,3)
+    edges = copy_and_rotate_and_translate(edges,[1.0,1.0,0.0],[0.0,-1/4,1/8].* edge_length_unit_cell,[1/2,1/2,0.0] .* edge_length_unit_cell,2)
+
+    edges = copy_and_translate(edges, [1/2,1/2,1/2].* edge_length_unit_cell)
+
+    # clean unnecessairy edges that are repeated
+    edges = delete_copys(edges)
+
+    return edges
+end
+
+
+"""
+returns a dictionary with edges (starting position, ending position, length)
 for the srd structure with the symmetry operations
 """
 function get_edges_srd(edge_length_unit_cell)
@@ -974,27 +1036,39 @@ end
 
 """
 returns a dictionary with edges (starting position, ending position, length)
-for the srs (gyroid) structure with the symmetry operations
+for the ctn structure with the symmetry operations
 """
-function get_edges_srs(edge_length_unit_cell)
+function get_edges_ctn(edge_length_unit_cell)
     # define the edges with the help of rcsr.net
     # look at the spacegroup name and find the spacegroup number
+
+    # it is possible to change the x value for the first vertex V1. V2 is fixed.
+    x=0.2082
+    V1=[x, x, x]
+    V2=[3/8, 0.0, 1/4]
+
+    # the difference between V1 and V2 gives us the length
+    D1=V1 .- V2
+    L1=LinearAlgebra.norm(D1)
+    println(1/L1)
+    
     edges = Dict(
-        1 => ([1/8, 1/8, 1/8] .* edge_length_unit_cell, [-1/8, 3/8, 1/8] .* edge_length_unit_cell, sqrt(2)/8 .* edge_length_unit_cell),
-        )
+        1 => (V1 .* edge_length_unit_cell, V2 .* edge_length_unit_cell, L1 .* edge_length_unit_cell)
+    )
     
     # symmetry operations for space group number with the help of the book:
     # "International Tables for Crystallography"
     edges = copy_and_rotate_and_translate(edges,[0.0,0.0,1.0],[1/4,0.0,0.0].* edge_length_unit_cell,[0.0,0.0,1/2] .* edge_length_unit_cell,2)
     edges = copy_and_rotate_and_translate(edges,[0.0,1.0,0.0],[0.0,0.0,1/4].* edge_length_unit_cell,[0.0,1/2,0.0] .* edge_length_unit_cell,2)
     edges = copy_and_rotate_and_translate(edges,[1.0,1.0,1.0],[0.0,0.0,0.0].* edge_length_unit_cell,[0.0,0.0,0.0] .* edge_length_unit_cell,3)
-    edges = copy_and_rotate_and_translate(edges,[1.0,1.0,0.0],[0.0,-1/4,1/8].* edge_length_unit_cell,[1/2,1/2,0.0] .* edge_length_unit_cell,2)
+    edges = copy_and_glide(edges,[1/4,1/4,1/4].* edge_length_unit_cell,[1.0,-1.0,0.0])
 
     edges = copy_and_translate(edges, [1/2,1/2,1/2].* edge_length_unit_cell)
 
     # clean unnecessairy edges that are repeated
     edges = delete_copys(edges)
 
+    println("get_edges_ctn finished")
     return edges
 end
 
@@ -1024,24 +1098,29 @@ returns the original space graph. It checks which network we want to generate.
 Then it calculates for the unitcell and supercell the edges 
 (number, starting vertex, ending vertex and length) of the network.
 """
-function get_network(nr_vertices, network_name)
+function get_network(nr_vertices, network_name,edge_length_unit_cell)
     if cmp(network_name , "dia") == 0       #diamond
         println("get_network, dia")
         nr_dimensions = 3
         edge_length_unit_cell = 4/sqrt(3)
         nr_vertices_per_unit_cell = 8
-    elseif cmp(network_name , "srd") == 0   #srd
-        println("get_network, srd")
-        nr_dimensions = 3
-        edge_length_unit_cell = 2
-        nr_vertices_per_unit_cell = 10
     elseif cmp(network_name , "srs") == 0   #gyroid
         println("get_network, srs")
         nr_dimensions = 3
-        edge_length_unit_cell = 8/sqrt(2)
+        edge_length_unit_cell = 4/sqrt(2)
         nr_vertices_per_unit_cell = 8
+    elseif cmp(network_name , "srd") == 0   #srd
+        println("get_network, srd")
+        nr_dimensions = 3
+        edge_length_unit_cell = edge_length_unit_cell
+        nr_vertices_per_unit_cell = 10
+    elseif cmp(network_name , "ctn") == 0   #ctn
+        println("get_network, ctn")
+        nr_dimensions = 3
+        edge_length_unit_cell = edge_length_unit_cell
+        nr_vertices_per_unit_cell = 28
     else
-        @error "Only dia, srd, srs are implemented, $network_name not."
+        @error "Only dia, srd, srs, ctn are implemented, $network_name not."
     end
 
 
@@ -1057,6 +1136,8 @@ function get_network(nr_vertices, network_name)
         edges = get_edges_srd(edge_length_unit_cell)
     elseif cmp(network_name , "srs") == 0
         edges = get_edges_srs(edge_length_unit_cell)
+    elseif cmp(network_name , "ctn") == 0
+        edges = get_edges_ctn(edge_length_unit_cell)
     end
   
     # copy all edges L times in x,y,z direction to get all edges 
@@ -1098,24 +1179,26 @@ function get_network(nr_vertices, network_name)
     elseif cmp(network_name , "srd") == 0
         println("nr of edges in unitcell should be 18=?=$(length(edge_length_vec)/(nr_unit_cells_per_dimension^3))")     
     elseif cmp(network_name , "srs") == 0
-        println("nr of edges in unitcell should be 12=?=$(length(edge_length_vec)/(nr_unit_cells_per_dimension^3))")      
+        println("nr of edges in unitcell should be 12=?=$(length(edge_length_vec)/(nr_unit_cells_per_dimension^3))") 
+    elseif cmp(network_name , "ctn") == 0
+        println("nr of edges in unitcell should be 48=?=$(length(edge_length_vec)/(nr_unit_cells_per_dimension^3))")      
     end
 
     # calculate the coordination number
     coordination_nr_vec=get_coordination_nr_vec(original_graph)
     println("coordination_nr_vec, $coordination_nr_vec")
 
+    count_3 = count(x -> x == 3, coordination_nr_vec)
+    count_4 = count(x -> x == 4, coordination_nr_vec)
     # this if else can be removed, if you are sure that the network is correct
     if cmp(network_name , "dia") == 0
-        count_4 = count(x -> x == 4, coordination_nr_vec)
         println("CN_all=$(length(coordination_nr_vec))=?=CN4=$(count_4)")
-    elseif cmp(network_name , "srd") == 0
-        count_3 = count(x -> x == 3, coordination_nr_vec)
-        count_4 = count(x -> x == 4, coordination_nr_vec)
-        println("CN3/CN4=4/6=0.666=?=$(count_3/count_4)")
     elseif cmp(network_name , "srs") == 0
-        count_3 = count(x -> x == 3, coordination_nr_vec)
         println("CN_all=$(length(coordination_nr_vec))=?=CN3=$(count_3)")
+    elseif cmp(network_name , "srd") == 0
+        println("CN3/CN4=4/6=0.666=?=$(count_3/count_4)")
+    elseif cmp(network_name , "ctn") == 0
+        println("CN3/CN4=16/12=1.333=?=$(count_3/count_4)")
     end
 
     # create original spatial network
@@ -1201,12 +1284,13 @@ end
 """
 create a network graph representing the given network structure
 """
-function get_periodic_network(evolution_dict)
+function get_periodic_network(evolution_dict,edge_length_unit_cell)
 
     #*# big changes here
     original_spatial_network = get_network(
         evolution_dict["nr_vertices"],
-        evolution_dict["network_type"] 
+        evolution_dict["network_type"],
+        edge_length_unit_cell
     ) 
 
     

@@ -258,11 +258,13 @@ function scatter_plot_for_mulitple_gml(;
         size = (900, 700),
         xtickfont = font(fontsize),  # Set x-axis tick font size
         ytickfont = font(fontsize),   # Set y-axis tick font size
+        #=
         xlim=[-0.005,0.18+0.005],
         xticks = (
             0:0.025:0.175, 
             ["0","0.025","0.05","0.075","0.1", "0.125", "0.15", "0.175"]
         ),
+        =#
         xlabel=LaTeXStrings.L"\sigma_\mathrm{length} / d",
         ylabel=LaTeXStrings.L"\sigma_\mathrm{angle} / \mathrm{rad}",
         xguidefont = font(fontsize),
@@ -272,7 +274,7 @@ function scatter_plot_for_mulitple_gml(;
     @df df StatsPlots.scatter!(
         :BondLenghtStd, 
         :BondAngleStd, 
-        color_palette=[:blue,:turquoise1,:yellow,:orange,:red],
+        color_palette=[:blue,:royalblue,:turquoise1,:yellow,:gold,:orange,:red, :maroon], #[:blue,:turquoise1,:yellow,:orange,:red],
         legendtitle =LaTeXStrings.L"T_\mathrm{max}",
         group=:MaxT,
         subplot=1)
@@ -301,11 +303,13 @@ function scatter_plot_for_mulitple_gml(;
         color=cgrad([:blue,:red]),
         colorbar=:top,
         legend=false,
+        #=
         xlim=[-0.005,0.1375],
         xticks = (
             0:0.025:0.125, 
             ["0","0.025","0.05","0.075","0.1", "0.125"]
         ),
+        =#
         subplot=4)
 
 
@@ -353,23 +357,123 @@ function scatter_plot_for_mulitple_gml(;
 end
 
 
+#network_type="diamond"
+network_type="srd"
+#network_type="srs"
+
+scatter_plot_for_mulitple_gml(
+    nr_vertices_array=[216],
+    maximal_temperature_array=[0.1,0.2,0.3,0.4],
+    bond_bending_const_array=[0.1,0.2,0.3,0.4,0.5,1.0],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[100.0,180.0],
+    nr_trials_per_temperature_array=[1], 
+    save_path = raw".\simulations\networks_noBr\\",
+    filename_start = "m_$(network_type)_noBr_1",
+    plot_save_path = raw".\simulations\analysis_plot\\",
+    plot_filename_start = "m_$(network_type)_noBr_9"
+)
+
+
+#=
+network_type="srs"
+
+scatter_plot_for_mulitple_gml(
+    nr_vertices_array=[216],
+    maximal_temperature_array=[0.1,0.2,0.4,0.8,1.6],
+    bond_bending_const_array=[0.1,0.2,0.3,0.4,0.5],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[120.0,180.0],
+    nr_trials_per_temperature_array=[1], 
+    save_path = raw".\simulations\networks_noBr\\",
+    filename_start = "m_$(network_type)_noBr_1",
+    plot_save_path = raw".\simulations\analysis_plot\\",
+    plot_filename_start = "m_$(network_type)_noBr_8"
+)
+    =#
+
+#=
+
+#network_type="diamond"
+network_type="srd"
+#network_type="srs"
+
+scatter_plot_for_mulitple_gml(
+    nr_vertices_array=[216],
+    maximal_temperature_array=[0.1,0.2,0.3,0.4],
+    bond_bending_const_array=[0.1,0.2,0.3,0.4,0.5],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[100.0,180.0],
+    nr_trials_per_temperature_array=[1], 
+    save_path = raw".\simulations\networks_noBr\\",
+    filename_start = "m_$(network_type)_noBr_1",
+    plot_save_path = raw".\simulations\analysis_plot\\",
+    plot_filename_start = "m_$(network_type)_noBr_6"
+)
+    =#
+
+#=
+
+network_type="srd"
+#network_type="srs"
+
+scatter_plot_for_mulitple_gml(
+    nr_vertices_array=[216],
+    maximal_temperature_array=[0.1,0.2,0.4,0.8,1.6],
+    bond_bending_const_array=[0.000001,0.0001,0.01,1],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[100.0,180.0],
+    nr_trials_per_temperature_array=[1],
+    save_path = raw".\simulations\networks_noBr\\",
+    filename_start = "m_$(network_type)_noBr_1",
+    plot_save_path = raw".\simulations\analysis_plot\\",
+    plot_filename_start = "m_$(network_type)_noBr_5"
+)
+    =#
+
+#=
+#network_type="diamond"
+network_type="srd"
+#network_type="srs"
+
+scatter_plot_for_mulitple_gml(
+    nr_vertices_array=[216],
+    maximal_temperature_array=[0.025,0.05,0.1,0.2,0.4],
+    bond_bending_const_array=[0.05,0.1,0.2,0.4,0.8],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[120.0,180.0],
+    nr_trials_per_temperature_array=[1],  
+    save_path = raw".\simulations\networks_noBr\\",
+    filename_start = "m_$(network_type)_noBr_1",
+    plot_save_path = raw".\simulations\analysis_plot\\",
+    plot_filename_start = "m_$(network_type)_noBr_5"
+)
+    =#
+
+
+#=
 network_type="diamond"
 #network_type="srd"
 
 scatter_plot_for_mulitple_gml(
     nr_vertices_array=[216],
-    maximal_temperature_array=[0.1,0.125,0.15,0.175,0.2],
+    maximal_temperature_array=[0.1,0.125,0.15,0.175,0.2,0.25,0.3,0.35],
     bond_bending_const_array=[0.1,0.2,0.3,0.4,0.5],
     temperature_gradient_array=[0.1],
     nr_monte_carlo_steps_per_temperature_array=[0.01],
     theta_ground_state_array=[100.0,120.0,140.0,160.0,180.0],
     nr_trials_per_temperature_array=[1], 
-    save_path = raw".\simulations\networks_dia_test\\",
+    save_path = raw".\simulations\networks_noBr\\",
     filename_start = "m_$(network_type)_noBr_1",
     plot_save_path = raw".\simulations\analysis_plot\\",
-    plot_filename_start = "m_$(network_type)_noBr_2"
+    plot_filename_start = "m_$(network_type)_noBr_4"
 )
-
+    =#
 
 
 #=

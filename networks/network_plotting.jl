@@ -280,7 +280,7 @@ function plot_spatial_network_2(
         pos_1 = spatial_network[bond[1]]["position"]
         pos_2 = spatial_network[bond[2]]["position"]
 
-        len=2.0
+        len=3.0
         if LinearAlgebra.norm(pos_1 .- pos_2)<len
 
             Plots.plot!([pos_1[1], pos_2[1]], 

@@ -25,7 +25,8 @@ function save_multiple_N_T_trials_beta_gml(
     network_type,
     quench,
     save_path,
-    filename_start
+    filename_start,
+    edge_length_unit_cell
     )
     
     println(Threads.nthreads())
@@ -63,7 +64,7 @@ function save_multiple_N_T_trials_beta_gml(
             min_ring_size=3,
             theta_ground_state=theta_ground_state
             )
-        spatial_network = NG.get_periodic_network(evolution_dict)
+        spatial_network = NG.get_periodic_network(evolution_dict,edge_length_unit_cell)
 
         plot1=NG.plot_spatial_network_2(spatial_network)
         Plots.xlabel!("x")
@@ -71,7 +72,7 @@ function save_multiple_N_T_trials_beta_gml(
         Plots.zlabel!("z")
         display(plot1)
 
-        break
+        #break
 
         println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
         println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
@@ -132,48 +133,23 @@ function save_multiple_N_T_trials_beta_gml(
 end
 
 #network_type="dia"     #diamond
+#network_type="srs"      #gyroid
 #network_type="srd"
-network_type="srs"      #gyroid
+#edge_length_unit_cell=2.3075
+network_type="ctn"
+edge_length_unit_cell=3.703279044748403 #1.8516
 
 save_multiple_N_T_trials_beta_gml(;
     nr_vertices_array=[216],
-    maximal_temperature_array=[0.001],
-    bond_bending_const_array=[0.1],
+    maximal_temperature_array=[0.1],
+    bond_bending_const_array=[0.3],
     temperature_gradient_array=[0.1],
     nr_monte_carlo_steps_per_temperature_array=[0.01],
-    theta_ground_state_array=[180.0],
+    theta_ground_state_array=[100.0],
     nr_trials_per_temperature_array=[1],
     network_type=network_type,
     quench=true,
-    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/networks_dia_srd_ctn/",     
-    filename_start="m_$(network_type)_1"
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/networks_dia_srs_srd_ctn/",     
+    filename_start="m_$(network_type)_2",
+    edge_length_unit_cell=edge_length_unit_cell
 )
-
-# TODO: Relax directly after srd creation
-
-
-#=
-nr_vertices_array=[216],
-maximal_temperature_array=[0.1,0.2],
-bond_bending_const_array=[0.2,0.3],
-temperature_gradient_array=[0.1],
-nr_monte_carlo_steps_per_temperature_array=[0.01],
-theta_ground_state_array=[110.0,180.0],
-nr_trials_per_temperature_array=[1,2],
-network_type=network_type,
-quench=true,
-save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/networks_dia_srd_ctn/",     
-filename_start="m_$(network_type)_1"
-=#
-
-
-
-#=
-    nr_vertices_array=[216],
-    maximal_temperature_array=[0.1,0.125,0.15,0.175,0.2],
-    bond_bending_const_array=[0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5],
-    temperature_gradient_array=[0.1],
-    nr_monte_carlo_steps_per_temperature_array=[0.01],
-    theta_ground_state_array=[110.0,180.0],
-    nr_trials_per_temperature_array=[1], 
-    =#
