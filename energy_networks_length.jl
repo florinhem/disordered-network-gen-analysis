@@ -118,6 +118,6 @@ save_multiple_N_T_trials_beta_gml(;
     nr_monte_carlo_steps_per_temperature_array=[0.01],
     theta_ground_state_array=[100.0],
     nr_trials_per_temperature_array=[1],
-    edge_length_unit_cell_array=[3.6,3.65,3.675,3.703279044748403,3.725,3.75,3.8],
+    edge_length_unit_cell_array=[3.675,3.685,3.69,3.703279044748403,3.71,3.715,3.725] ,# [3.6,3.65,3.675,3.703279044748403,3.725,3.75,3.8],
     network_type=network_type
 )

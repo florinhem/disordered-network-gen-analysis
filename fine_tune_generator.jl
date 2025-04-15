@@ -1,6 +1,6 @@
 
 # include file where structure analysis modules are stored
-include("structure_analysis_modules.jl")    #*#
+include("structure_analysis_modules_no_plotting.jl")    #*#
 
 # import my module that contains all functions for the generation and analysis of networks
 import .NetworkGeneration as NG
@@ -9,12 +9,11 @@ import .GeneralUtilities as GU
 
 import MetaGraphsNext
 import Graphs
-import Plots
-Plots.plotlyjs()
 import .Threads
 
 function save_multiple_N_T_trials_beta_gml(
     ;
+    network_type_array,
     nr_vertices_array,
     maximal_temperature_array,
     bond_bending_const_array,
@@ -22,25 +21,26 @@ function save_multiple_N_T_trials_beta_gml(
     nr_monte_carlo_steps_per_temperature_array,
     theta_ground_state_array,
     nr_trials_per_temperature_array,
-    network_type,
     quench,
     save_path,
-    filename_start,
-    edge_length_unit_cell
+    filename_start
     )
     
     println(Threads.nthreads())
 
     Iter=collect(Iterators.product(
+        network_type_array,
         nr_vertices_array,
         maximal_temperature_array,
         bond_bending_const_array,
         temperature_gradient_array,
         nr_monte_carlo_steps_per_temperature_array,
         theta_ground_state_array,
-        nr_trials_per_temperature_array))
+        nr_trials_per_temperature_array
+        ))
 
     Threads.@threads for (
+        network_type,
         nr_vertices,
         maximal_temperature,
         bond_bending_const,
@@ -49,7 +49,9 @@ function save_multiple_N_T_trials_beta_gml(
         theta_ground_state,
         trial) in Iter
                 
-        println("$nr_vertices"*", "*
+        println(
+        "$network_type"*", "*
+        "$nr_vertices"*", "*
 		"$maximal_temperature"*", "*
 		"$bond_bending_const"*", "*
 		"$temperature_gradient"*", "*
@@ -64,15 +66,8 @@ function save_multiple_N_T_trials_beta_gml(
             min_ring_size=3,
             theta_ground_state=theta_ground_state
             )
-        spatial_network = NG.get_periodic_network(evolution_dict,edge_length_unit_cell)
 
-        plot1=NG.plot_spatial_network_2(spatial_network)
-        Plots.xlabel!("x")
-        Plots.ylabel!("y")
-        Plots.zlabel!("z")
-        display(plot1)
-
-        #break
+        spatial_network = NG.get_periodic_network(evolution_dict)
 
         println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
         println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
@@ -90,8 +85,6 @@ function save_multiple_N_T_trials_beta_gml(
         total_energy_vec::Vector{Float64}=[]
         move_accepted_vec::Vector{Bool}=[]
 
-        #println("evolve_network_temperature_sequence begin")
-
         spatial_network, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_sequence!(
             spatial_network,
             evolution_dict;
@@ -101,13 +94,8 @@ function save_multiple_N_T_trials_beta_gml(
             print_every_nr_attempted_bond_switches = 1000)
 
         println("nbr acc moves, $(length(move_accepted_vec)), $(sum(move_accepted_vec))")
-        
-        plot1=NG.plot_spatial_network_2(spatial_network)
-        display(plot1)
-
         println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
         println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
-        
         println("evolve_network_temperature_sequence end")
 
         evolution_dict["total_energy_vec"] = total_energy_vec
@@ -132,23 +120,16 @@ function save_multiple_N_T_trials_beta_gml(
     end
 end
 
-#network_type="dia"     #diamond
-#network_type="srs"      #gyroid
-#network_type="srd"
-network_type="ctn"
-edge_length_unit_cell=3.703279044748403 #1.8516
-
 save_multiple_N_T_trials_beta_gml(;
     nr_vertices_array=[216],
-    maximal_temperature_array=[0.1],
-    bond_bending_const_array=[0.3],
+    maximal_temperature_array=[0.1,0.15,0.2],
+    bond_bending_const_array=[0.1,0.05,0.025],
     temperature_gradient_array=[0.1],
     nr_monte_carlo_steps_per_temperature_array=[0.01],
-    theta_ground_state_array=[100.0],
+    theta_ground_state_array=[180.0],
     nr_trials_per_temperature_array=[1],
-    network_type=network_type,
+    network_type_array=["dia", "srs", "srd", "ctn"],
     quench=true,
-    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/networks_dia_srs_srd_ctn/",     
-    filename_start="m_$(network_type)_2",
-    edge_length_unit_cell=edge_length_unit_cell
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/ft_1/",     
+    filename_start="ft_1"
 )

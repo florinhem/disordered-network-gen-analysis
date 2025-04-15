@@ -60,9 +60,9 @@ function save_multiple_N_T_trials_beta_gml(
         "$trial"*", "*
         "$edge_length_unit_cell" )
 
-        edges=NG.get_edges_ctn(edge_length_unit_cell)
+        #edges=NG.get_edges_ctn(edge_length_unit_cell)
 
-        break
+        #break
     
         evolution_dict = NA.get_evolution_dict(;
             nr_vertices = nr_vertices, 
@@ -109,20 +109,21 @@ function save_multiple_N_T_trials_beta_gml(
 end
 
 #network_type="dia"     #diamond
-network_type="srd"
 #network_type="srs"      #gyroid
+network_type="ctn"
+network_type="srd"
 
 save_multiple_N_T_trials_beta_gml(;
     nr_vertices_array=[216],
-    maximal_temperature_array=[0.05],
-    bond_bending_const_array=[0.1],
+    maximal_temperature_array=[0.1],
+    bond_bending_const_array=[0.1125],
     temperature_gradient_array=[0.1],
     nr_monte_carlo_steps_per_temperature_array=[0.01],
-    theta_ground_state_array=[110.0],
+    theta_ground_state_array=[180.0],
     nr_trials_per_temperature_array=[1],
-    edge_length_unit_cell_array=[2.716],
+    edge_length_unit_cell_array=[0],
     network_type=network_type,
     quench=true,
     save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/networks_dia_srd_ctn/",     
-    filename_start="m_$(network_type)_2"
+    filename_start="m_$(network_type)_3"
 )

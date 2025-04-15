@@ -99,7 +99,8 @@ function scatter_plot_for_mulitple_gml(;
                                     bond_length_std, bond_length_vec = NA.get_bond_length_std(spatial_network)
                                     bond_angle_std, bond_angle_vec = NA.get_bond_angle_std(spatial_network)
                                     
-                                    
+                                    pore_size_distribution_nr_sampled_voxels=20000 #12500 #20000 #12500
+
                                     network_path = structure_dict_path * filename *"_structure.h5"
                                     if (!(network_path in structure_dict_path_array))
                                         NA.get_all_dicts_from_network_single_file(
@@ -109,6 +110,7 @@ function scatter_plot_for_mulitple_gml(;
                                             analysis_data_path;
                                             bond_radius = 0.35,
                                             voxel_edge_length = 0.25,
+                                            pore_size_distribution_nr_sampled_voxels=pore_size_distribution_nr_sampled_voxels,
                                             print_progress = true,
                                             print_lock = Threads.ReentrantLock())
                                     else
@@ -116,9 +118,15 @@ function scatter_plot_for_mulitple_gml(;
                                     end
                                     #save_path = simulation_path * raw"pore_size_dist\\"
 
-                                    
+                                    println("A")
                                     structure_dict_network = GU.load_h5_dict(network_path)
-                                    pore_pixel_radius_array = NA.get_pore_size_distribution(structure_dict_network)
+                                    println("B")
+                                    #println("structure_dict_network, $structure_dict_network")
+                                    pore_pixel_radius_array = NA.get_pore_size_distribution(
+                                        structure_dict_network;
+                                        nr_sampled_voxels=pore_size_distribution_nr_sampled_voxels,
+                                        )
+                                    println("C")
                                     #pore_pixel_radius_vec= pore_pixel_radius_array["pore_size_distribution"]
                                     #println(pore_pixel_radius_vec)
                                     pore_size_distribution_second_moment=NA.get_pore_size_distribution_second_moment(pore_pixel_radius_array)
@@ -151,8 +159,7 @@ function scatter_plot_for_mulitple_gml(;
                                 else
                                     println("file not in directory")
                                     println("total_path, $total_path")
-                                    println("path_array, $path_array")
-                                    break
+                                    
                                 end
                             end
                         end
@@ -188,8 +195,8 @@ function scatter_plot_for_mulitple_gml(;
 
     A=@df df Plots.scatter(
         left_margin=5Plots.PlotMeasures.mm,
-        layout = (2,2),
-        size = (900, 700),
+        layout = (2,3),
+        size = (1200, 800),
         xtickfont = font(fontsize),  # Set x-axis tick font size
         ytickfont = font(fontsize),   # Set y-axis tick font size
         #=
@@ -199,58 +206,72 @@ function scatter_plot_for_mulitple_gml(;
             ["0","0.025","0.05","0.075","0.1", "0.125", "0.15", "0.175"]
         ),
         =#
-        xlabel=LaTeXStrings.L"\sigma_\mathrm{length} / d",
-        ylabel=LaTeXStrings.L"\sigma_\mathrm{angle} / \mathrm{rad}",
         xguidefont = font(fontsize),
         yguidefont = font(fontsize),
         )
+        
 
     @df df StatsPlots.scatter!(
         :BondLenghtStd, 
         :BondAngleStd, 
-        color_palette=[:blue,:turquoise1,:yellow,:gold,:orange,:red, :maroon], #[:blue,:turquoise1,:yellow,:orange,:red],
+        color_palette=[:blue,:turquoise1,:green,:yellow,:gold,:orange,:red,:maroon],
         legendtitle =LaTeXStrings.L"T_\mathrm{max}",
         group=:MaxT,
+        xlabel=LaTeXStrings.L"\sigma_\mathrm{length} / d",
+        ylabel=LaTeXStrings.L"\sigma_\mathrm{angle} / \mathrm{rad}",
         subplot=1)
 
     @df df StatsPlots.scatter!(
         :BondLenghtStd, 
-        :BondAngleStd, 
-        color_palette=[:purple3,:royalblue,:turquoise1, :green,:greenyellow,:yellow,:gold,:coral,:firebrick,:maroon],
-        legendtitle =LaTeXStrings.L"\beta",
-        group=:Beta,
+        :AcceptedMovesLog10,
+        color_palette=[:blue,:turquoise1,:green,:yellow,:gold,:orange,:red,:maroon],
+        legendtitle =LaTeXStrings.L"T_\mathrm{max}",
+        group=:MaxT,
+        xlabel=LaTeXStrings.L"\sigma_\mathrm{length} / d",
+        ylabel=LaTeXStrings.L"\mathrm{Log_{10}} \left( N_\mathrm{Acc} \right)",
         subplot=2)
 
     @df df StatsPlots.scatter!(
         :BondLenghtStd, 
-        :BondAngleStd, 
-        color_palette=[:grey90,:gray70,:grey50,:grey40,:gray10],
-        legendtitle =LaTeXStrings.L"\theta_\mathrm{eq}",
-        group=:Theta,
+        :PoreSizeDistSecMoment,
+        color_palette=[:blue,:turquoise1,:green,:yellow,:gold,:orange,:red,:maroon],
+        legendtitle =LaTeXStrings.L"T_\mathrm{max}",
+        group=:MaxT,
+        xlabel=LaTeXStrings.L"\sigma_\mathrm{length} / d",
+        ylabel=LaTeXStrings.L"r_\mathrm{crit-pore-size}",
         subplot=3)
-    
+
     @df df StatsPlots.scatter!(
-        :BondLenghtStd, 
         :BondAngleStd, 
-        colorbar_title=LaTeXStrings.L"\mathrm{Log_{10}} \left( N_\mathrm{Acc} \right)",
-        zcolor=:AcceptedMovesLog10,
-        color=cgrad([:blue,:red]),
-        colorbar=:top,
-        legend=false,
-        #=
-        xlim=[-0.005,0.1375],
-        xticks = (
-            0:0.025:0.125, 
-            ["0","0.025","0.05","0.075","0.1", "0.125"]
-        ),
-        =#
+        :AcceptedMovesLog10, 
+        color_palette=[:blue,:turquoise1,:green,:yellow,:gold,:orange,:red,:maroon],
+        legendtitle =LaTeXStrings.L"T_\mathrm{max}",
+        group=:MaxT,
+        xlabel=LaTeXStrings.L"\sigma_\mathrm{angle} / \mathrm{rad}",
+        ylabel=LaTeXStrings.L"\mathrm{Log_{10}} \left( N_\mathrm{Acc} \right)",
         subplot=4)
+        
+    @df df StatsPlots.scatter!(
+        :BondAngleStd, 
+        :PoreSizeDistSecMoment, 
+        color_palette=[:blue,:turquoise1,:green,:yellow,:gold,:orange,:red,:maroon],
+        legendtitle =LaTeXStrings.L"T_\mathrm{max}",
+        group=:MaxT,
+        xlabel=LaTeXStrings.L"\sigma_\mathrm{angle} / \mathrm{rad}",
+        ylabel=LaTeXStrings.L"r_\mathrm{crit-pore-size}",
+        subplot=5)    
 
-    
-
-
-
-
+    @df df StatsPlots.scatter!(
+        :AcceptedMovesLog10, 
+        :PoreSizeDistSecMoment, 
+        color_palette=[:blue,:turquoise1,:green,:yellow,:gold,:orange,:red,:maroon],
+        legendtitle =LaTeXStrings.L"T_\mathrm{max}",
+        group=:MaxT,
+        xlabel=LaTeXStrings.L"\mathrm{Log_{10}} \left( N_\mathrm{Acc} \right)",
+        ylabel=LaTeXStrings.L"r_\mathrm{crit-pore-size}",
+        subplot=6)
+        
+   
 
     # plot path and name
 
@@ -291,15 +312,63 @@ function scatter_plot_for_mulitple_gml(;
 end
 
 
-network_type="diamond"
-#network_type="srs"
+#network_type="diamond"
+network_type="srs"
 #network_type="srd"
 #network_type="ctn"
 
 scatter_plot_for_mulitple_gml(
     nr_vertices_array=[216],
-    maximal_temperature_array=[0.1,0.2,0.4],
-    bond_bending_const_array=[0.1,0.2],
+    maximal_temperature_array=[0.1,0.2,0.3,0.4,0.8,1.6],
+    bond_bending_const_array=[0.1,0.2,0.3,0.4,0.5],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[100.0,120.0,180.0],
+    nr_trials_per_temperature_array=[1], 
+    simulation_path=raw"C:\Users\GlauserV\OneDrive - Université de Fribourg\Anlagen\AMI\Projekt\GitFlorin\code_photonic_structures\simulations\\",
+    filename_start = "m_$(network_type)_noBr_1",
+    plot_save_path = raw".\simulations\analysis_plot\\",
+    plot_filename_start = "m_pore_$(network_type)_noBr_7"
+)
+
+#=
+dia:
+scatter_plot_for_mulitple_gml(
+    nr_vertices_array=[216],
+    maximal_temperature_array=[0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45],
+    bond_bending_const_array=[0.1,0.2,0.3,0.4,0.5],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[100.0,140.0,180.0],
+    nr_trials_per_temperature_array=[1], 
+    simulation_path=raw"C:\Users\GlauserV\OneDrive - Université de Fribourg\Anlagen\AMI\Projekt\GitFlorin\code_photonic_structures\simulations\\",
+    filename_start = "m_$(network_type)_noBr_1",
+    plot_save_path = raw".\simulations\analysis_plot\\",
+    plot_filename_start = "m_pore_$(network_type)_noBr_1"
+)
+
+srs
+scatter_plot_for_mulitple_gml(
+    nr_vertices_array=[216],
+    maximal_temperature_array=[0.1,0.2,0.3,0.4,0.8,1.6],
+    bond_bending_const_array=[0.1,0.2,0.3,0.4,0.5],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[100.0,120.0,180.0],
+    nr_trials_per_temperature_array=[1], 
+    simulation_path=raw"C:\Users\GlauserV\OneDrive - Université de Fribourg\Anlagen\AMI\Projekt\GitFlorin\code_photonic_structures\simulations\\",
+    filename_start = "m_$(network_type)_noBr_1",
+    plot_save_path = raw".\simulations\analysis_plot\\",
+    plot_filename_start = "m_pore_$(network_type)_noBr_2"
+)
+
+srd
+pore_size_distribution_nr_sampled_voxels=12500
+
+scatter_plot_for_mulitple_gml(
+    nr_vertices_array=[216],
+    maximal_temperature_array=[0.1,0.2,0.3,0.4],
+    bond_bending_const_array=[0.1,0.2,0.3,0.4,0.5],
     temperature_gradient_array=[0.1],
     nr_monte_carlo_steps_per_temperature_array=[0.01],
     theta_ground_state_array=[100.0,180.0],
@@ -307,5 +376,21 @@ scatter_plot_for_mulitple_gml(
     simulation_path=raw"C:\Users\GlauserV\OneDrive - Université de Fribourg\Anlagen\AMI\Projekt\GitFlorin\code_photonic_structures\simulations\\",
     filename_start = "m_$(network_type)_noBr_1",
     plot_save_path = raw".\simulations\analysis_plot\\",
-    plot_filename_start = "m_$(network_type)_noBr_10"
+    plot_filename_start = "m_pore_$(network_type)_noBr_3"
 )
+
+ctn
+scatter_plot_for_mulitple_gml(
+    nr_vertices_array=[216],
+    maximal_temperature_array=[0.1,0.2,0.4,0.8,1.6],
+    bond_bending_const_array=[0.1,0.2,0.3,0.4,0.5],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[100.0,180.0],
+    nr_trials_per_temperature_array=[1], 
+    simulation_path=raw"C:\Users\GlauserV\OneDrive - Université de Fribourg\Anlagen\AMI\Projekt\GitFlorin\code_photonic_structures\simulations\\",
+    filename_start = "m_$(network_type)_noBr_1",
+    plot_save_path = raw".\simulations\analysis_plot\\",
+    plot_filename_start = "m_pore_$(network_type)_noBr_4"
+)
+    =#

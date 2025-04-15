@@ -1098,7 +1098,7 @@ returns the original space graph. It checks which network we want to generate.
 Then it calculates for the unitcell and supercell the edges 
 (number, starting vertex, ending vertex and length) of the network.
 """
-function get_network(nr_vertices, network_name,edge_length_unit_cell)
+function get_network(nr_vertices, network_name)
     if cmp(network_name , "dia") == 0       #diamond
         println("get_network, dia")
         nr_dimensions = 3
@@ -1112,12 +1112,12 @@ function get_network(nr_vertices, network_name,edge_length_unit_cell)
     elseif cmp(network_name , "srd") == 0   #srd
         println("get_network, srd")
         nr_dimensions = 3
-        edge_length_unit_cell = edge_length_unit_cell
+        edge_length_unit_cell = 2.3075 #analytically calculated when E_length minimal
         nr_vertices_per_unit_cell = 10
     elseif cmp(network_name , "ctn") == 0   #ctn
         println("get_network, ctn")
         nr_dimensions = 3
-        edge_length_unit_cell = edge_length_unit_cell
+        edge_length_unit_cell = 3.7033 #analytically calculated when E_length minimal
         nr_vertices_per_unit_cell = 28
     else
         @error "Only dia, srd, srs, ctn are implemented, $network_name not."
@@ -1284,13 +1284,12 @@ end
 """
 create a network graph representing the given network structure
 """
-function get_periodic_network(evolution_dict,edge_length_unit_cell)
+function get_periodic_network(evolution_dict)
 
     #*# big changes here
     original_spatial_network = get_network(
         evolution_dict["nr_vertices"],
-        evolution_dict["network_type"],
-        edge_length_unit_cell
+        evolution_dict["network_type"]
     ) 
 
     

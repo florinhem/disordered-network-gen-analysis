@@ -44,7 +44,7 @@ function plot_single_network(;
     total_path=save_path*filename
 
     path_array=Glob.glob(filename_start*"*",save_path)
-    println("path_array, $path_array")
+    #println("path_array, $path_array")
 
     if(total_path*".gml" in path_array)
         #println("scatter done")
@@ -60,22 +60,41 @@ function plot_single_network(;
     end
 end
 
-network_type="dia"
+network_type="diamond"
 
 plot_single_network(;
     nr_vertices=216,
-    maximal_temperature=0.00000000001,
-    bond_bending_const=700.0,
+    maximal_temperature=0.35,
+    bond_bending_const=0.5,
     temperature_gradient=0.1,
     nr_monte_carlo_steps_per_temperature=0.01,
-    theta_ground_state=180.0,
+    theta_ground_state=100.0,
     nr_trials_per_temperature=1,
-    save_path = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/networks_dia_srd_ctn/",
+    save_path = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/networks_noBr/",
     network_type=network_type,
-    filename_start="m_$(network_type)_2",
-    plot_appendix="_3.png",
+    filename_start="m_$(network_type)_noBr_1",
+    plot_appendix="_1.png",
     plot_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/analysis_plot/"
 )
+
+#=
+network_type="ctn"
+
+plot_single_network(;
+    nr_vertices=216,
+    maximal_temperature=0.1,
+    bond_bending_const=0.2,
+    temperature_gradient=0.1,
+    nr_monte_carlo_steps_per_temperature=0.01,
+    theta_ground_state=100.0,
+    nr_trials_per_temperature=1,
+    save_path = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/networks_noBr/",
+    network_type=network_type,
+    filename_start="m_$(network_type)_noBr_1",
+    plot_appendix="_4.png",
+    plot_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/analysis_plot/"
+)
+=#
 
 #=
 network_type="srd"
@@ -91,6 +110,25 @@ plot_single_network(;
     save_path = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/networks_noBr/",
     network_type=network_type,
     filename_start="m_$(network_type)_noBr_1",
+    plot_appendix="_3.png",
+    plot_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/analysis_plot/"
+)
+    =#
+
+    #=
+    network_type="dia"
+
+plot_single_network(;
+    nr_vertices=216,
+    maximal_temperature=0.00000000001,
+    bond_bending_const=700.0,
+    temperature_gradient=0.1,
+    nr_monte_carlo_steps_per_temperature=0.01,
+    theta_ground_state=180.0,
+    nr_trials_per_temperature=1,
+    save_path = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/networks_dia_srd_ctn/",
+    network_type=network_type,
+    filename_start="m_$(network_type)_2",
     plot_appendix="_3.png",
     plot_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/analysis_plot/"
 )
