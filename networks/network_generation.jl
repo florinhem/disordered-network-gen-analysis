@@ -1286,13 +1286,11 @@ create a network graph representing the given network structure
 """
 function get_periodic_network(evolution_dict)
 
-    #*# big changes here
-    original_spatial_network = get_network(
+    original_spatial_network = get_network( #*#
         evolution_dict["nr_vertices"],
         evolution_dict["network_type"]
     ) 
 
-    
     # convert original graph into a network graph that contains positional
     # information
     spatial_network = convert_original_graph_to_spatial_network(

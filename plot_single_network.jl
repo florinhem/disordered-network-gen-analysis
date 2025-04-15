@@ -2,7 +2,7 @@
 
 
 # include file where structure analysis modules are stored
-include("structure_analysis_modules.jl")    #*#
+include("structure_analysis_modules.jl")
 
 # import my module that contains all functions for the generation and analysis of networks
 import .NetworkGeneration as NG

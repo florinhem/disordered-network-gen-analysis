@@ -910,10 +910,6 @@ function evolve_network!(
         # update total energy
         push!(total_energy_vec, spatial_network[]["total_energy"])
 
-        if(move_accepted)   #*#
-            break
-        end
-
     end
 
     return [spatial_network, total_energy_vec, move_accepted_vec]
@@ -1001,15 +997,6 @@ function evolve_network_temperature_sequence!(
 
         end
 
-        # check first bond switch move and break the evolution 
-        #=
-        if(sum(move_accepted_vec_new)>=1)   #*#
-            println("move_accepted_vec_new, $move_accepted_vec_new")
-            println("i,$i")
-            break
-            println("i,$i")
-        end
-        =#
     end
 
     return [spatial_network, total_energy_vec, move_accepted_vec]
