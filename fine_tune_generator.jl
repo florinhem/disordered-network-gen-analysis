@@ -102,6 +102,7 @@ function save_multiple_N_T_trials_beta_gml(
         evolution_dict["move_accepted_vec"] = move_accepted_vec
 
         filename = (filename_start
+            *"_NW="*"$network_type"
             *"_N="*"$nr_vertices"
             *"_T="*"$maximal_temperature"
             *"_Beta="*"$bond_bending_const"
