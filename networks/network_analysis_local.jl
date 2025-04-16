@@ -86,11 +86,10 @@ end
 
 
 """
-Measure the standard deviation of dihedral angles. This function might need to
-be revisited when considering other coordination numbers than 4 because the
-dihedral angle might have a peak around 0 which is not considered here
+Measure the Shannon entropy of dihedral angles that are binned in bins of 10
+degrees
 """
-function get_dihedral_angle_std(spatial_network::MetaGraphsNext.MetaGraph)
+function get_dihedral_angle_entropy(spatial_network::MetaGraphsNext.MetaGraph)
 
     # initialize vector of diehedral angles
     dihedral_angle_vec = Vector{Float64}()
@@ -137,17 +136,182 @@ function get_dihedral_angle_std(spatial_network::MetaGraphsNext.MetaGraph)
         end
     end
 
-    # save one peak of dihedral angle distribution
-    lower_limit = 0
-    upper_limit =  2 * pi / (spatial_network[]["coordination_nr"] - 1)
+    # consider only dihedral angles in the range [0, pi]
+    dihedral_angle_vec = filter( x -> x >= 0 && x <= pi, dihedral_angle_vec)
 
-    dihedral_angle_one_peak_vec = dihedral_angle_vec[
-        (dihedral_angle_vec .> lower_limit) .& (dihedral_angle_vec .< upper_limit)]
+    # determine histogram of dihedral angles
+    histogram = StatsBase.fit(StatsBase.Histogram, dihedral_angle_vec, 
+        nbins=18)
+    #dihedral_angle_bin_edges = histogram.edges
+    dihedral_angle_bin_weights = histogram.weights
 
-    # determine standard deviation
-    dihedral_angle_std = Statistics.std(dihedral_angle_one_peak_vec)
+    # normalize histogram weights to get probability distribution
+    dihedral_angle_bin_weights /= sum(dihedral_angle_bin_weights)
+    
+    # calculate normalized Shannon entropy
+    dihedral_angle_entropy = -1/log(length(dihedral_angle_bin_weights)) *sum(
+        dihedral_angle_bin_weights .* log.(dihedral_angle_bin_weights .+ 1e-12))
+    
+    return dihedral_angle_entropy
+end
 
-    return [dihedral_angle_std, dihedral_angle_vec]
+
+"""
+Get the 12 vertices of an icosahedron. The vertices are normalized to unit
+length.
+"""
+function icosahedron_vertices()
+    # golden ratio
+    φ = (1 + sqrt(5)) / 2
+
+    vertex_vectors = [
+        [-1,  φ,  0], [ 1,  φ,  0], [-1, -φ,  0], [ 1, -φ,  0],
+        [ 0, -1,  φ], [ 0,  1,  φ], [ 0, -1, -φ], [ 0,  1, -φ],
+        [ φ,  0, -1], [ φ,  0,  1], [-φ,  0, -1], [-φ,  0,  1]]
+
+    # rotate all vertex vectors about the x-axis, such that the the vectors 
+    # [ 0,  1,  φ] and [ 0, -1, -φ] lie on the z-axis
+    rotation_angle = atan(1, φ)
+    rotation_matrix = [1 0 0; 0 cos(rotation_angle) -sin(rotation_angle); 
+        0 sin(rotation_angle) cos(rotation_angle)]
+    for i in 1:length(vertex_vectors)
+        vertex_vectors[i] = rotation_matrix * vertex_vectors[i]
+    end
+
+    normalized_vertex_vectors = [LinearAlgebra.normalize(v) 
+        for v in vertex_vectors]
+
+    return normalized_vertex_vectors
+end
+
+
+"""
+Get the faces of the icosahedron. Each face is represented by a tuple of vertex
+indices. The vertices are indexed from 1 to 12 in the order they are defined in
+the icosahedron_vertices function.
+"""
+function icosahedron_faces()
+    
+    return [(1,12,6), (1,6,2), (1,2,8), (1,8,11), (1,11,12), (2,6,10), 
+        (6,12,5), (12,11,3), (11,8,7), (8,2,9), (4,10,5), (4,5,3), (4,3,7), 
+        (4,7,9), (4,9,10), (5,10,6), (3,5,12), (7,3,11), (9,7,8), (10,9,2)]
+end
+
+
+"""
+Subdivide one triangle face into 4 smaller triangles
+"""
+function subdivide_face(v1, v2, v3)
+    # Get vertices in between the corners of the triangle
+    m12 = LinearAlgebra.normalize((v1 + v2) / 2)
+    m23 = LinearAlgebra.normalize((v2 + v3) / 2)
+    m31 = LinearAlgebra.normalize((v3 + v1) / 2)
+
+    return [(v1, m12, m31), (v2, m23, m12), (v3, m31, m23), (m12, m23, m31)]
+end
+
+"""
+Get the centers of all subdivided icosahedron faces
+"""
+function icosahedron_subdivided_face_centers()
+    
+    vertices = icosahedron_vertices()
+    faces = icosahedron_faces()
+
+    subdivided_face_centers = Vector{Vector{Float64}}()
+    for (i1, i2, i3) in faces
+        v1, v2, v3 = vertices[i1], vertices[i2], vertices[i3]
+        for (a, b, c) in subdivide_face(v1, v2, v3)
+            face_center = LinearAlgebra.normalize((a + b + c) / 3)
+            push!(subdivided_face_centers, face_center)
+        end
+    end
+    return subdivided_face_centers
+end
+
+# Assign each vector to the closest bin (by cosine similarity)
+function bin_vectors(vectors, bins)
+    counts = zeros(Int, length(bins))
+    for v in vectors
+        vn = normalize(v)
+        dot_products = [dot(vn, b) for b in bins]
+        idx = argmax(dot_products)
+        counts[idx] += 1
+    end
+    return counts
+end
+
+
+"""
+Get an entropy-based anisotropy metric from the orientations of the bonds of a
+network. To this end, the bond vectors are transformed to spherical coordinates 
+and the angles are binned in bins that correspond to the faces of an 
+icosahedron. The entropy is then calculated from the histogram of the angles.
+"""
+function get_bond_orientation_entropy(
+    spatial_network::MetaGraphsNext.MetaGraph)
+
+    # get the centers of the subdivided icosahedron faces to use as bins for
+    # the bonds of the network
+    subdivided_face_centers = icosahedron_subdivided_face_centers()
+
+    # consider only bins with a positive z components
+    subdivided_face_centers = filter(v -> v[3] > 0, subdivided_face_centers)
+    
+    # check if there are 40 bins. If not, print an error message
+    if length(subdivided_face_centers) != 40
+        @error "The number of bins is not 40. 
+            Please check the implementation of the function."
+    end
+
+    # get the bond vectors of the network
+    bond_vectors = Vector{Vector{Float64}}()
+    for bond in MetaGraphsNext.edge_labels(spatial_network)
+
+        bond_vector = spatial_network[bond...]["vector"]
+
+        # if the z component is negative, flip the vector
+        if bond_vector[3] < 0
+            bond_vector = -bond_vector
+        end
+
+        # save the normalized bond vector
+        push!(bond_vectors, LinearAlgebra.normalize(bond_vector)) 
+    end
+
+    # bin the bond vectors to the subdivided faces of the icosahedron
+    bin_counts = zeros(Int, length(subdivided_face_centers))
+    for v in bond_vectors
+        dot_products = [LinearAlgebra.dot(v, b) 
+            for b in subdivided_face_centers]
+        closest_bin_index = argmax(dot_products)
+        bin_counts[closest_bin_index] += 1
+    end
+
+    # normalize the bin counts to get a probability distribution
+    bin_counts = bin_counts / sum(bin_counts)
+
+    # calculate the normalized Shannon entropy of the bin counts
+    bond_orientation_entropy = (- 1/log(length(bin_counts))
+        * sum(bin_counts .* log.(bin_counts .+ 1e-12)))
+
+    return bond_orientation_entropy
+end
+
+
+"""
+Get the mean and standard deviation of the coordination number of a network.
+"""
+function get_coordination_nr_statistics(
+    spatial_network::MetaGraphsNext.MetaGraph)
+
+    coordination_nr_vec = spatial_network["coordination_nr_vec"]
+    
+    # calculate mean and standard deviation of the coordination number
+    coordination_nr_mean = Statistics.mean(coordination_nr_vec)
+    coordination_nr_std = Statistics.std(coordination_nr_vec)
+
+    return [coordination_nr_mean, coordination_nr_std]
 end
 
 
@@ -317,26 +481,3 @@ function get_q_l_total_network_mean_dict(
     return q_l_total_network_mean_dict
 end
 
-
-"""
-Calculate the statistical difference between two networks by comparing their
-bond length and bond angle standard deviations
-"""
-function get_statistical_difference(
-    bond_length_std_1,
-    bond_length_std_2,
-    bond_angle_std_1,
-    bond_angle_std_2)
-
-    # calculate ratio in bond length standard deviation
-    bond_length_std_ratio = (bond_length_std_1 / bond_length_std_2)
-    
-    # calculate ratio in bond angle standard deviation
-    bond_angle_std_ratio = (bond_angle_std_1 / bond_angle_std_2)
-
-    # define difference metric delta
-    delta = sqrt( abs2(bond_length_std_ratio - 1) 
-        + abs2(bond_angle_std_ratio - 1))
-
-    return delta
-end

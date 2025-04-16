@@ -1,6 +1,6 @@
 
 # include file where structure analysis modules are stored
-include("structure_analysis_modules_no_plotting.jl")
+include("structure_analysis_modules.jl")
 
 # import my module that contains all functions for the generation and analysis of networks
 import .NetworkGeneration as NG
@@ -19,40 +19,30 @@ import CSV
 # 64 vertices: supercell_edge_length = 4.619802153517007
 # which is the cube root of the number of vertices times 2/sqrt(3)
 
-nr_vertices = 216
-temperature_gradient = 0.1
-bond_bending_const_vec = [0.085, 0.11, 0.165, 0.6, 0.8, 1.0 ]
+diamond_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\diamonds\216_vertices_perfect_diamond.gml"
 
-temperatures_vec = [collect(0.06:0.01:0.17), 
-collect(0.06:0.01:0.17), 
-collect(0.08:0.01:0.2), 
-vcat(collect(0.13:0.01:0.19), collect(0.21:0.02:0.27)),
-vcat(collect(0.14:0.01:0.2), collect(0.22:0.02:0.28)),
-vcat(collect(0.16:0.01:0.23), collect(0.25:0.02:0.35))]
+disorder_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_3\216_vertices_T_0.08_heat_cool_0.1_per_mc_quenched.gml"
 
-#for bond_bending in bond_bending_const_vec
-for i in eachindex(bond_bending_const_vec)
-    bond_bending = bond_bending_const_vec[i]
-    temperatures = temperatures_vec[i]
+disorder_path_2 = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_1\216_vertices_T_0.16_heat_cool_0.1_per_mc_quenched.gml"
 
-    save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\\"* string(nr_vertices)*"_vertices_bond_bending_"*string(bond_bending)*"\\evolution_dicts\\"
-
-    for temperature in temperatures
-
-        temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(temperature;
-        temperature_gradient = temperature_gradient, 
-            nr_monte_carlo_steps_per_temperature = 0.01,
-            quench = true )
-
-        evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,temperature_vec = temperature_vec,
-            nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
-            bond_bending_const = bond_bending)
-
-        filename = string(nr_vertices)*"_vertices_T_"*string(temperature)*"_heat_cool_"*string(temperature_gradient)*"_per_mc_quenched"
-
-        GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
-
-    end
-end
+disorder_path_3 = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_1\216_vertices_T_0.24_heat_cool_0.1_per_mc_quenched.gml"
 
 
+diamond = NG.load_spatial_network_from_gml(diamond_path)
+disorder = NG.load_spatial_network_from_gml(disorder_path)
+disorder_2 = NG.load_spatial_network_from_gml(disorder_path_2)
+disorder_3 = NG.load_spatial_network_from_gml(disorder_path_3)
+
+
+
+anisotropy_entropy_diamond = NA.get_anisotropy_entropy_from_bonds(diamond)
+anisotropy_entropy_disorder = NA.get_anisotropy_entropy_from_bonds(disorder)
+anisotropy_entropy_disorder_2 = NA.get_anisotropy_entropy_from_bonds(disorder_2)
+anisotropy_entropy_disorder_3 = NA.get_anisotropy_entropy_from_bonds(disorder_3)
+
+println("anisotropy entropy diamond: ", anisotropy_entropy_diamond)
+println("anisotropy entropy disorder: ", anisotropy_entropy_disorder)
+println("anisotropy entropy disorder_2: ", anisotropy_entropy_disorder_2)
+println("anisotropy entropy disorder_3: ", anisotropy_entropy_disorder_3)
+
+#NG.plot_spatial_network(disorder)

@@ -16038,3 +16038,131 @@ function my_func()
 end
 
 my_func()
+
+
+nr_vertices = 216
+temperature_gradient = 0.1
+bond_bending_const_vec = [0.085, 0.11, 0.165, 0.6, 0.8, 1.0 ]
+
+temperatures_vec = [collect(0.06:0.01:0.17), 
+collect(0.06:0.01:0.17), 
+collect(0.08:0.01:0.2), 
+vcat(collect(0.13:0.01:0.19), collect(0.21:0.02:0.27)),
+vcat(collect(0.14:0.01:0.2), collect(0.22:0.02:0.28)),
+vcat(collect(0.16:0.01:0.23), collect(0.25:0.02:0.35))]
+
+#for bond_bending in bond_bending_const_vec
+for i in eachindex(bond_bending_const_vec)
+    bond_bending = bond_bending_const_vec[i]
+    temperatures = temperatures_vec[i]
+
+    save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\\"* string(nr_vertices)*"_vertices_bond_bending_"*string(bond_bending)*"\\evolution_dicts\\"
+
+    for temperature in temperatures
+
+        temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(temperature;
+        temperature_gradient = temperature_gradient, 
+            nr_monte_carlo_steps_per_temperature = 0.01,
+            quench = true )
+
+        evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,temperature_vec = temperature_vec,
+            nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
+            bond_bending_const = bond_bending)
+
+        filename = string(nr_vertices)*"_vertices_T_"*string(temperature)*"_heat_cool_"*string(temperature_gradient)*"_per_mc_quenched"
+
+        GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
+
+    end
+end
+
+
+diamond_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\diamonds\216_vertices_perfect_diamond_structure_factor_array.h5"
+
+disorder_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_bond_bending_0.21\run_1\216_vertices_T_0.11_heat_cool_0.1_per_mc_quenched_structure_factor_array.h5"
+
+disorder_path_2 = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_bond_bending_0.21\run_1\216_vertices_T_0.16_heat_cool_0.1_per_mc_quenched_structure_factor_array.h5"
+
+disorder_path_3 = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\216_vertices_bond_bending_0.21\run_1\216_vertices_T_0.24_heat_cool_0.1_per_mc_quenched_structure_factor_array.h5"
+
+diamond_structure_factor_dict = GU.load_h5_dict(diamond_path)
+disorder_structure_factor_dict = GU.load_h5_dict(disorder_path)
+disorder_structure_factor_dict_2 = GU.load_h5_dict(disorder_path_2)
+disorder_structure_factor_dict_3 = GU.load_h5_dict(disorder_path_3)
+
+
+i=3
+j=3
+k=1/2
+diamond_anisotropy_metric = NA.get_anisotropy_metric_from_structure_factor(diamond_structure_factor_dict, nr_closest_wavenumbers=i, maximal_length_to_check = j, normalization_parameter = k)
+disorder_anisotropy_metric = NA.get_anisotropy_metric_from_structure_factor(disorder_structure_factor_dict, nr_closest_wavenumbers=i, maximal_length_to_check = j, normalization_parameter = k)
+disorder_anisotropy_metric_2 = NA.get_anisotropy_metric_from_structure_factor(disorder_structure_factor_dict_2, nr_closest_wavenumbers=i, maximal_length_to_check = j, normalization_parameter = k)
+disorder_anisotropy_metric_3 = NA.get_anisotropy_metric_from_structure_factor(disorder_structure_factor_dict_3, nr_closest_wavenumbers=i, maximal_length_to_check = j, normalization_parameter = k)
+
+
+println("diamond anisotropy metric: ", diamond_anisotropy_metric)
+println("disorder anisotropy metric: ", disorder_anisotropy_metric)
+println("disorder anisotropy metric 2: ", disorder_anisotropy_metric_2)
+println("disorder anisotropy metric 3: ", disorder_anisotropy_metric_3)
+
+
+i=3
+j=3
+k=1
+diamond_anisotropy_metric = NA.get_anisotropy_metric_from_structure_factor(diamond_structure_factor_dict, nr_closest_wavenumbers=i, maximal_length_to_check = j, normalization_parameter = k)
+disorder_anisotropy_metric = NA.get_anisotropy_metric_from_structure_factor(disorder_structure_factor_dict, nr_closest_wavenumbers=i, maximal_length_to_check = j, normalization_parameter = k)
+disorder_anisotropy_metric_2 = NA.get_anisotropy_metric_from_structure_factor(disorder_structure_factor_dict_2, nr_closest_wavenumbers=i, maximal_length_to_check = j, normalization_parameter = k)
+disorder_anisotropy_metric_3 = NA.get_anisotropy_metric_from_structure_factor(disorder_structure_factor_dict_3, nr_closest_wavenumbers=i, maximal_length_to_check = j, normalization_parameter = k)
+
+println("diamond anisotropy metric: ", diamond_anisotropy_metric)
+println("disorder anisotropy metric: ", disorder_anisotropy_metric)
+println("disorder anisotropy metric 2: ", disorder_anisotropy_metric_2)
+println("disorder anisotropy metric 3: ", disorder_anisotropy_metric_3)
+
+
+i=3
+j=3
+k=2
+diamond_anisotropy_metric = NA.get_anisotropy_metric_from_structure_factor(diamond_structure_factor_dict, nr_closest_wavenumbers=i, maximal_length_to_check = j, normalization_parameter = k)
+disorder_anisotropy_metric = NA.get_anisotropy_metric_from_structure_factor(disorder_structure_factor_dict, nr_closest_wavenumbers=i, maximal_length_to_check = j, normalization_parameter = k)
+disorder_anisotropy_metric_2 = NA.get_anisotropy_metric_from_structure_factor(disorder_structure_factor_dict_2, nr_closest_wavenumbers=i, maximal_length_to_check = j, normalization_parameter = k)
+disorder_anisotropy_metric_3 = NA.get_anisotropy_metric_from_structure_factor(disorder_structure_factor_dict_3, nr_closest_wavenumbers=i, maximal_length_to_check = j, normalization_parameter = k)
+
+println("diamond anisotropy metric: ", diamond_anisotropy_metric)
+println("disorder anisotropy metric: ", disorder_anisotropy_metric)
+println("disorder anisotropy metric 2: ", disorder_anisotropy_metric_2)
+println("disorder anisotropy metric 3: ", disorder_anisotropy_metric_3)
+
+
+network = NG.load_spatial_network_from_gml(raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_1\216_vertices_T_0.11_heat_cool_0.1_per_mc_quenched.gml")
+
+NG.plot_spatial_network(network)
+
+
+diamond_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\diamonds\216_vertices_perfect_diamond.gml"
+
+disorder_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_3\216_vertices_T_0.08_heat_cool_0.1_per_mc_quenched.gml"
+
+disorder_path_2 = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_1\216_vertices_T_0.16_heat_cool_0.1_per_mc_quenched.gml"
+
+disorder_path_3 = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_1\216_vertices_T_0.24_heat_cool_0.1_per_mc_quenched.gml"
+
+
+diamond = NG.load_spatial_network_from_gml(diamond_path)
+disorder = NG.load_spatial_network_from_gml(disorder_path)
+disorder_2 = NG.load_spatial_network_from_gml(disorder_path_2)
+disorder_3 = NG.load_spatial_network_from_gml(disorder_path_3)
+
+
+
+dihedral_angle_entropy_diamond = NA.get_dihedral_angle_entropy(diamond)
+dihedral_angle_entropy_disorder = NA.get_dihedral_angle_entropy(disorder)
+dihedral_angle_entropy_disorder_2 = NA.get_dihedral_angle_entropy(disorder_2)
+dihedral_angle_entropy_disorder_3 = NA.get_dihedral_angle_entropy(disorder_3)
+
+println("dihedral angle entropy diamond: ", dihedral_angle_entropy_diamond)
+println("dihedral angle entropy disorder: ", dihedral_angle_entropy_disorder)
+println("dihedral angle entropy disorder_2: ", dihedral_angle_entropy_disorder_2)
+println("dihedral angle entropy disorder_3: ", dihedral_angle_entropy_disorder_3)
+
+NG.plot_spatial_network(disorder)

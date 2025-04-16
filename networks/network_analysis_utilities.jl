@@ -407,8 +407,15 @@ function get_small_length_scale_order_metrics(filename::String,
     # Measure the standard deviation of bond angles
     bond_angle_std, bond_angle_vec = get_bond_angle_std(spatial_network)
 
-    # Measure the standard deviation of dihedral angles
-    dihedral_angle_std, dihedral_angle_vec = get_dihedral_angle_std(
+    # Measure the entropy of dihedral angles
+    dihedral_angle_entropy = get_dihedral_angle_entropy(
+        spatial_network)
+
+    # Mesure the entropy of bond orientations
+    bond_orientation_entropy = get_bond_orientation_entropy(spatial_network)
+
+    # Get the coordination number statistics
+    coordination_nr_mean, coordination_nr_std = get_coordination_nr_statistics(
         spatial_network)
 
     # get Steinhardt local bond order parameters and store them in a vector
@@ -423,7 +430,8 @@ function get_small_length_scale_order_metrics(filename::String,
         analysis_data_path*filename*"_correlation_functions.h5")
 
     # get cluster metric
-    cluster_metric = get_cluster_metric(correlation_functions_dict)
+    vertex_homogeneity_metric = get_vertex_homogeneity_metric(
+        correlation_functions_dict)
 
     # load pore size distribution
     pore_size_distribution_dict = GU.load_h5_dict(
@@ -458,9 +466,12 @@ function get_small_length_scale_order_metrics(filename::String,
         "total_keating_energy" => total_keating_energy,
         "bond_length_std" => bond_length_std,
         "bond_angle_std" => bond_angle_std,
-        "dihedral_angle_std" => dihedral_angle_std,
+        "dihedral_angle_entropy" => dihedral_angle_entropy,
+        "bond_orientation_entropy" => bond_orientation_entropy,
+        "coordination_nr_mean" => coordination_nr_mean,
+        "coordination_nr_std" => coordination_nr_std,
         "q_l_vec" => q_l_vec,
-        "cluster_metric" => cluster_metric,
+        "vertex_homogeneity_metric" => vertex_homogeneity_metric,
         "pore_size_distribution_second_moment" 
             => pore_size_distribution_second_moment,
         "anisotropy_metric_from_structure_factor" 
@@ -496,11 +507,17 @@ function get_small_length_scale_order_metrics_all_files(
         length(order_metrics_filenames))
     bond_angle_std_vec = Vector{Float64}(undef, 
         length(order_metrics_filenames))
-    dihedral_angle_std_vec = Vector{Float64}(undef,
+    dihedral_angle_entropy_vec = Vector{Float64}(undef,
+        length(order_metrics_filenames))
+    bond_orientation_entropy_vec = Vector{Float64}(undef,
+        length(order_metrics_filenames))
+    coordination_nr_mean_vec = Vector{Float64}(undef,
+        length(order_metrics_filenames))
+    coordination_nr_std_vec = Vector{Float64}(undef,
         length(order_metrics_filenames))
     q_l_mat = Matrix{Measurements.Measurement{Float64}}(undef, 
         l_max_steinhardt_q_l+1, length(order_metrics_filenames))
-    cluster_metric_vec = Vector{Float64}(undef,
+    vertex_homogeneity_metric_vec = Vector{Float64}(undef,
         length(order_metrics_filenames))
     pore_size_distribution_second_moment_vec = Vector{Float64}(undef,
         length(order_metrics_filenames))
@@ -513,16 +530,25 @@ function get_small_length_scale_order_metrics_all_files(
     for i in eachindex(order_metrics_filenames)
 
         # load order metrics
-        order_metrics_dict = GU.load_h5_dict(analysis_data_path*order_metrics_filenames[i])
+        order_metrics_dict = GU.load_h5_dict(
+            analysis_data_path*order_metrics_filenames[i])
 
         # get all order metrics and save them to the corresponding vectors
         total_keating_energy_vec[i] = (
             order_metrics_dict["total_keating_energy"])
         bond_length_std_vec[i] = order_metrics_dict["bond_length_std"]
         bond_angle_std_vec[i] = order_metrics_dict["bond_angle_std"]
-        dihedral_angle_std_vec[i] = order_metrics_dict["dihedral_angle_std"]
+        dihedral_angle_entropy_vec[i] = (
+            order_metrics_dict["dihedral_angle_entropy"])
+        bond_orientation_entropy_vec[i] = (
+            order_metrics_dict["bond_orientation_entropy"])
+        coordination_nr_mean_vec[i] = (
+            order_metrics_dict["coordination_nr_mean"])
+        coordination_nr_std_vec[i] = (
+            order_metrics_dict["coordination_nr_std"])
         q_l_mat[:,i] = order_metrics_dict["q_l_vec"]
-        cluster_metric_vec[i] = order_metrics_dict["cluster_metric"]
+        vertex_homogeneity_metric_vec[i] = (
+            order_metrics_dict["vertex_homogeneity_metric"])
         pore_size_distribution_second_moment_vec[i] = (
             order_metrics_dict["pore_size_distribution_second_moment"])
         anisotropy_metric_from_structure_factor_vec[i] = (
@@ -539,10 +565,17 @@ function get_small_length_scale_order_metrics_all_files(
         sortperm(total_keating_energy_vec)]
     bond_angle_std_vec = bond_angle_std_vec[
         sortperm(total_keating_energy_vec)]
-    dihedral_angle_std_vec = dihedral_angle_std_vec[
+    dihedral_angle_entropy_vec = dihedral_angle_entropy_vec[
+        sortperm(total_keating_energy_vec)]
+    bond_orientation_entropy_vec = bond_orientation_entropy_vec[
+        sortperm(total_keating_energy_vec)]
+    coordination_nr_mean_vec = coordination_nr_mean_vec[
+        sortperm(total_keating_energy_vec)]
+    coordination_nr_std_vec = coordination_nr_std_vec[
         sortperm(total_keating_energy_vec)]
     q_l_mat = q_l_mat[:, sortperm(total_keating_energy_vec)]
-    cluster_metric_vec = cluster_metric_vec[sortperm(total_keating_energy_vec)]
+    vertex_homogeneity_metric_vec = (
+        vertex_homogeneity_metric_vec[sortperm(total_keating_energy_vec)])
     pore_size_distribution_second_moment_vec = (
         pore_size_distribution_second_moment_vec[
             sortperm(total_keating_energy_vec)])
@@ -560,9 +593,12 @@ function get_small_length_scale_order_metrics_all_files(
         "total_keating_energy_vec" => total_keating_energy_vec,
         "bond_length_std_vec" => bond_length_std_vec,
         "bond_angle_std_vec" => bond_angle_std_vec,
-        "dihedral_angle_std_vec" => dihedral_angle_std_vec,
-        #"q_l_mat" => q_l_mat, creates error so far
-        "cluster_metric_vec" => cluster_metric_vec,
+        "dihedral_angle_entropy_vec" => dihedral_angle_entropy_vec,
+        "bond_orientation_entropy_vec" => bond_orientation_entropy_vec,
+        "coordination_nr_mean_vec" => coordination_nr_mean_vec,
+        "coordination_nr_std_vec" => coordination_nr_std_vec,
+        # TODO: "q_l_mat" => q_l_mat, creates error so far
+        "vertex_homogeneity_metric_vec" => vertex_homogeneity_metric_vec,
         "pore_size_distribution_second_moment_vec" 
             => pore_size_distribution_second_moment_vec,
         "anisotropy_metric_from_structure_factor_vec" 

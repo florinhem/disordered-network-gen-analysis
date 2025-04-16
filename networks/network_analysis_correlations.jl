@@ -385,25 +385,25 @@ end
 
 
 """
-Calculate angle averaged structure factor from 3d array of structure factor
+From the dictionary containing the 3d structure factor, get a dictionary that,
+for each index vector squared contains all values of the structure factor. The 
+index vector squared is proportional to the wavenumber squared. The returned 
+dictionary can be used to calculate the angle averaged structure factor or an
+anisotropy metric
 """
-function get_structure_factor_angle_averaged(
-    structure_factor_dict::Dict;
-    gaussian_filter::Bool = true,
-    gaussian_filter_sigma_x::Float64 = 2*pi/25, 
-    gaussian_filter_filtered_data_x_step_length::Float64 = 2*pi/25,
-    save_result::Bool = false,
-    save_path = raw"..\analysis_data\sample_name",
-    label = nothing)
+function get_structure_factor_by_index_vec_squared_dict(
+    structure_factor_dict::Dict;)
 
-    # create a dictionary for angle averaged structure factor with the length
-    # squared of the index vector as the key, because it is proportional to the
-    # square of the wavenumber
-    structure_factor_angle_averaged_dict = Dict{Int64, Vector{Float64}}()
+    structure_factor_by_index_vec_squared_dict = Dict{Int64, Vector{Float64}}()
 
     # determine origin vector of cartesian coordinates
     index_vector_origin = Int.((size(
         structure_factor_dict["structure_factor_array"]) .+ 1 ) ./ 2)
+
+    # get lattice constant of reciprocal lattice
+    reciprocal_lattice_constant = LinearAlgebra.norm(
+        structure_factor_dict["wavevector_array"][(index_vector_origin 
+            .+ [1,0,0])...,:])
 
     # loop through Cartesian Indices
     for i in CartesianIndices(structure_factor_dict["structure_factor_array"])
@@ -416,36 +416,56 @@ function get_structure_factor_angle_averaged(
 
         # check if key exists in dictionary
         if index_vector_length_squared in keys(
-            structure_factor_angle_averaged_dict)
+            structure_factor_by_index_vec_squared_dict)
 
             # add structure factor to dictionary
-            push!(structure_factor_angle_averaged_dict[
+            push!(structure_factor_by_index_vec_squared_dict[
                     index_vector_length_squared], 
                 structure_factor_dict["structure_factor_array"][i])
 
         else
 
             # add key and structure factor to dictionary
-            structure_factor_angle_averaged_dict[index_vector_length_squared]=(
+            structure_factor_by_index_vec_squared_dict[index_vector_length_squared]=(
                 [structure_factor_dict["structure_factor_array"][i]])
 
         end
 
     end
+
+    return [structure_factor_by_index_vec_squared_dict, 
+        reciprocal_lattice_constant]
+end
+
+
+"""
+Calculate angle averaged structure factor from 3d array of structure factor or
+equivalenty for the spectral density
+"""
+function get_structure_factor_angle_averaged(
+    structure_factor_dict::Dict;
+    gaussian_filter::Bool = true,
+    gaussian_filter_sigma_x::Float64 = 2*pi/25, 
+    gaussian_filter_filtered_data_x_step_length::Float64 = 2*pi/25,
+    save_result::Bool = false,
+    save_path = raw"..\analysis_data\sample_name",
+    label = nothing)
+
+    # get the dictionary that, for each index vector squared contains all 
+    # values of the structure factor. The index vector squared is proportional 
+    # to the square of the wavenumber
+    structure_factor_by_index_vec_squared_dict, reciprocal_lattice_constant = (
+        get_structure_factor_by_index_vec_squared_dict(
+        structure_factor_dict))
     
     # initialize wavenumber vector and structure factor vector
     unfiltered_wavenumber_vec = Vector{Float64}()
     unfiltered_structure_factor_vec = Vector{
         Measurements.Measurement{Float64}}()
 
-    # get lattice constant of reciprocal lattice
-    reciprocal_lattice_constant = LinearAlgebra.norm(
-        structure_factor_dict["wavevector_array"][(index_vector_origin 
-            .+ [1,0,0])...,:])
-
     # get vector of wavenumbers and angle averaged structure factor including
     # their uncertainty
-    for key in keys(structure_factor_angle_averaged_dict)
+    for key in keys(structure_factor_by_index_vec_squared_dict)
 
         # get wavenumber from wavevector
         push!(unfiltered_wavenumber_vec, reciprocal_lattice_constant*sqrt(key))
@@ -453,8 +473,8 @@ function get_structure_factor_angle_averaged(
         # get angle averaged structure factor
         push!(unfiltered_structure_factor_vec, 
             Measurements.measurement(Statistics.mean(
-                structure_factor_angle_averaged_dict[key]),
-            Statistics.std(structure_factor_angle_averaged_dict[key])))
+                structure_factor_by_index_vec_squared_dict[key]),
+            Statistics.std(structure_factor_by_index_vec_squared_dict[key])))
 
     end
 
@@ -591,24 +611,22 @@ end
 
 
 """
-Define a cluster metric as the average ball radius within which there is the
-given number of vertices, which would be the second neighbor shell in a 
-periodic lattice, normalized by the second neighbor distance of the diamond
-lattice. For clusters, this metric is typically below 0.7
+Define a homogeneity metric as the average sphere radius within which there is 
+the given number of vertices. If the homogeneity metric is close to 0, the
+network is clustered
 """
-function get_cluster_metric(correlation_functions_dict::Dict;
-    nr_vertices_second_neighbor_shell::Int = 17,
-    second_neighbor_distance_periodic_network::Float64 = 2*sqrt(6)/3)
+function get_vertex_homogeneity_metric(correlation_functions_dict::Dict;
+    nr_vertices_within_sphere::Int = 10)
 
     # get distance where cumulative coordination nr equals the given number of 
-    # vertices minus one to account for the fact that the central vertex is not
-    # contained in the cumulative coordination number 
-    cluster_metric = correlation_functions_dict["vertex_distance_vec"][
-        findfirst(x -> x > nr_vertices_second_neighbor_shell, 
-        correlation_functions_dict["cumulative_coord_nr_vec"])
-        ]/second_neighbor_distance_periodic_network
+    # vertices. To account for the fact that the central vertex is not
+    # contained in the cumulative coordination number, 1 has to be subtracted
+    vertex_homogeneity_metric = (
+        correlation_functions_dict["vertex_distance_vec"][
+            findfirst(x -> x > nr_vertices_within_sphere-1, 
+            correlation_functions_dict["cumulative_coord_nr_vec"])])
 
-    return cluster_metric
+    return vertex_homogeneity_metric
 end
 
 
@@ -633,38 +651,77 @@ end
 
 
 """
-Define a anisotropy metric as the ratio of uncertainty and value of the sum of
-the structure factor for several small wavenumbers normalized by the same value
-for the diamond lattice
+Define an anisotropy metric based on the structure factor or the 
+spectral density that ranges between 0 and 1 (high anisotropy). The metric is
+based on the coefficient of variation (std over mean) of the structure factor
+as a function of direction. In reality, values around 0.45 represent low
+anisotropy and values around 0.55 represent high anisotropy.
 """
 function get_anisotropy_metric_from_structure_factor(
-    structure_factor_angle_averaged_dict::Dict;
-    diamond_std_value_ratio = 1.2530337)
+    structure_factor_dict::Dict;
+    maximal_length_to_check = 3.0,
+    nr_closest_wavenumbers = 3,
+    normalization_parameter = 1.0)
 
     # set the wavenumbers where structure factor will be checked
-    wavenumbers_to_check_vec = 2*pi*collect(0.2:0.1:1.0)
+    wavenumbers_to_check_vec = (2*pi) ./ collect(
+        0.5:0.5:maximal_length_to_check+0.01)
 
-    # get the wavenumbers that lie the clostest to the wavenumbers
-    # to be checked
-    index_vec = [argmin(abs.(structure_factor_angle_averaged_dict[
-        "wavenumber_vec"] .- wavenumbers_to_check_vec[i])) 
-        for i in eachindex(wavenumbers_to_check_vec)]
+    # get the dictionary that, for each index vector squared contains all 
+    # values of the structure factor. The index vector squared is proportional 
+    # to the square of the wavenumber
+    structure_factor_by_index_vec_squared_dict, reciprocal_lattice_constant = (
+        get_structure_factor_by_index_vec_squared_dict(
+        structure_factor_dict))
 
-    # sum the checked structure factors
-    summed_structure_factor_to_check = sum( 
-        structure_factor_angle_averaged_dict[
-            "structure_factor_vec"][index_vec] )
+    # first, create a vector of all index vectors squared
+    index_vec_squared_vec = collect(keys(
+        structure_factor_by_index_vec_squared_dict))
 
-    # determine ratio of uncertainty to value
-    std_value_ratio = (
-        Measurements.uncertainty(summed_structure_factor_to_check) 
-        / Measurements.value(summed_structure_factor_to_check))
+    # get the three index vectors squared that are closest to the wavenumbers
+    # to check
+    index_vec_squared_to_check_arr = Array{Int64}(undef, 
+    nr_closest_wavenumbers, 
+        length(wavenumbers_to_check_vec))
+    for i in eachindex(wavenumbers_to_check_vec)
+        # get the three index vectors squared that are closest to the wavenumber
+        # to check
+        index_vec_squared_to_check_arr[:, i] = index_vec_squared_vec[sortperm(
+            abs.(index_vec_squared_vec .- (wavenumbers_to_check_vec[i]/
+                reciprocal_lattice_constant)^2))][1:nr_closest_wavenumbers]
+    end
 
-    # normalize this ratio by the corresponding ratio for the diamond
-    anisotropy_metric_from_structure_factor = (std_value_ratio
-        / diamond_std_value_ratio)
+    # for each index vector squared, calculate a normalized coefficient of
+    # variation (std over mean)
+    anisotropy_metric_vec = Vector{Float64}(undef, 
+        length(wavenumbers_to_check_vec))
 
-    return anisotropy_metric_from_structure_factor
+    for i in eachindex(wavenumbers_to_check_vec)
+        # get the structure factor for the three index vectors squared
+        structure_factor_vec =
+            structure_factor_by_index_vec_squared_dict[
+                index_vec_squared_to_check_arr[1, i]] 
+        for j in 2:nr_closest_wavenumbers
+            structure_factor_vec = vcat(
+                structure_factor_vec, 
+                structure_factor_by_index_vec_squared_dict[
+                    index_vec_squared_to_check_arr[j, i]])
+        end
+
+        # calculate the coefficient of variation
+        coefficient_of_variation = (Statistics.std(structure_factor_vec)
+            /(Statistics.mean(structure_factor_vec)))
+
+        # calculate the anisotropy metric that ranges between 0 and 1
+        anisotropy_metric_vec[i] = coefficient_of_variation/(
+            normalization_parameter + coefficient_of_variation)
+
+    end
+
+    # calculate the average of the anisotropy entropy metric
+    anisotropy_metric = Statistics.mean(anisotropy_metric_vec)
+
+    return anisotropy_metric
 end
 
 

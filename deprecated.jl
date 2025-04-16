@@ -3452,3 +3452,832 @@ function duplicate_bonds_close_to_supercell_edge!(
 
     return spatial_network
 end
+
+
+
+"""
+Calculate angle averaged spectral density from 3d array of spectral density
+"""
+function get_spectral_density_angle_averaged(
+    spectral_density_dict::Dict;
+    gaussian_filter::Bool = true,
+    gaussian_filter_sigma_x::Float64 = 2*pi/25, 
+    gaussian_filter_filtered_data_x_step_length::Float64 = 2*pi/25,
+    save_result::Bool = false,
+    save_path = raw"..\analysis_data\sample_name")
+
+    # create a dictionary for angle averaged spectral density
+    # with the length squared of the index vector as the key,
+    # because it is proportional to the square of the wavenumber
+    spectral_density_angle_averaged_dict = Dict{Int64, Vector{Float64}}()
+
+    # determine origin vector of cartesian coordinates
+    index_vector_origin = Int.(floor.( (size(
+        spectral_density_dict["spectral_density_array"])[1:3] .+ 1 ) ./ 2) )
+
+    for i in CartesianIndices(spectral_density_dict["spectral_density_array"])
+
+        # determine actual index vector
+        index_vector = i.I .- index_vector_origin
+
+        # calculate length squared of index vector
+        index_vector_length_squared = sum(index_vector.^2)
+
+        # check if key exists in dictionary
+        if index_vector_length_squared in keys(
+            spectral_density_angle_averaged_dict)
+
+            # add spectral density to dictionary
+            push!(spectral_density_angle_averaged_dict[index_vector_length_squared], 
+                abs(spectral_density_dict["spectral_density_array"][i]))
+
+        else
+
+            # add key and spectral density to dictionary
+            spectral_density_angle_averaged_dict[index_vector_length_squared] = 
+                [abs(spectral_density_dict["spectral_density_array"][i])]
+
+        end
+    end
+    
+    # initialize wavenumber vector and spectral density vector
+    unfiltered_wavenumber_vec = Vector{Float64}()
+    unfiltered_spectral_density_vec = Vector{
+        Measurements.Measurement{Float64}}()
+
+    # get lattice constant of reciprocal lattice
+    reciprocal_lattice_constant = LinearAlgebra.norm(
+        spectral_density_dict["wavevector_array"][(
+            index_vector_origin .+ [1,0,0])...,:])
+
+    # get vector of wavenumbers and angle averaged spectral density including
+    # their uncertainty
+    for key in keys(spectral_density_angle_averaged_dict)
+
+        # get wavenumber from wavevector
+        push!(unfiltered_wavenumber_vec, reciprocal_lattice_constant*sqrt(key))
+
+        # get angle averaged spectral density
+        push!(unfiltered_spectral_density_vec, 
+            Measurements.measurement(Statistics.mean(
+                spectral_density_angle_averaged_dict[key]),
+            Statistics.std(spectral_density_angle_averaged_dict[key])))
+
+    end
+
+    # sort wavenumber vector and spectral density vector
+    unfiltered_spectral_density_vec = unfiltered_spectral_density_vec[
+        sortperm(unfiltered_wavenumber_vec)]
+    sort!(unfiltered_wavenumber_vec)
+
+    # create dict to save
+    spectral_density_angle_averaged_dict = Dict{String, Any}(
+        "unfiltered_wavenumber_vec" => unfiltered_wavenumber_vec, 
+        "unfiltered_spectral_density_vec" => unfiltered_spectral_density_vec,
+        "label" => spectral_density_dict["label"])
+
+    # apply gaussian filter if desired
+    if gaussian_filter
+        filtered_data_x, filtered_data_y = GU.gaussian_filter_1d(
+            unfiltered_wavenumber_vec[2:end], 
+            unfiltered_spectral_density_vec[2:end]; 
+            sigma_x=gaussian_filter_sigma_x, 
+            filtered_data_x_step_length
+                =gaussian_filter_filtered_data_x_step_length)
+
+        spectral_density_angle_averaged_dict["wavenumber_vec"] = (
+            filtered_data_x)
+        spectral_density_angle_averaged_dict["spectral_density_vec"] = (
+            filtered_data_y)
+        spectral_density_angle_averaged_dict["gaussian_filter_sigma_x"] = (
+            gaussian_filter_sigma_x)
+    end
+
+    if save_result
+        GU.save_dict_to_h5(copy(spectral_density_angle_averaged_dict),
+            save_path*"_spectral_density_angle_averaged.h5")
+    end
+                                            
+    return spectral_density_angle_averaged_dict
+end
+
+
+"""
+Define a anisotropy metric as the ratio of uncertainty and value of the sum of
+the spectral density for several small wavenumbers normalized by the same value
+for the diamond lattice
+"""
+function get_anisotropy_metric_from_spectral_density(
+    spectral_density_angle_averaged_dict::Dict;
+    diamond_std_value_ratio = 1.2588849)
+
+    # set the wavenumbers where spectral density will be checked
+    wavenumbers_to_check_vec = 2*pi*collect(0.2:0.1:1.0)
+
+    # get the wavenumbers that lie the clostest to the wavenumbers
+    # to be checked
+    index_vec = [argmin(abs.(
+        spectral_density_angle_averaged_dict["wavenumber_vec"] 
+            .- wavenumbers_to_check_vec[i]))
+        for i in eachindex(wavenumbers_to_check_vec)]
+
+    # sum the checked spectral densities
+    summed_spectral_density_to_check = sum( 
+        spectral_density_angle_averaged_dict["spectral_density_vec"][
+            index_vec] )
+
+    # determine ratio of uncertainty to value
+    std_value_ratio = (Measurements.uncertainty(
+            summed_spectral_density_to_check) 
+        / Measurements.value(summed_spectral_density_to_check))
+
+    # normalize this ratio by the corresponding ratio for the diamond
+    anisotropy_metric_from_spectral_density = (std_value_ratio 
+    / diamond_std_value_ratio)
+
+    return anisotropy_metric_from_spectral_density
+end
+
+
+function get_cluster_metric(correlation_functions_dict::Dict;
+    nr_vertices_second_neighbor_shell::Int = 17)
+
+    # get distance where cumulative coordination nr equals the given number of 
+    # vertices minus one to account for the fact that the central vertex is not
+    # contained in the cumulative coordination number 
+    cluster_metric = correlation_functions_dict["vertex_distance_vec"][
+        findfirst(x -> x > nr_vertices_second_neighbor_shell, 
+        correlation_functions_dict["cumulative_coord_nr_vec"])
+        ]/second_neighbor_distance_periodic_network
+
+    return cluster_metric
+end
+
+
+"""
+Calculate the statistical difference between two networks by comparing their
+bond length and bond angle standard deviations
+"""
+function get_statistical_difference(
+    bond_length_std_1,
+    bond_length_std_2,
+    bond_angle_std_1,
+    bond_angle_std_2)
+
+    # calculate ratio in bond length standard deviation
+    bond_length_std_ratio = (bond_length_std_1 / bond_length_std_2)
+    
+    # calculate ratio in bond angle standard deviation
+    bond_angle_std_ratio = (bond_angle_std_1 / bond_angle_std_2)
+
+    # define difference metric delta
+    delta = sqrt( abs2(bond_length_std_ratio - 1) 
+        + abs2(bond_angle_std_ratio - 1))
+
+    return delta
+end
+
+
+"""
+Create a padding of 0.6 bond length outside of the supercell for all bonds that
+are close to the supercell edge. I choose 0.6 times the equilibrium bond length
+to account for bonds that are slightly longer than the equilibrium bond length
+"""
+function duplicate_bonds_close_to_supercell_edge!(
+    spatial_network::MetaGraphsNext.MetaGraph)
+
+    # count current vertex
+    vertex_count = copy(spatial_network[]["nr_vertices"])
+
+    original_bond_vec = collect(MetaGraphsNext.edge_labels(spatial_network))
+
+    # loop through bonds
+    for bond in original_bond_vec
+
+        # get bond's start and target positions and its direction vector
+        start_pos = spatial_network[bond[1]]["position"]
+        target_pos = spatial_network[bond[2]]["position"]
+
+        identity_matrix = Matrix(LinearAlgebra.I, 3, 3)
+
+        # loop through all dimensions
+        for i in 1:3
+
+            # copy lower face
+            if (((start_pos[i] < 0.6) && (start_pos[i] > 0)) 
+                || ((target_pos[i] < 0.6) && (target_pos[i] > 0)))
+
+                new_start_pos = (start_pos 
+                    .+ spatial_network[]["supercell_edge_length"] 
+                    .* identity_matrix[i,:])
+
+                new_target_pos = (target_pos 
+                    .+ spatial_network[]["supercell_edge_length"] 
+                    .* identity_matrix[i,:])
+
+                # add two new vertices and the bond between them to the spatial
+                # network
+                spatial_network[vertex_count + 1] = (
+                    Dict("position" => new_start_pos) )
+                spatial_network[vertex_count + 2] = (
+                    Dict("position" => new_target_pos) )
+
+                spatial_network[vertex_count + 1, vertex_count + 2] = (
+                    Dict("vector" => spatial_network[bond...]["vector"], 
+                        "distance_squared" 
+                            => spatial_network[bond...]["distance_squared"]))
+
+                vertex_count += 2
+
+                # copy edges
+                for j in i+1:3
+
+                    # copy lower edge
+                    if (((start_pos[j] < 0.6) && (start_pos[j] > 0))
+                        || ((target_pos[j] < 0.6) && (target_pos[j] > 0)))
+
+                        new_start_pos = (start_pos 
+                            .+ spatial_network[]["supercell_edge_length"] 
+                            .* (identity_matrix[i,:] .+ identity_matrix[j,:]))
+
+                        new_target_pos = (target_pos 
+                            .+ spatial_network[]["supercell_edge_length"] 
+                            .* (identity_matrix[i,:] .+ identity_matrix[j,:]))
+
+                        # add two new vertices and the bond between them to the
+                        # spatial network
+                        spatial_network[vertex_count + 1] = (
+                            Dict("position" => new_start_pos) )
+                        spatial_network[vertex_count + 2] = (
+                            Dict("position" => new_target_pos) )
+
+                        spatial_network[vertex_count + 1, vertex_count + 2] = (
+                            Dict("vector" 
+                                    => spatial_network[bond...]["vector"], 
+                                "distance_squared" 
+                                    => spatial_network[bond...][
+                                        "distance_squared"]))
+
+                        vertex_count += 2
+
+                        # copy corners
+                        if j == 2
+                            k=3
+
+                            # copy lower corner 
+                            if (((start_pos[k] < 0.6) && (start_pos[k] > 0))
+                                || ((target_pos[k] < 0.6) 
+                                    && (target_pos[k] > 0)))
+                                new_start_pos = (start_pos 
+                                    .+ spatial_network[][
+                                        "supercell_edge_length"] 
+                                    .* (identity_matrix[i,:] 
+                                        .+ identity_matrix[j,:] 
+                                        .+ identity_matrix[k,:]))
+
+                                new_target_pos = (target_pos 
+                                    .+ spatial_network[][
+                                        "supercell_edge_length"] 
+                                    .* (identity_matrix[i,:] 
+                                        .+ identity_matrix[j,:] 
+                                        .+ identity_matrix[k,:]))
+
+                                # add two new vertices and the bond between 
+                                # them to the spatial network
+                                spatial_network[vertex_count + 1] = (
+                                    Dict("position" => new_start_pos) )
+                                spatial_network[vertex_count + 2] = (
+                                    Dict("position" => new_target_pos) )
+
+                                spatial_network[vertex_count + 1, 
+                                    vertex_count + 2] = (
+                                    Dict("vector" 
+                                            => spatial_network[bond...][
+                                                "vector"], 
+                                        "distance_squared" 
+                                            => spatial_network[bond...][
+                                                "distance_squared"]))
+                                vertex_count += 2
+
+                            # copy upper corner
+                            elseif (((start_pos[k] 
+                                    > spatial_network[][
+                                        "supercell_edge_length"] 
+                                        - 0.6) 
+                                && (start_pos[k] 
+                                    < spatial_network[][
+                                        "supercell_edge_length"])) 
+                                || ((target_pos[k] 
+                                    > spatial_network[][
+                                        "supercell_edge_length"] 
+                                        - 0.6) 
+                                && (target_pos[k] 
+                                    < spatial_network[][
+                                        "supercell_edge_length"])))
+
+                                new_start_pos = (start_pos 
+                                    .+ spatial_network[][
+                                        "supercell_edge_length"] 
+                                    .* (identity_matrix[i,:] 
+                                        .+ identity_matrix[j,:] 
+                                        .- identity_matrix[k,:]))
+                                new_target_pos = (target_pos 
+                                    .+ spatial_network[][
+                                        "supercell_edge_length"] 
+                                    .* (identity_matrix[i,:] 
+                                        .+ identity_matrix[j,:] 
+                                        .- identity_matrix[k,:]))
+
+                                # add two new vertices and the bond between
+                                # them to the spatial network
+                                spatial_network[vertex_count + 1] = (
+                                    Dict("position" => new_start_pos) )
+                                spatial_network[vertex_count + 2] = (
+                                    Dict("position" => new_target_pos) )
+                                spatial_network[vertex_count + 1, 
+                                    vertex_count + 2] = (
+                                    Dict("vector" 
+                                            => spatial_network[bond...][
+                                                "vector"], 
+                                        "distance_squared" 
+                                            => spatial_network[bond...][
+                                                "distance_squared"]))
+                                vertex_count += 2
+                            end
+                        end
+
+                    # copy upper edge
+                    elseif (((start_pos[j] 
+                            > spatial_network[]["supercell_edge_length"] - 0.6) 
+                        && (start_pos[j] 
+                            < spatial_network[]["supercell_edge_length"])) 
+                        || ((target_pos[j] 
+                            > spatial_network[]["supercell_edge_length"] - 0.6) 
+                        && (target_pos[j] 
+                            < spatial_network[]["supercell_edge_length"])))
+
+                        new_start_pos = (start_pos 
+                            .+ spatial_network[]["supercell_edge_length"] 
+                            .* (identity_matrix[i,:] .- identity_matrix[j,:]))
+
+                        new_target_pos = (target_pos 
+                            .+ spatial_network[]["supercell_edge_length"] 
+                            .* (identity_matrix[i,:] .- identity_matrix[j,:]))
+
+                        # add two new vertices and the bond between them to the
+                        # spatial network
+                        spatial_network[vertex_count + 1] = (
+                                Dict("position" => new_start_pos) )
+                        spatial_network[vertex_count + 2] = (
+                                    Dict("position" => new_target_pos) )
+
+                        spatial_network[vertex_count + 1, vertex_count + 2] = (
+                            Dict("vector" 
+                                    => spatial_network[bond...]["vector"], 
+                                "distance_squared" 
+                                    => spatial_network[bond...][
+                                        "distance_squared"]))
+
+                        vertex_count += 2
+
+                        # copy corners
+                        if j == 2
+                            k=3
+
+                            # copy lower corner 
+                            if (((start_pos[k] < 0.6) && (start_pos[k] > 0)) 
+                                || ((target_pos[k] < 0.6) 
+                                    && (target_pos[k] > 0)))
+
+                                new_start_pos = (start_pos 
+                                    .+ spatial_network[][
+                                        "supercell_edge_length"] 
+                                    .* (identity_matrix[i,:] 
+                                        .- identity_matrix[j,:] 
+                                        .+ identity_matrix[k,:]))
+
+                                new_target_pos = (target_pos 
+                                    .+ spatial_network[][
+                                        "supercell_edge_length"] 
+                                    .* (identity_matrix[i,:] 
+                                        .- identity_matrix[j,:] 
+                                        .+ identity_matrix[k,:]))
+
+                                # add two new vertices and the bond between
+                                # them to the spatial network
+                                spatial_network[vertex_count + 1] = (
+                                    Dict("position" => new_start_pos) )
+                                spatial_network[vertex_count + 2] = (
+                                    Dict("position" => new_target_pos) )
+
+                                spatial_network[vertex_count + 1, 
+                                    vertex_count + 2] = (
+                                    Dict("vector" 
+                                            => spatial_network[bond...][
+                                                "vector"], 
+                                        "distance_squared" 
+                                            => spatial_network[bond...][
+                                                "distance_squared"]))
+                                vertex_count += 2
+
+                            # copy upper corner
+                            elseif (((start_pos[k] 
+                                    > spatial_network[][
+                                        "supercell_edge_length"] 
+                                        - 0.6) 
+                                && (start_pos[k] 
+                                    < spatial_network[][
+                                        "supercell_edge_length"])) 
+                                || ((target_pos[k] 
+                                    > spatial_network[][
+                                        "supercell_edge_length"] 
+                                        - 0.6) 
+                                && (target_pos[k] 
+                                    < spatial_network[][
+                                        "supercell_edge_length"])))
+
+                                new_start_pos = (start_pos 
+                                    .+ spatial_network[][
+                                        "supercell_edge_length"] 
+                                    .* (identity_matrix[i,:] 
+                                        .- identity_matrix[j,:] 
+                                        .- identity_matrix[k,:]))
+                                new_target_pos = (target_pos 
+                                    .+ spatial_network[][
+                                        "supercell_edge_length"] 
+                                    .* (identity_matrix[i,:] 
+                                        .- identity_matrix[j,:] 
+                                        .- identity_matrix[k,:]))
+
+                                # add two new vertices and the bond between
+                                # them to the spatial network
+                                spatial_network[vertex_count + 1] = (
+                                    Dict("position" => new_start_pos) )
+                                spatial_network[vertex_count + 2] = (
+                                    Dict("position" => new_target_pos) )
+                                spatial_network[vertex_count + 1, 
+                                    vertex_count + 2] = (
+                                    Dict("vector" 
+                                            => spatial_network[bond...][
+                                                "vector"], 
+                                        "distance_squared" 
+                                            => spatial_network[bond...][
+                                                "distance_squared"]))
+                                vertex_count += 2
+                            end
+                        end
+                    end
+                end
+
+            # copy upper face
+            elseif (((start_pos[i] 
+                        > spatial_network[]["supercell_edge_length"] - 0.6) 
+                    && (start_pos[i] 
+                        < spatial_network[]["supercell_edge_length"]))
+                || ((target_pos[i] 
+                        > spatial_network[]["supercell_edge_length"] - 0.6) 
+                    && (target_pos[i] 
+                        < spatial_network[]["supercell_edge_length"])))
+
+                new_start_pos = (start_pos 
+                    .- spatial_network[]["supercell_edge_length"] 
+                    .* identity_matrix[i,:])
+
+                new_target_pos = (target_pos 
+                    .- spatial_network[]["supercell_edge_length"] 
+                    .* identity_matrix[i,:])
+
+                # add two new vertices and the bond between them to the spatial
+                # network
+                spatial_network[vertex_count + 1] = (
+                        Dict("position" => new_start_pos) )
+                spatial_network[vertex_count + 2] = (
+                            Dict("position" => new_target_pos) )
+
+                spatial_network[vertex_count + 1, vertex_count + 2] = (
+                    Dict("vector" => spatial_network[bond...]["vector"], 
+                        "distance_squared" 
+                            => spatial_network[bond...]["distance_squared"]))
+
+                vertex_count += 2
+
+                # copy edges
+                for j in i+1:3
+
+                    # copy lower edge
+                    if (((start_pos[j] < 0.6) && (start_pos[j] > 0)) 
+                        || ((target_pos[j] < 0.6) && (target_pos[j] > 0)))
+
+                        new_start_pos = (start_pos 
+                            .+ spatial_network[]["supercell_edge_length"] 
+                            .* (.- identity_matrix[i,:] 
+                                .+ identity_matrix[j,:]))
+
+                        new_target_pos = (target_pos 
+                            .+ spatial_network[]["supercell_edge_length"] 
+                            .* (.- identity_matrix[i,:] 
+                                .+ identity_matrix[j,:]))
+
+                        # add two new vertices and the bond between them to the
+                        # spatial network
+                        spatial_network[vertex_count + 1] = (
+                                Dict("position" => new_start_pos) )
+                        spatial_network[vertex_count + 2] = (
+                                    Dict("position" => new_target_pos) )
+
+                        spatial_network[vertex_count + 1, vertex_count + 2] = (
+                            Dict("vector" 
+                                    => spatial_network[bond...]["vector"], 
+                                "distance_squared" 
+                                    => spatial_network[bond...][
+                                        "distance_squared"]))
+
+                        vertex_count += 2
+
+                        # copy corners
+                        if j == 2
+                            k=3
+
+                            # copy lower corner 
+                            if (((start_pos[k] < 0.6) && (start_pos[k] > 0)) 
+                                || ((target_pos[k] < 0.6) 
+                                    && (target_pos[k] > 0)))
+
+                                new_start_pos = (start_pos 
+                                    .+ spatial_network[][
+                                        "supercell_edge_length"] 
+                                    .* (.- identity_matrix[i,:] 
+                                        .+ identity_matrix[j,:] 
+                                        .+ identity_matrix[k,:]))
+
+                                new_target_pos = (target_pos 
+                                    .+ spatial_network[][
+                                        "supercell_edge_length"] 
+                                    .* (.- identity_matrix[i,:] 
+                                        .+ identity_matrix[j,:] 
+                                        .+ identity_matrix[k,:]))
+
+                                # add two new vertices and the bond between
+                                # them to the spatial network
+                                spatial_network[vertex_count + 1] = (
+                                    Dict("position" => new_start_pos) )
+                                spatial_network[vertex_count + 2] = (
+                                    Dict("position" => new_target_pos) )
+
+                                spatial_network[vertex_count + 1, 
+                                    vertex_count + 2] = (
+                                    Dict("vector" 
+                                            => spatial_network[bond...][
+                                                "vector"], 
+                                        "distance_squared" 
+                                            => spatial_network[bond...][
+                                                "distance_squared"]))
+                                vertex_count += 2
+                                
+
+                            # copy upper corner
+                            elseif (((start_pos[k] 
+                                    > spatial_network[][
+                                        "supercell_edge_length"] 
+                                        - 0.6) 
+                                && (start_pos[k] 
+                                    < spatial_network[][
+                                        "supercell_edge_length"])) 
+                                || ((target_pos[k] 
+                                    > spatial_network[][
+                                        "supercell_edge_length"] 
+                                        - 0.6) 
+                                && (target_pos[k] 
+                                    < spatial_network[][
+                                        "supercell_edge_length"])))
+
+                                new_start_pos = (start_pos 
+                                    .+ spatial_network[][
+                                        "supercell_edge_length"] 
+                                    .* (.- identity_matrix[i,:] 
+                                        .+ identity_matrix[j,:] 
+                                        .- identity_matrix[k,:]))
+                                new_target_pos = (target_pos 
+                                    .+ spatial_network[][
+                                        "supercell_edge_length"] 
+                                    .* (.- identity_matrix[i,:] 
+                                        .+ identity_matrix[j,:] 
+                                        .- identity_matrix[k,:]))
+
+                                # add two new vertices and the bond between
+                                # them to the spatial network
+                                spatial_network[vertex_count + 1] = (
+                                    Dict("position" => new_start_pos) )
+                                spatial_network[vertex_count + 2] = (
+                                    Dict("position" => new_target_pos) )
+                                spatial_network[vertex_count + 1, 
+                                    vertex_count + 2] = (
+                                    Dict("vector" 
+                                            => spatial_network[bond...][
+                                                "vector"], 
+                                        "distance_squared" 
+                                            => spatial_network[bond...][
+                                                "distance_squared"]))
+                                vertex_count += 2
+                                
+                            end
+                        end
+
+                    # copy upper edge
+                    elseif (((start_pos[j] 
+                            > spatial_network[]["supercell_edge_length"] - 0.6) 
+                        && (start_pos[j] 
+                            < spatial_network[]["supercell_edge_length"])) 
+                        || ((target_pos[j] 
+                            > spatial_network[]["supercell_edge_length"] - 0.6) 
+                        && (target_pos[j] 
+                            < spatial_network[]["supercell_edge_length"])))
+
+                        new_start_pos = (start_pos 
+                            .- spatial_network[]["supercell_edge_length"] 
+                            .* (identity_matrix[i,:] .+ identity_matrix[j,:]))
+
+                        new_target_pos = (target_pos 
+                            .- spatial_network[]["supercell_edge_length"] 
+                            .* (identity_matrix[i,:] .+ identity_matrix[j,:]))
+
+                        # add two new vertices and the bond between them to the
+                        # spatial network
+                        spatial_network[vertex_count + 1] = (
+                                Dict("position" => new_start_pos) )
+                        spatial_network[vertex_count + 2] = (
+                                    Dict("position" => new_target_pos))
+
+                        spatial_network[vertex_count + 1, vertex_count + 2] = (
+                            Dict("vector" 
+                                    => spatial_network[bond...]["vector"], 
+                                "distance_squared" 
+                                    => spatial_network[bond...][
+                                        "distance_squared"]))
+
+                        vertex_count += 2
+
+                        # copy corners
+                        if j == 2
+                            k=3
+
+                            # copy lower corner 
+                            if (((start_pos[k] < 0.6) && (start_pos[k] > 0)) 
+                                || ((target_pos[k] < 0.6) 
+                                    && (target_pos[k] > 0)))
+
+                                new_start_pos = (start_pos 
+                                    .+ spatial_network[][
+                                        "supercell_edge_length"] 
+                                    .* (.- identity_matrix[i,:] 
+                                        .- identity_matrix[j,:] 
+                                        .+ identity_matrix[k,:]))
+
+                                new_target_pos = (target_pos 
+                                    .+ spatial_network[][
+                                        "supercell_edge_length"] 
+                                    .* (.- identity_matrix[i,:] 
+                                        .- identity_matrix[j,:] 
+                                        .+ identity_matrix[k,:]))
+
+                                # add two new vertices and the bond between
+                                # them to the spatial network
+                                spatial_network[vertex_count + 1] = (
+                                    Dict("position" => new_start_pos) )
+                                spatial_network[vertex_count + 2] = (
+                                    Dict("position" => new_target_pos) )
+
+                                spatial_network[vertex_count + 1, 
+                                    vertex_count + 2] = (
+                                    Dict("vector" 
+                                            => spatial_network[bond...][
+                                                "vector"], 
+                                        "distance_squared" 
+                                            => spatial_network[bond...][
+                                                "distance_squared"]))
+                                vertex_count += 2
+                                
+
+                            # copy upper corner
+                            elseif (((start_pos[k] 
+                                    > spatial_network[][
+                                        "supercell_edge_length"] 
+                                        - 0.6) 
+                                && (start_pos[k] 
+                                    < spatial_network[][
+                                        "supercell_edge_length"])) 
+                                || ((target_pos[k] 
+                                    > spatial_network[][
+                                        "supercell_edge_length"] 
+                                        - 0.6) 
+                                && (target_pos[k] 
+                                    < spatial_network[][
+                                        "supercell_edge_length"])))
+
+                                new_start_pos = (start_pos 
+                                    .+ spatial_network[][
+                                        "supercell_edge_length"] 
+                                    .* (.- identity_matrix[i,:] 
+                                        .- identity_matrix[j,:] 
+                                        .- identity_matrix[k,:]))
+                                new_target_pos = (target_pos 
+                                    .+ spatial_network[][
+                                        "supercell_edge_length"] 
+                                    .* (.- identity_matrix[i,:] 
+                                        .- identity_matrix[j,:] 
+                                        .- identity_matrix[k,:]))
+
+                                # add two new vertices and the bond between
+                                # them to the spatial network
+                                spatial_network[vertex_count + 1] = (
+                                    Dict("position" => new_start_pos) )
+                                spatial_network[vertex_count + 2] = (
+                                    Dict("position" => new_target_pos) )
+                                spatial_network[vertex_count + 1, 
+                                    vertex_count + 2] = (
+                                    Dict("vector" 
+                                            => spatial_network[bond...][
+                                                "vector"], 
+                                        "distance_squared" 
+                                            => spatial_network[bond...][
+                                                "distance_squared"]))
+
+                                vertex_count += 2
+                            end
+                        end
+                    end 
+                end
+            end 
+        end
+    end
+
+    spatial_network[]["nr_vertices"] = vertex_count
+
+    return spatial_network
+end
+
+
+"""
+Measure the standard deviation of dihedral angles. This function might need to
+be revisited when considering other coordination numbers than 4 because the
+dihedral angle might have a peak around 0 which is not considered here
+"""
+function get_dihedral_angle_std(spatial_network::MetaGraphsNext.MetaGraph)
+
+    # initialize vector of diehedral angles
+    dihedral_angle_vec = Vector{Float64}()
+
+    # loop through all bonds
+    for bond in MetaGraphsNext.edge_labels(spatial_network)
+
+        # get vector along bond
+        bond_vec = spatial_network[bond...]["vector"]
+
+        # loop through all neighbors of one vertex 
+        for first_neighbor in setdiff( MetaGraphsNext.neighbor_labels(
+            spatial_network, bond[1]), bond[2])
+
+            # get vector from first neighbor to first bond vertex
+            first_neighbor_to_bond_vertex_vec = ( sign(bond[1] 
+                - first_neighbor)*spatial_network[first_neighbor, 
+                    bond[1]]["vector"])
+
+            # loop through all neighbors of other vertex
+            for second_neighbor in setdiff( MetaGraphsNext.neighbor_labels(
+                spatial_network, bond[2]), bond[1])
+
+                # get vector from second bond vertex to second neighbor
+                bond_vertex_to_second_neighbor_vec = ( sign(second_neighbor 
+                    - bond[2])*spatial_network[bond[2], 
+                        second_neighbor]["vector"])
+
+                # calculate dihedral angle according to the equation given in
+                # https://en.wikipedia.org/wiki/Dihedral_angle# 
+                dihedral_angle = atan( LinearAlgebra.norm(bond_vec)
+                        *LinearAlgebra.dot(first_neighbor_to_bond_vertex_vec,
+                            LinearAlgebra.cross(bond_vec,
+                                bond_vertex_to_second_neighbor_vec )),
+                    LinearAlgebra.dot(
+                        LinearAlgebra.cross(first_neighbor_to_bond_vertex_vec,
+                            bond_vec ),
+                        LinearAlgebra.cross(bond_vec,
+                              bond_vertex_to_second_neighbor_vec )))
+
+                # save dihedral angle
+                push!(dihedral_angle_vec, dihedral_angle)
+            end
+        end
+    end
+
+    # save one peak of dihedral angle distribution
+    lower_limit = 0
+    upper_limit =  2 * pi / (spatial_network[]["coordination_nr"] - 1)
+
+    dihedral_angle_one_peak_vec = dihedral_angle_vec[
+        (dihedral_angle_vec .> lower_limit) .& (dihedral_angle_vec .< upper_limit)]
+
+    # determine standard deviation
+    dihedral_angle_std = Statistics.std(dihedral_angle_one_peak_vec)
+
+    return [dihedral_angle_std, dihedral_angle_vec]
+end
