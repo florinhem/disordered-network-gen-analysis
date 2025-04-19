@@ -157,9 +157,7 @@ function get_all_dicts_from_network_single_file(
     analysis_data_path::String;
     bond_radius = 0.35,
     voxel_edge_length = 0.1,
-    structure_factor_diamond_std_value_ratio = 1,
-    spectral_density_diamond_std_value_ratio = 1,
-    pore_size_distribution_nr_sampled_voxels::Int64 = 20000,
+    pore_size_sampling_grid_size = 0.2,
     print_progress::Bool = false,
     print_lock = Threads.ReentrantLock())
 
@@ -236,8 +234,8 @@ function get_all_dicts_from_network_single_file(
 
     # get pore size distribution
     pore_size_distribution_dict = get_pore_size_distribution(
-        structure_dict;
-        nr_sampled_voxels = pore_size_distribution_nr_sampled_voxels,
+        spatial_network;
+        sampling_grid_size = pore_size_sampling_grid_size,
         save_result = true,
         save_path = analysis_data_path*filename,
         label = nothing,
@@ -251,10 +249,6 @@ function get_all_dicts_from_network_single_file(
     spatial_network_path,
     analysis_data_path;
     l_max_steinhardt_q_l = 12,
-    structure_factor_diamond_std_value_ratio 
-        = structure_factor_diamond_std_value_ratio,
-    spectral_density_diamond_std_value_ratio 
-        = spectral_density_diamond_std_value_ratio,
     save_result = true,
     )
 
@@ -388,8 +382,6 @@ calculated from small length scales
 function get_small_length_scale_order_metrics(filename::String,
     network_path::String,
     analysis_data_path::String;
-    structure_factor_diamond_std_value_ratio = 1,
-    spectral_density_diamond_std_value_ratio = 1,
     l_max_steinhardt_q_l::Int64 = 12,
     save_result = false,
     )
@@ -442,14 +434,12 @@ function get_small_length_scale_order_metrics(filename::String,
         get_pore_size_distribution_second_moment(pore_size_distribution_dict))
 
     # load angle averaged structure factor
-    structure_factor_angle_averaged_dict = GU.load_h5_dict(
-        analysis_data_path*filename*"_structure_factor_angle_averaged.h5")
+    structure_factor_dict = GU.load_h5_dict(
+        analysis_data_path*filename*"_structure_factor.h5")
 
     # get anisotropy metric from structure factor
     anisotropy_metric_from_structure_factor = (
-        get_anisotropy_metric_from_structure_factor(
-            structure_factor_angle_averaged_dict;
-            diamond_std_value_ratio=structure_factor_diamond_std_value_ratio))
+        get_anisotropy_metric_from_structure_factor(structure_factor_dict))
 
     # load angle averaged spectral density
     spectral_density_angle_averaged_dict = GU.load_h5_dict(

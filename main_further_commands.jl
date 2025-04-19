@@ -16165,4 +16165,15 @@ println("dihedral angle entropy disorder: ", dihedral_angle_entropy_disorder)
 println("dihedral angle entropy disorder_2: ", dihedral_angle_entropy_disorder_2)
 println("dihedral angle entropy disorder_3: ", dihedral_angle_entropy_disorder_3)
 
+
+bond_orientation_entropy_diamond = NA.get_bond_orientation_entropy(diamond)
+bond_orientation_entropy_disorder = NA.get_bond_orientation_entropy(disorder)
+bond_orientation_entropy_disorder_2 = NA.get_bond_orientation_entropy(disorder_2)
+bond_orientation_entropy_disorder_3 = NA.get_bond_orientation_entropy(disorder_3)
+
+println("anisotropy entropy diamond: ", bond_orientation_entropy_diamond)
+println("anisotropy entropy disorder: ", bond_orientation_entropy_disorder)
+println("anisotropy entropy disorder_2: ", bond_orientation_entropy_disorder_2)
+println("anisotropy entropy disorder_3: ", bond_orientation_entropy_disorder_3)
+
 NG.plot_spatial_network(disorder)

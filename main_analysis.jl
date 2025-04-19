@@ -7,8 +7,8 @@ import .NetworkGeneration as NG
 import .NetworkAnalysis as NA
 import .GeneralUtilities as GU
 
-import DataFrames
-import CSV
+
+import Plots
 
 # possible choices of nr_vertices for diamond: 64, 216, 512, 1000, that is (2*n)^3 with natural nr natural
 
@@ -34,15 +34,15 @@ disorder_2 = NG.load_spatial_network_from_gml(disorder_path_2)
 disorder_3 = NG.load_spatial_network_from_gml(disorder_path_3)
 
 
+pore_size_distribution_dict_diamond = NA.get_pore_size_distribution(diamond, sampling_grid_size = 0.4)
+pore_size_distribution_dict_disorder = NA.get_pore_size_distribution(disorder, sampling_grid_size = 0.4)
+pore_size_distribution_dict_disorder_2 = NA.get_pore_size_distribution(disorder_2, sampling_grid_size = 0.4)
+pore_size_distribution_dict_disorder_3 = NA.get_pore_size_distribution(disorder_3, sampling_grid_size = 0.4)
 
-anisotropy_entropy_diamond = NA.get_anisotropy_entropy_from_bonds(diamond)
-anisotropy_entropy_disorder = NA.get_anisotropy_entropy_from_bonds(disorder)
-anisotropy_entropy_disorder_2 = NA.get_anisotropy_entropy_from_bonds(disorder_2)
-anisotropy_entropy_disorder_3 = NA.get_anisotropy_entropy_from_bonds(disorder_3)
-
-println("anisotropy entropy diamond: ", anisotropy_entropy_diamond)
-println("anisotropy entropy disorder: ", anisotropy_entropy_disorder)
-println("anisotropy entropy disorder_2: ", anisotropy_entropy_disorder_2)
-println("anisotropy entropy disorder_3: ", anisotropy_entropy_disorder_3)
-
-#NG.plot_spatial_network(disorder)
+# plot the pore size distribution for the diamond network
+Plots.plot(pore_size_distribution_dict_diamond["pore_size_vec"], pore_size_distribution_dict_diamond["pore_size_distribution"], label = "diamond")
+Plots.plot!(pore_size_distribution_dict_disorder["pore_size_vec"], pore_size_distribution_dict_disorder["pore_size_distribution"], label = "disorder")
+Plots.plot!(pore_size_distribution_dict_disorder_2["pore_size_vec"], pore_size_distribution_dict_disorder_2["pore_size_distribution"], label = "disorder_2")
+Plots.plot!(pore_size_distribution_dict_disorder_3["pore_size_vec"], pore_size_distribution_dict_disorder_3["pore_size_distribution"], label = "disorder_3")
+Plots.xlabel!("Pore size/d")
+Plots.ylabel!("Pore size distribution")

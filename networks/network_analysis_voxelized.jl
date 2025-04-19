@@ -849,7 +849,7 @@ Calculate the pore size distribution following the method described in
 10.1103/PhysRevE.100.053314, modified to work with periodic boundary conditions
 and by using random sampling of voxels to speed up the calculation
 """
-function get_pore_size_distribution(
+function get_pore_size_distribution_voxelized(
     structure_dict::Dict;
     nr_sampled_voxels::Int = 20000,
     save_result::Bool = false,
