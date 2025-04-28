@@ -3650,3 +3650,583 @@ Plots.scatter!(size=(470,400), legend = true, xlabel = Latex.L" \sigma_\mathrm{a
 #Plots.plot!(size=(550,400), legend = false, xlabel = "Bond angle st. d. / °", ylabel = "Bond length st. d. / "*Latex.L"d", rightmargin=5Plots.mm, clim=(min_temp, max_temp), color_palette=Plots.cgrad(:roma, rev = true, scale = :exp))
 
 Plots.savefig(plots_save_path*"bond_bending_stretching_highlighted.png")
+
+
+plots_save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\random_networks\216_vertices_bond_bending_0.21\run_1\\"
+
+
+diamond_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\diamonds\216_vertices_perfect_diamond.gml"
+
+disorder_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_1\216_vertices_T_0.1_heat_cool_0.1_per_mc_quenched.gml"
+
+disorder_path_2 = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_1\216_vertices_T_0.16_heat_cool_0.1_per_mc_quenched.gml"
+
+disorder_path_3 = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_1\216_vertices_T_0.24_heat_cool_0.1_per_mc_quenched.gml"
+
+
+diamond = NG.load_spatial_network_from_gml(diamond_path)
+disorder = NG.load_spatial_network_from_gml(disorder_path)
+disorder_2 = NG.load_spatial_network_from_gml(disorder_path_2)
+disorder_3 = NG.load_spatial_network_from_gml(disorder_path_3)
+
+
+@time pore_size_distribution_dict_diamond = NA.get_pore_size_distribution(diamond, sampling_grid_size = 0.2)
+@time pore_size_distribution_dict_disorder = NA.get_pore_size_distribution(disorder, sampling_grid_size = 0.2)
+@time pore_size_distribution_dict_disorder_2 = NA.get_pore_size_distribution(disorder_2, sampling_grid_size = 0.2)
+@time pore_size_distribution_dict_disorder_3 = NA.get_pore_size_distribution(disorder_3, sampling_grid_size = 0.2)
+
+# plot the pore size distribution for the diamond network
+Plots.plot(pore_size_distribution_dict_diamond["pore_size_vec"], pore_size_distribution_dict_diamond["pore_size_distribution"], label = "T=0")
+Plots.plot!(pore_size_distribution_dict_disorder["pore_size_vec"], pore_size_distribution_dict_disorder["pore_size_distribution"], label = "T=0.1")
+Plots.plot!(pore_size_distribution_dict_disorder_2["pore_size_vec"], pore_size_distribution_dict_disorder_2["pore_size_distribution"], label = "T=0.16")
+Plots.plot!(pore_size_distribution_dict_disorder_3["pore_size_vec"], pore_size_distribution_dict_disorder_3["pore_size_distribution"], label = "T=0.24")
+Plots.xlabel!("Pore size/d")
+Plots.ylabel!("Pore size distribution")
+
+Plots.savefig(plots_save_path*"pore_size_distribution.png")
+
+
+max_ring_size_to_check = 10
+
+ring_size_distribution_diamond = NA.get_ring_size_distribution(diamond, max_ring_size_to_check=max_ring_size_to_check)
+ring_size_distribution_disorder = NA.get_ring_size_distribution(disorder, max_ring_size_to_check=max_ring_size_to_check)
+ring_size_distribution_disorder_2 = NA.get_ring_size_distribution(disorder_2, max_ring_size_to_check=max_ring_size_to_check)
+ring_size_distribution_disorder_3 = NA.get_ring_size_distribution(disorder_3, max_ring_size_to_check=max_ring_size_to_check)
+
+# plot the ring size distribution for all networks
+Plots.plot(ring_size_distribution_diamond["ring_size_vec"], ring_size_distribution_diamond["ring_size_distribution"], label = "T=0")
+Plots.plot!(ring_size_distribution_disorder["ring_size_vec"], ring_size_distribution_disorder["ring_size_distribution"], label = "T=0.1")
+Plots.plot!(ring_size_distribution_disorder_2["ring_size_vec"], ring_size_distribution_disorder_2["ring_size_distribution"], label = "T=0.16")
+Plots.plot!(ring_size_distribution_disorder_3["ring_size_vec"], ring_size_distribution_disorder_3["ring_size_distribution"], label = "T=0.24")
+Plots.xlabel!("Ring size")
+Plots.ylabel!("Ring size distribution")
+
+Plots.savefig(plots_save_path*"ring_size_distribution.png")
+
+ring_radius_distribution_diamond = NA.get_ring_radius_distribution(diamond, ring_size_distribution_diamond)
+ring_radius_distribution_disorder = NA.get_ring_radius_distribution(disorder, ring_size_distribution_disorder)
+ring_radius_distribution_disorder_2 = NA.get_ring_radius_distribution(disorder_2, ring_size_distribution_disorder_2)
+ring_radius_distribution_disorder_3 = NA.get_ring_radius_distribution(disorder_3, ring_size_distribution_disorder_3)
+
+# plot the ring size distribution for all networks
+Plots.plot(ring_radius_distribution_diamond["ring_radius_vec"], ring_radius_distribution_diamond["ring_radius_distribution"], label = "T=0")
+Plots.plot!(ring_radius_distribution_disorder["ring_radius_vec"], ring_radius_distribution_disorder["ring_radius_distribution"], label = "T=0.1")
+Plots.plot!(ring_radius_distribution_disorder_2["ring_radius_vec"], ring_radius_distribution_disorder_2["ring_radius_distribution"], label = "T=0.16")
+Plots.plot!(ring_radius_distribution_disorder_3["ring_radius_vec"], ring_radius_distribution_disorder_3["ring_radius_distribution"], label = "T=0.24")
+Plots.xlabel!("Ring radius / d")
+Plots.ylabel!("Ring radius distribution")
+
+Plots.savefig(plots_save_path*"ring_radius_distribution.png")
+
+
+
+plots_save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\random_networks\216_vertices_bond_bending_0.21\run_1\\"
+
+
+diamond_bonds = GU.load_h5_dict(plots_save_path*"diamond_bonds_structure_factor_array.h5")
+diamond_vertices = GU.load_h5_dict(plots_save_path*"diamond_vertices_structure_factor_array.h5")
+disorder_bonds = GU.load_h5_dict(plots_save_path*"disorder_bonds_structure_factor_array.h5")
+disorder_vertices = GU.load_h5_dict(plots_save_path*"disorder_vertices_structure_factor_array.h5")
+disorder_2_bonds = GU.load_h5_dict(plots_save_path*"disorder_2_bonds_structure_factor_array.h5")
+disorder_2_vertices = GU.load_h5_dict(plots_save_path*"disorder_2_vertices_structure_factor_array.h5")
+disorder_3_bonds = GU.load_h5_dict(plots_save_path*"disorder_3_bonds_structure_factor_array.h5")
+disorder_3_vertices = GU.load_h5_dict(plots_save_path*"disorder_3_vertices_structure_factor_array.h5")
+
+upper_clim_bonds = 1.0
+upper_clim_vertices = 5.0
+
+NA.plot_structure_factor_heatmap(
+    diamond_bonds,
+    plots_save_path*"diamond_bonds";
+    title="Diamond bonds",
+    save_plot = true,
+    clims = (0, upper_clim_bonds ),
+    x_y_lims = nothing)
+
+NA.plot_structure_factor_heatmap(
+    diamond_vertices,
+    plots_save_path*"diamond_vertices";
+    title="Diamond vertices",
+    save_plot = true,
+    clims = (0, upper_clim_vertices ),
+    x_y_lims = nothing)
+
+NA.plot_structure_factor_heatmap(
+    disorder_bonds,
+    plots_save_path*"disorder_bonds";
+    title="Disorder bonds",
+    save_plot = true,
+    clims = (0, upper_clim_bonds ),
+    x_y_lims = nothing)
+
+NA.plot_structure_factor_heatmap(
+    disorder_vertices,
+    plots_save_path*"disorder_vertices";
+    title="Disorder vertices",
+    save_plot = true,
+    clims = (0, upper_clim_vertices ),
+    x_y_lims = nothing)
+
+NA.plot_structure_factor_heatmap(
+    disorder_2_bonds,
+    plots_save_path*"disorder_2_bonds";
+    title="Disorder 2 bonds",
+    save_plot = true,
+    clims = (0, upper_clim_bonds ),
+    x_y_lims = nothing)
+
+NA.plot_structure_factor_heatmap(
+    disorder_2_vertices,
+    plots_save_path*"disorder_2_vertices";
+    title="Disorder 2 vertices",
+    save_plot = true,
+    clims = (0, upper_clim_vertices ),
+    x_y_lims = nothing)
+
+NA.plot_structure_factor_heatmap(
+    disorder_3_bonds,
+    plots_save_path*"disorder_3_bonds";
+    title="Disorder 3 bonds",
+    save_plot = true,
+    clims = (0, upper_clim_bonds ),
+    x_y_lims = nothing)
+
+NA.plot_structure_factor_heatmap(
+    disorder_3_vertices,
+    plots_save_path*"disorder_3_vertices";
+    title="Disorder 3 vertices",
+    save_plot = true,
+    clims = (0, upper_clim_vertices ),
+    x_y_lims = nothing)
+
+
+plots_save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\random_networks\216_vertices_bond_bending_0.21\run_1\\"
+
+
+diamond_bonds = GU.load_h5_dict(plots_save_path*"diamond_bonds_structure_factor_angle_averaged.h5")
+diamond_vertices = GU.load_h5_dict(plots_save_path*"diamond_vertices_structure_factor_angle_averaged.h5")
+disorder_bonds = GU.load_h5_dict(plots_save_path*"disorder_bonds_structure_factor_angle_averaged.h5")
+disorder_vertices = GU.load_h5_dict(plots_save_path*"disorder_vertices_structure_factor_angle_averaged.h5")
+disorder_2_bonds = GU.load_h5_dict(plots_save_path*"disorder_2_bonds_structure_factor_angle_averaged.h5")
+disorder_2_vertices = GU.load_h5_dict(plots_save_path*"disorder_2_vertices_structure_factor_angle_averaged.h5")
+disorder_3_bonds = GU.load_h5_dict(plots_save_path*"disorder_3_bonds_structure_factor_angle_averaged.h5")
+disorder_3_vertices = GU.load_h5_dict(plots_save_path*"disorder_3_vertices_structure_factor_angle_averaged.h5")
+
+# Plot angle averaged structure factors considering bonds
+
+Plots.plot(diamond_bonds["wavenumber_vec"], 
+    Measurements.value.(diamond_bonds["structure_factor_vec"]) , 
+    ribbon =  Measurements.uncertainty.(diamond_bonds["structure_factor_vec"]), linecolor=Plots.palette(:tab10)[1], label = Latex.L"kT=0", fillcolor = Plots.palette(:tab10)[1])
+Plots.plot!(disorder_bonds["wavenumber_vec"],
+    Measurements.value.(disorder_bonds["structure_factor_vec"]), 
+    ribbon =  Measurements.uncertainty.(disorder_bonds["structure_factor_vec"]), linecolor=Plots.palette(:tab10)[2], label = Latex.L"kT=0.1", fillcolor = Plots.palette(:tab10)[2])
+Plots.plot!(disorder_2_bonds["wavenumber_vec"],
+    Measurements.value.(disorder_2_bonds["structure_factor_vec"]), 
+    ribbon =  Measurements.uncertainty.(disorder_2_bonds["structure_factor_vec"]), linecolor=Plots.palette(:tab10)[3], label = Latex.L"kT=0.16", fillcolor = Plots.palette(:tab10)[3])
+
+Plots.plot!(xlabel="Wavenumber / "*Latex.L"d^{-1}", ylabel = "Structure factor (bonds)",  xtick=pitick(0, 32, 1; mode=:latex),
+    xlim = (0, 25), ylims = (0, 8)) #, leftmargin = 0Plots.mm
+    Plots.savefig(plots_save_path*"angle_averaged_structure_factor_bonds_no_T_0.24.png")
+
+Plots.plot!(disorder_3_bonds["wavenumber_vec"],
+    Measurements.value.(disorder_3_bonds["structure_factor_vec"]), 
+    ribbon =  Measurements.uncertainty.(disorder_3_bonds["structure_factor_vec"]), linecolor=Plots.palette(:tab10)[4], label = Latex.L"kT=0.24", fillcolor = Plots.palette(:tab10)[4])
+
+Plots.savefig(plots_save_path*"angle_averaged_structure_factor_bonds.png")
+
+
+Plots.plot(diamond_vertices["wavenumber_vec"], 
+    Measurements.value.(diamond_vertices["structure_factor_vec"]) , 
+    ribbon =  Measurements.uncertainty.(diamond_vertices["structure_factor_vec"]), linecolor=Plots.palette(:tab10)[1], label = Latex.L"kT=0", fillcolor = Plots.palette(:tab10)[1])
+Plots.plot!(disorder_vertices["wavenumber_vec"],
+    Measurements.value.(disorder_vertices["structure_factor_vec"]), 
+    ribbon =  Measurements.uncertainty.(disorder_vertices["structure_factor_vec"]), linecolor=Plots.palette(:tab10)[2], label = Latex.L"kT=0.1", fillcolor = Plots.palette(:tab10)[2])
+Plots.plot!(disorder_2_vertices["wavenumber_vec"],
+    Measurements.value.(disorder_2_vertices["structure_factor_vec"]), 
+    ribbon =  Measurements.uncertainty.(disorder_2_vertices["structure_factor_vec"]), linecolor=Plots.palette(:tab10)[3], label = Latex.L"kT=0.16", fillcolor = Plots.palette(:tab10)[3])
+
+
+Plots.plot!(xlabel="Wavenumber / "*Latex.L"d^{-1}", ylabel = "Structure factor (vertices)",  xtick=pitick(0, 32, 1; mode=:latex), xlim = (0, 25), ylims = (0, 40)) #, leftmargin = 0Plots.mm
+Plots.savefig(plots_save_path*"angle_averaged_structure_factor_vertices_no_T_0.24.png")
+
+Plots.plot!(disorder_3_vertices["wavenumber_vec"],
+    Measurements.value.(disorder_3_vertices["structure_factor_vec"]), 
+    ribbon =  Measurements.uncertainty.(disorder_3_vertices["structure_factor_vec"]), linecolor=Plots.palette(:tab10)[4], label = Latex.L"kT=0.24", fillcolor = Plots.palette(:tab10)[4])
+
+Plots.savefig(plots_save_path*"angle_averaged_structure_factor_vertices.png")
+
+
+diamond_bonds = GU.load_h5_dict(plots_save_path*"diamond_bonds_structure_factor_array.h5")
+diamond_vertices = GU.load_h5_dict(plots_save_path*"diamond_vertices_structure_factor_array.h5")
+disorder_bonds = GU.load_h5_dict(plots_save_path*"disorder_bonds_structure_factor_array.h5")
+disorder_vertices = GU.load_h5_dict(plots_save_path*"disorder_vertices_structure_factor_array.h5")
+disorder_2_bonds = GU.load_h5_dict(plots_save_path*"disorder_2_bonds_structure_factor_array.h5")
+disorder_2_vertices = GU.load_h5_dict(plots_save_path*"disorder_2_vertices_structure_factor_array.h5")
+disorder_3_bonds = GU.load_h5_dict(plots_save_path*"disorder_3_bonds_structure_factor_array.h5")
+disorder_3_vertices = GU.load_h5_dict(plots_save_path*"disorder_3_vertices_structure_factor_array.h5")
+
+upper_clim_bonds = 1.0
+upper_clim_vertices = 5.0
+
+NA.plot_structure_factor_heatmap(
+    diamond_bonds,
+    plots_save_path*"diamond_bonds_x_z";
+    title="Diamond bonds",
+    save_plot = true,
+    clims = (0, upper_clim_bonds ),
+    wavevector_component_to_fix = 2,
+    x_y_lims = nothing)
+
+NA.plot_structure_factor_heatmap(
+    diamond_vertices,
+    plots_save_path*"diamond_vertices_x_z";
+    title="Diamond vertices",
+    save_plot = true,
+    clims = (0, upper_clim_vertices ),
+    wavevector_component_to_fix = 2,
+    x_y_lims = nothing)
+
+NA.plot_structure_factor_heatmap(
+    disorder_bonds,
+    plots_save_path*"disorder_bonds_x_z";
+    title="Disorder bonds",
+    save_plot = true,
+    clims = (0, upper_clim_bonds ),
+    wavevector_component_to_fix = 2,
+    x_y_lims = nothing)
+
+NA.plot_structure_factor_heatmap(
+    disorder_vertices,
+    plots_save_path*"disorder_vertices_x_z";
+    title="Disorder vertices",
+    save_plot = true,
+    clims = (0, upper_clim_vertices ),
+    wavevector_component_to_fix = 2,
+    x_y_lims = nothing)
+
+NA.plot_structure_factor_heatmap(
+    disorder_2_bonds,
+    plots_save_path*"disorder_2_bonds_x_z";
+    title="Disorder 2 bonds",
+    save_plot = true,
+    clims = (0, upper_clim_bonds ),
+    wavevector_component_to_fix = 2,
+    x_y_lims = nothing)
+
+NA.plot_structure_factor_heatmap(
+    disorder_2_vertices,
+    plots_save_path*"disorder_2_vertices_x_z";
+    title="Disorder 2 vertices",
+    save_plot = true,
+    clims = (0, upper_clim_vertices ),
+    wavevector_component_to_fix = 2,
+    x_y_lims = nothing)
+
+NA.plot_structure_factor_heatmap(
+    disorder_3_bonds,
+    plots_save_path*"disorder_3_bonds_x_z";
+    title="Disorder 3 bonds",
+    save_plot = true,
+    clims = (0, upper_clim_bonds ),
+    wavevector_component_to_fix = 2,
+    x_y_lims = nothing)
+
+NA.plot_structure_factor_heatmap(
+    disorder_3_vertices,
+    plots_save_path*"disorder_3_vertices_x_z";
+    title="Disorder 3 vertices",
+    save_plot = true,
+    clims = (0, upper_clim_vertices ),
+    wavevector_component_to_fix = 2,
+    x_y_lims = nothing)
+
+
+plots_save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\random_networks\diamonds\\"
+
+diamond_bonds = GU.load_h5_dict(plots_save_path*"diamond_bonds_structure_factor_array.h5")
+diamond_vertices = GU.load_h5_dict(plots_save_path*"diamond_vertices_structure_factor_array.h5")
+
+NA.plot_structure_factor_heatmap(
+    diamond_bonds,
+    plots_save_path*"diamond_bonds_x_z";
+    title="Diamond bonds",
+    save_plot = true,
+    clims = (0, upper_clim_bonds ),
+    wavevector_component_to_fix = 2,
+    x_y_lims = nothing)
+
+NA.plot_structure_factor_heatmap(
+    diamond_vertices,
+    plots_save_path*"diamond_vertices_x_z";
+    title="Diamond vertices",
+    save_plot = true,
+    clims = (0, upper_clim_vertices ),
+    wavevector_component_to_fix = 2,
+    x_y_lims = nothing)
+
+
+
+diamond_bonds = GU.load_h5_dict(plots_save_path*"diamond_bonds_structure_factor_angle_averaged.h5")
+diamond_vertices = GU.load_h5_dict(plots_save_path*"diamond_vertices_structure_factor_angle_averaged.h5")
+
+Plots.plot(diamond_bonds["wavenumber_vec"], 
+    Measurements.value.(diamond_bonds["structure_factor_vec"]) , 
+    ribbon =  Measurements.uncertainty.(diamond_bonds["structure_factor_vec"]), linecolor=Plots.palette(:tab10)[1], label = Latex.L"kT=0", fillcolor = Plots.palette(:tab10)[1])
+
+Plots.plot!(xlabel="Wavenumber / "*Latex.L"d^{-1}", ylabel = "Structure factor (bonds)",  xtick=pitick(0, 32, 1; mode=:latex),
+    xlim = (0, 25), ylims = (0, 8)) 
+
+Plots.savefig(plots_save_path*"angle_averaged_structure_factor_bonds.png")
+
+Plots.plot(diamond_vertices["wavenumber_vec"], 
+    Measurements.value.(diamond_vertices["structure_factor_vec"]) , 
+    ribbon =  Measurements.uncertainty.(diamond_vertices["structure_factor_vec"]), linecolor=Plots.palette(:tab10)[1], label = Latex.L"kT=0", fillcolor = Plots.palette(:tab10)[1])
+
+Plots.plot!(xlabel="Wavenumber / "*Latex.L"d^{-1}", ylabel = "Structure factor (vertices)",  xtick=pitick(0, 32, 1; mode=:latex), xlim = (0, 25), ylims = (0, 10))
+
+Plots.savefig(plots_save_path*"angle_averaged_structure_factor_vertices.png")
+
+
+plots_save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\random_networks\216_vertices_bond_bending_0.21\run_1\\"
+
+diamond = GU.load_h5_dict(plots_save_path*"diamond_spectral_density_array.h5")
+disorder = GU.load_h5_dict(plots_save_path*"disorder_spectral_density_array.h5")
+disorder_2 = GU.load_h5_dict(plots_save_path*"disorder_2_spectral_density_array.h5")
+disorder_3 = GU.load_h5_dict(plots_save_path*"disorder_3_spectral_density_array.h5")
+
+upper_clim = 0.1
+
+NA.plot_spectral_density_heatmap(
+    diamond,
+    save_path*"diamond";
+    title="Diamond",
+    save_plot = true,
+    clims = (0, upper_clim),
+    wavevector_component_to_fix = 2,
+    wavevector_value_fixed = 0,
+    plot_im_re = false)
+
+NA.plot_spectral_density_heatmap(
+    disorder,
+    save_path*"disorder";
+    title="Disorder",
+    save_plot = true,
+    clims = (0, upper_clim),
+    wavevector_component_to_fix = 2,
+    wavevector_value_fixed = 0,
+    plot_im_re = false)
+
+NA.plot_spectral_density_heatmap(
+    disorder_2,
+    save_path*"disorder_2";
+    title="Disorder 2",
+    save_plot = true,
+    clims = (0, upper_clim),
+    wavevector_component_to_fix = 2,
+    wavevector_value_fixed = 0,
+    plot_im_re = false)
+
+NA.plot_spectral_density_heatmap(
+    disorder_3,
+    save_path*"disorder_3";
+    title="Disorder 3",
+    save_plot = true,
+    clims = (0, upper_clim),
+    wavevector_component_to_fix = 2,
+    wavevector_value_fixed = 0,
+    plot_im_re = false)
+
+
+diamond = GU.load_h5_dict(plots_save_path*"diamond_spectral_density_angle_averaged.h5")
+disorder = GU.load_h5_dict(plots_save_path*"disorder_spectral_density_angle_averaged.h5")
+disorder_2 = GU.load_h5_dict(plots_save_path*"disorder_2_spectral_density_angle_averaged.h5")
+disorder_3 = GU.load_h5_dict(plots_save_path*"disorder_3_spectral_density_angle_averaged.h5")
+
+Plots.plot(diamond["wavenumber_vec"], 
+    Measurements.value.(diamond["spectral_density_vec"]) , 
+    ribbon =  Measurements.uncertainty.(diamond["spectral_density_vec"]), linecolor=Plots.palette(:tab10)[1], label = Latex.L"kT=0", fillcolor = Plots.palette(:tab10)[1])
+Plots.plot!(disorder["wavenumber_vec"],
+    Measurements.value.(disorder["spectral_density_vec"]), 
+    ribbon =  Measurements.uncertainty.(disorder["spectral_density_vec"]), linecolor=Plots.palette(:tab10)[2], label = Latex.L"kT=0.1", fillcolor = Plots.palette(:tab10)[2])
+Plots.plot!(disorder_2["wavenumber_vec"],
+    Measurements.value.(disorder_2["spectral_density_vec"]), 
+    ribbon =  Measurements.uncertainty.(disorder_2["spectral_density_vec"]), linecolor=Plots.palette(:tab10)[3], label = Latex.L"kT=0.16", fillcolor = Plots.palette(:tab10)[3])
+Plots.plot!(disorder_3["wavenumber_vec"],
+    Measurements.value.(disorder_3["spectral_density_vec"]), 
+    ribbon =  Measurements.uncertainty.(disorder_3["spectral_density_vec"]), linecolor=Plots.palette(:tab10)[4], label = Latex.L"kT=0.24", fillcolor = Plots.palette(:tab10)[4])
+
+Plots.plot!(xlabel="Wavenumber / "*Latex.L"d^{-1}", ylabel = "Spectral density",  xtick=pitick(0, 32, 1; mode=:latex), xlim = (0, 25), ylims = (0, 1)) 
+Plots.savefig(plots_save_path*"angle_averaged_spectral_density.png")
+
+diamond_bonds = GU.load_h5_dict(plots_save_path*"diamond_bonds_3_structure_factor_angle_averaged.h5")
+disorder_bonds = GU.load_h5_dict(plots_save_path*"disorder_bonds_3_structure_factor_angle_averaged.h5")
+disorder_2_bonds = GU.load_h5_dict(plots_save_path*"disorder_2_bonds_3_structure_factor_angle_averaged.h5")
+disorder_3_bonds = GU.load_h5_dict(plots_save_path*"disorder_3_bonds_3_structure_factor_angle_averaged.h5")
+
+# Plot angle averaged structure factors considering bonds
+
+Plots.plot(diamond_bonds["wavenumber_vec"], 
+    Measurements.value.(diamond_bonds["structure_factor_vec"]) , 
+    ribbon =  Measurements.uncertainty.(diamond_bonds["structure_factor_vec"]), linecolor=Plots.palette(:tab10)[1], label = Latex.L"kT=0", fillcolor = Plots.palette(:tab10)[1])
+Plots.plot!(disorder_bonds["wavenumber_vec"],
+    Measurements.value.(disorder_bonds["structure_factor_vec"]), 
+    ribbon =  Measurements.uncertainty.(disorder_bonds["structure_factor_vec"]), linecolor=Plots.palette(:tab10)[2], label = Latex.L"kT=0.1", fillcolor = Plots.palette(:tab10)[2])
+Plots.plot!(disorder_2_bonds["wavenumber_vec"],
+    Measurements.value.(disorder_2_bonds["structure_factor_vec"]), 
+    ribbon =  Measurements.uncertainty.(disorder_2_bonds["structure_factor_vec"]), linecolor=Plots.palette(:tab10)[3], label = Latex.L"kT=0.16", fillcolor = Plots.palette(:tab10)[3])
+Plots.plot!(disorder_3_bonds["wavenumber_vec"],
+    Measurements.value.(disorder_3_bonds["structure_factor_vec"]), 
+    ribbon =  Measurements.uncertainty.(disorder_3_bonds["structure_factor_vec"]), linecolor=Plots.palette(:tab10)[4], label = Latex.L"kT=0.24", fillcolor = Plots.palette(:tab10)[4])
+Plots.plot!(xlabel="Wavenumber / "*Latex.L"d^{-1}", ylabel = "Structure factor (bonds)",  xtick=pitick(0, 32, 1; mode=:latex),
+    xlim = (0, 25), ylims = (0, 6))
+Plots.savefig(plots_save_path*"angle_averaged_structure_factor_bonds_3.png")
+
+
+diamond_bonds = GU.load_h5_dict(plots_save_path*"diamond_bonds_rot_structure_factor_array.h5")
+
+upper_clim_bonds = 1.0
+
+NA.plot_structure_factor_heatmap(
+    diamond_bonds,
+    plots_save_path*"diamond_bonds_rot";
+    title="Diamond bonds",
+    save_plot = true,
+    clims = (0, upper_clim_bonds ),
+    wavevector_component_to_fix = 3,
+    x_y_lims = nothing)
+
+diamond_bonds = GU.load_h5_dict(plots_save_path*"diamond_bonds_rot_structure_factor_angle_averaged.h5")
+
+
+Plots.plot(diamond_bonds["wavenumber_vec"], 
+    Measurements.value.(diamond_bonds["structure_factor_vec"]) , 
+    ribbon =  Measurements.uncertainty.(diamond_bonds["structure_factor_vec"]), linecolor=Plots.palette(:tab10)[1], label = Latex.L"kT=0", fillcolor = Plots.palette(:tab10)[1])
+Plots.plot!(xlabel="Wavenumber / "*Latex.L"d^{-1}", ylabel = "Structure factor (bonds)",  xtick=pitick(0, 32, 1; mode=:latex),
+    xlim = (0, 25), ylims = (0, 6))
+Plots.savefig(plots_save_path*"angle_averaged_structure_factor_bonds_rot.png")
+
+
+plots_save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\random_networks\216_vertices_bond_bending_0.21\run_1\\"
+
+diamond_bonds = GU.load_h5_dict(plots_save_path*"diamond_bonds_structure_factor_array.h5")
+disorder_bonds = GU.load_h5_dict(plots_save_path*"disorder_bonds_structure_factor_array.h5")
+disorder_2_bonds = GU.load_h5_dict(plots_save_path*"disorder_2_bonds_structure_factor_array.h5")
+disorder_3_bonds = GU.load_h5_dict(plots_save_path*"disorder_3_bonds_structure_factor_array.h5")
+
+upper_clim_bonds = 1.0
+
+NA.plot_structure_factor_heatmap(
+    diamond_bonds,
+    plots_save_path*"diamond_bonds";
+    title="Diamond bonds",
+    save_plot = true,
+    clims = (0, upper_clim_bonds ),
+    x_y_lims = nothing)
+
+
+NA.plot_structure_factor_heatmap(
+    disorder_bonds,
+    plots_save_path*"disorder_bonds";
+    title="Disorder bonds",
+    save_plot = true,
+    clims = (0, upper_clim_bonds ),
+    x_y_lims = nothing)
+
+
+NA.plot_structure_factor_heatmap(
+    disorder_2_bonds,
+    plots_save_path*"disorder_2_bonds";
+    title="Disorder 2 bonds",
+    save_plot = true,
+    clims = (0, upper_clim_bonds ),
+    x_y_lims = nothing)
+
+NA.plot_structure_factor_heatmap(
+    disorder_3_bonds,
+    plots_save_path*"disorder_3_bonds";
+    title="Disorder 3 bonds",
+    save_plot = true,
+    clims = (0, upper_clim_bonds ),
+    x_y_lims = nothing)
+
+
+diamond_bonds = GU.load_h5_dict(plots_save_path*"diamond_bonds_structure_factor_angle_averaged.h5")
+disorder_bonds = GU.load_h5_dict(plots_save_path*"disorder_bonds_structure_factor_angle_averaged.h5")
+disorder_2_bonds = GU.load_h5_dict(plots_save_path*"disorder_2_bonds_structure_factor_angle_averaged.h5")
+disorder_3_bonds = GU.load_h5_dict(plots_save_path*"disorder_3_bonds_structure_factor_angle_averaged.h5")
+
+# Plot angle averaged structure factors considering bonds
+
+Plots.plot(diamond_bonds["wavenumber_vec"], 
+    Measurements.value.(diamond_bonds["structure_factor_vec"]) , 
+    ribbon =  Measurements.uncertainty.(diamond_bonds["structure_factor_vec"]), linecolor=Plots.palette(:tab10)[1], label = Latex.L"kT=0", fillcolor = Plots.palette(:tab10)[1])
+Plots.plot!(disorder_bonds["wavenumber_vec"],
+    Measurements.value.(disorder_bonds["structure_factor_vec"]), 
+    ribbon =  Measurements.uncertainty.(disorder_bonds["structure_factor_vec"]), linecolor=Plots.palette(:tab10)[2], label = Latex.L"kT=0.1", fillcolor = Plots.palette(:tab10)[2])
+Plots.plot!(disorder_2_bonds["wavenumber_vec"],
+    Measurements.value.(disorder_2_bonds["structure_factor_vec"]), 
+    ribbon =  Measurements.uncertainty.(disorder_2_bonds["structure_factor_vec"]), linecolor=Plots.palette(:tab10)[3], label = Latex.L"kT=0.16", fillcolor = Plots.palette(:tab10)[3])
+
+Plots.plot!(disorder_3_bonds["wavenumber_vec"],
+    Measurements.value.(disorder_3_bonds["structure_factor_vec"]), 
+    ribbon =  Measurements.uncertainty.(disorder_3_bonds["structure_factor_vec"]), linecolor=Plots.palette(:tab10)[4], label = Latex.L"kT=0.24", fillcolor = Plots.palette(:tab10)[4])
+Plots.plot!(xlabel="Wavenumber / "*Latex.L"d^{-1}", ylabel = "Structure factor (bonds)",  xtick=pitick(0, 32, 1; mode=:latex),
+    xlim = (0, 25), ylims = (0, 8)) 
+
+Plots.savefig(plots_save_path*"angle_averaged_structure_factor_bonds.png")
+
+
+save_path =  raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\random_networks\216_vertices_bond_bending_0.21\run_1\\"
+consider_spectral_density = false
+
+diamond_bonds = GU.load_h5_dict(save_path*"diamond_bonds_structure_factor_angle_averaged.h5")
+disorder_bonds = GU.load_h5_dict(save_path*"disorder_bonds_structure_factor_angle_averaged.h5")
+disorder_2_bonds = GU.load_h5_dict(save_path*"disorder_2_bonds_structure_factor_angle_averaged.h5")
+disorder_3_bonds = GU.load_h5_dict(save_path*"disorder_3_bonds_structure_factor_angle_averaged.h5")
+
+t_range = (1e-4, 1e1)
+
+function comparison_func(x, a) 
+    return a * x ^(-3/2)
+end
+
+# get the vector of times to sample the excess spreadability such that the
+# t values are equally spaced on a logarithmic scale
+time_vec = exp.(LinRange(log(t_range[1]), log(t_range[2]), 100))
+# calculate the excess spreadability for each t value
+excess_spreadability_vec_diamond = [NA.get_excess_spreadability(
+    diamond_bonds, time_vec[i]; 
+    consider_spectral_density = consider_spectral_density) for i in 
+    eachindex(time_vec)]
+
+excess_spreadability_vec_disorder = [NA.get_excess_spreadability(
+    disorder_bonds, time_vec[i]; 
+    consider_spectral_density = consider_spectral_density) for i in 
+    eachindex(time_vec)]
+
+excess_spreadability_vec_disorder_2 = [NA.get_excess_spreadability(
+    disorder_2_bonds, time_vec[i]; 
+    consider_spectral_density = consider_spectral_density) for i in 
+    eachindex(time_vec)]
+
+excess_spreadability_vec_disorder_3 = [NA.get_excess_spreadability(
+    disorder_3_bonds, time_vec[i]; 
+    consider_spectral_density = consider_spectral_density) for i in 
+    eachindex(time_vec)]
+
+# plot the excess spreadability as a function of time in a log-log plot
+Plots.plot(time_vec,  Measurements.value.(excess_spreadability_vec_diamond),
+    ribbon =  Measurements.uncertainty.(excess_spreadability_vec_diamond),
+    xlabel = "t", ylabel = "Excess spreadability", xscale = :log10,
+    yscale = :log10, label = Latex.L"kT=0", legend_position = :bottomleft)
+Plots.plot!(time_vec,  Measurements.value.(excess_spreadability_vec_disorder),
+    ribbon =  Measurements.uncertainty.(excess_spreadability_vec_disorder),
+    label = Latex.L"kT=0.1", grid = true)
+Plots.plot!(time_vec,  Measurements.value.(excess_spreadability_vec_disorder_2),
+    ribbon =  Measurements.uncertainty.(excess_spreadability_vec_disorder_2),
+    label = Latex.L"kT=0.16",)
+Plots.plot!(time_vec,  Measurements.value.(excess_spreadability_vec_disorder_3),
+    ribbon =  Measurements.uncertainty.(excess_spreadability_vec_disorder_3),
+    label = Latex.L"kT=0.24",)
+Plots.plot!(time_vec, comparison_func.(time_vec, 1), label = Latex.L"t^{-3/2}", color = :black, linestyle = :dash)
+Plots.savefig(save_path*"excess_spreadability.png")

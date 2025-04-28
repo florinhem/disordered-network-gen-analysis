@@ -155,15 +155,17 @@ function get_binary_data_from_spatial_network(
     save_result::Bool=false)
 
     # get binary data for for only the bonds without a finite bond radius
-    data_binary_bonds_only = get_binary_data_from_spatial_network_bonds_only(
+    data_binary = get_binary_data_from_spatial_network_bonds_only(
         spatial_network; 
         voxel_edge_length = voxel_edge_length)
 
     # give volume to the bonds by setting all voxels that lie within the bond
     # radius to 1
-    data_binary = add_volume_to_bonds(data_binary_bonds_only; 
-        bond_radius = bond_radius, 
-        voxel_edge_length = voxel_edge_length)
+    if bond_radius > voxel_edge_length/2
+        data_binary = add_volume_to_bonds(data_binary; 
+            bond_radius = bond_radius, 
+            voxel_edge_length = voxel_edge_length)
+    end
 
     # get essential information about the structure data
     volume_fract_tot, size_data, mean_edge_length_data, nr_dimensions_data = (

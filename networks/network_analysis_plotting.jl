@@ -36,7 +36,7 @@ function plot_structure_factor_heatmap(
         #set labels and title for the plot
         xlabel = Latex.L"k_y / d^{-1}" 
         ylabel = Latex.L"k_z /  d^{-1}"
-        title = (title*Format.format(Latex.L", k_x = {:.2f}", 
+        title = (title*Format.format(Latex.L", k_x = {:.2f} ", 
             structure_factor_dict["wavenumber_vec_vec"][1][
                 wavevector_fixed_index] )*" "*Latex.L" d^{-1}")
 
@@ -60,7 +60,7 @@ function plot_structure_factor_heatmap(
         xlabel = Latex.L"k_x / d^{-1}" 
         ylabel = Latex.L"k_z /  d^{-1}"
         title = (title
-        *Format.format(Latex.L", k_y = {:.2f}", structure_factor_dict[
+        *Format.format(Latex.L", k_y = {:.2f} ", structure_factor_dict[
             "wavenumber_vec_vec"][2][wavevector_fixed_index] )
             *" "*Latex.L" d^{-1}")
 
@@ -360,8 +360,7 @@ function plot_spectral_density_heatmap(
         abs.(spectral_density_2d_normalized_array),
         xlabel=xlabel,
         ylabel=ylabel,
-        colorbar_title = "\n"*Latex.L" \mathrm{Abs}( \tilde{\chi} (\vec{k}) ) 
-            / \mathrm{Abs}( \tilde{\chi} )_\mathrm{max}  " ,
+        colorbar_title = "\n"*Latex.L" \mathrm{Abs}( \tilde{\chi} (\vec{k}) ) " ,
         right_margin = 8Plots.mm,
         legend = true, title=title,
         c = :bluesreds,

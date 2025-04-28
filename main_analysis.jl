@@ -9,6 +9,12 @@ import .GeneralUtilities as GU
 
 
 import Plots
+import Graphs
+import MetaGraphsNext
+import LinearAlgebra
+import Polynomials
+#import Statistics
+#import Measurements
 
 # possible choices of nr_vertices for diamond: 64, 216, 512, 1000, that is (2*n)^3 with natural nr natural
 
@@ -19,30 +25,19 @@ import Plots
 # 64 vertices: supercell_edge_length = 4.619802153517007
 # which is the cube root of the number of vertices times 2/sqrt(3)
 
-diamond_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\diamonds\216_vertices_perfect_diamond.gml"
+save_path =  raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\random_networks\216_vertices_bond_bending_0.21\run_1\\"
 
-disorder_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_3\216_vertices_T_0.08_heat_cool_0.1_per_mc_quenched.gml"
+diamond_bonds = GU.load_h5_dict(save_path*"diamond_bonds_structure_factor_angle_averaged.h5")
+disorder_bonds = GU.load_h5_dict(save_path*"disorder_bonds_structure_factor_angle_averaged.h5")
+disorder_2_bonds = GU.load_h5_dict(save_path*"disorder_2_bonds_structure_factor_angle_averaged.h5")
+disorder_3_bonds = GU.load_h5_dict(save_path*"disorder_3_bonds_structure_factor_angle_averaged.h5")
 
-disorder_path_2 = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_1\216_vertices_T_0.16_heat_cool_0.1_per_mc_quenched.gml"
+slope_measurement_time_time, alpha = NA.get_hyperuniformity_alpha(diamond_bonds)
+slope_measurement_time_time_disorder, alpha_disorder = NA.get_hyperuniformity_alpha(disorder_bonds)
+slope_measurement_time_time_disorder_2, alpha_disorder_2 = NA.get_hyperuniformity_alpha(disorder_2_bonds)
+slope_measurement_time_time_disorder_3, alpha_disorder_3 = NA.get_hyperuniformity_alpha(disorder_3_bonds)
 
-disorder_path_3 = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_1\216_vertices_T_0.24_heat_cool_0.1_per_mc_quenched.gml"
-
-
-diamond = NG.load_spatial_network_from_gml(diamond_path)
-disorder = NG.load_spatial_network_from_gml(disorder_path)
-disorder_2 = NG.load_spatial_network_from_gml(disorder_path_2)
-disorder_3 = NG.load_spatial_network_from_gml(disorder_path_3)
-
-
-pore_size_distribution_dict_diamond = NA.get_pore_size_distribution(diamond, sampling_grid_size = 0.4)
-pore_size_distribution_dict_disorder = NA.get_pore_size_distribution(disorder, sampling_grid_size = 0.4)
-pore_size_distribution_dict_disorder_2 = NA.get_pore_size_distribution(disorder_2, sampling_grid_size = 0.4)
-pore_size_distribution_dict_disorder_3 = NA.get_pore_size_distribution(disorder_3, sampling_grid_size = 0.4)
-
-# plot the pore size distribution for the diamond network
-Plots.plot(pore_size_distribution_dict_diamond["pore_size_vec"], pore_size_distribution_dict_diamond["pore_size_distribution"], label = "diamond")
-Plots.plot!(pore_size_distribution_dict_disorder["pore_size_vec"], pore_size_distribution_dict_disorder["pore_size_distribution"], label = "disorder")
-Plots.plot!(pore_size_distribution_dict_disorder_2["pore_size_vec"], pore_size_distribution_dict_disorder_2["pore_size_distribution"], label = "disorder_2")
-Plots.plot!(pore_size_distribution_dict_disorder_3["pore_size_vec"], pore_size_distribution_dict_disorder_3["pore_size_distribution"], label = "disorder_3")
-Plots.xlabel!("Pore size/d")
-Plots.ylabel!("Pore size distribution")
+println("diamond_bonds: slope_measurement_time_time = ", slope_measurement_time_time, ", alpha = ", alpha)
+println("disorder_bonds: slope_measurement_time_time = ", slope_measurement_time_time_disorder, ", alpha = ", alpha_disorder)
+println("disorder_2_bonds: slope_measurement_time_time = ", slope_measurement_time_time_disorder_2, ", alpha = ", alpha_disorder_2)
+println("disorder_3_bonds: slope_measurement_time_time = ", slope_measurement_time_time_disorder_3, ", alpha = ", alpha_disorder_3)

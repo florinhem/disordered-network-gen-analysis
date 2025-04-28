@@ -8,6 +8,7 @@ import .GeneralUtilities as GU
 
 import Plots
 import LaTeXStrings as Latex
+import Measurements
 
 fontsize=16
 
@@ -139,35 +140,3 @@ end
 fancylogscale!(p::Plots.Plot; kwargs...) = (fancylogscale!(p.subplots[1]; kwargs...); return p)
 fancylogscale!(; kwargs...) = fancylogscale!(Plots.plot!(); kwargs...)
 
-plots_save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\random_networks\216_vertices_bond_bending_0.21\run_1\\"
-
-
-diamond_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\diamonds\216_vertices_perfect_diamond.gml"
-
-disorder_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_1\216_vertices_T_0.1_heat_cool_0.1_per_mc_quenched.gml"
-
-disorder_path_2 = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_1\216_vertices_T_0.16_heat_cool_0.1_per_mc_quenched.gml"
-
-disorder_path_3 = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_1\216_vertices_T_0.24_heat_cool_0.1_per_mc_quenched.gml"
-
-
-diamond = NG.load_spatial_network_from_gml(diamond_path)
-disorder = NG.load_spatial_network_from_gml(disorder_path)
-disorder_2 = NG.load_spatial_network_from_gml(disorder_path_2)
-disorder_3 = NG.load_spatial_network_from_gml(disorder_path_3)
-
-
-@time pore_size_distribution_dict_diamond = NA.get_pore_size_distribution(diamond, sampling_grid_size = 0.2)
-@time pore_size_distribution_dict_disorder = NA.get_pore_size_distribution(disorder, sampling_grid_size = 0.2)
-@time pore_size_distribution_dict_disorder_2 = NA.get_pore_size_distribution(disorder_2, sampling_grid_size = 0.2)
-@time pore_size_distribution_dict_disorder_3 = NA.get_pore_size_distribution(disorder_3, sampling_grid_size = 0.2)
-
-# plot the pore size distribution for the diamond network
-Plots.plot(pore_size_distribution_dict_diamond["pore_size_vec"], pore_size_distribution_dict_diamond["pore_size_distribution"], label = "T=0")
-Plots.plot!(pore_size_distribution_dict_disorder["pore_size_vec"], pore_size_distribution_dict_disorder["pore_size_distribution"], label = "T=0.1")
-Plots.plot!(pore_size_distribution_dict_disorder_2["pore_size_vec"], pore_size_distribution_dict_disorder_2["pore_size_distribution"], label = "T=0.16")
-Plots.plot!(pore_size_distribution_dict_disorder_3["pore_size_vec"], pore_size_distribution_dict_disorder_3["pore_size_distribution"], label = "T=0.24")
-Plots.xlabel!("Pore size/d")
-Plots.ylabel!("Pore size distribution")
-
-Plots.savefig(plots_save_path*"pore_size_distribution.png")

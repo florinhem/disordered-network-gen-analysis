@@ -535,7 +535,7 @@ infinitely thin bonds following the method described in
 function get_pore_size_distribution(spatial_network::MetaGraphsNext.MetaGraph;
     sampling_grid_size = 0.2,
     save_result::Bool = false,
-    save_path = raw"..\analysis_data\sample_name\\",
+    save_path = raw"..\analysis_data\sample_name",
     label = nothing,
     digital_sphere_mask_path 
         = raw"..\analysis_data\random_networks\digital_sphere_masks\\",
@@ -701,8 +701,6 @@ function get_pore_size_distribution(spatial_network::MetaGraphsNext.MetaGraph;
     pore_radius_filtered_vec = pore_radius_vec[
         pore_radius_vec .> 0.0]
 
-    sampled_pore_radii = 
-
     # create histogram of pore radii
     radius_histogram = StatsBase.fit(
         StatsBase.Histogram, pore_radius_filtered_vec, 
@@ -715,7 +713,6 @@ function get_pore_size_distribution(spatial_network::MetaGraphsNext.MetaGraph;
         radius_histogram, mode=:probability)
 
     pore_size_distribution = radius_histogram.weights
-
 
     pore_size_distribution_dict = Dict{String, Any}(
         "pore_size_vec" => pore_size_vec,
@@ -733,4 +730,381 @@ function get_pore_size_distribution(spatial_network::MetaGraphsNext.MetaGraph;
     end
 
     return pore_size_distribution_dict
+end
+
+
+"""
+Check if a cycle contains a given bond. The bond is represented as a tuple of
+two vertex indices. The cycle is represented as a vector of vertex indices.
+"""
+function cycle_contains_bond(cycle::Vector{Int64}, bond::Tuple{Int64, Int64})
+    
+    for i in 1:length(cycle)-1
+        if (cycle[i], cycle[i+1]) == bond || (cycle[i+1], cycle[i]) == bond
+            return true
+        end
+    end
+    return false
+end
+
+"""
+Check if each bond is contained in at least one cycle. The bond is represented
+as a tuple of two vertex indices. The cycle is represented as a vector of
+vertex indices.
+"""
+function each_bond_in_at_least_one_cycle(
+    spatial_network::MetaGraphsNext.MetaGraph,
+    simple_cycles::Vector{Vector{Int64}})
+
+    for bond in MetaGraphsNext.edge_labels(spatial_network)
+        bond_found = false
+        for cycle in simple_cycles
+            if cycle_contains_bond(cycle, bond)
+                bond_found = true
+                break
+            end
+        end
+
+        if !bond_found
+            return false
+        end
+    end
+
+    return true
+end
+
+
+"""
+Get a list of all very strong rings in a spatial network as defined in 
+10.1016/0022-3093(91)90145-V and explained in 10.1016/S0927-0256(01)00256-7.
+"""
+function get_very_strong_rings_vec(spatial_network::MetaGraphsNext.MetaGraph;
+    max_ring_size_to_check::Int64 = 10)
+
+    # get the number of simple cycles up to the max_ring_size_to_check
+    simple_cycles = MetaGraphsNext.simplecycles_limited_length(spatial_network,
+        max_ring_size_to_check, 10^6)
+
+    # filter out cycles that contain only two vertices
+    filter!(cycle -> length(cycle) > 2, simple_cycles)
+
+    # avoid double counting of cycles that are the same but have inverse vertex
+    # orderings
+    for cycle in simple_cycles
+        cycle_inverse = vcat(cycle[1], reverse(cycle[2:end]))
+        if cycle_inverse in simple_cycles
+            filter!(!=(cycle_inverse), simple_cycles)
+        end
+    end
+
+    # to each cycle attach the first vertex at the end of the cycle such that
+    # contained bonds are dicrecly represented
+    for cycle in simple_cycles
+        push!(cycle, cycle[1])
+    end
+
+    # check if each bond is contained in at least one cycle
+    if !each_bond_in_at_least_one_cycle(spatial_network, simple_cycles)
+        @error "Not all bonds are contained in at least one cycle. Consider
+            increasing the max_ring_size_to_check parameter."
+    end
+
+    # loop through all bonds and for each bond, find all very strong rings, 
+    # that are all cycles with minimal length containing the bond
+    very_strong_rings_vec = Vector{Vector{Int64}}()
+    for bond in MetaGraphsNext.edge_labels(spatial_network)
+
+        # get the cycles that contain the bond
+        cycles_containing_bond = filter(cycle -> cycle_contains_bond(
+            cycle, bond), simple_cycles)
+
+        if length(cycles_containing_bond) > 0
+            min_cycle_length = length(cycles_containing_bond[1])
+            for cycle in cycles_containing_bond
+                if length(cycle) < min_cycle_length
+                    min_cycle_length = length(cycle)
+                end
+            end
+
+            # get only rings with minimal length containing the current bond
+            very_strong_rings_vec_current_bond = filter(
+                cycle -> length(cycle) <= min_cycle_length, 
+                cycles_containing_bond)
+        end
+
+        # add the cycles to the list of very strong rings if they are not
+        # already in the list
+        for ring in very_strong_rings_vec_current_bond
+            if !(ring in very_strong_rings_vec)
+                push!(very_strong_rings_vec, ring)
+            end
+        end
+    end
+
+    # sort the rings by their length
+    sort!(very_strong_rings_vec, by = length)
+
+    return very_strong_rings_vec
+end
+
+
+"""
+Get ring size distribution of the very strong rings as defined in 
+10.1016/0022-3093(91)90145-V and explained in 10.1016/S0927-0256(01)00256-7.
+"""
+function get_ring_size_distribution(spatial_network::MetaGraphsNext.MetaGraph;
+    max_ring_size_to_check::Int64 = 10,
+    save_result::Bool = false,
+    save_path = raw"..\analysis_data\sample_name",
+    label = nothing)
+
+    # get the very strong rings of the network
+    very_strong_rings_vec = get_very_strong_rings_vec(spatial_network, 
+        max_ring_size_to_check = max_ring_size_to_check)    
+
+    # create histogram of ring lengths
+    ring_length_vec = Vector{Int64}()
+    for ring in very_strong_rings_vec
+        push!(ring_length_vec, length(ring)-1)
+    end
+
+    ring_size_vec = collect(3:maximum(ring_length_vec))
+
+    histogram = StatsBase.fit(StatsBase.Histogram, ring_length_vec, 
+        2.5:1:ring_size_vec[end]+0.5, closed=:left)
+
+    # normalize histogram
+    histogram = LinearAlgebra.normalize(histogram, mode=:probability)
+    ring_size_distribution = histogram.weights
+
+    ring_size_distribution_dict = Dict{String, Any}(
+        "ring_size_vec" => ring_size_vec,
+        "ring_size_distribution" => ring_size_distribution,
+        "very_strong_rings_vec" => very_strong_rings_vec)
+
+    # add label to dictionary if label is not nothing
+    if label !== nothing
+        ring_size_distribution_dict["label"] = label
+    end
+
+    if save_result
+        GU.save_dict_to_h5(copy(ring_size_distribution_dict),
+            save_path*"_ring_size_distribution.h5")
+    end
+    
+    return ring_size_distribution_dict
+end
+
+
+"""
+Get the mean and standard deviation of the very strong ring sizes of a network
+according to the definition in 10.1016/0022-3093(91)90145-V and 
+10.1016/S0927-0256(01)00256-7 .
+"""
+function get_ring_statistics(ring_size_distribution_dict::Dict{String, Any})
+
+    # get the ring size vector and the ring size distribution
+    ring_size_vec = ring_size_distribution_dict["ring_size_vec"]
+    ring_size_distribution = (
+        ring_size_distribution_dict["ring_size_distribution"])
+
+    # calculate mean and standard deviation of the ring size
+    ring_size_mean = sum(ring_size_vec .* ring_size_distribution)
+    ring_size_std = sum(
+        (ring_size_vec .- ring_size_mean).^2 .* ring_size_distribution)
+
+    return [ring_size_mean, ring_size_std]
+end
+
+
+"""
+Get the normal vector of a polygon defined by its vertices. Use Newell's method
+as described in 10.1016/B978-0-08-050755-2.50052-X and on page 493 of the book
+"Real-Time Collision Detection" by Christer Ericson to estimate the normal 
+vector along which the projection of the polygon has maximal size.
+"""
+function polygon_normal(points)
+    n = zeros(3)
+    for i in 1:length(points)
+        p1 = points[i]
+        p2 = points[mod1(i+1, length(points))]
+        n[1] += (p1[2] - p2[2]) * (p1[3] + p2[3])
+        n[2] += (p1[3] - p2[3]) * (p1[1] + p2[1])
+        n[3] += (p1[1] - p2[1]) * (p1[2] + p2[2])
+    end
+    return LinearAlgebra.normalize(n)
+end
+
+
+"""
+Project points onto a plane defined by a normal vector n. The projection is
+done by creating an orthonormal basis on the plane and then projecting the
+points onto the basis vectors.
+"""
+function project_to_plane(points, n)
+    # Create orthonormal basis u, v on plane perpendicular to n
+    u = LinearAlgebra.normalize(
+        LinearAlgebra.cross(n, abs(n[1]) < 0.9 ? [1.0, 0.0, 0.0] 
+        : [0.0, 1.0, 0.0]))
+    v = LinearAlgebra.normalize(LinearAlgebra.cross(n, u))
+    
+    # Project each point onto 2D coordinates (u, v)
+    return [(LinearAlgebra.dot(p, u), LinearAlgebra.dot(p, v)) for p in points]
+end
+
+
+"""
+Get the distance from a point to a line segment defined by two endpoints a and 
+b. The distance is calculated by projecting the point onto the line defined by 
+a and b
+"""
+function point_to_segment_distance(point::Tuple{Float64, Float64}, 
+        vertex_1::Tuple{Float64, Float64}, vertex_2::Tuple{Float64, Float64})
+    segment_vec = vertex_2 .- vertex_1
+    vertex_1_to_point_vec = point .- vertex_1
+    t = clamp(LinearAlgebra.dot(vertex_1_to_point_vec, segment_vec) 
+        / LinearAlgebra.dot(segment_vec, segment_vec), 0.0, 1.0)
+    projection = vertex_1 .+ t .* segment_vec
+    return LinearAlgebra.norm(point .- projection)
+end
+
+
+"""
+Get the minimum distance from a point to the edges of a polygon defined by its
+vertices. The polygon is represented as a vector of tuples, where each tuple
+contains the x and y coordinates of a vertex. The point is represented as a
+
+"""
+function min_distance_to_bonds(point::Tuple{Float64, Float64},
+        polygon_vertices::Vector{Tuple{Float64, Float64}})
+
+    min_dist = Inf
+    nr_bonds = length(polygon_vertices)-1  
+    for i in 1:nr_bonds
+        vertex_1 = polygon_vertices[i]
+        vertex_2 = polygon_vertices[i+1] 
+        point_to_bond_distance = point_to_segment_distance(
+            point, vertex_1, vertex_2)
+        min_dist = min(min_dist, point_to_bond_distance)
+    end
+    return min_dist
+end
+
+
+"""
+Get ring radius distribution from the very strong rings of a network. To this
+end, use Newell's method as described in 10.1016/B978-0-08-050755-2.50052-X
+and on page 493 of the book "Real-Time Collision Detection" by Christer Ericson
+to estimate the normal vector of each ring along which the ring has maximal
+size. Then, determine the maximal radius of a circle that can be placed in the
+projection of the ring onto the plane defined by the normal vector.
+"""
+function get_ring_radius_distribution(
+    spatial_network::MetaGraphsNext.MetaGraph,
+    ring_size_distribution_dict::Dict{String, Any};
+    save_result::Bool = false,
+    save_path = raw"..\analysis_data\sample_name",
+    label = nothing)
+
+    # get the very strong rings of the network
+    very_strong_rings_vec = ring_size_distribution_dict[
+        "very_strong_rings_vec"]
+
+    # for each ring, get the normal vector and the maximal radius of a circle
+    # that can be placed in the projection of the ring onto the plane defined
+    # by the normal vector
+    ring_radius_vec = Vector{Float64}()
+
+    nr_rings = length(very_strong_rings_vec)
+    for ring in very_strong_rings_vec
+
+        # get the virtural positions of the vertices of the ring with respect
+        # to the first vertex of the ring considering periodic boundary
+        # conditions
+        vertex_positions = [spatial_network[ring[1]]["position"] ]
+        for vertex in ring[2:end]
+            push!(vertex_positions, 
+                NG.get_virtual_position(spatial_network[ring[1]]["position"],
+                spatial_network[vertex]["position"],
+                spatial_network[]["supercell_edge_length"]))
+        end
+
+        # get the normal vector of the ring
+        normal_vector = polygon_normal(vertex_positions[1:end-1])
+
+        # project the ring onto the plane defined by the normal vector
+        projected_ring = project_to_plane(vertex_positions, normal_vector)
+        # create a polygon from the projected ring
+        polygon = GeometryBasics.Polygon(
+            GeometryBasics.Point{2, Float64}[projected_ring...])
+
+        # determine the pole of inaccessibility of the polygon
+        # (the point in the polygon that is farthest away from the edges of the
+        # polygon)
+        pole_of_inaccessibility = Polylabel.polylabel(polygon, atol=0.01)
+
+        # get the distance from the pole of inaccessibility to the edges of
+        # the polygon
+        min_distance = min_distance_to_bonds(pole_of_inaccessibility, 
+            projected_ring)
+        # save the distance as the ring radius of the ring
+        push!(ring_radius_vec, min_distance)
+
+    end
+
+    # create histogram of ring radii
+    ring_radius_bin_centers = collect(0.1:0.1:round(
+        maximum(ring_radius_vec), digits = 1))
+
+    histogram = StatsBase.fit(StatsBase.Histogram, ring_radius_vec,
+        ring_radius_bin_centers[1]-0.05:0.1
+        :ring_radius_bin_centers[end]+0.0501, closed=:left)
+    
+    # normalize histogram
+    histogram = LinearAlgebra.normalize(histogram, mode=:probability)
+
+    ring_radius_distribution = histogram.weights
+
+    ring_radius_distribution_dict = Dict{String, Any}(
+        "ring_radius_vec" => ring_radius_bin_centers,
+        "ring_radius_distribution" => ring_radius_distribution)
+
+    # add label to dictionary if label is not nothing
+    if label !== nothing
+        ring_radius_distribution_dict["label"] = label
+    end
+
+    if save_result
+        GU.save_dict_to_h5(copy(ring_radius_distribution_dict),
+            save_path*"_ring_radius_distribution.h5")
+    end
+    
+    return ring_radius_distribution_dict
+end
+
+
+"""
+Get the mean and standard deviation of the radii of the very strong rings of a
+network according to the definition in 10.1016/0022-3093(91)90145-V and
+10.1016/S0927-0256(01)00256-7 . To get the radius of a ring in 3d space, the
+ring is projected onto a plane using Newell's method as described in
+10.1016/B978-0-08-050755-2.50052-X and on page 493 of the book "Real-Time
+Collision Detection" by Christer Ericson. The radius is then calculated as
+the distance from the pole of inaccessibility of the polygon to the edges
+of the polygon.
+"""
+function get_ring_radius_statistics(
+    ring_radius_distribution_dict::Dict{String, Any})
+
+    # get the ring size vector and the ring size distribution
+    ring_radius_vec = ring_radius_distribution_dict["ring_radius_vec"]
+    ring_radius_distribution = (
+        ring_radius_distribution_dict["ring_radius_distribution"])
+
+    # calculate mean and standard deviation of the ring size
+    ring_radius_mean = sum(ring_radius_vec .* ring_radius_distribution)
+    ring_radius_std = sum(
+        (ring_radius_vec .- ring_radius_mean).^2 .* ring_radius_distribution)
+
+    return [ring_radius_mean, ring_radius_std]
 end

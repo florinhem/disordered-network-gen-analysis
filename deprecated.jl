@@ -4281,3 +4281,158 @@ function get_dihedral_angle_std(spatial_network::MetaGraphsNext.MetaGraph)
 
     return [dihedral_angle_std, dihedral_angle_vec]
 end
+
+
+"""
+Get hyperuniformity metric which is the structure factor at zero momentum
+normalized by the height of the first peak in the structure factor as defined
+in equation 251 in 10.1016/j.physrep.2018.03.001
+"""
+function get_hyperuniformity_metric(structure_factor_dict::Dict)
+
+    # locate peaks of structure factor
+    pks, vals = Peaks.findmaxima(structure_factor_dict["structure_factor_vec"])
+
+    # cut structure factor data at momentum just above first peak
+    structure_factor_cut_vec = structure_factor_dict[
+        "structure_factor_vec"][1:pks[2]-1]
+    wavenumber_cut_vec = structure_factor_dict["wavenumber_vec"][1:pks[2]-1]
+
+    # set the order of the fitted polynomial
+    polynomial_order = 5
+
+    # fit polynomial of given order to cut data
+    polynomial_fit = Polynomials.fit(wavenumber_cut_vec, 
+                                    structure_factor_cut_vec,
+                                    polynomial_order)
+
+    # get extrapolated structure factor at zero momentum
+    structure_factor_zero_momentum = polynomial_fit(0)
+
+    # get first derivative of polynomial
+    polynomial_derivative = Polynomials.derivative(polynomial_fit)
+
+    # in case the structure factor is provided with uncertainty, obtain the
+    # values
+    polynomial_derivative_values = Polynomials.Polynomial(Measurements.value.( 
+        collect(polynomial_derivative) ))
+    
+    # get critical momenta which is roots of first derivative of polynomial
+    critical_momenta = Polynomials.roots(polynomial_derivative_values)
+
+    # get real critical momenta
+    critical_momenta_real = real.(
+        critical_momenta[imag.(critical_momenta) .== 0])
+
+    # get fitted structure factor at highest peak
+    structure_factor_first_peak = maximum( 
+        polynomial_fit.(critical_momenta_real) )
+
+    # get hyperuniformity metric
+    hyperuniformity_metric = (structure_factor_zero_momentum
+        /structure_factor_first_peak)
+
+    return [hyperuniformity_metric, polynomial_fit]
+end
+
+
+
+"""
+Given a vector, this function returns all windows within the vector that range
+over one decade, like from 1 to 10. The passed vector is the logarithm of the
+vector containing the original values
+"""
+function get_one_decade_windows(
+    log_vector::Vector{Float64})
+
+    # get the minimum and maximum of the logarithm of the vector
+    min_vector = minimum(log_vector)
+    max_vector = maximum(log_vector)
+
+    window_index_vec = Vector{Tuple{Int64, Int64}}()
+
+    for i in eachindex(log_vector)
+        if max_vector < log_vector[i]+1
+            break
+        end
+        # get the element of the vector that is one decade larger than the
+        # current element
+        upper_index = argmin(abs.(log_vector .- (log_vector[i]+1)))
+
+        push!(window_index_vec, (i, upper_index))
+    end
+    return window_index_vec
+end
+
+
+"""
+Get the exponent alpha, that determines the scaling of the structure factor
+or the spectral density with the wavenumber k for k -> 0 as in eq 25 of
+10.1103/PhysRevE.109.064108. If this exponent is 0, the system is
+nonhyperuniform, if it is >0, the system is hyperuniform. Three classes of
+hyperuniformity are defined: 0 < alpha < 1, alpha = 1 and alpha > 1 as written
+below eq 21 of 10.1103/PhysRevE.109.064108.
+"""
+function get_hyperuniformity_alpha(structure_factor_angle_averaged_dict::Dict;
+    consider_spectral_density::Bool = false,
+    t_range = (1e-5, 1))
+
+    if consider_spectral_density
+        data_type_string = "spectral_density"
+    else
+        data_type_string = "structure_factor"
+    end
+
+    # get the vector of times to sample the excess spreadability such that the
+    # t values are equally spaced on a logarithmic scale
+    time_vec = exp.(LinRange(log(t_range[1]), log(t_range[2]), 1000))
+
+    # calculate the excess spreadability for each t value
+    excess_spreadability_vec = [get_excess_spreadability(
+        structure_factor_angle_averaged_dict, time_vec[i]; 
+        consider_spectral_density = consider_spectral_density) for i in 
+        eachindex(time_vec)]
+
+    # get logarithm of time and excess spreadability
+    log_time_vec = log10.(time_vec)
+    log_excess_spreadability_vec = log10.(excess_spreadability_vec)
+
+    # get all windows within the time vector that range over one decade
+    window_index_vec = get_one_decade_windows(log_time_vec)
+
+    # perform a fit for each window and store the results of the fits
+    fit_alpha_vec = Vector{Measurements.Measurement{Float64}}(undef, 
+        length(window_index_vec))
+
+    for i in eachindex(window_index_vec)
+        # get the indices of the current window
+        window_indices = window_index_vec[i]
+
+        # fit a line to the data
+        polynomial_fit = Polynomials.fit(
+            log_time_vec[window_indices[1]:window_indices[2]], 
+            log_excess_spreadability_vec[window_indices[1]:window_indices[2]], 
+            1)
+
+        # get alpha from the fit slope according to section IIIB of 
+        # 10.1103/PhysRevE.109.064108
+        alpha = -2 * polynomial_fit[1] - 3
+
+        fit_alpha_vec[i] = alpha
+        
+        # print progress
+        println("Progress: ", i/length(window_index_vec)*100, "%")
+    end
+
+    # determine the fit result with the smallest uncertainty
+    min_uncertainty_index = argmin(Measurements.uncertainty.(fit_alpha_vec))
+    
+    # get the time window with the smallest uncertainty
+    time_window = (log_time_vec[window_index_vec[min_uncertainty_index][1]], 
+        log_time_vec[window_index_vec[min_uncertainty_index][2]])
+    
+    # get the exponent alpha and its uncertainty
+    alpha = fit_alpha_vec[min_uncertainty_index]
+    
+    return [fit_alpha_vec, time_window, alpha]
+end

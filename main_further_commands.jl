@@ -16177,3 +16177,559 @@ println("anisotropy entropy disorder_2: ", bond_orientation_entropy_disorder_2)
 println("anisotropy entropy disorder_3: ", bond_orientation_entropy_disorder_3)
 
 NG.plot_spatial_network(disorder)
+
+
+pore_size_distribution_dict_diamond = NA.get_pore_size_distribution(diamond, sampling_grid_size = 0.4)
+pore_size_distribution_dict_disorder = NA.get_pore_size_distribution(disorder, sampling_grid_size = 0.4)
+pore_size_distribution_dict_disorder_2 = NA.get_pore_size_distribution(disorder_2, sampling_grid_size = 0.4)
+pore_size_distribution_dict_disorder_3 = NA.get_pore_size_distribution(disorder_3, sampling_grid_size = 0.4)
+
+
+diamond = NG.load_spatial_network_from_gml(diamond_path)
+disorder = NG.load_spatial_network_from_gml(disorder_path)
+disorder_2 = NG.load_spatial_network_from_gml(disorder_path_2)
+disorder_3 = NG.load_spatial_network_from_gml(disorder_path_3)
+
+max_ring_size_to_check = 10
+
+very_strong_rings_vec_diamond = NA.get_very_strong_rings(diamond, max_ring_size_to_check=max_ring_size_to_check)
+ring_size_distribution_diamond = NA.get_ring_size_distribution(diamond, max_ring_size_to_check=max_ring_size_to_check)
+very_strong_rings_vec_disorder = NA.get_very_strong_rings(disorder, max_ring_size_to_check=max_ring_size_to_check)
+ring_size_distribution_disorder = NA.get_ring_size_distribution(disorder, max_ring_size_to_check=max_ring_size_to_check)
+very_strong_rings_vec_disorder_2 = NA.get_very_strong_rings(disorder_2, max_ring_size_to_check=max_ring_size_to_check)
+ring_size_distribution_disorder_2 = NA.get_ring_size_distribution(disorder_2, max_ring_size_to_check=max_ring_size_to_check)
+very_strong_rings_vec_disorder_3 = NA.get_very_strong_rings(disorder_3, max_ring_size_to_check=max_ring_size_to_check)
+ring_size_distribution_disorder_3 = NA.get_ring_size_distribution(disorder_3, max_ring_size_to_check=max_ring_size_to_check)
+
+nr_rings_per_vertex_diamond = sum(length(very_strong_rings_vec_diamond) .* ring_size_distribution_diamond["ring_size_vec"] .* ring_size_distribution_diamond["ring_size_distribution"])/216
+println("nr_rings_per_vertex_diamond: ", nr_rings_per_vertex_diamond)
+
+nr_rings_per_vertex_disorder = sum(length(very_strong_rings_vec_disorder) .* ring_size_distribution_disorder["ring_size_vec"] .* ring_size_distribution_disorder["ring_size_distribution"])/216
+println("nr_rings_per_vertex_disorder: ", nr_rings_per_vertex_disorder)
+
+nr_rings_per_vertex_disorder_2 = sum(length(very_strong_rings_vec_disorder_2) .* ring_size_distribution_disorder_2["ring_size_vec"] .* ring_size_distribution_disorder_2["ring_size_distribution"])/216
+println("nr_rings_per_vertex_disorder_2: ", nr_rings_per_vertex_disorder_2)
+
+nr_rings_per_vertex_disorder_3 = sum(length(very_strong_rings_vec_disorder_3) .* ring_size_distribution_disorder_3["ring_size_vec"] .* ring_size_distribution_disorder_3["ring_size_distribution"])/216
+println("nr_rings_per_vertex_disorder_3: ", nr_rings_per_vertex_disorder_3)
+
+
+ring_size_mean_diamond, ring_size_std_diamond = NA.get_ring_statistics(ring_size_distribution_diamond)
+ring_size_mean_disorder, ring_size_std_disorder = NA.get_ring_statistics(ring_size_distribution_disorder)
+ring_size_mean_disorder_2, ring_size_std_disorder_2 = NA.get_ring_statistics(ring_size_distribution_disorder_2)
+ring_size_mean_disorder_3, ring_size_std_disorder_3 = NA.get_ring_statistics(ring_size_distribution_disorder_3)
+
+println("Mean ring size diamond: ", ring_size_mean_diamond, " +/- ", ring_size_std_diamond)
+println("Mean ring size disorder: ", ring_size_mean_disorder, " +/- ", ring_size_std_disorder)
+println("Mean ring size disorder_2: ", ring_size_mean_disorder_2, " +/- ", ring_size_std_disorder_2)
+println("Mean ring size disorder_3: ", ring_size_mean_disorder_3, " +/- ", ring_size_std_disorder_3)
+
+
+ring_radius_distribution_diamond = NA.get_ring_radius_distribution(diamond, ring_size_distribution_diamond)
+ring_radius_distribution_disorder = NA.get_ring_radius_distribution(disorder, ring_size_distribution_disorder)
+ring_radius_distribution_disorder_2 = NA.get_ring_radius_distribution(disorder_2, ring_size_distribution_disorder_2)
+ring_radius_distribution_disorder_3 = NA.get_ring_radius_distribution(disorder_3, ring_size_distribution_disorder_3)
+
+
+ring_radius_mean_diamond, ring_radius_std_diamond = NA.get_ring_radius_statistics(ring_radius_distribution_diamond)
+ring_radius_mean_disorder, ring_radius_std_disorder = NA.get_ring_radius_statistics(ring_radius_distribution_disorder)
+ring_radius_mean_disorder_2, ring_radius_std_disorder_2 = NA.get_ring_radius_statistics(ring_radius_distribution_disorder_2)
+ring_radius_mean_disorder_3, ring_radius_std_disorder_3 = NA.get_ring_radius_statistics(ring_radius_distribution_disorder_3)
+
+println("Mean ring radius diamond: ", ring_radius_mean_diamond, " +/- ", ring_radius_std_diamond)
+println("Mean ring radius disorder: ", ring_radius_mean_disorder, " +/- ", ring_radius_std_disorder)
+println("Mean ring radius disorder_2: ", ring_radius_mean_disorder_2, " +/- ", ring_radius_std_disorder_2)
+println("Mean ring radius disorder_3: ", ring_radius_mean_disorder_3, " +/- ", ring_radius_std_disorder_3)
+
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\random_networks\216_vertices_bond_bending_0.21\run_1\\"
+
+structure_factor_bonds_diamond = NA.get_structure_factor_by_wavevector_array(
+    diamond;
+    consider_bonds = true,
+    save_result = true,
+    save_path = save_path*"diamond_bonds")
+structure_factor_vertices_diamond = NA.get_structure_factor_by_wavevector_array(
+        diamond;
+        consider_bonds = false,
+        save_result = true,
+        save_path = save_path*"diamond_vertices")
+
+structure_factor_bonds_disorder = NA.get_structure_factor_by_wavevector_array(
+    disorder;
+    consider_bonds = true,
+    save_result = true,
+    save_path = save_path*"disorder_bonds")
+
+structure_factor_vertices_disorder = NA.get_structure_factor_by_wavevector_array(
+        disorder;
+        consider_bonds = false,
+        save_result = true,
+        save_path = save_path*"disorder_vertices")
+
+structure_factor_bonds_disorder_2 = NA.get_structure_factor_by_wavevector_array(
+    disorder_2;
+    consider_bonds = true,
+    save_result = true,
+    save_path = save_path*"disorder_2_bonds")
+
+structure_factor_vertices_disorder_2 = NA.get_structure_factor_by_wavevector_array(
+        disorder_2;
+        consider_bonds = false,
+        save_result = true,
+        save_path = save_path*"disorder_2_vertices")
+
+structure_factor_bonds_disorder_3 = NA.get_structure_factor_by_wavevector_array(
+    disorder_3;
+    consider_bonds = true,
+    save_result = true,
+    save_path = save_path*"disorder_3_bonds")
+
+structure_factor_vertices_disorder_3 = NA.get_structure_factor_by_wavevector_array(
+        disorder_3;
+        consider_bonds = false,
+        save_result = true,
+        save_path = save_path*"disorder_3_vertices")
+
+
+plots_save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\random_networks\216_vertices_bond_bending_0.21\run_1\\"
+
+diamond_bonds = GU.load_h5_dict(plots_save_path*"diamond_bonds_structure_factor_array.h5")
+diamond_vertices = GU.load_h5_dict(plots_save_path*"diamond_vertices_structure_factor_array.h5")
+disorder_bonds = GU.load_h5_dict(plots_save_path*"disorder_bonds_structure_factor_array.h5")
+disorder_vertices = GU.load_h5_dict(plots_save_path*"disorder_vertices_structure_factor_array.h5")
+disorder_2_bonds = GU.load_h5_dict(plots_save_path*"disorder_2_bonds_structure_factor_array.h5")
+disorder_2_vertices = GU.load_h5_dict(plots_save_path*"disorder_2_vertices_structure_factor_array.h5")
+disorder_3_bonds = GU.load_h5_dict(plots_save_path*"disorder_3_bonds_structure_factor_array.h5")
+disorder_3_vertices = GU.load_h5_dict(plots_save_path*"disorder_3_vertices_structure_factor_array.h5")
+
+diamond_bonds_angle_averaged = NA.get_structure_factor_angle_averaged(
+    diamond_bonds;
+    save_result = true,
+    save_path = plots_save_path*"diamond_bonds",
+    label = nothing)
+
+diamond_vertices_angle_averaged = NA.get_structure_factor_angle_averaged(
+    diamond_vertices;
+    save_result = true,
+    save_path = plots_save_path*"diamond_vertices",
+    label = nothing)
+
+disorder_bonds_angle_averaged = NA.get_structure_factor_angle_averaged(
+    disorder_bonds;
+    save_result = true,
+    save_path = plots_save_path*"disorder_bonds",
+    label = nothing)
+
+disorder_vertices_angle_averaged = NA.get_structure_factor_angle_averaged(
+    disorder_vertices;
+    save_result = true,
+    save_path = plots_save_path*"disorder_vertices",
+    label = nothing)
+
+disorder_2_bonds_angle_averaged = NA.get_structure_factor_angle_averaged(
+    disorder_2_bonds;
+    save_result = true,
+    save_path = plots_save_path*"disorder_2_bonds",
+    label = nothing)
+
+disorder_2_vertices_angle_averaged = NA.get_structure_factor_angle_averaged(
+    disorder_2_vertices;
+    save_result = true,
+    save_path = plots_save_path*"disorder_2_vertices",
+    label = nothing)
+
+disorder_3_bonds_angle_averaged = NA.get_structure_factor_angle_averaged(
+    disorder_3_bonds;
+    save_result = true,
+    save_path = plots_save_path*"disorder_3_bonds",
+    label = nothing)
+
+disorder_3_vertices_angle_averaged = NA.get_structure_factor_angle_averaged(
+    disorder_3_vertices;
+    save_result = true,
+    save_path = plots_save_path*"disorder_3_vertices",
+    label = nothing)
+
+
+diamond_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\diamonds\1000_vertices_perfect_diamond.gml"
+diamond = NG.load_spatial_network_from_gml(diamond_path)
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\random_networks\diamonds\\"
+
+structure_factor_bonds_diamond = NA.get_structure_factor_by_wavevector_array(
+    diamond;
+    consider_bonds = true,
+    save_result = true,
+    save_path = save_path*"diamond_bonds")
+structure_factor_vertices_diamond = NA.get_structure_factor_by_wavevector_array(
+        diamond;
+        consider_bonds = false,
+        save_result = true,
+        save_path = save_path*"diamond_vertices")
+
+diamond_bonds_angle_averaged = NA.get_structure_factor_angle_averaged(
+    structure_factor_bonds_diamond;
+    save_result = true,
+    save_path = save_path*"diamond_bonds",
+    label = nothing)
+
+diamond_vertices_angle_averaged = NA.get_structure_factor_angle_averaged(
+    structure_factor_vertices_diamond;
+    save_result = true,
+    save_path = save_path*"diamond_vertices",
+    label = nothing)
+
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\random_networks\216_vertices_bond_bending_0.21\run_1\\"
+
+diamond_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\diamonds\216_vertices_perfect_diamond.gml"
+
+disorder_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_3\216_vertices_T_0.08_heat_cool_0.1_per_mc_quenched.gml"
+
+disorder_path_2 = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_1\216_vertices_T_0.16_heat_cool_0.1_per_mc_quenched.gml"
+
+disorder_path_3 = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_1\216_vertices_T_0.24_heat_cool_0.1_per_mc_quenched.gml"
+
+
+diamond = NG.load_spatial_network_from_gml(diamond_path)
+disorder = NG.load_spatial_network_from_gml(disorder_path)
+disorder_2 = NG.load_spatial_network_from_gml(disorder_path_2)
+disorder_3 = NG.load_spatial_network_from_gml(disorder_path_3)
+
+bond_radius = 0.0
+
+structure_dict_diamond = NA.get_binary_data_from_spatial_network(
+    diamond;
+    bond_radius = bond_radius,
+    save_path  = save_path*"diamond",
+    save_result=true)
+
+structure_dict_disorder = NA.get_binary_data_from_spatial_network(
+    disorder;
+    bond_radius = bond_radius,
+    save_path  = save_path*"disorder",
+    save_result=true)
+
+structure_dict_disorder_2 = NA.get_binary_data_from_spatial_network(
+    disorder_2;
+    bond_radius = bond_radius,
+    save_path  = save_path*"disorder_2",
+    save_result=true)
+
+structure_dict_disorder_3 = NA.get_binary_data_from_spatial_network(
+    disorder_3;
+    bond_radius = bond_radius,
+    save_path  = save_path*"disorder_3",
+    save_result=true)
+
+# get spectral densities
+
+spectral_density_dict_diamond = NA.get_spectral_density_by_wavevector_array_fft(
+    structure_dict_diamond;
+    save_autocovariance_fct_direction_dict = true,
+    save_result=true,
+    save_path=save_path*"diamond")
+
+spectral_density_dict_disorder = NA.get_spectral_density_by_wavevector_array_fft(
+    structure_dict_disorder;
+    save_autocovariance_fct_direction_dict = true,
+    save_result=true,
+    save_path=save_path*"disorder")
+
+spectral_density_dict_disorder_2 = NA.get_spectral_density_by_wavevector_array_fft(
+    structure_dict_disorder_2;
+    save_autocovariance_fct_direction_dict = true,
+    save_result=true,
+    save_path=save_path*"disorder_2")
+
+spectral_density_dict_disorder_3 = NA.get_spectral_density_by_wavevector_array_fft(
+    structure_dict_disorder_3;
+    save_autocovariance_fct_direction_dict = true,
+    save_result=true,
+    save_path=save_path*"disorder_3")
+
+spectral_density_angle_averaged_dict_diamond = NA.get_structure_factor_angle_averaged(
+    spectral_density_dict_diamond;
+    consider_spectral_density = true,
+    save_result = true,
+    save_path = save_path*"diamond")
+
+spectral_density_angle_averaged_dict_disorder = NA.get_structure_factor_angle_averaged(
+    spectral_density_dict_disorder;
+    consider_spectral_density = true,
+    save_result = true,
+    save_path = save_path*"disorder")
+
+spectral_density_angle_averaged_dict_disorder_2 = NA.get_structure_factor_angle_averaged(
+    spectral_density_dict_disorder_2;
+    consider_spectral_density = true,
+    save_result = true,
+    save_path = save_path*"disorder_2")
+
+spectral_density_angle_averaged_dict_disorder_3 = NA.get_structure_factor_angle_averaged(
+    spectral_density_dict_disorder_3;
+    consider_spectral_density = true,
+    save_result = true,
+    save_path = save_path*"disorder_3")
+
+
+diamond_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\diamonds\216_vertices_perfect_diamond.gml"
+
+disorder_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_3\216_vertices_T_0.08_heat_cool_0.1_per_mc_quenched.gml"
+
+disorder_path_2 = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_1\216_vertices_T_0.16_heat_cool_0.1_per_mc_quenched.gml"
+
+disorder_path_3 = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_1\216_vertices_T_0.24_heat_cool_0.1_per_mc_quenched.gml"
+
+
+diamond = NG.load_spatial_network_from_gml(diamond_path)
+disorder = NG.load_spatial_network_from_gml(disorder_path)
+disorder_2 = NG.load_spatial_network_from_gml(disorder_path_2)
+disorder_3 = NG.load_spatial_network_from_gml(disorder_path_3)
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\random_networks\216_vertices_bond_bending_0.21\run_1\\"
+
+structure_factor_bonds_diamond = NA.get_structure_factor_by_wavevector_array(
+    diamond;
+    consider_bonds = true,
+    save_result = true,
+    save_path = save_path*"diamond_bonds_3")
+
+structure_factor_bonds_disorder = NA.get_structure_factor_by_wavevector_array(
+    disorder;
+    consider_bonds = true,
+    save_result = true,
+    save_path = save_path*"disorder_bonds_3")
+
+
+structure_factor_bonds_disorder_3 = NA.get_structure_factor_by_wavevector_array(
+    disorder_2;
+    consider_bonds = true,
+    save_result = true,
+    save_path = save_path*"disorder_2_bonds_3")
+
+
+structure_factor_bonds_disorder_3 = NA.get_structure_factor_by_wavevector_array(
+    disorder_3;
+    consider_bonds = true,
+    save_result = true,
+    save_path = save_path*"disorder_3_bonds_3")
+
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\random_networks\216_vertices_bond_bending_0.21\run_1\\"
+
+diamond_bonds = GU.load_h5_dict(save_path*"diamond_bonds_3_structure_factor_array.h5")
+diamond_vertices = GU.load_h5_dict(save_path*"diamond_vertices_structure_factor_array.h5")
+disorder_bonds = GU.load_h5_dict(save_path*"disorder_bonds_3_structure_factor_array.h5")
+disorder_vertices = GU.load_h5_dict(save_path*"disorder_vertices_structure_factor_array.h5")
+disorder_2_bonds = GU.load_h5_dict(save_path*"disorder_2_bonds_3_structure_factor_array.h5")
+disorder_2_vertices = GU.load_h5_dict(save_path*"disorder_2_vertices_structure_factor_array.h5")
+disorder_3_bonds = GU.load_h5_dict(save_path*"disorder_3_bonds_3_structure_factor_array.h5")
+disorder_3_vertices = GU.load_h5_dict(save_path*"disorder_3_vertices_structure_factor_array.h5")
+
+diamond_bonds_angle_averaged = NA.get_structure_factor_angle_averaged(
+    diamond_bonds;
+    save_result = true,
+    save_path = save_path*"diamond_bonds_3",
+    label = nothing)
+
+
+disorder_bonds_angle_averaged = NA.get_structure_factor_angle_averaged(
+    disorder_bonds;
+    save_result = true,
+    save_path = save_path*"disorder_bonds_3",
+    label = nothing)
+
+
+disorder_2_bonds_angle_averaged = NA.get_structure_factor_angle_averaged(
+    disorder_2_bonds;
+    save_result = true,
+    save_path = save_path*"disorder_2_bonds_3",
+    label = nothing)
+
+disorder_3_bonds_angle_averaged = NA.get_structure_factor_angle_averaged(
+    disorder_3_bonds;
+    save_result = true,
+    save_path = save_path*"disorder_3_bonds_3",
+    label = nothing)
+
+
+
+    function get_rotated_diamond()
+
+    nr_vertices = 1000
+
+    edge_length_unit_cell = 4/sqrt(3)
+
+    # calculate the actual nr vertices, given that we require a 
+    # cubic supercell and using the fact that the unit cell contains 8 vertices 
+    nr_unit_cells_per_dimension = max(1, Int(round( (nr_vertices/8)^(1/3) )) )
+
+    nr_vertices = 8 * nr_unit_cells_per_dimension^3
+    supercell_edge_length = nr_unit_cells_per_dimension*edge_length_unit_cell
+
+    # get matrix of vertex positions, where each column is a position vector
+    vertex_position_mat = NG.get_diamond_vertex_position_mat(
+        nr_unit_cells_per_dimension, 
+        nr_vertices,
+        edge_length_unit_cell)
+
+    # rotate every vertex position by 45 degrees around the z-axis
+    rotation_matrix = [cos(π/4) -sin(π/4) 0; sin(π/4) cos(π/4) 0; 0 0 1]
+    vertex_position_mat = rotation_matrix * vertex_position_mat
+
+    # shift every vertex position by supercell_edge_length/(2*sqrt(2)) in x and y direction
+    shift_vec = (supercell_edge_length / (2*sqrt(2))) .* [-1,1,0] .+ [-0.2,-0.4 , 0]
+
+    vertex_position_mat = vertex_position_mat .- shift_vec
+
+    println("minimal x position: ", minimum(vertex_position_mat[1,:]))
+    println("maximal x position: ", maximum(vertex_position_mat[1,:]))
+    println("minimal y position: ", minimum(vertex_position_mat[2,:]))
+    println("maximal y position: ", maximum(vertex_position_mat[2,:]))
+    println("minimal z position: ", minimum(vertex_position_mat[3,:]))
+    println("maximal z position: ", maximum(vertex_position_mat[3,:]))
+
+    # get a new array with only vertex positions that lie above 0 and below 
+    # 6.9282032302755105 (which is the edge length of the supercell for 216 vertices)
+    # in any direction
+
+    new_vertex_position_mat = zeros(3, 0)
+    nr_vertices = size(vertex_position_mat, 2)
+    for vertex_nr in 1:nr_vertices
+        if all(vertex_position_mat[:, vertex_nr] .> 0) && all(vertex_position_mat[:, vertex_nr] 
+            .< 6.9282032302755105)
+            new_vertex_position_mat = hcat(new_vertex_position_mat, vertex_position_mat[:, vertex_nr])
+        end
+    end
+
+    println(size(new_vertex_position_mat))
+    #println(new_vertex_position_mat)
+
+    println("minimal x position: ", minimum(new_vertex_position_mat[1,:]))
+    println("maximal x position: ", maximum(new_vertex_position_mat[1,:]))
+    println("minimal y position: ", minimum(new_vertex_position_mat[2,:]))
+    println("maximal y position: ", maximum(new_vertex_position_mat[2,:]))
+    println("minimal z position: ", minimum(new_vertex_position_mat[3,:]))
+    println("maximal z position: ", maximum(new_vertex_position_mat[3,:]))
+
+    original_graph, edge_length_vec = Graphs.euclidean_graph(
+            new_vertex_position_mat, 
+            L=  6.9282032302755105,
+            p=2, 
+            cutoff=1.05,
+            bc=:periodic)
+
+    original_spatial_network = Dict("original_graph" => original_graph,
+                        "edge_length_vec" => edge_length_vec,
+                        "coordination_nr" => 4,
+                        "nr_vertices" => 216,
+                        "nr_dimensions" => 3,
+                        "supercell_edge_length" => 6.9282032302755105,
+                        "vertex_position_mat" => new_vertex_position_mat
+                        )
+
+    spatial_network = NG.convert_original_graph_to_spatial_network(
+                            original_spatial_network)
+
+    return spatial_network
+end
+
+diamond = get_rotated_diamond()
+#println(length(MetaGraphsNext.edge_labels(spatial_network)))
+#NG.plot_spatial_network(spatial_network)
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\random_networks\216_vertices_bond_bending_0.21\run_1\\"
+
+structure_factor_bonds_diamond = NA.get_structure_factor_by_wavevector_array(
+    diamond;
+    consider_bonds = true,
+    save_result = true,
+    save_path = save_path*"diamond_bonds_rot")
+
+
+diamond_bonds_angle_averaged = NA.get_structure_factor_angle_averaged(
+    structure_factor_bonds_diamond;
+    save_result = true,
+    save_path = save_path*"diamond_bonds_rot",
+    label = nothing)
+
+
+
+
+diamond_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\diamonds\216_vertices_perfect_diamond.gml"
+
+disorder_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_3\216_vertices_T_0.08_heat_cool_0.1_per_mc_quenched.gml"
+
+disorder_path_2 = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_1\216_vertices_T_0.16_heat_cool_0.1_per_mc_quenched.gml"
+
+disorder_path_3 = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_1\216_vertices_T_0.24_heat_cool_0.1_per_mc_quenched.gml"
+
+
+diamond = NG.load_spatial_network_from_gml(diamond_path)
+disorder = NG.load_spatial_network_from_gml(disorder_path)
+disorder_2 = NG.load_spatial_network_from_gml(disorder_path_2)
+disorder_3 = NG.load_spatial_network_from_gml(disorder_path_3)
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\random_networks\216_vertices_bond_bending_0.21\run_1\\"
+
+structure_factor_bonds_diamond = NA.get_structure_factor_by_wavevector_array(
+    diamond;
+    consider_bonds = true,
+    save_result = true,
+    save_path = save_path*"diamond_bonds")
+
+structure_factor_bonds_disorder = NA.get_structure_factor_by_wavevector_array(
+    disorder;
+    consider_bonds = true,
+    save_result = true,
+    save_path = save_path*"disorder_bonds")
+
+
+structure_factor_bonds_disorder_2 = NA.get_structure_factor_by_wavevector_array(
+    disorder_2;
+    consider_bonds = true,
+    save_result = true,
+    save_path = save_path*"disorder_2_bonds")
+
+
+structure_factor_bonds_disorder_3 = NA.get_structure_factor_by_wavevector_array(
+    disorder_3;
+    consider_bonds = true,
+    save_result = true,
+    save_path = save_path*"disorder_3_bonds")
+
+plots_save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\random_networks\216_vertices_bond_bending_0.21\run_1\\"
+
+diamond_bonds = GU.load_h5_dict(plots_save_path*"diamond_bonds_structure_factor_array.h5")
+disorder_bonds = GU.load_h5_dict(plots_save_path*"disorder_bonds_structure_factor_array.h5")
+disorder_2_bonds = GU.load_h5_dict(plots_save_path*"disorder_2_bonds_structure_factor_array.h5")
+disorder_3_bonds = GU.load_h5_dict(plots_save_path*"disorder_3_bonds_structure_factor_array.h5")
+
+diamond_bonds_angle_averaged = NA.get_structure_factor_angle_averaged(
+    diamond_bonds;
+    save_result = true,
+    save_path = plots_save_path*"diamond_bonds",
+    label = nothing)
+
+
+disorder_bonds_angle_averaged = NA.get_structure_factor_angle_averaged(
+    disorder_bonds;
+    save_result = true,
+    save_path = plots_save_path*"disorder_bonds",
+    label = nothing)
+
+
+disorder_2_bonds_angle_averaged = NA.get_structure_factor_angle_averaged(
+    disorder_2_bonds;
+    save_result = true,
+    save_path = plots_save_path*"disorder_2_bonds",
+    label = nothing)
+
+
+disorder_3_bonds_angle_averaged = NA.get_structure_factor_angle_averaged(
+    disorder_3_bonds;
+    save_result = true,
+    save_path = plots_save_path*"disorder_3_bonds",
+    label = nothing)

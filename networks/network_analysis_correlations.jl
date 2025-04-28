@@ -279,7 +279,8 @@ function get_wavevector_array_positive_z(
         wavevector_array_positive_z[i] =  (
             2*pi/spatial_network[]["supercell_edge_length"]*(
                 (i[1] - nr_wavevectors_per_pos_direction - 1)* ==(i[4], 1) 
-                + (i[2] - nr_wavevectors_per_pos_direction - 1)* ==(i[4], 2)))
+                + (i[2] - nr_wavevectors_per_pos_direction - 1)* ==(i[4], 2)
+                + (i[3] - 1)* ==(i[4], 3)))
 
     end
 
@@ -289,7 +290,8 @@ end
 
 """
 Measure structure factor as a function of wavevector using the scattering
-intensity estimator as described in equation 24 of 10.1007/s11222-023-10219-1
+intensity estimator as described in equation 24 of 10.1007/s11222-023-10219-1.
+Here, only the vertices of the network are considered.
 """
 function get_structure_factor(
     wavevector::Vector{Float64},
@@ -320,11 +322,59 @@ end
 
 
 """
+Measure structure factor as a function of wavevector using the scattering
+intensity estimator as described in equation 24 of 10.1007/s11222-023-10219-1
+and considering the bonds of the network.
+"""
+function get_structure_factor_bonds(
+    wavevector::Vector{Float64},
+    spatial_network::MetaGraphsNext.MetaGraph;
+    no_div_by_zero_value = 1e-10)
+
+    # initialize the sum of the scattering field
+    scattering_field_sum = 0.0 + 0.0*im
+    
+    # perform sum over all bonds
+    for bond in MetaGraphsNext.edge_labels(spatial_network)
+
+        # get the mid-point of the bond considering periodic boundary
+        # conditions
+        bond_vector = spatial_network[bond...]["vector"] 
+        bond_mid_point = (((spatial_network[bond[1]]["position"] 
+                .+ bond_vector ./ 2) 
+            .% spatial_network[]["supercell_edge_length"]))
+
+        # get scalar product of the wavevector with the bond mid-point and the 
+        # bond vector
+        scalar_prod_mid_point = LinearAlgebra.dot(wavevector, bond_mid_point)
+        scalar_prod_vector = LinearAlgebra.dot(wavevector, bond_vector)
+    
+        # calculate structure factor contribution of current bond and 
+        # wavevector
+        scattering_field = (
+            2/(scalar_prod_vector + no_div_by_zero_value)
+            * exp(-im*scalar_prod_mid_point)
+            * sin(scalar_prod_vector/2))
+        scattering_field_sum += scattering_field
+    end
+
+    nr_bonds = length(MetaGraphsNext.edge_labels(spatial_network))
+
+    # calculate structure factor
+    structure_factor = 1/nr_bonds * abs2(scattering_field_sum)
+
+    return structure_factor
+end
+
+
+
+"""
 Measure structure factor for an array of wavevectors using the scattering
 intensity estimator as described in equation 24 of 10.1007/s11222-023-10219-1
 """
 function get_structure_factor_by_wavevector_array(
     spatial_network::MetaGraphsNext.MetaGraph;
+    consider_bonds::Bool = false,
     maximal_wavevector_int::Int64 = 5,
     wavevector_array_positive_z::Array{Float64} 
         = get_wavevector_array_positive_z(spatial_network; 
@@ -342,9 +392,17 @@ function get_structure_factor_by_wavevector_array(
         j in 1:size(wavevector_array_positive_z)[2], 
         k in 1:size(wavevector_array_positive_z)[3]
 
-        structure_factor_array[i,j,k] = get_structure_factor(
-            wavevector_array_positive_z[i,j,k,:], spatial_network)
+        # get structure factor either for bonds or for vertices of the network
+        if consider_bonds
+            # get structure factor for current wavevector and bond network
+            structure_factor_array[i,j,k] = get_structure_factor_bonds(
+                wavevector_array_positive_z[i,j,k,:], spatial_network)
 
+        else
+            # get structure factor for current wavevector and spatial network
+            structure_factor_array[i,j,k] = get_structure_factor(
+                wavevector_array_positive_z[i,j,k,:], spatial_network)
+        end
     end
 
     # extend structure factor to negative z direction
@@ -377,7 +435,13 @@ function get_structure_factor_by_wavevector_array(
 
     # save results if desired
     if save_result
-        GU.save_dict_to_h5(copy(structure_factor_dict), save_path*"_structure_factor_array.h5")
+        if consider_bonds
+            bonds_string = "_bonds"
+        else
+            bonds_string = ""
+        end
+        GU.save_dict_to_h5(copy(structure_factor_dict), 
+                save_path*"_structure_factor"*bonds_string*"_array.h5")
     end
                                             
     return structure_factor_dict
@@ -392,13 +456,20 @@ dictionary can be used to calculate the angle averaged structure factor or an
 anisotropy metric
 """
 function get_structure_factor_by_index_vec_squared_dict(
-    structure_factor_dict::Dict;)
+    structure_factor_dict::Dict;
+    consider_spectral_density::Bool = false)
+
+    if consider_spectral_density
+        data_type_string = "spectral_density"
+    else
+        data_type_string = "structure_factor"
+    end
 
     structure_factor_by_index_vec_squared_dict = Dict{Int64, Vector{Float64}}()
 
     # determine origin vector of cartesian coordinates
     index_vector_origin = Int.((size(
-        structure_factor_dict["structure_factor_array"]) .+ 1 ) ./ 2)
+        structure_factor_dict[data_type_string*"_array"]) .+ 1 ) ./ 2)
 
     # get lattice constant of reciprocal lattice
     reciprocal_lattice_constant = LinearAlgebra.norm(
@@ -406,7 +477,7 @@ function get_structure_factor_by_index_vec_squared_dict(
             .+ [1,0,0])...,:])
 
     # loop through Cartesian Indices
-    for i in CartesianIndices(structure_factor_dict["structure_factor_array"])
+    for i in CartesianIndices(structure_factor_dict[data_type_string*"_array"])
 
         # determine actual index vector
         index_vector = i.I .- index_vector_origin
@@ -421,13 +492,13 @@ function get_structure_factor_by_index_vec_squared_dict(
             # add structure factor to dictionary
             push!(structure_factor_by_index_vec_squared_dict[
                     index_vector_length_squared], 
-                structure_factor_dict["structure_factor_array"][i])
+                abs(structure_factor_dict[data_type_string*"_array"][i]))
 
         else
 
             # add key and structure factor to dictionary
             structure_factor_by_index_vec_squared_dict[index_vector_length_squared]=(
-                [structure_factor_dict["structure_factor_array"][i]])
+                [abs(structure_factor_dict[data_type_string*"_array"][i])])
 
         end
 
@@ -444,6 +515,8 @@ equivalenty for the spectral density
 """
 function get_structure_factor_angle_averaged(
     structure_factor_dict::Dict;
+    consider_spectral_density::Bool = false,
+    consider_bonds::Bool = false,
     gaussian_filter::Bool = true,
     gaussian_filter_sigma_x::Float64 = 2*pi/25, 
     gaussian_filter_filtered_data_x_step_length::Float64 = 2*pi/25,
@@ -451,12 +524,18 @@ function get_structure_factor_angle_averaged(
     save_path = raw"..\analysis_data\sample_name",
     label = nothing)
 
+    if consider_spectral_density
+        data_type_string = "spectral_density"
+    else
+        data_type_string = "structure_factor"
+    end
+
     # get the dictionary that, for each index vector squared contains all 
     # values of the structure factor. The index vector squared is proportional 
     # to the square of the wavenumber
     structure_factor_by_index_vec_squared_dict, reciprocal_lattice_constant = (
-        get_structure_factor_by_index_vec_squared_dict(
-        structure_factor_dict))
+        get_structure_factor_by_index_vec_squared_dict(structure_factor_dict; 
+            consider_spectral_density = consider_spectral_density))
     
     # initialize wavenumber vector and structure factor vector
     unfiltered_wavenumber_vec = Vector{Float64}()
@@ -486,7 +565,7 @@ function get_structure_factor_angle_averaged(
     # create dict to save
     structure_factor_angle_averaged_dict = Dict{String, Any}(
         "unfiltered_wavenumber_vec" => unfiltered_wavenumber_vec, 
-        "unfiltered_structure_factor_vec" => unfiltered_structure_factor_vec)
+        "unfiltered_"*data_type_string*"_vec" => unfiltered_structure_factor_vec)
 
     # apply gaussian filter if desired
     if gaussian_filter
@@ -499,7 +578,7 @@ function get_structure_factor_angle_averaged(
 
         structure_factor_angle_averaged_dict["wavenumber_vec"] = (
             filtered_data_x)
-        structure_factor_angle_averaged_dict["structure_factor_vec"] = (
+        structure_factor_angle_averaged_dict[data_type_string*"_vec"] = (
             filtered_data_y)
         structure_factor_angle_averaged_dict["gaussian_filter_sigma_x"] = (
             gaussian_filter_sigma_x)
@@ -511,8 +590,13 @@ function get_structure_factor_angle_averaged(
     end
 
     if save_result
+        if consider_bonds
+            bonds_string = "_bonds"
+        else
+            bonds_string = ""
+        end
         GU.save_dict_to_h5(copy(structure_factor_angle_averaged_dict),
-            save_path*"_structure_factor_angle_averaged.h5")
+            save_path*"_"*data_type_string*bonds_string*"_angle_averaged.h5")
     end
                                             
     return structure_factor_angle_averaged_dict
@@ -817,55 +901,75 @@ end
 
 
 """
-Get hyperuniformity metric which is the structure factor at zero momentum
-normalized by the height of the first peak in the structure factor as defined
-in equation 251 in 10.1016/j.physrep.2018.03.001
+Get the excess spreadability for a given t value according to eq 25 of
+10.1103/PhysRevE.109.064108.
 """
-function get_hyperuniformity_metric(structure_factor_dict::Dict)
+function get_excess_spreadability(
+    structure_factor_angle_averaged_dict::Dict,
+    time::Float64;
+    consider_spectral_density::Bool = false)
 
-    # locate peaks of structure factor
-    pks, vals = Peaks.findmaxima(structure_factor_dict["structure_factor_vec"])
+    if consider_spectral_density
+        data_type_string = "spectral_density"
+    else
+        data_type_string = "structure_factor"
+    end
 
-    # cut structure factor data at momentum just above first peak
-    structure_factor_cut_vec = structure_factor_dict[
-        "structure_factor_vec"][1:pks[2]-1]
-    wavenumber_cut_vec = structure_factor_dict["wavenumber_vec"][1:pks[2]-1]
+    wavenumber_vec = structure_factor_angle_averaged_dict["wavenumber_vec"]
+    wavenumber_step_length = (wavenumber_vec[2] - wavenumber_vec[1])
 
-    # set the order of the fitted polynomial
-    polynomial_order = 5
+    # calculate excess spreadability according to eq 25 of 
+    # 10.1103/PhysRevE.109.064108
+    excess_spreadability = 1/wavenumber_step_length * sum(
+        wavenumber_vec.^2 .* structure_factor_angle_averaged_dict[
+            data_type_string*"_vec"] .*  exp.(-wavenumber_vec.^2 .* time))
 
-    # fit polynomial of given order to cut data
-    polynomial_fit = Polynomials.fit(wavenumber_cut_vec, 
-                                    structure_factor_cut_vec,
-                                    polynomial_order)
-
-    # get extrapolated structure factor at zero momentum
-    structure_factor_zero_momentum = polynomial_fit(0)
-
-    # get first derivative of polynomial
-    polynomial_derivative = Polynomials.derivative(polynomial_fit)
-
-    # in case the structure factor is provided with uncertainty, obtain the
-    # values
-    polynomial_derivative_values = Polynomials.Polynomial(Measurements.value.( 
-        collect(polynomial_derivative) ))
-    
-    # get critical momenta which is roots of first derivative of polynomial
-    critical_momenta = Polynomials.roots(polynomial_derivative_values)
-
-    # get real critical momenta
-    critical_momenta_real = real.(
-        critical_momenta[imag.(critical_momenta) .== 0])
-
-    # get fitted structure factor at highest peak
-    structure_factor_first_peak = maximum( 
-        polynomial_fit.(critical_momenta_real) )
-
-    # get hyperuniformity metric
-    hyperuniformity_metric = (structure_factor_zero_momentum
-        /structure_factor_first_peak)
-
-    return [hyperuniformity_metric, polynomial_fit]
+    return excess_spreadability
 end
 
 
+"""
+Get the exponent alpha, that determines the scaling of the structure factor
+or the spectral density with the wavenumber k for k -> 0 as in eq 25 of
+10.1103/PhysRevE.109.064108. If this exponent is 0, the system is
+nonhyperuniform, if it is >0, the system is hyperuniform. Three classes of
+hyperuniformity are defined: 0 < alpha < 1, alpha = 1 and alpha > 1 as written
+below eq 21 of 10.1103/PhysRevE.109.064108.
+"""
+function get_hyperuniformity_alpha(structure_factor_angle_averaged_dict::Dict;
+    consider_spectral_density::Bool = false,
+    t_range = (1e-1, 4e-1))
+
+    # get the vector of times to sample the excess spreadability such that the
+    # t values are equally spaced on a logarithmic scale
+    time_vec = exp.(LinRange(log(t_range[1]), log(t_range[2]), 1000))
+
+    # calculate the excess spreadability for each t value
+    excess_spreadability_vec = [get_excess_spreadability(
+        structure_factor_angle_averaged_dict, time_vec[i]; 
+        consider_spectral_density = consider_spectral_density) for i in 
+        eachindex(time_vec)]
+
+    # get logarithm of time and excess spreadability
+    log_time_vec = log10.(time_vec)
+    log_excess_spreadability_vec = log10.(excess_spreadability_vec)
+
+    # get the steepest (maximally negative) slope of the excess spreadability 
+    # as a function of time by calculating the tangent slope 
+    local_tangent_slope_vec = Vector{Measurements.Measurement{Float64}}(undef, 
+        length(log_time_vec)-1)
+    for i in 1:length(log_time_vec)-1
+        local_tangent_slope_vec[i] = (log_excess_spreadability_vec[i+1] 
+            - log_excess_spreadability_vec[i]) / (
+                log_time_vec[i+1] - log_time_vec[i])
+    end
+    minimal_slope_index = argmin(local_tangent_slope_vec)
+    minimal_slope = minimum(local_tangent_slope_vec)
+    slope_measurement_time = time_vec[minimal_slope_index]
+
+    # get alpha from the minimal slope according to section IIIB of 
+    # 10.1103/PhysRevE.109.064108
+    alpha = -2*minimal_slope - 3
+    
+    return [slope_measurement_time, alpha]
+end

@@ -174,6 +174,19 @@ function get_all_dicts_from_network_single_file(
         filename = filename,
         save_result=true)
 
+    # get ring size distribution
+    ring_size_distribution_dict = get_ring_size_distribution(
+        spatial_network;
+        save_result = true,
+        save_path = analysis_data_path*filename)
+
+    # get ring radius distribution
+    ring_radius_distribution_dict = get_ring_radius_distribution(
+        spatial_network,
+        ring_size_distribution_dict;
+        save_result = true,
+        save_path = analysis_data_path*filename)
+
     # get autocovariance function as a function of direction
     autocovariance_fct_direction_dict = (
         get_autocovariance_fct_by_sampling_indices_array(
@@ -417,6 +430,22 @@ function get_small_length_scale_order_metrics(filename::String,
     q_l_vec = convert_q_l_dict_to_vec(q_l_total_network_mean_dict, 
         l_max_steinhardt_q_l)
 
+    # load ring size distribution
+    ring_size_distribution_dict = GU.load_h5_dict(
+        analysis_data_path*filename*"_ring_size_distribution.h5")
+
+    # get ring size statistics
+    ring_size_mean, ring_size_std = get_ring_statistics(
+        ring_size_distribution_dict)
+
+    # load ring radius distribution
+    ring_radius_distribution_dict = GU.load_h5_dict(
+        analysis_data_path*filename*"_ring_radius_distribution.h5")
+
+    # get ring radius statistics
+    ring_radius_mean, ring_radius_std = get_ring_radius_statistics(
+        ring_radius_distribution_dict)
+
     # load correlation functions
     correlation_functions_dict = GU.load_h5_dict(
         analysis_data_path*filename*"_correlation_functions.h5")
@@ -461,6 +490,10 @@ function get_small_length_scale_order_metrics(filename::String,
         "coordination_nr_mean" => coordination_nr_mean,
         "coordination_nr_std" => coordination_nr_std,
         "q_l_vec" => q_l_vec,
+        "ring_size_mean" => ring_size_mean,
+        "ring_size_std" => ring_size_std,
+        "ring_radius_mean" => ring_radius_mean,
+        "ring_radius_std" => ring_radius_std,
         "vertex_homogeneity_metric" => vertex_homogeneity_metric,
         "pore_size_distribution_second_moment" 
             => pore_size_distribution_second_moment,
@@ -509,6 +542,14 @@ function get_small_length_scale_order_metrics_all_files(
         l_max_steinhardt_q_l+1, length(order_metrics_filenames))
     vertex_homogeneity_metric_vec = Vector{Float64}(undef,
         length(order_metrics_filenames))
+    ring_size_mean_vec = Vector{Float64}(undef,
+        length(order_metrics_filenames))
+    ring_size_std_vec = Vector{Float64}(undef,
+        length(order_metrics_filenames))
+    ring_radius_mean_vec = Vector{Float64}(undef,
+        length(order_metrics_filenames))
+    ring_radius_std_vec = Vector{Float64}(undef,
+        length(order_metrics_filenames))
     pore_size_distribution_second_moment_vec = Vector{Float64}(undef,
         length(order_metrics_filenames))
     anisotropy_metric_from_structure_factor_vec = Vector{Float64}(undef,
@@ -539,6 +580,10 @@ function get_small_length_scale_order_metrics_all_files(
         q_l_mat[:,i] = order_metrics_dict["q_l_vec"]
         vertex_homogeneity_metric_vec[i] = (
             order_metrics_dict["vertex_homogeneity_metric"])
+        ring_size_mean_vec[i] = order_metrics_dict["ring_size_mean"]
+        ring_size_std_vec[i] = order_metrics_dict["ring_size_std"]
+        ring_radius_mean_vec[i] = order_metrics_dict["ring_radius_mean"]
+        ring_radius_std_vec[i] = order_metrics_dict["ring_radius_std"]
         pore_size_distribution_second_moment_vec[i] = (
             order_metrics_dict["pore_size_distribution_second_moment"])
         anisotropy_metric_from_structure_factor_vec[i] = (
@@ -566,6 +611,14 @@ function get_small_length_scale_order_metrics_all_files(
     q_l_mat = q_l_mat[:, sortperm(total_keating_energy_vec)]
     vertex_homogeneity_metric_vec = (
         vertex_homogeneity_metric_vec[sortperm(total_keating_energy_vec)])
+    ring_size_mean_vec = ring_size_mean_vec[
+        sortperm(total_keating_energy_vec)]
+    ring_size_std_vec = ring_size_std_vec[
+        sortperm(total_keating_energy_vec)]
+    ring_radius_mean_vec = ring_radius_mean_vec[
+        sortperm(total_keating_energy_vec)]
+    ring_radius_std_vec = ring_radius_std_vec[
+        sortperm(total_keating_energy_vec)]
     pore_size_distribution_second_moment_vec = (
         pore_size_distribution_second_moment_vec[
             sortperm(total_keating_energy_vec)])
@@ -589,6 +642,10 @@ function get_small_length_scale_order_metrics_all_files(
         "coordination_nr_std_vec" => coordination_nr_std_vec,
         # TODO: "q_l_mat" => q_l_mat, creates error so far
         "vertex_homogeneity_metric_vec" => vertex_homogeneity_metric_vec,
+        "ring_size_mean_vec" => ring_size_mean_vec,
+        "ring_size_std_vec" => ring_size_std_vec,
+        "ring_radius_mean_vec" => ring_radius_mean_vec,
+        "ring_radius_std_vec" => ring_radius_std_vec,
         "pore_size_distribution_second_moment_vec" 
             => pore_size_distribution_second_moment_vec,
         "anisotropy_metric_from_structure_factor_vec" 

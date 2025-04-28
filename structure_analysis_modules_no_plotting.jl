@@ -148,6 +148,8 @@ import Combinatorics    # mainly used to get all possible combinations of bonds
 import SphericalHarmonics   # to calculate spherical harmonics
 import FFTW     # to calculate the Fast Fourier Transform
 import StatsBase    # to fit histograms
+import Polylabel # to find the pole of inaccessibility of a polygon
+import GeometryBasics  # to create polygons that can be handled by Polylabel
 import LsqFit   # to perform curve fitting
 import Plots    # for plotting
 #import GLMakie  # Makie backend for plotting

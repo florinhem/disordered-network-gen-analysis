@@ -58,7 +58,8 @@ function move_vertex!(
     spatial_network::MetaGraphsNext.MetaGraph, 
     vertex_to_move::Int64, 
     translation_vector::Vector{Float64};
-    update_total_energy::Bool = false)
+    update_total_energy::Bool = false,
+    large_translation::Bool = false)
 
     # update vertex position by taking periodic boundary conditions into
     # account
@@ -76,10 +77,19 @@ function move_vertex!(
 
         # determine new vector, where the direction of the vector (from vertex
         # with lower label to vertex with higher label) has to be taken into
-        # account
-        spatial_network[vertex_to_move, neighbor]["vector"] = (
+        # account. If the translation is large, periodic boundary conditions
+        # have to be taken into account which is less efficient
+        if large_translation
+            bond_vector = get_distance_vector_pbc(
+                spatial_network[vertex_to_move]["position"],
+                spatial_network[neighbor]["position"],
+                spatial_network[]["supercell_edge_length"] )
+        else
+            spatial_network[vertex_to_move, neighbor]["vector"] = (
             original_distance_vector 
             .- float(sign(neighbor - vertex_to_move)) .* translation_vector )
+        end
+        
 
         spatial_network[vertex_to_move, neighbor]["distance_squared"] = (
             LinearAlgebra.norm(spatial_network[vertex_to_move, neighbor][
