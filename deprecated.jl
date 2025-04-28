@@ -4436,3 +4436,165 @@ function get_hyperuniformity_alpha(structure_factor_angle_averaged_dict::Dict;
     
     return [fit_alpha_vec, time_window, alpha]
 end
+
+
+
+"""
+Fit a function to the angle averaged spectral density that consists of either
+two gaussians or a gaussian and an exponential decay
+"""
+function fit_spectral_density_angle_averaged(
+    spectral_density_angle_averaged_dict::Dict)
+
+    # define two possible fit functions that will be used depending on the
+    # behavior of the spectral density at small wavenumbers
+    function two_gaussians(x, p)
+        a2, b2, c2, a3, b3, c3 = p
+        return a2 * exp.(-b2 .* (x .- c2).^2) .+ a3 * exp.(-b3 .* (x .- c3).^2)
+    end
+
+    function exp_gaussian(x, p)
+        a1, b1, a2, b2, c2 = p
+        return a1 * exp.(-b1 .* x) .+ a2 * exp.(-b2 .* (x .- c2).^2)
+    end
+    
+    function exp_decay(x, p)
+        a1, b1 = p
+        return a1 * exp.(-b1 .* x)
+    end
+    
+    
+    # define function to estimate the fit parameters from data
+    function estimate_fit_parameters(x_vec, y_vec)
+    
+        # get first parameters by assuming that the exponential decay is the
+        # dominant feature and linear close to x=0
+        a1 = ( x_vec[2]*y_vec[1] - x_vec[1]*y_vec[2] )/(x_vec[2] - x_vec[1])
+        b1 = 3*(y_vec[1] - y_vec[2])/( x_vec[2]*y_vec[1] - x_vec[1]*y_vec[2] )
+
+        # locate peaks of spectral density
+        pks, vals = Peaks.findmaxima( y_vec )
+
+        # get parameters for two gaussians
+        a2 = vals[1]
+        b2 = 2.
+        c2 = x_vec[pks[1]]
+        a3 = vals[2]
+        b3 = 2.
+        c3 = x_vec[pks[2]]
+
+        # if the exponential decay is not the dominant feature, get parameters
+        # for gaussians
+        if a1 < 0
+            return [a2, b2, c2, a3, b3, c3]
+        else
+            # if there is no dominant peak, use only exponential decay
+            if a2 < 0.5
+                return [a1, b1]
+            else
+                return [a1, b1, a2, b2, c2 ]
+            end
+        end
+    end
+    
+    # get wavenumber vector and spectral density vector
+    x_vec = spectral_density_angle_averaged_dict["wavenumber_vec"]
+    y_vec = Measurements.value.(
+        spectral_density_angle_averaged_dict["spectral_density_vec"])
+    
+    # estimate fit parameters
+    p0 = estimate_fit_parameters(x_vec, y_vec)
+    
+    # get function to fit
+    if length(p0) == 6
+        fit_function = two_gaussians
+    elseif length(p0) == 5
+        fit_function = exp_decay_gaussian
+    else
+        fit_function = exp_decay
+    end
+
+    # fit function to data
+    fit_result = LsqFit.curve_fit(fit_function, x_vec, y_vec, p0)
+
+    # get fit parameters and their uncertainties
+    fit_param = Measurements.measurement.(fit_result.param, 
+        sqrt.(LinearAlgebra.diag(LsqFit.estimate_covar(fit_result))) )
+
+    return fit_param #  # fit_result 
+end
+
+
+"""
+Define an anisotropy metric based on the structure factor or the 
+spectral density that ranges between 0 and 1 (high anisotropy). The metric is
+based on the coefficient of variation (std over mean) of the structure factor
+as a function of direction. In reality, values around 0.45 represent low
+anisotropy and values around 0.55 represent high anisotropy.
+"""
+function get_anisotropy_metric_from_structure_factor(
+    structure_factor_dict::Dict;
+    maximal_length_to_check = 3.0,
+    nr_closest_wavenumbers = 3,
+    normalization_parameter = 1.0)
+
+    # set the wavenumbers where structure factor will be checked
+    wavenumbers_to_check_vec = (2*pi) ./ collect(
+        0.5:0.5:maximal_length_to_check+0.01)
+
+    # get the dictionary that, for each index vector squared contains all 
+    # values of the structure factor. The index vector squared is proportional 
+    # to the square of the wavenumber
+    structure_factor_by_index_vec_squared_dict, reciprocal_lattice_constant = (
+        get_structure_factor_by_index_vec_squared_dict(
+        structure_factor_dict))
+
+    # first, create a vector of all index vectors squared
+    index_vec_squared_vec = collect(keys(
+        structure_factor_by_index_vec_squared_dict))
+
+    # get the three index vectors squared that are closest to the wavenumbers
+    # to check
+    index_vec_squared_to_check_arr = Array{Int64}(undef, 
+    nr_closest_wavenumbers, 
+        length(wavenumbers_to_check_vec))
+    for i in eachindex(wavenumbers_to_check_vec)
+        # get the three index vectors squared that are closest to the wavenumber
+        # to check
+        index_vec_squared_to_check_arr[:, i] = index_vec_squared_vec[sortperm(
+            abs.(index_vec_squared_vec .- (wavenumbers_to_check_vec[i]/
+                reciprocal_lattice_constant)^2))][1:nr_closest_wavenumbers]
+    end
+
+    # for each index vector squared, calculate a normalized coefficient of
+    # variation (std over mean)
+    anisotropy_metric_vec = Vector{Float64}(undef, 
+        length(wavenumbers_to_check_vec))
+
+    for i in eachindex(wavenumbers_to_check_vec)
+        # get the structure factor for the three index vectors squared
+        structure_factor_vec =
+            structure_factor_by_index_vec_squared_dict[
+                index_vec_squared_to_check_arr[1, i]] 
+        for j in 2:nr_closest_wavenumbers
+            structure_factor_vec = vcat(
+                structure_factor_vec, 
+                structure_factor_by_index_vec_squared_dict[
+                    index_vec_squared_to_check_arr[j, i]])
+        end
+
+        # calculate the coefficient of variation
+        coefficient_of_variation = (Statistics.std(structure_factor_vec)
+            /(Statistics.mean(structure_factor_vec)))
+
+        # calculate the anisotropy metric that ranges between 0 and 1
+        anisotropy_metric_vec[i] = coefficient_of_variation/(
+            normalization_parameter + coefficient_of_variation)
+
+    end
+
+    # calculate the average of the anisotropy entropy metric
+    anisotropy_metric = Statistics.mean(anisotropy_metric_vec)
+
+    return anisotropy_metric
+end

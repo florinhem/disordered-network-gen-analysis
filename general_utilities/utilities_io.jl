@@ -19,12 +19,21 @@ function decompose_measurements_in_dict(dict::Dict)
             Array{Measurements.Measurement, 2},
             Array{Measurements.Measurement, 3},
             Array{Measurements.Measurement{Float64}, 3}, 
-            Array{Complex{Measurements.Measurement{Float64}}, 3}]
+            Array{Complex{Measurements.Measurement{Float64}}, 3},
+            Matrix{Measurements.Measurement{Float64}}]
 
             dict[key*"_values"] = Measurements.value.( value )
             dict[key*"_uncertainties"] = Measurements.uncertainty.( value )
             delete!(dict, key)
+        
+        elseif typeof(value) in [Measurements.Measurement,
+            Measurements.Measurement{Float64}, 
+            Complex{Measurements.Measurement{Float64}}]
 
+            dict[key*"_value"] = Measurements.value( value )
+            dict[key*"_uncertainty"] = Measurements.uncertainty( value )
+            delete!(dict, key)
+        
         end
     end
 
@@ -199,6 +208,30 @@ function restore_measurement_types(dict::Dict)
             # save measurement vector to dict and delete value and uncertainty
             # keys
             dict[original_key] = measurement_vector
+            delete!(dict, key)
+            delete!(dict, uncertainty_key)
+
+        elseif endswith(key, "_value")
+
+            # get original key
+            original_key = first(key, findfirst("_value", key)[1]-1)
+
+            # get key of uncertainties
+            uncertainty_key = original_key*"_uncertainty"
+
+            # create measurement type after checking whether value is complex 
+            # or real
+            if typeof(value) == ComplexF64
+                dict[original_key] = Complex(Measurements.measurement(
+                    real(value), real(dict[uncertainty_key])),
+                    Measurements.measurement(imag(value), imag(
+                        dict[uncertainty_key])))
+            else
+                dict[original_key] = Measurements.measurement(
+                    dict[key], dict[uncertainty_key])
+            end
+
+            # delete value and uncertainty keys
             delete!(dict, key)
             delete!(dict, uncertainty_key)
 

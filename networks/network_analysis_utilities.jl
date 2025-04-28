@@ -153,10 +153,7 @@ For a single file, calculate several functions that characterize the structure
 function get_all_dicts_from_network_single_file(
     filename::String,
     spatial_network_path::String,
-    structure_dict_path::String,
     analysis_data_path::String;
-    bond_radius = 0.35,
-    voxel_edge_length = 0.1,
     pore_size_sampling_grid_size = 0.2,
     print_progress::Bool = false,
     print_lock = Threads.ReentrantLock())
@@ -164,16 +161,7 @@ function get_all_dicts_from_network_single_file(
     # get network
     spatial_network = NG.load_spatial_network_from_gml(
         spatial_network_path*filename*".gml")
-
-    # create structure dict
-    structure_dict = get_binary_data_from_spatial_network(
-        spatial_network;
-        bond_radius = bond_radius,
-        voxel_edge_length = voxel_edge_length,
-        save_path = structure_dict_path*filename,
-        filename = filename,
-        save_result=true)
-
+    
     # get ring size distribution
     ring_size_distribution_dict = get_ring_size_distribution(
         spatial_network;
@@ -187,55 +175,50 @@ function get_all_dicts_from_network_single_file(
         save_result = true,
         save_path = analysis_data_path*filename)
 
-    # get autocovariance function as a function of direction
-    autocovariance_fct_direction_dict = (
-        get_autocovariance_fct_by_sampling_indices_array(
-            structure_dict;
-            save_result = true,
-            save_path = analysis_data_path*filename,
-            print_progress = print_progress,
-            thread_nr = Threads.threadid() ,
-            print_lock = print_lock))
-
-    # get spectral density by wavevector array
-    spectral_density_dict = get_spectral_density_by_wavevector_array_fft(
-        structure_dict;
-        save_autocovariance_fct_direction_dict = false,
-        save_result = true,
-        save_path = analysis_data_path*filename,
-        autocovariance_fct_direction_dict = autocovariance_fct_direction_dict)
-
-    # get angle averaged spectral density
-    spectral_density_angle_averaged_dict = get_spectral_density_angle_averaged(
-        spectral_density_dict;
-        gaussian_filter = true,
-        gaussian_filter_sigma_x = 2*pi/25, 
-        gaussian_filter_filtered_data_x_step_length = 2*pi/25,
-        save_result = true,
-        save_path = analysis_data_path*filename)
-
-    # get volume fraction variance
-    volume_fract_variance_dict = get_volume_fract_variance(
-        autocovariance_fct_direction_dict;
-        save_result = true,
-        save_path = analysis_data_path*filename)
-
-    # get structure factor by wavevector array
+    # get structure factor by wavevector array for vertices
     structure_factor_dict = get_structure_factor_by_wavevector_array(
         spatial_network;
+        consider_bonds = false,
         save_result = true,
         save_path = analysis_data_path*filename,
-        label = nothing)
+        label = nothing,
+        print_progress = print_progress,
+        thread_nr = Threads.threadid(),
+        print_lock = print_lock)
+    
+    # get structure factor by wavevector array for bonds
+    structure_factor_dict = get_structure_factor_by_wavevector_array(
+        spatial_network;
+        consider_bonds = true,
+        save_result = true,
+        save_path = analysis_data_path*filename,
+        label = nothing,
+        print_progress = print_progress,
+        thread_nr = Threads.threadid(),
+        print_lock = print_lock)
 
-    # get angle averaged structure factor
+    # get angle averaged structure factor for vertices
     structure_factor_angle_averaged_dict = get_structure_factor_angle_averaged(
         structure_factor_dict::Dict;
+        consider_bonds = false,
         gaussian_filter = true,
         gaussian_filter_sigma_x = 2*pi/25, 
         gaussian_filter_filtered_data_x_step_length = 2*pi/25,
         save_result = true,
         save_path = analysis_data_path*filename,
         label = nothing)
+
+    # get angle averaged structure factor for bonds
+    structure_factor_bonds_angle_averaged_dict = (
+        get_structure_factor_angle_averaged(
+            structure_factor_dict::Dict;
+            consider_bonds = true,
+            gaussian_filter = true,
+            gaussian_filter_sigma_x = 2*pi/25, 
+            gaussian_filter_filtered_data_x_step_length = 2*pi/25,
+            save_result = true,
+            save_path = analysis_data_path*filename,
+            label = nothing))
 
     # get correlation functions
     correlation_functions_dict = get_correlation_functions(
@@ -244,7 +227,7 @@ function get_all_dicts_from_network_single_file(
         save_result = true,
         save_path = analysis_data_path*filename,
         label = nothing)
-
+    
     # get pore size distribution
     pore_size_distribution_dict = get_pore_size_distribution(
         spatial_network;
@@ -253,11 +236,11 @@ function get_all_dicts_from_network_single_file(
         save_path = analysis_data_path*filename,
         label = nothing,
         print_progress = print_progress,
-        thread_nr = Threads.threadid() ,
+        thread_nr = Threads.threadid(),
         print_lock = print_lock)
-
-    # get all order metrics that contain information about small length scales
-    small_scale_order_metrics_dict = get_small_length_scale_order_metrics(
+    
+    # get all order metrics for the network
+    order_metrics_dict = get_order_metrics(
         filename,
     spatial_network_path,
     analysis_data_path;
@@ -275,13 +258,8 @@ several functions that characterize the structure
 """
 function get_all_dicts_from_networks_single_thread(run_and_filename_chunk,
     spatial_networks_path::String,
-    structure_dicts_path::String,
     analysis_data_path::String;
-    bond_radius = 0.35,
-    voxel_edge_length = 0.1,
-    structure_factor_diamond_std_value_ratio = 1,
-    spectral_density_diamond_std_value_ratio = 1,
-    pore_size_distribution_nr_sampled_voxels::Int64 = 20000,
+    pore_size_sampling_grid_size::Float64 = 0.2,
     print_progress::Bool = false,
     print_lock = Threads.ReentrantLock())
 
@@ -296,20 +274,13 @@ function get_all_dicts_from_networks_single_thread(run_and_filename_chunk,
             end
         end
 
-        get_all_dicts_from_network_single_file(run_and_filename[7:end],
-    spatial_networks_path*run_and_filename[1:6],
-    structure_dicts_path*run_and_filename[1:6],
-    analysis_data_path*run_and_filename[1:6];
-    bond_radius = bond_radius,
-    voxel_edge_length = voxel_edge_length,
-    structure_factor_diamond_std_value_ratio 
-        = structure_factor_diamond_std_value_ratio,
-    spectral_density_diamond_std_value_ratio 
-        = spectral_density_diamond_std_value_ratio,
-    pore_size_distribution_nr_sampled_voxels 
-        = pore_size_distribution_nr_sampled_voxels,
-    print_progress = print_progress,
-    print_lock = print_lock)
+        get_all_dicts_from_network_single_file(
+            run_and_filename[7:end],
+            spatial_networks_path*run_and_filename[1:6],
+            analysis_data_path*run_and_filename[1:6];
+            pore_size_sampling_grid_size = pore_size_sampling_grid_size,
+            print_progress = print_progress,
+            print_lock = print_lock)
         
     end
 
@@ -322,14 +293,9 @@ For all structure dicts in a folder, calculate several functions that
 characterize the structures using multithreading
 """
 function get_all_dicts_from_networks_multithreading(
-    spatial_networks_path,
-    structure_dicts_path,
+    spatial_networks_path::String,
     analysis_data_path::String;
-    bond_radius = 0.35,
-    voxel_edge_length = 0.1,
-    structure_factor_diamond_std_value_ratio = 1,
-    spectral_density_diamond_std_value_ratio = 1,
-    pore_size_distribution_nr_sampled_voxels::Int64 = 20000,
+    pore_size_sampling_grid_size::Float64 = 0.2,
     print_progress::Bool = false,
     runs_vec = collect(1:5),
     print_lock = Threads.ReentrantLock())
@@ -352,7 +318,7 @@ function get_all_dicts_from_networks_multithreading(
         # filter out filenames that are already in the analysis data path
         filenames_spatial_networks_not_analyzed = filter(filename 
             -> !isfile(analysis_data_path*"run_"*string(i)*"/"*filename
-                *"_small_scale_order_metrics.h5"), filenames_spatial_networks)
+                *"_order_metrics.h5"), filenames_spatial_networks)
 
         # append to list of all structure dict paths
         append!(run_and_filename_vec, "run_"*string(i)*"/" 
@@ -370,16 +336,8 @@ function get_all_dicts_from_networks_multithreading(
         Threads.@spawn get_all_dicts_from_networks_single_thread(
             run_and_filename_chunk,
             spatial_networks_path,
-            structure_dicts_path,
             analysis_data_path;
-            bond_radius = bond_radius,
-            voxel_edge_length = voxel_edge_length,
-            structure_factor_diamond_std_value_ratio 
-                = structure_factor_diamond_std_value_ratio,
-            spectral_density_diamond_std_value_ratio 
-                = spectral_density_diamond_std_value_ratio,
-            pore_size_distribution_nr_sampled_voxels 
-                = pore_size_distribution_nr_sampled_voxels,
+            pore_size_sampling_grid_size = pore_size_sampling_grid_size,
             print_progress = print_progress,
             print_lock = print_lock)
     end
@@ -389,15 +347,13 @@ end
 
 
 """
-For given data paths and filename, calculate all order metrics, which can be
-calculated from small length scales
+For given data paths and filename, calculate all order metrics
 """
-function get_small_length_scale_order_metrics(filename::String,
+function get_order_metrics(filename::String,
     network_path::String,
     analysis_data_path::String;
     l_max_steinhardt_q_l::Int64 = 12,
-    save_result = false,
-    )
+    save_result = false)
 
     # load network
     spatial_network = NG.load_spatial_network_from_gml(
@@ -462,26 +418,31 @@ function get_small_length_scale_order_metrics(filename::String,
     pore_size_distribution_second_moment = (
         get_pore_size_distribution_second_moment(pore_size_distribution_dict))
 
-    # load angle averaged structure factor
-    structure_factor_dict = GU.load_h5_dict(
-        analysis_data_path*filename*"_structure_factor.h5")
+    # load angle averaged structure factor for vertices
+    structure_factor_angle_averaged_dict = GU.load_h5_dict(
+        analysis_data_path*filename*"_structure_factor_angle_averaged.h5")
 
-    # get anisotropy metric from structure factor
+    # get anisotropy metric from structure factor for vertices
     anisotropy_metric_from_structure_factor = (
-        get_anisotropy_metric_from_structure_factor(structure_factor_dict))
+        get_anisotropy_metric_from_structure_factor(
+            structure_factor_angle_averaged_dict))
 
-    # load angle averaged spectral density
-    spectral_density_angle_averaged_dict = GU.load_h5_dict(
-        analysis_data_path*filename*"_spectral_density_angle_averaged.h5")
+    # load angle averaged structure factor for bonds
+    structure_factor_bonds_angle_averaged_dict = GU.load_h5_dict(
+        analysis_data_path*filename
+        *"_structure_factor_bonds_angle_averaged.h5")
 
-    # get anisotropy metric from spectral density
-    anisotropy_metric_from_spectral_density = (
-        get_anisotropy_metric_from_spectral_density(
-            spectral_density_angle_averaged_dict;
-            diamond_std_value_ratio=spectral_density_diamond_std_value_ratio))
+    # get anisotropy metric from structure factor for bonds
+    anisotropy_metric_from_structure_factor_bonds = (
+        get_anisotropy_metric_from_structure_factor(
+            structure_factor_bonds_angle_averaged_dict))
+
+    # get the alpha value that captures whether the network is hyperuniform 
+    slope_measurement_time, hyperuniformity_alpha = (
+        get_hyperuniformity_alpha(structure_factor_bonds_angle_averaged_dict))
 
     # create dict to save
-    small_scale_order_metrics_dict = Dict(
+    order_metrics_dict = Dict(
         "total_keating_energy" => total_keating_energy,
         "bond_length_std" => bond_length_std,
         "bond_angle_std" => bond_angle_std,
@@ -499,29 +460,30 @@ function get_small_length_scale_order_metrics(filename::String,
             => pore_size_distribution_second_moment,
         "anisotropy_metric_from_structure_factor" 
             => anisotropy_metric_from_structure_factor,
-        "anisotropy_metric_from_spectral_density" 
-            => anisotropy_metric_from_spectral_density
+        "anisotropy_metric_from_structure_factor_bonds" 
+            => anisotropy_metric_from_structure_factor_bonds,
+        "hyperuniformity_alpha" => hyperuniformity_alpha,
     )
 
     if save_result
-        GU.save_dict_to_h5(small_scale_order_metrics_dict, 
-            analysis_data_path*filename*"_small_scale_order_metrics.h5")
+        GU.save_dict_to_h5(order_metrics_dict, 
+            analysis_data_path*filename*"_order_metrics.h5")
     end
 
-    return small_scale_order_metrics_dict
+    return order_metrics_dict
 end
 
 
-function get_small_length_scale_order_metrics_all_files(
+function get_order_metrics_all_files(
     analysis_data_path::String;
     l_max_steinhardt_q_l::Int64 = 12,
     save_result::Bool = false,)
 
-    # get filenames of small scale order
-    # anisotropy_metric_from_spectral_density
+    # get all dictionaries containing order metrics
     all_filenames = readdir(analysis_data_path)
     order_metrics_filenames = [filename for filename in all_filenames
-        if occursin("small_scale_order_metrics", filename)]
+        if (occursin("order_metrics", filename) 
+            && filename != "all_order_metrics.h5")]
 
     # initialize vectors for all order metrics
     total_keating_energy_vec = Vector{Float64}(undef,
@@ -554,8 +516,10 @@ function get_small_length_scale_order_metrics_all_files(
         length(order_metrics_filenames))
     anisotropy_metric_from_structure_factor_vec = Vector{Float64}(undef,
         length(order_metrics_filenames))
-    anisotropy_metric_from_spectral_density_vec = Vector{Float64}(undef,
+    anisotropy_metric_from_structure_factor_bonds_vec = Vector{Float64}(undef,
         length(order_metrics_filenames))
+    hyperuniformity_alpha_vec = Vector{Measurements.Measurement{Float64}}(
+        undef, length(order_metrics_filenames))
 
     # loop through order metric filenames
     for i in eachindex(order_metrics_filenames)
@@ -588,8 +552,11 @@ function get_small_length_scale_order_metrics_all_files(
             order_metrics_dict["pore_size_distribution_second_moment"])
         anisotropy_metric_from_structure_factor_vec[i] = (
             order_metrics_dict["anisotropy_metric_from_structure_factor"])
-        anisotropy_metric_from_spectral_density_vec[i] = (
-            order_metrics_dict["anisotropy_metric_from_spectral_density"])
+        anisotropy_metric_from_structure_factor_bonds_vec[i] = (
+            order_metrics_dict[
+                "anisotropy_metric_from_structure_factor_bonds"])
+        hyperuniformity_alpha_vec[i] = (
+            order_metrics_dict["hyperuniformity_alpha"])
 
     end
 
@@ -625,9 +592,11 @@ function get_small_length_scale_order_metrics_all_files(
     anisotropy_metric_from_structure_factor_vec = (
         anisotropy_metric_from_structure_factor_vec[
             sortperm(total_keating_energy_vec)])
-    anisotropy_metric_from_spectral_density_vec = (
-        anisotropy_metric_from_spectral_density_vec[
+    anisotropy_metric_from_structure_factor_bonds_vec = (
+        anisotropy_metric_from_structure_factor_bonds_vec[
             sortperm(total_keating_energy_vec)])
+    hyperuniformity_alpha_vec = hyperuniformity_alpha_vec[
+        sortperm(total_keating_energy_vec)]
 
     sort!(total_keating_energy_vec)
 
@@ -640,7 +609,7 @@ function get_small_length_scale_order_metrics_all_files(
         "bond_orientation_entropy_vec" => bond_orientation_entropy_vec,
         "coordination_nr_mean_vec" => coordination_nr_mean_vec,
         "coordination_nr_std_vec" => coordination_nr_std_vec,
-        # TODO: "q_l_mat" => q_l_mat, creates error so far
+        "q_l_mat" => q_l_mat,
         "vertex_homogeneity_metric_vec" => vertex_homogeneity_metric_vec,
         "ring_size_mean_vec" => ring_size_mean_vec,
         "ring_size_std_vec" => ring_size_std_vec,
@@ -650,8 +619,9 @@ function get_small_length_scale_order_metrics_all_files(
             => pore_size_distribution_second_moment_vec,
         "anisotropy_metric_from_structure_factor_vec" 
             => anisotropy_metric_from_structure_factor_vec,
-        "anisotropy_metric_from_spectral_density_vec" 
-            => anisotropy_metric_from_spectral_density_vec,
+        "anisotropy_metric_from_structure_factor_bonds_vec" 
+            => anisotropy_metric_from_structure_factor_bonds_vec,
+        "hyperuniformity_alpha_vec" => hyperuniformity_alpha_vec,
         "filenames_vec" => order_metrics_filenames
     )
 

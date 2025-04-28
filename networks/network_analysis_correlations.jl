@@ -381,11 +381,30 @@ function get_structure_factor_by_wavevector_array(
             maximal_wavevector_int=maximal_wavevector_int),
     save_result = false,
     save_path = raw"..\analysis_data\sample_name",
-    label = nothing)
+    label = nothing,
+    print_progress::Bool = false,
+    thread_nr::Int64 = 0,
+    print_lock = Threads.ReentrantLock())
 
     # initialize structure factor array
     structure_factor_array = Array{Float64}(undef, 
         size(wavevector_array_positive_z)[1:3]...)
+
+    if print_progress
+        # get number of wavevectors to sample
+        nr_sampled_wavevectors = size(wavevector_array_positive_z)[1] *
+            size(wavevector_array_positive_z)[2] *
+            size(wavevector_array_positive_z)[3]
+
+        # initialize progress counter
+        wavevector_count = 0
+
+        if consider_bonds
+            bonds_string = "bonds"
+        else
+            bonds_string = "vertices"
+        end
+    end
 
     # get structure factor for all wavevectors
     for i in 1:size(wavevector_array_positive_z)[1], 
@@ -402,6 +421,23 @@ function get_structure_factor_by_wavevector_array(
             # get structure factor for current wavevector and spatial network
             structure_factor_array[i,j,k] = get_structure_factor(
                 wavevector_array_positive_z[i,j,k,:], spatial_network)
+        end
+
+        # print progress
+        if print_progress
+            wavevector_count += 1
+
+            # print every 100th voxel
+            if wavevector_count % 10000 == 0
+                progress_percentage = (wavevector_count
+                    /nr_sampled_wavevectors*100)
+
+                lock(print_lock) do
+                    Format.printfmtln("Structure factor calculation for {1:s} 
+                    thread nr {2:d}: {3:.1f} %", bonds_string, thread_nr, 
+                    progress_percentage)
+                end
+            end
         end
     end
 
@@ -452,8 +488,7 @@ end
 From the dictionary containing the 3d structure factor, get a dictionary that,
 for each index vector squared contains all values of the structure factor. The 
 index vector squared is proportional to the wavenumber squared. The returned 
-dictionary can be used to calculate the angle averaged structure factor or an
-anisotropy metric
+dictionary can be used to calculate the angle averaged structure factor 
 """
 function get_structure_factor_by_index_vec_squared_dict(
     structure_factor_dict::Dict;
@@ -565,7 +600,8 @@ function get_structure_factor_angle_averaged(
     # create dict to save
     structure_factor_angle_averaged_dict = Dict{String, Any}(
         "unfiltered_wavenumber_vec" => unfiltered_wavenumber_vec, 
-        "unfiltered_"*data_type_string*"_vec" => unfiltered_structure_factor_vec)
+        "unfiltered_"*data_type_string*"_vec" 
+            => unfiltered_structure_factor_vec)
 
     # apply gaussian filter if desired
     if gaussian_filter
@@ -672,12 +708,17 @@ function get_correlation_functions(
     cumulative_coord_nr_vec = (4*pi*vertex_density*distance_histogram_bin_width
         * cumsum(vertex_distance_vec.^2 .* pair_correlation_fct_vec ))
 
+    # calculate the vertex density
+    vertex_density = (spatial_network[]["nr_vertices"] 
+        / spatial_network[]["supercell_edge_length"]^3)
+
     # create dict to save
     correlation_functions_dict = Dict{String, Any}(
         "vertex_distance_vec" => vertex_distance_vec, 
         "cumulative_coord_nr_vec" => cumulative_coord_nr_vec,
         "pair_correlation_fct_vec" => pair_correlation_fct_vec,
-        "total_correlation_fct_vec" => total_correlation_fct_vec)
+        "total_correlation_fct_vec" => total_correlation_fct_vec,
+        "vertex_density" => vertex_density,)
 
     # add label to dictionary if label is not nothing
     if label !== nothing
@@ -695,42 +736,17 @@ end
 
 
 """
-Define a homogeneity metric as the average sphere radius within which there is 
-the given number of vertices. If the homogeneity metric is close to 0, the
-network is clustered
+Define a vertex_homogeneity metric as the average distance to the nearest
+distance to the next vertex independently whether it is a neighbor or not. This
+distance is smaller than 1 if the network is clustered
 """
-function get_vertex_homogeneity_metric(correlation_functions_dict::Dict;
-    nr_vertices_within_sphere::Int = 10)
+function get_vertex_homogeneity_metric(correlation_functions_dict::Dict)
 
-    # get distance where cumulative coordination nr equals the given number of 
-    # vertices. To account for the fact that the central vertex is not
-    # contained in the cumulative coordination number, 1 has to be subtracted
     vertex_homogeneity_metric = (
-        correlation_functions_dict["vertex_distance_vec"][
-            findfirst(x -> x > nr_vertices_within_sphere-1, 
-            correlation_functions_dict["cumulative_coord_nr_vec"])])
+        correlation_functions_dict["vertex_distance_vec"][argmin(abs.(
+            correlation_functions_dict["cumulative_coord_nr_vec"] .- 1))])
 
     return vertex_homogeneity_metric
-end
-
-
-"""
-Get the second moment of the pore size distribution which, according to 
-10.1103/PhysRevE.104.014127 is an estimate of the critical pore radius squared
-(although they use another definition of the pore size distribution)
-"""
-function get_pore_size_distribution_second_moment(
-    pore_size_distribution_dict::Dict)
-
-    pore_size_step_length = (pore_size_distribution_dict["pore_size_vec"][2] 
-        - pore_size_distribution_dict["pore_size_vec"][1])
-
-    # get second moment of pore size distribution
-    pore_size_distribution_second_moment = pore_size_step_length * sum(
-        pore_size_distribution_dict["pore_size_vec"].^2 
-        .* pore_size_distribution_dict["pore_size_distribution"])
-
-    return pore_size_distribution_second_moment
 end
 
 
@@ -742,7 +758,7 @@ as a function of direction. In reality, values around 0.45 represent low
 anisotropy and values around 0.55 represent high anisotropy.
 """
 function get_anisotropy_metric_from_structure_factor(
-    structure_factor_dict::Dict;
+    structure_factor_angle_averaged_dict::Dict;
     maximal_length_to_check = 3.0,
     nr_closest_wavenumbers = 3,
     normalization_parameter = 1.0)
@@ -751,55 +767,37 @@ function get_anisotropy_metric_from_structure_factor(
     wavenumbers_to_check_vec = (2*pi) ./ collect(
         0.5:0.5:maximal_length_to_check+0.01)
 
-    # get the dictionary that, for each index vector squared contains all 
-    # values of the structure factor. The index vector squared is proportional 
-    # to the square of the wavenumber
-    structure_factor_by_index_vec_squared_dict, reciprocal_lattice_constant = (
-        get_structure_factor_by_index_vec_squared_dict(
-        structure_factor_dict))
-
-    # first, create a vector of all index vectors squared
-    index_vec_squared_vec = collect(keys(
-        structure_factor_by_index_vec_squared_dict))
-
-    # get the three index vectors squared that are closest to the wavenumbers
-    # to check
-    index_vec_squared_to_check_arr = Array{Int64}(undef, 
-    nr_closest_wavenumbers, 
-        length(wavenumbers_to_check_vec))
-    for i in eachindex(wavenumbers_to_check_vec)
-        # get the three index vectors squared that are closest to the wavenumber
-        # to check
-        index_vec_squared_to_check_arr[:, i] = index_vec_squared_vec[sortperm(
-            abs.(index_vec_squared_vec .- (wavenumbers_to_check_vec[i]/
-                reciprocal_lattice_constant)^2))][1:nr_closest_wavenumbers]
-    end
-
-    # for each index vector squared, calculate a normalized coefficient of
+    # for each wavenumber to check, calculate a normalized coefficient of
     # variation (std over mean)
     anisotropy_metric_vec = Vector{Float64}(undef, 
         length(wavenumbers_to_check_vec))
 
     for i in eachindex(wavenumbers_to_check_vec)
-        # get the structure factor for the three index vectors squared
-        structure_factor_vec =
-            structure_factor_by_index_vec_squared_dict[
-                index_vec_squared_to_check_arr[1, i]] 
+        # get the three indices of the closest wavenumbers to the current
+        # wavenumber to check
+        structure_factor_indices_vec = sortperm(abs.(
+            structure_factor_angle_averaged_dict["unfiltered_wavenumber_vec"]
+            .- wavenumbers_to_check_vec[i]))[1:nr_closest_wavenumbers]
+
+        # get the structure factor for the three wavenumbers
+        structure_factor_vec = structure_factor_angle_averaged_dict[
+                "unfiltered_structure_factor_vec"][structure_factor_indices_vec[1]]
         for j in 2:nr_closest_wavenumbers
-            structure_factor_vec = vcat(
-                structure_factor_vec, 
-                structure_factor_by_index_vec_squared_dict[
-                    index_vec_squared_to_check_arr[j, i]])
+            structure_factor_vec = vcat(structure_factor_vec, 
+                structure_factor_angle_averaged_dict[
+                    "unfiltered_structure_factor_vec"][
+                        structure_factor_indices_vec[j]])
         end
 
         # calculate the coefficient of variation
-        coefficient_of_variation = (Statistics.std(structure_factor_vec)
-            /(Statistics.mean(structure_factor_vec)))
+        mean_structure_factor = Statistics.mean(structure_factor_vec)
+        coefficient_of_variation = (
+            Measurements.uncertainty(mean_structure_factor)
+            /Measurements.value(mean_structure_factor))
 
         # calculate the anisotropy metric that ranges between 0 and 1
         anisotropy_metric_vec[i] = coefficient_of_variation/(
             normalization_parameter + coefficient_of_variation)
-
     end
 
     # calculate the average of the anisotropy entropy metric
@@ -969,7 +967,7 @@ function get_hyperuniformity_alpha(structure_factor_angle_averaged_dict::Dict;
 
     # get alpha from the minimal slope according to section IIIB of 
     # 10.1103/PhysRevE.109.064108
-    alpha = -2*minimal_slope - 3
+    hyperuniformity_alpha = -2*minimal_slope - 3
     
-    return [slope_measurement_time, alpha]
+    return [slope_measurement_time, hyperuniformity_alpha]
 end

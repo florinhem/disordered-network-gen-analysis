@@ -25,19 +25,21 @@ import Polynomials
 # 64 vertices: supercell_edge_length = 4.619802153517007
 # which is the cube root of the number of vertices times 2/sqrt(3)
 
-save_path =  raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\random_networks\216_vertices_bond_bending_0.21\run_1\\"
+spatial_network_path =  raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\testing\\"
+filename = "216_vertices_T_0.11_heat_cool_0.1_per_mc_quenched"
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\testing\\"
 
-diamond_bonds = GU.load_h5_dict(save_path*"diamond_bonds_structure_factor_angle_averaged.h5")
-disorder_bonds = GU.load_h5_dict(save_path*"disorder_bonds_structure_factor_angle_averaged.h5")
-disorder_2_bonds = GU.load_h5_dict(save_path*"disorder_2_bonds_structure_factor_angle_averaged.h5")
-disorder_3_bonds = GU.load_h5_dict(save_path*"disorder_3_bonds_structure_factor_angle_averaged.h5")
+NA.get_all_dicts_from_network_single_file(
+    filename,
+    spatial_network_path,
+    analysis_data_path;
+    pore_size_sampling_grid_size = 0.2,
+    print_progress = true,
+    print_lock = Threads.ReentrantLock())
 
-slope_measurement_time_time, alpha = NA.get_hyperuniformity_alpha(diamond_bonds)
-slope_measurement_time_time_disorder, alpha_disorder = NA.get_hyperuniformity_alpha(disorder_bonds)
-slope_measurement_time_time_disorder_2, alpha_disorder_2 = NA.get_hyperuniformity_alpha(disorder_2_bonds)
-slope_measurement_time_time_disorder_3, alpha_disorder_3 = NA.get_hyperuniformity_alpha(disorder_3_bonds)
+# load order metrics dict
+order_metrics_dict = GU.load_h5_dict(analysis_data_path*filename*"_order_metrics.h5")
 
-println("diamond_bonds: slope_measurement_time_time = ", slope_measurement_time_time, ", alpha = ", alpha)
-println("disorder_bonds: slope_measurement_time_time = ", slope_measurement_time_time_disorder, ", alpha = ", alpha_disorder)
-println("disorder_2_bonds: slope_measurement_time_time = ", slope_measurement_time_time_disorder_2, ", alpha = ", alpha_disorder_2)
-println("disorder_3_bonds: slope_measurement_time_time = ", slope_measurement_time_time_disorder_3, ", alpha = ", alpha_disorder_3)
+for key in keys(order_metrics_dict)
+    println(key, ": ", order_metrics_dict[key])
+end

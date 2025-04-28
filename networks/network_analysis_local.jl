@@ -305,7 +305,20 @@ Get the mean and standard deviation of the coordination number of a network.
 function get_coordination_nr_statistics(
     spatial_network::MetaGraphsNext.MetaGraph)
 
-    coordination_nr_vec = spatial_network[]["coordination_nr_vec"]
+    # check if the network has the key "coordination_nr_vec"
+    if haskey(spatial_network[], "coordination_nr_vec")
+        coordination_nr_vec = spatial_network[]["coordination_nr_vec"]
+
+    # if not, create a vector of the coordination number for each vertex
+    else
+        coordination_nr_vec = Vector{Int64}(
+            undef, spatial_network[]["nr_vertices"])
+        for vertex in MetaGraphsNext.labels(spatial_network)
+            coordination_nr_vec[vertex] = length(
+                MetaGraphsNext.neighbor_labels(spatial_network, vertex))
+        end
+    end
+    
     
     # calculate mean and standard deviation of the coordination number
     coordination_nr_mean = Statistics.mean(coordination_nr_vec)
@@ -563,7 +576,7 @@ function get_pore_size_distribution(spatial_network::MetaGraphsNext.MetaGraph;
         nr_coords = nr_grid_points_per_direction^3
         lock(print_lock) do
             Format.printfmtln("Pore size distribution calculation started 
-                thread nr {1:d}. Nr grid points: {1:d}", thread_nr, nr_coords)
+                thread nr {1:d}. Nr grid points: {2:d}", thread_nr, nr_coords)
         end
     end
 
@@ -600,7 +613,7 @@ function get_pore_size_distribution(spatial_network::MetaGraphsNext.MetaGraph;
 
             # print every 100th voxel
             if coord_count % 1000 == 0
-                progress_percentage = coord_count/nr_sampled_voxels*100
+                progress_percentage = coord_count/nr_coords*100
 
                 lock(print_lock) do
                     Format.printfmtln("Pore size distribution calculation
@@ -730,6 +743,26 @@ function get_pore_size_distribution(spatial_network::MetaGraphsNext.MetaGraph;
     end
 
     return pore_size_distribution_dict
+end
+
+
+"""
+Get the second moment of the pore size distribution which, according to 
+10.1103/PhysRevE.104.014127 is an estimate of the critical pore radius squared
+(although they use another definition of the pore size distribution)
+"""
+function get_pore_size_distribution_second_moment(
+    pore_size_distribution_dict::Dict)
+
+    pore_size_step_length = (pore_size_distribution_dict["pore_size_vec"][2] 
+        - pore_size_distribution_dict["pore_size_vec"][1])
+
+    # get second moment of pore size distribution
+    pore_size_distribution_second_moment = pore_size_step_length * sum(
+        pore_size_distribution_dict["pore_size_vec"].^2 
+        .* pore_size_distribution_dict["pore_size_distribution"])
+
+    return pore_size_distribution_second_moment
 end
 
 
@@ -877,10 +910,19 @@ function get_ring_size_distribution(spatial_network::MetaGraphsNext.MetaGraph;
     histogram = LinearAlgebra.normalize(histogram, mode=:probability)
     ring_size_distribution = histogram.weights
 
+    # convert the vector of very strong rings into a matrix to be ably to save 
+    # it in the h5 file
+    very_strong_rings_vec_mat = zeros(Int64, length(very_strong_rings_vec),
+        maximum(length.(very_strong_rings_vec)))
+    for i in 1:length(very_strong_rings_vec)
+        very_strong_rings_vec_mat[i, 1:length(very_strong_rings_vec[i])] = 
+            very_strong_rings_vec[i]
+    end
+
     ring_size_distribution_dict = Dict{String, Any}(
         "ring_size_vec" => ring_size_vec,
         "ring_size_distribution" => ring_size_distribution,
-        "very_strong_rings_vec" => very_strong_rings_vec)
+        "very_strong_rings_vec_mat" => very_strong_rings_vec_mat)
 
     # add label to dictionary if label is not nothing
     if label !== nothing
@@ -1007,8 +1049,14 @@ function get_ring_radius_distribution(
     label = nothing)
 
     # get the very strong rings of the network
-    very_strong_rings_vec = ring_size_distribution_dict[
-        "very_strong_rings_vec"]
+    very_strong_rings_mat = ring_size_distribution_dict[
+        "very_strong_rings_vec_mat"]
+    # convert the matrix of very strong rings into a vector of vectors
+    very_strong_rings_vec = Vector{Vector{Int64}}()
+    for i in 1:size(very_strong_rings_mat, 1)
+        push!(very_strong_rings_vec, 
+            filter(v -> v != 0, very_strong_rings_mat[i, :]))
+    end
 
     # for each ring, get the normal vector and the maximal radius of a circle
     # that can be placed in the projection of the ring onto the plane defined

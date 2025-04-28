@@ -16733,3 +16733,81 @@ disorder_3_bonds_angle_averaged = NA.get_structure_factor_angle_averaged(
     save_result = true,
     save_path = plots_save_path*"disorder_3_bonds",
     label = nothing)
+
+
+spatial_network_path =  raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\testing\\"
+filename = "216_vertices_T_0.11_heat_cool_0.1_per_mc_quenched"
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\testing\\"
+
+NA.get_all_dicts_from_network_single_file(
+    filename,
+    spatial_network_path,
+    analysis_data_path;
+    pore_size_sampling_grid_size = 0.2,
+    print_progress = true,
+    print_lock = Threads.ReentrantLock())
+
+# load order metrics dict
+order_metrics_dict = GU.load_h5_dict(analysis_data_path*filename*"_order_metrics.h5")
+
+for key in keys(order_metrics_dict)
+    println(key, ": ", order_metrics_dict[key])
+end
+
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\random_networks\216_vertices_bond_bending_0.21\run_1\\"
+
+diamond_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\diamonds\216_vertices_perfect_diamond.gml"
+
+disorder_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_3\216_vertices_T_0.08_heat_cool_0.1_per_mc_quenched.gml"
+
+disorder_path_2 = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_1\216_vertices_T_0.16_heat_cool_0.1_per_mc_quenched.gml"
+
+disorder_path_3 = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\216_vertices_bond_bending_0.21\run_1\216_vertices_T_0.24_heat_cool_0.1_per_mc_quenched.gml"
+
+
+diamond = NG.load_spatial_network_from_gml(diamond_path)
+disorder = NG.load_spatial_network_from_gml(disorder_path)
+disorder_2 = NG.load_spatial_network_from_gml(disorder_path_2)
+disorder_3 = NG.load_spatial_network_from_gml(disorder_path_3)
+
+correlation_functions_diamond = GU.load_h5_dict(save_path*"diamond_correlation_functions.h5")
+correlation_functions_disorder = GU.load_h5_dict(save_path*"disorder_correlation_functions.h5")
+correlation_functions_disorder_2 = GU.load_h5_dict(save_path*"disorder_2_correlation_functions.h5")
+correlation_functions_disorder_3 = GU.load_h5_dict(save_path*"disorder_3_correlation_functions.h5")
+
+println(correlation_functions_diamond["vertex_distance_vec"][argmin(abs.(correlation_functions_diamond["cumulative_coord_nr_vec"] .- 1))])
+println(correlation_functions_disorder["vertex_distance_vec"][argmin(abs.(correlation_functions_disorder["cumulative_coord_nr_vec"] .- 1))])
+println(correlation_functions_disorder_2["vertex_distance_vec"][argmin(abs.(correlation_functions_disorder_2["cumulative_coord_nr_vec"] .- 1))])
+println(correlation_functions_disorder_3["vertex_distance_vec"][argmin(abs.(correlation_functions_disorder_3["cumulative_coord_nr_vec"] .- 1))])
+
+
+diamond = GU.load_h5_dict(save_path*"diamond_vertices_structure_factor_angle_averaged.h5")
+disorder = GU.load_h5_dict(save_path*"disorder_vertices_structure_factor_angle_averaged.h5")
+disorder_2 = GU.load_h5_dict(save_path*"disorder_2_vertices_structure_factor_angle_averaged.h5")
+disorder_3 = GU.load_h5_dict(save_path*"disorder_3_vertices_structure_factor_angle_averaged.h5")
+
+diamond_bonds = GU.load_h5_dict(save_path*"diamond_bonds_structure_factor_angle_averaged.h5")
+disorder_bonds = GU.load_h5_dict(save_path*"disorder_bonds_structure_factor_angle_averaged.h5")
+disorder_2_bonds = GU.load_h5_dict(save_path*"disorder_2_bonds_structure_factor_angle_averaged.h5")
+disorder_3_bonds = GU.load_h5_dict(save_path*"disorder_3_bonds_structure_factor_angle_averaged.h5")
+
+
+anisotropy_diamond_vertices = NA.get_anisotropy_metric_from_structure_factor(diamond)
+anisotropy_diamond_bonds = NA.get_anisotropy_metric_from_structure_factor(diamond_bonds)
+anisotropy_disorder_vertices = NA.get_anisotropy_metric_from_structure_factor(disorder)
+anisotropy_disorder_bonds = NA.get_anisotropy_metric_from_structure_factor(disorder_bonds)
+anisotropy_disorder_2_vertices = NA.get_anisotropy_metric_from_structure_factor(disorder_2)
+anisotropy_disorder_2_bonds = NA.get_anisotropy_metric_from_structure_factor(disorder_2_bonds)
+anisotropy_disorder_3_vertices = NA.get_anisotropy_metric_from_structure_factor(disorder_3)
+anisotropy_disorder_3_bonds = NA.get_anisotropy_metric_from_structure_factor(disorder_3_bonds)
+
+println("anisotropy_diamond_vertices: ", anisotropy_diamond_vertices)
+println("anisotropy_disorder_vertices: ", anisotropy_disorder_vertices)
+println("anisotropy_disorder_2_vertices: ", anisotropy_disorder_2_vertices)
+println("anisotropy_disorder_3_vertices: ", anisotropy_disorder_3_vertices)
+
+println("anisotropy_diamond_bonds: ", anisotropy_diamond_bonds)
+println("anisotropy_disorder_bonds: ", anisotropy_disorder_bonds)
+println("anisotropy_disorder_2_bonds: ", anisotropy_disorder_2_bonds)
+println("anisotropy_disorder_3_bonds: ", anisotropy_disorder_3_bonds)
