@@ -1,6 +1,6 @@
 
 # include file where structure analysis modules are stored
-include("structure_analysis_modules.jl")
+include("structure_analysis_modules_no_plotting.jl")
 
 # import my module that contains all functions for the generation and analysis of networks
 import .NetworkGeneration as NG
@@ -25,21 +25,24 @@ import Polynomials
 # 64 vertices: supercell_edge_length = 4.619802153517007
 # which is the cube root of the number of vertices times 2/sqrt(3)
 
-spatial_network_path =  raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\testing\\"
-filename = "216_vertices_T_0.11_heat_cool_0.1_per_mc_quenched"
-analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\testing\\"
+print_lock = Threads.ReentrantLock()
 
-NA.get_all_dicts_from_network_single_file(
-    filename,
-    spatial_network_path,
+spatial_networks_upper_path = "../structures/random_networks/"
+analysis_data_upper_path = "../analysis_data/random_networks/new_order_metrics/"
+
+# get a list of folders in the spatial_networks_path directory that begin with
+# "216_vertices"
+folder_names = readdir(spatial_networks_upper_path)
+folder_names = filter(x -> occursin("216_vertices", x), folder_names)
+
+for folder_name in folder_names
+    spatial_networks_path = spatial_networks_upper_path * folder_name * "/"
+    analysis_data_path = analysis_data_upper_path * folder_name * "/"
+
+    NA.get_all_dicts_from_networks_multithreading(
+    spatial_networks_path,
     analysis_data_path;
-    pore_size_sampling_grid_size = 0.2,
     print_progress = true,
-    print_lock = Threads.ReentrantLock())
-
-# load order metrics dict
-order_metrics_dict = GU.load_h5_dict(analysis_data_path*filename*"_order_metrics.h5")
-
-for key in keys(order_metrics_dict)
-    println(key, ": ", order_metrics_dict[key])
+    print_lock = print_lock)
 end
+

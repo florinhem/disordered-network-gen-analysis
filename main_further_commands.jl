@@ -25157,3 +25157,46 @@ println("anisotropy_diamond_bonds: ", anisotropy_diamond_bonds)
 println("anisotropy_disorder_bonds: ", anisotropy_disorder_bonds)
 println("anisotropy_disorder_2_bonds: ", anisotropy_disorder_2_bonds)
 println("anisotropy_disorder_3_bonds: ", anisotropy_disorder_3_bonds)
+
+
+spatial_network_path =  raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks\testing\\"
+filename = "216_vertices_T_0.11_heat_cool_0.1_per_mc_quenched"
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\testing\\"
+
+NA.get_all_dicts_from_network_single_file(
+    filename,
+    spatial_network_path,
+    analysis_data_path;
+    pore_size_sampling_grid_size = 0.2,
+    print_progress = true,
+    print_lock = Threads.ReentrantLock())
+
+# load order metrics dict
+order_metrics_dict = GU.load_h5_dict(analysis_data_path*filename*"_order_metrics.h5")
+
+for key in keys(order_metrics_dict)
+    println(key, ": ", order_metrics_dict[key])
+
+    
+spatial_networks_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\random_networks"
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\new_order_metrics"
+
+# get a list of folders in the spatial_networks_path directory that begin with
+# "216_vertices"
+folder_names = readdir(spatial_networks_path)
+folder_names = filter(x -> occursin("216_vertices", x), folder_names)
+
+# in the analysis data path, create a folder for each of the folders in the spatial_networks_path
+# and create a subfolder "run_1" to "run_5" in each of these folders
+for folder_name in folder_names
+    # create the folder in the analysis data path
+    folder_path = joinpath(analysis_data_path, folder_name)
+    mkpath(folder_path)
+
+    # create the subfolders "run_1" to "run_5" in the folder
+    for i in 1:5
+        run_folder_path = joinpath(folder_path, "run_$i")
+        mkpath(run_folder_path)
+    end
+end
