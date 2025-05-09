@@ -1,6 +1,6 @@
 
 # include file where structure analysis modules are stored
-include("structure_analysis_modules_no_plotting.jl")    #*#
+include("structure_analysis_modules.jl")    #*#
 
 # import my module that contains all functions for the generation and analysis of networks
 import .NetworkGeneration as NG
@@ -10,6 +10,8 @@ import .GeneralUtilities as GU
 import MetaGraphsNext
 import Graphs
 import .Threads
+import Plots
+Plots.pyplot()
 
 function save_multiple_N_T_trials_beta_gml(
     ;
@@ -69,6 +71,12 @@ function save_multiple_N_T_trials_beta_gml(
 
         spatial_network = NG.get_periodic_network(evolution_dict)
 
+        plot1=NG.plot_spatial_network_2(spatial_network)
+        Plots.xlabel!("x")
+        Plots.ylabel!("y")
+        Plots.zlabel!("z")
+        display(plot1)
+
         println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
         println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
     
@@ -92,6 +100,14 @@ function save_multiple_N_T_trials_beta_gml(
             move_accepted_vec= move_accepted_vec,
             print_progress = true,
             print_every_nr_attempted_bond_switches = 1000)
+
+        plot1=NG.plot_spatial_network_2(spatial_network)
+        Plots.xlabel!("x")
+        Plots.ylabel!("y")
+        Plots.zlabel!("z")
+        display(plot1)
+
+        #break
 
         println("nbr acc moves, $(length(move_accepted_vec)), $(sum(move_accepted_vec))")
         println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
@@ -122,6 +138,36 @@ function save_multiple_N_T_trials_beta_gml(
 end
 
 save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["pto"],
+    nr_vertices_array=[14*3^3],
+    maximal_temperature_array=[0.45],
+    bond_bending_const_array=[0.1],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/ft_1/",     
+    filename_start="test_1"
+)
+
+#=
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["srd"],#["pto", "lcs"],
+    nr_vertices_array=[18],#[216],
+    maximal_temperature_array=[0.0001],
+    bond_bending_const_array=[0.1],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/ft_1/",     
+    filename_start="test_1"
+)
+
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["dia", "srs", "srd", "ctn"],
     nr_vertices_array=[216],
     maximal_temperature_array=[0.1,0.15,0.2],
     bond_bending_const_array=[0.1,0.05,0.025],
@@ -129,8 +175,8 @@ save_multiple_N_T_trials_beta_gml(;
     nr_monte_carlo_steps_per_temperature_array=[0.01],
     theta_ground_state_array=[180.0],
     nr_trials_per_temperature_array=[1],
-    network_type_array=["dia", "srs", "srd", "ctn"],
     quench=true,
     save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/ft_1/",     
     filename_start="ft_1"
 )
+=#

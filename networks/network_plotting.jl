@@ -280,26 +280,13 @@ function plot_spatial_network_2(
         pos_1 = spatial_network[bond[1]]["position"]
         pos_2 = spatial_network[bond[2]]["position"]
 
-        len=3.0
-        if LinearAlgebra.norm(pos_1 .- pos_2)<len
-
-            Plots.plot!([pos_1[1], pos_2[1]], 
-                        [pos_1[2], pos_2[2]], 
-                        [pos_1[3], pos_2[3]], 
+        Plots.plot!(
+            [pos_1[1], pos_2[1]], 
+            [pos_1[2], pos_2[2]], 
+            [pos_1[3], pos_2[3]], 
             type="scatter3d", mode="lines", color=color, showlegend=false)
-        else
-            println("We ignored the line in the plot from $pos_1 to $pos_2")
-        end
-        #=
-        markersize_1 = 1 #rand(1:2)
-        markersize_2 = 2 #rand(1:2)
-        color_1 = :black #Colors.RGB(rand(), rand(), rand())
-        color_2 = :black #Colors.RGB(rand(), rand(), rand())
-        Plots.scatter!([pos_1[1]], [pos_1[2]], [pos_1[3]], 
-                       markersize=markersize_1, marker=:circle, color=color_1, showlegend=false)
-        Plots.scatter!([pos_2[1]], [pos_2[2]], [pos_2[3]], 
-                       markersize=markersize_2, marker=:circle, color=color_2, showlegend=false)
-        =#
+
+
     end
 
     Plots.gr()
@@ -324,7 +311,6 @@ function get_rainbow_color_vecs(spatial_network )
     # count current edge
     edge_count = 1
 
-    # TODO edge was never used:
     for edge in edge_vec
         edge_color_vec[edge_count] = (
             GLMakie.Colors.HSV(rand(1:360), rand(1:360), rand(1:360)), 0.6)
