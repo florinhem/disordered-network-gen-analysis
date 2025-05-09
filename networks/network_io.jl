@@ -73,9 +73,10 @@ function save_spatial_network_to_gml(
 
             # write vertex
             write(opened_file, Format.format(
-                "  node [\n    id {1}\n    label \"{2}\"\n    position [ x {3} y {4} z {5} ]\n  ]\n",
+                "  node [\n    id {1}\n    label \"{2}\"\n    coordination_nr {3}\n    position [ x {4} y {5} z {6} ]\n  ]\n",
                 vertex,
                 vertex,
+                spatial_network[vertex]["coordination_nr"],
                 spatial_network[vertex]["position"][1],
                 spatial_network[vertex]["position"][2],
                 spatial_network[vertex]["position"][3]))
@@ -163,11 +164,22 @@ function load_spatial_network_from_gml(spatial_network_path::String)
         # get vertex and position
         # Regular expressions to extract integer and float values
         id_regex = r"id (\d+)"
+        coordination_nr_regex = r"coordination_nr (\d+)"
         position_regex = r"x ([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?) y ([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?) z ([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)"
 
         # Extracting id
         id_match = match(id_regex, node_string)
         vertex = parse(Int, id_match.captures[1])
+
+        # Extracting coordination_nr
+        coordination_nr_match = match(coordination_nr_regex, node_string)
+        
+        #TODO: Take this if away
+        if(coordination_nr_match!==nothing)
+            coordination_nr = parse(Int, coordination_nr_match.captures[1])
+        else
+            coordination_nr=4
+        end
 
         # Extracting position
         position_match = match(position_regex, node_string)
@@ -177,7 +189,9 @@ function load_spatial_network_from_gml(spatial_network_path::String)
 
         # add vertex to spatial network
         spatial_network[vertex] = Dict(
-            "position" =>  [x_value, y_value, z_value])
+            "coordination_nr" => coordination_nr,
+            "position" =>  [x_value, y_value, z_value],
+            )
 
     end
 

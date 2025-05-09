@@ -179,7 +179,6 @@ function get_binary_data_from_spatial_network(
         "nr_dimensions_data" => spatial_network[]["nr_dimensions"],
         "voxel_edge_length" => voxel_edge_length ,
         "label" => filename,
-        "coordination_nr" => spatial_network[]["coordination_nr"],
         "nr_vertices" => spatial_network[]["nr_vertices"],
         "bond_radius" => bond_radius )
 
@@ -1010,6 +1009,92 @@ function get_pore_size_distribution_voxelized(
     end
 
     return pore_size_distribution_dict
+end
+
+
+"""
+Measure the standard deviation of dihedral angles. This function might need to
+be revisited when considering other coordination numbers than 4 because the
+dihedral angle might have a peak around 0 which is not considered here
+"""
+function get_dihedral_angle_std(spatial_network::MetaGraphsNext.MetaGraph)
+
+    # initialize vector of diehedral angles
+    dihedral_angle_vec = Vector{Float64}()
+
+    # loop through all bonds
+    for bond in MetaGraphsNext.edge_labels(spatial_network)
+
+        # TODO: store bond[1] and bond[2] here, instead of calculating it always
+
+        # get vector along bond
+        bond_vec = spatial_network[bond...]["vector"]
+
+        # loop through all neighbors of one vertex 
+        for first_neighbor in setdiff( MetaGraphsNext.neighbor_labels(
+            spatial_network, bond[1]), bond[2])
+
+            # get vector from first neighbor to first bond vertex
+            first_neighbor_to_bond_vertex_vec = ( sign(bond[1] 
+                - first_neighbor)*spatial_network[first_neighbor, 
+                    bond[1]]["vector"])
+
+            # loop through all neighbors of other vertex
+            for second_neighbor in setdiff( MetaGraphsNext.neighbor_labels(
+                spatial_network, bond[2]), bond[1])
+
+                # get vector from second bond vertex to second neighbor
+                bond_vertex_to_second_neighbor_vec = ( sign(second_neighbor 
+                    - bond[2])*spatial_network[bond[2], 
+                        second_neighbor]["vector"])
+
+                # calculate dihedral angle according to the equation given in
+                # https://en.wikipedia.org/wiki/Dihedral_angle# 
+                dihedral_angle = atan( LinearAlgebra.norm(bond_vec)
+                        *LinearAlgebra.dot(first_neighbor_to_bond_vertex_vec,
+                            LinearAlgebra.cross(bond_vec,
+                                bond_vertex_to_second_neighbor_vec )),
+                    LinearAlgebra.dot(
+                        LinearAlgebra.cross(first_neighbor_to_bond_vertex_vec,
+                            bond_vec ),
+                        LinearAlgebra.cross(bond_vec,
+                              bond_vertex_to_second_neighbor_vec )))
+
+                # save dihedral angle
+                push!(dihedral_angle_vec, dihedral_angle)
+            end
+        end
+    end
+
+    # save one peak of dihedral angle distribution
+    lower_limit = 0
+    #upper_limit =  2 * pi / (spatial_network[]["coordination_nr"] - 1)    
+
+    max_coordination_nr=0
+    for vertex in MetaGraphsNext.labels(spatial_network)
+
+        # get iterator of bond combinations
+        bond_combinations_iter = Combinatorics.combinations(collect(
+            MetaGraphsNext.neighbor_labels(spatial_network, vertex)), 2)
+
+        vertex_coordination_nr=length(bond_combinations_iter)
+
+        if vertex_coordination_nr>max_coordination_nr
+
+            max_coordination_nr=vertex_coordination_nr
+            
+        end
+    end
+    upper_limit =  2 * pi / (max_coordination_nr - 1)
+    
+
+    dihedral_angle_one_peak_vec = dihedral_angle_vec[
+        (dihedral_angle_vec .> lower_limit) .& (dihedral_angle_vec .< upper_limit)]
+
+    # determine standard deviation
+    dihedral_angle_std = Statistics.std(dihedral_angle_one_peak_vec)
+
+    return [dihedral_angle_std, dihedral_angle_vec]
 end
 
 

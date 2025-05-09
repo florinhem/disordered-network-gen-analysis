@@ -8,8 +8,10 @@ Measure the standard deviation of bond lengths
 """
 function get_bond_length_std(spatial_network::MetaGraphsNext.MetaGraph)
     
-    nr_bonds = Int(spatial_network[]["nr_vertices"] 
-        * spatial_network[]["coordination_nr"] /2)
+    nr_bonds=0
+    for bond in MetaGraphsNext.edge_labels(spatial_network)
+        nr_bonds+=1
+    end
 
     bond_length_vec = Vector{Float64}(undef, nr_bonds)
     bond_count = 1
@@ -23,14 +25,8 @@ function get_bond_length_std(spatial_network::MetaGraphsNext.MetaGraph)
         bond_count += 1
     end
 
-    # determine standard deviation
     bond_length_std = Statistics.std(bond_length_vec)
     
-    # get histogram of bond lengths
-    # histogram = StatsBase.fit(Histogram, bond_length_vec)
-    # bond_length_bin_edges = histogram.edges
-    # bond_length_bin_weights = histogram.weights
-
     return [bond_length_std, bond_length_vec]
 end
 
@@ -40,9 +36,17 @@ Measure the standard deviation of bond angles
 """
 function get_bond_angle_std(spatial_network::MetaGraphsNext.MetaGraph)
     
-    nr_angles = (spatial_network[]["nr_vertices"] 
-        * sum(1:spatial_network[]["coordination_nr"]-1))
+    nr_angles=0
+    for vertex in MetaGraphsNext.labels(spatial_network)
 
+        # get iterator of bond combinations
+        bond_combinations_iter = Combinatorics.combinations(collect(
+            MetaGraphsNext.neighbor_labels(spatial_network, vertex)), 2)
+
+        nr_angles+=length(bond_combinations_iter)
+        
+    end
+    
     # initialize vector of bond angles
     bond_angle_vec = Vector{Float64}(undef, nr_angles)
     angle_count = 1
@@ -59,18 +63,26 @@ function get_bond_angle_std(spatial_network::MetaGraphsNext.MetaGraph)
 
             # get scalar product of vectors representing the current bond
             # combination
+
+            vector_1=spatial_network[vertex, bond_combination[1]]["vector"]
+            vector_2=spatial_network[vertex, bond_combination[2]]["vector"]
+
             scalar_product = (sign(bond_combination[1] - vertex)
                 * sign(bond_combination[2] - vertex)
-                * LinearAlgebra.dot(spatial_network[vertex, 
-                        bond_combination[1]]["vector"], 
-                    spatial_network[vertex, bond_combination[2]]["vector"] ))
+                * LinearAlgebra.dot(vector_1, vector_2))
+
+            cosinus_of_bond_angle=scalar_product/ sqrt(
+                LinearAlgebra.dot(vector_1,vector_1)*
+                LinearAlgebra.dot(vector_2,vector_2))
+            
+            if cosinus_of_bond_angle ≈ 1
+                cosinus_of_bond_angle=1
+            elseif cosinus_of_bond_angle ≈ -1
+                cosinus_of_bond_angle=-1
+            end
 
             # calculate bond angle
-            bond_angle = acos( scalar_product/ sqrt(
-                spatial_network[vertex, bond_combination[1]][
-                        "distance_squared"]
-                    *spatial_network[vertex, bond_combination[2]][
-                        "distance_squared"]) )
+            bond_angle = acos(cosinus_of_bond_angle)
 
             bond_angle_vec[angle_count] = bond_angle
 
@@ -84,7 +96,6 @@ function get_bond_angle_std(spatial_network::MetaGraphsNext.MetaGraph)
     return [bond_angle_std, bond_angle_vec]
 end
 
-
 """
 Measure the Shannon entropy of dihedral angles that are binned in bins of 10
 degrees
@@ -97,25 +108,29 @@ function get_dihedral_angle_entropy(spatial_network::MetaGraphsNext.MetaGraph)
     # loop through all bonds
     for bond in MetaGraphsNext.edge_labels(spatial_network)
 
+        # store the two vertices
+        vertex1=bond[1]
+        vertex2=bond[2]
+
         # get vector along bond
         bond_vec = spatial_network[bond...]["vector"]
 
         # loop through all neighbors of one vertex 
         for first_neighbor in setdiff( MetaGraphsNext.neighbor_labels(
-            spatial_network, bond[1]), bond[2])
+            spatial_network, vertex1), vertex2)
 
             # get vector from first neighbor to first bond vertex
-            first_neighbor_to_bond_vertex_vec = ( sign(bond[1] 
+            first_neighbor_to_bond_vertex_vec = ( sign(vertex1 
                 - first_neighbor)*spatial_network[first_neighbor, 
-                    bond[1]]["vector"])
+                vertex1]["vector"])
 
             # loop through all neighbors of other vertex
             for second_neighbor in setdiff( MetaGraphsNext.neighbor_labels(
-                spatial_network, bond[2]), bond[1])
+                spatial_network, vertex2), vertex1)
 
                 # get vector from second bond vertex to second neighbor
                 bond_vertex_to_second_neighbor_vec = ( sign(second_neighbor 
-                    - bond[2])*spatial_network[bond[2], 
+                    - vertex2)*spatial_network[vertex2, 
                         second_neighbor]["vector"])
 
                 # calculate dihedral angle according to the equation given in
@@ -344,7 +359,7 @@ function get_q_lm_averaged_bonds_to_neighbors_dict_single_vertex(
             Vector{ComplexF64}, 
             Tuple{SphericalHarmonics.ML{SphericalHarmonics.ZeroTo{false}, 
                 SphericalHarmonics.FullRange{true}}}
-        }}(undef, spatial_network[]["coordination_nr"])
+        }}(undef, spatial_network[central_vertex]["coordination_nr"])
 
     # neighbor counter
     neighbor_count = 1
@@ -384,9 +399,9 @@ function get_q_lm_averaged_bonds_to_neighbors_dict_single_vertex(
             q_lm = 0.0
 
             # average over neighbors
-            for neighbor_count in 1:spatial_network[]["coordination_nr"]
+            for neighbor_count in 1:spatial_network[central_vertex]["coordination_nr"]
 
-                q_lm += (1/spatial_network[]["coordination_nr"]
+                q_lm += (1/spatial_network[central_vertex]["coordination_nr"]
                     * 
                     y_spherical_harmonic_arr_vec[neighbor_count][(l,m)]
                 )

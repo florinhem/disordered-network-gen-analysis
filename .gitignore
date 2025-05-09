@@ -1,11 +1,11 @@
-# ignore ALL .log files
+# ignore ALL files with
 *.log
 *.json
 *.png
 *.h5
 *.gml
 
-# ignore ALL files in ANY directory
+# ignore ALL files in directory
 my_networks/ 
 simulations/
 .vscode/

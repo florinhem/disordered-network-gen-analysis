@@ -163,7 +163,6 @@ function get_rainbow_color_vecs(spatial_network )
     # count current edge
     edge_count = 1
 
-    # TODO edge was never used:
     for edge in edge_vec
         edge_color_vec[edge_count] = (
             GLMakie.Colors.HSV(rand(1:360), rand(1:360), rand(1:360)), 0.6)
