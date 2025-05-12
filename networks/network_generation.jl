@@ -699,7 +699,7 @@ Then it calculates for the unitcell and supercell the edges
 (number, starting vertex, ending vertex and length) of the network.
 """
 function get_network(nr_vertices, network_name)
-    if cmp(network_name , "dia") == 0
+    if cmp(network_name , "dia") == 0 || cmp(network_name , "diamond") == 0
         nr_dimensions = 3
         edge_length_unit_cell = 4/sqrt(3)
         nr_vertices_per_unit_cell = 8
@@ -815,7 +815,7 @@ function get_network(nr_vertices, network_name)
     count_4 = count(x -> x == 4, coordination_nr_vec)
 
     # this if else can be removed, if you are sure that the network is correct
-    if cmp(network_name , "dia") == 0
+    if cmp(network_name , "dia") == 0 || cmp(network_name , "diamond") == 0
         println("nr of edges in unitcell should be $nr_edges_per_unit_cell=?=$(
             length(edge_length_vec)/(nr_unit_cells_per_dimension^3))")
         println("CN_all=$(length(coordination_nr_vec))=?=CN4=$(count_4)")
@@ -854,9 +854,6 @@ function get_network(nr_vertices, network_name)
     
     return original_spatial_network
 end
-
-
-
 
 
 """
@@ -970,7 +967,8 @@ Create network of random vertex positions and connections
 function get_poisson_random_network(evolution_dict::Dict)
 
     # diamond which is only defined for 3d
-    if cmp(evolution_dict["network_type"], "diamond") == 0
+    if (cmp(evolution_dict["network_type"] , "dia") == 0 
+        || cmp(evolution_dict["network_type"], "diamond") == 0)
 
         if evolution_dict["nr_dimensions"] == 3
 

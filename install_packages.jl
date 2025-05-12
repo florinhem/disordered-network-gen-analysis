@@ -1,0 +1,32 @@
+
+import Pkg 
+
+# List of packages to install
+Pkg.add([
+    "Measurements",
+    "FileIO",
+    "HDF5",
+    "LinearAlgebra",
+    "Images",
+    "Statistics",
+    "FFTW",
+    "Plots",
+    "GLMakie",
+    "LaTeXStrings",
+    "Format",
+    "Graphs",
+    "MetaGraphsNext",
+    "Combinatorics",
+    "Optim",
+    "GraphMakie",
+    "NetworkLayout",
+    "Random",
+    "GeometryBasics",
+    "Colors",
+    "Polynomials",
+    "Peaks",
+    "SphericalHarmonics",
+    "StatsBase",
+    "Polylabel",
+    "LsqFit"
+])

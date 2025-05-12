@@ -6,8 +6,8 @@ IO functions
 module GeneralUtilities
 
 # import the necessary packages
-import Measurements     # for handling data with uncertainty and error propagation
-import FileIO           # for file loading and saving
+import Measurements    # for handling data with uncertainty and error propagation
+import FileIO   # for file loading and saving
 import LinearAlgebra    # to perform linear algebra calculations like the dot product
 
 # set path to files

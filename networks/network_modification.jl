@@ -956,7 +956,6 @@ function evolve_network_temperature_sequence!(
     quench_counter = 0
 
     # evolve network according to given temperature sequence 
-    println("(evolution_dict[\"temperature_vec\"]), $(evolution_dict["temperature_vec"])")
     for i in eachindex(evolution_dict["temperature_vec"])
 
         nr_attempted_bond_switches = Int(round(nr_chains

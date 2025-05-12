@@ -25200,3 +25200,128 @@ for folder_name in folder_names
         mkpath(run_folder_path)
     end
 end
+
+
+print_lock = Threads.ReentrantLock()
+
+spatial_networks_upper_path = "../structures/random_networks/"
+analysis_data_upper_path = "../analysis_data/random_networks/new_order_metrics/"
+
+# get a list of folders in the spatial_networks_path directory that begin with
+# "216_vertices"
+folder_names = readdir(spatial_networks_upper_path)
+folder_names = filter(x -> occursin("216_vertices", x), folder_names)
+
+for folder_name in folder_names
+    spatial_networks_path = spatial_networks_upper_path * folder_name * "/"
+    analysis_data_path = analysis_data_upper_path * folder_name * "/"
+
+    NA.get_all_dicts_from_networks_multithreading(
+    spatial_networks_path,
+    analysis_data_path;
+    print_progress = true,
+    print_lock = print_lock)
+end
+
+
+
+nr_samples = 2000
+
+# choose random beta values for the samples between 0 and 1
+beta_vec = rand(nr_samples)
+
+# get the melting temperature for the beta values
+t_melt_vec = [NA.get_melting_temperature("diamond", beta) for beta in beta_vec]
+
+# get random values of t_max between t_melt/3 and 3*t_melt 
+t_max_vec = t_melt_vec .* (1/3 .+ 8/3 .* rand(nr_samples))
+
+# get random values of the heating/cooling gradient between t_melt/10 and 
+# t_melt
+t_gradient_vec = t_melt_vec .* (1/10 .+ 9/10 .* rand(nr_samples))
+
+
+nr_vertices = 216
+network_type = "diamond"
+theta_ground_state = 180.0
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\neural_network_networks\dia\evolution_dicts\\"
+
+for i in 1:nr_samples
+    temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(t_max_vec[i],
+        temperature_gradient = t_gradient_vec[i], 
+        nr_monte_carlo_steps_per_temperature = 0.01,
+        quench = true )
+
+
+    evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,     
+        temperature_vec = temperature_vec,
+        nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
+        bond_bending_const = beta_vec[i], network_type = network_type,
+        theta_ground_state = theta_ground_state,)
+
+    filename = Format.format("beta_{1:.3f}_t_max_{2:.3f}_t_gradient_{3:.3f}", beta_vec[i], t_max_vec[i], t_gradient_vec[i])
+    GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
+end
+
+
+save_path = "../structures/neural_network_networks/dia/"
+
+evolution_dicts_directory_path = "../structures/neural_network_networks/dia/evolution_dicts_3/"
+
+print_every_nr_attempted_bond_switches = 200
+print_progress = true
+save_network_after_each_temperature = false
+further_evolve_previous_networks = false
+runs_vec = [4] #collect(1:2)
+random_evolution_seed = -1
+print_lock = Threads.ReentrantLock()
+
+
+# get all filenames by reading the evolution dict directory
+filenames = readdir(evolution_dicts_directory_path)
+filenames_evolution_dicts = filter(
+    filename -> endswith(filename, "_evolution.h5"), filenames)
+
+# get vector of filenames and save paths for multiple runs
+save_path_all_runs_vec = Vector{String}(undef, 0)
+filenames_evolution_dicts_all_runs_vec = Vector{String}(undef, 0)
+
+for run in runs_vec
+    append!(save_path_all_runs_vec, (save_path .* "run_" 
+        .* string.( Int.( ones(length(filenames_evolution_dicts)) 
+        .* run ) ) .* "/" ) )
+    append!(filenames_evolution_dicts_all_runs_vec, 
+        filenames_evolution_dicts)
+end
+
+# create tuples out of the elements of both vectors
+save_path_filename_tuple_vec = Vector{Tuple{String, String}}(undef, 
+    length(save_path_all_runs_vec))
+
+for i in eachindex(save_path_filename_tuple_vec)
+    save_path_filename_tuple_vec[i] = (save_path_all_runs_vec[i],
+        filenames_evolution_dicts_all_runs_vec[i] )
+end
+
+# split filenames and save_paths into chunks for multi-threading
+save_path_filename_tuple_chunks = Iterators.partition(
+    save_path_filename_tuple_vec, 
+    length(save_path_filename_tuple_vec) ÷ Threads.nthreads())
+
+println(Threads.nthreads())
+
+map(save_path_filename_tuple_chunks) do save_path_filename_tuple_chunk
+    Threads.@spawn NG.generate_spatial_networks_from_evolution_dicts_single_thread_multiple_runs(
+        save_path_filename_tuple_chunk,
+        evolution_dicts_directory_path;
+        print_every_nr_attempted_bond_switches 
+            = print_every_nr_attempted_bond_switches,
+        print_progress = print_progress,
+        random_evolution_seed = random_evolution_seed,
+        save_network_after_each_temperature 
+            = save_network_after_each_temperature,
+        further_evolve_previous_networks 
+            = further_evolve_previous_networks,
+        print_lock = print_lock)
+end

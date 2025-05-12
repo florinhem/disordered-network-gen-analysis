@@ -1,6 +1,6 @@
 
 # include file where structure analysis modules are stored
-include("structure_analysis_modules_no_plotting.jl")
+include("structure_analysis_modules.jl")
 
 # import my module that contains all functions for the generation and analysis of networks
 import .NetworkGeneration as NG
@@ -13,6 +13,7 @@ import Graphs
 import MetaGraphsNext
 import LinearAlgebra
 import Polynomials
+import Format
 #import Statistics
 #import Measurements
 
@@ -25,24 +26,6 @@ import Polynomials
 # 64 vertices: supercell_edge_length = 4.619802153517007
 # which is the cube root of the number of vertices times 2/sqrt(3)
 
-print_lock = Threads.ReentrantLock()
+network = NG.load_spatial_network_from_gml(raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\neural_network_networks\dia\run_4\beta_0.003_t_max_0.006_t_gradient_0.004.gml")
 
-spatial_networks_upper_path = "../structures/random_networks/"
-analysis_data_upper_path = "../analysis_data/random_networks/new_order_metrics/"
-
-# get a list of folders in the spatial_networks_path directory that begin with
-# "216_vertices"
-folder_names = readdir(spatial_networks_upper_path)
-folder_names = filter(x -> occursin("216_vertices", x), folder_names)
-
-for folder_name in folder_names
-    spatial_networks_path = spatial_networks_upper_path * folder_name * "/"
-    analysis_data_path = analysis_data_upper_path * folder_name * "/"
-
-    NA.get_all_dicts_from_networks_multithreading(
-    spatial_networks_path,
-    analysis_data_path;
-    print_progress = true,
-    print_lock = print_lock)
-end
-
+NG.plot_spatial_network(network)

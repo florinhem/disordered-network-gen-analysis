@@ -168,3 +168,69 @@ function get_temperature_sequence_heating_cooling_gradient(
     return [temperature_vec, nr_monte_carlo_steps_per_temperature_vec]
 
 end
+
+
+"""
+Get the melting temperature for a given network type and beta value. The values
+are valid for theta_ground_state=180. The melting temperature is defined as the
+temperature where the bond switch with the smallest energy change is accepted
+with a probability of 0.06.
+"""
+function get_melting_temperature(
+    network_type::String = "diamond",
+    beta::Float64 = 0.0)
+
+    # get the data that was calculated separately 
+    beta_vec = collect(0:0.25:1.0)
+    t_melt_dia = [0.0009204175214628252, 0.3061062214612626, 
+        0.6897997003855234, 1.1801646529256444, 1.8723883922952942]
+    t_melt_ctn = [0.00031779651885594445, 1.1511070269351324, 
+        2.7958110652423622, 4.585660340210036, 6.415852631785852]
+    t_melt_lcs = [0.00019776541351310378, 1.071663395930038, 
+        2.5884136096353902, 4.313285672070859, 7.128334985976234]
+    t_melt_pto = [0.0032579250096590583, 0.7813861085162169, 
+        1.5409201350892336, 2.2759438445283595, 3.3613117404334374]
+    t_melt_srd = [-0.7407408623269777, 0.3300682873059035, 
+        1.1013913412535, 1.830137437807958, 2.9236032169832975]
+    t_melt_srs = [0.0013561265418390608, 0.34187449273557846, 
+        0.7734640806305035, 1.2002240438551928, 1.707019829012384]
+
+    # interpolate linearly the melting temperature for the given beta value
+    if network_type == "diamond" || network_type == "dia"
+        t_melt = t_melt_dia
+    elseif network_type == "ctn"
+        t_melt = t_melt_ctn
+    elseif network_type == "lcs"
+        t_melt = t_melt_lcs
+    elseif network_type == "pto"
+        t_melt = t_melt_pto
+    elseif network_type == "srd"
+        t_melt = t_melt_srd
+    elseif network_type == "srs"
+        t_melt = t_melt_srs
+    else
+        @error "network type not recognized"
+    end 
+
+    # get the melting temperature for the given beta value
+    if beta < 0.0 || beta > 1.0
+        @error "beta must be between 0 and 1"
+    end
+    if beta == 0.0
+        t_melt_beta = t_melt[1]
+    elseif beta == 1.0
+        t_melt_beta = t_melt[end]
+    else
+        # get the index of the melting temperature for the given beta value
+        index = findfirst(x -> x >= beta, beta_vec)
+        if index == nothing
+            @error "beta value not found"
+        end
+        # interpolate linearly the melting temperature for the given beta value
+        t_melt_beta = (t_melt[index-1] 
+            + (t_melt[index] - t_melt[index-1]) 
+            * (beta - beta_vec[index-1]) 
+            / (beta_vec[index] - beta_vec[index-1]))
+    end
+    return t_melt_beta
+end

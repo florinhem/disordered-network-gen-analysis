@@ -274,8 +274,10 @@ function generate_spatial_networks_from_evolution_dicts_single_thread(
     # loop through files
     for filename in filenames
 
-        # check that file is evolution dict
-        if endswith(filename, "_evolution.h5")
+        # check that file is evolution dict and that the corresponding gml file
+        # does not exist yet
+        if (endswith(filename, "_evolution.h5") 
+            && !isfile(save_path*filename[1:end-13]*".gml"))
 
             # load evolution dict
             evolution_dict = GU.load_h5_dict(
@@ -530,7 +532,7 @@ function (
     # run all filename chunks in parallel in different threads
     map(save_path_filename_tuple_chunks) do save_path_filename_tuple_chunk
 
-        Threads.@spawn generate_spatial_networks_from_evolution_dicts_single_thread_multiple_run(
+        Threads.@spawn generate_spatial_networks_from_evolution_dicts_single_thread_multiple_runs(
             save_path_filename_tuple_chunk,
             evolution_dicts_directory_path;
             print_every_nr_attempted_bond_switches 
