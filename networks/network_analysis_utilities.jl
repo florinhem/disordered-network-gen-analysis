@@ -348,6 +348,24 @@ end
 
 
 """
+Extract the parameters bond_bending_const, t_max and t_gradient of the Monte 
+Carlo algorithm from a filename
+"""
+function extract_parameters(filename::String)
+    pattern = r"beta_([0-9.]+)_t_max_([0-9.]+)_t_gradient_([0-9.]+)"
+    m = match(pattern, filename)
+    if m !== nothing
+        bond_bending_const = parse(Float64, m.captures[1])
+        t_max = parse(Float64, m.captures[2])
+        t_gradient = parse(Float64, m.captures[3])
+        return bond_bending_const, t_max, t_gradient
+    else
+        error("Pattern not found in filename: $filename")
+    end
+end
+
+
+"""
 For given data paths and filename, calculate all order metrics
 """
 function get_order_metrics(filename::String,
@@ -415,9 +433,9 @@ function get_order_metrics(filename::String,
     pore_size_distribution_dict = GU.load_h5_dict(
         analysis_data_path*filename*"_pore_size_distribution.h5")
 
-    # get second moment of the pore size distribution
-    pore_size_distribution_second_moment = (
-        get_pore_size_distribution_second_moment(pore_size_distribution_dict))
+    # get critical pore radius
+    critical_pore_radius = (
+        get_critical_pore_radius(pore_size_distribution_dict))
 
     # load angle averaged structure factor for vertices
     structure_factor_angle_averaged_dict = GU.load_h5_dict(
@@ -457,8 +475,7 @@ function get_order_metrics(filename::String,
         "ring_radius_mean" => ring_radius_mean,
         "ring_radius_std" => ring_radius_std,
         "vertex_homogeneity_metric" => vertex_homogeneity_metric,
-        "pore_size_distribution_second_moment" 
-            => pore_size_distribution_second_moment,
+        "critical_pore_radius" => critical_pore_radius,
         "anisotropy_metric_from_structure_factor" 
             => anisotropy_metric_from_structure_factor,
         "anisotropy_metric_from_structure_factor_bonds" 
@@ -478,7 +495,8 @@ end
 function get_order_metrics_all_files(
     analysis_data_path::String;
     l_max_steinhardt_q_l::Int64 = 12,
-    save_result::Bool = false,)
+    save_result::Bool = false,
+    save_algorithm_parameters_from_filename::Bool = false)
 
     # get all dictionaries containing order metrics
     all_filenames = readdir(analysis_data_path)
@@ -513,7 +531,7 @@ function get_order_metrics_all_files(
         length(order_metrics_filenames))
     ring_radius_std_vec = Vector{Float64}(undef,
         length(order_metrics_filenames))
-    pore_size_distribution_second_moment_vec = Vector{Float64}(undef,
+    critical_pore_radius_vec = Vector{Float64}(undef,
         length(order_metrics_filenames))
     anisotropy_metric_from_structure_factor_vec = Vector{Float64}(undef,
         length(order_metrics_filenames))
@@ -549,8 +567,8 @@ function get_order_metrics_all_files(
         ring_size_std_vec[i] = order_metrics_dict["ring_size_std"]
         ring_radius_mean_vec[i] = order_metrics_dict["ring_radius_mean"]
         ring_radius_std_vec[i] = order_metrics_dict["ring_radius_std"]
-        pore_size_distribution_second_moment_vec[i] = (
-            order_metrics_dict["pore_size_distribution_second_moment"])
+        critical_pore_radius_vec[i] = (
+            order_metrics_dict["critical_pore_radius"])
         anisotropy_metric_from_structure_factor_vec[i] = (
             order_metrics_dict["anisotropy_metric_from_structure_factor"])
         anisotropy_metric_from_structure_factor_bonds_vec[i] = (
@@ -587,8 +605,7 @@ function get_order_metrics_all_files(
         sortperm(total_keating_energy_vec)]
     ring_radius_std_vec = ring_radius_std_vec[
         sortperm(total_keating_energy_vec)]
-    pore_size_distribution_second_moment_vec = (
-        pore_size_distribution_second_moment_vec[
+    critical_pore_radius_vec = (critical_pore_radius_vec[
             sortperm(total_keating_energy_vec)])
     anisotropy_metric_from_structure_factor_vec = (
         anisotropy_metric_from_structure_factor_vec[
@@ -616,8 +633,7 @@ function get_order_metrics_all_files(
         "ring_size_std_vec" => ring_size_std_vec,
         "ring_radius_mean_vec" => ring_radius_mean_vec,
         "ring_radius_std_vec" => ring_radius_std_vec,
-        "pore_size_distribution_second_moment_vec" 
-            => pore_size_distribution_second_moment_vec,
+        "critical_pore_radius_vec" => critical_pore_radius_vec,
         "anisotropy_metric_from_structure_factor_vec" 
             => anisotropy_metric_from_structure_factor_vec,
         "anisotropy_metric_from_structure_factor_bonds_vec" 
@@ -625,6 +641,26 @@ function get_order_metrics_all_files(
         "hyperuniformity_alpha_vec" => hyperuniformity_alpha_vec,
         "filenames_vec" => order_metrics_filenames
     )
+
+    if save_algorithm_parameters_from_filename
+        # get algorithm parameters from filename
+        bond_bending_const_vec = Vector{Float64}(undef,
+            length(order_metrics_filenames))
+        t_max_vec = Vector{Float64}(undef,
+            length(order_metrics_filenames))
+        t_gradient_vec = Vector{Float64}(undef,
+            length(order_metrics_filenames))
+        for i in eachindex(order_metrics_filenames)
+            bond_bending_const_vec[i], t_max_vec[i], t_gradient_vec[i] = (
+                extract_parameters(order_metrics_filenames[i]))
+        end
+
+        # add algorithm parameters to dict
+        order_metrics_dict["bond_bending_const_vec"] = (
+            bond_bending_const_vec)
+        order_metrics_dict["t_max_vec"] = t_max_vec
+        order_metrics_dict["t_gradient_vec"] = t_gradient_vec
+    end
 
     # save dict to h5 file if desired
     if save_result

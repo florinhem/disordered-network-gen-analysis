@@ -26,14 +26,19 @@ import Format
 # 64 vertices: supercell_edge_length = 4.619802153517007
 # which is the cube root of the number of vertices times 2/sqrt(3)
 
-print_lock = Threads.ReentrantLock()
+analysis_data_path = raw"..\analysis_data\neural_network_networks\dia\run_1\\"
 
-spatial_networks_path = "../structures/neural_network_networks/dia/"
-analysis_data_path = "../analysis_data/neural_network_networks/dia/"
+order_metric_dict = NA.get_order_metrics_all_files(
+    analysis_data_path;
+    l_max_steinhardt_q_l = 12,
+    save_result = true,
+    save_algorithm_parameters_from_filename = true)
 
-NA.get_all_dicts_from_networks_multithreading(
-spatial_networks_path,
-analysis_data_path;
-print_progress = true,
-runs_vec = [2],
-print_lock = print_lock)
+
+analysis_data_path = raw"..\analysis_data\neural_network_networks\ctn\run_1\\"
+
+order_metric_dict = NA.get_order_metrics_all_files(
+    analysis_data_path;
+    l_max_steinhardt_q_l = 12,
+    save_result = true,
+    save_algorithm_parameters_from_filename = true)

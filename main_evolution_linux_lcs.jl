@@ -17,9 +17,14 @@ import .GeneralUtilities as GU
 # 64 vertices: supercell_edge_length = 4.619802153517007
 # which is the cube root of the number of vertices times 2/sqrt(3)
 
-save_path = "../structures/neural_network_networks/ctn/"
+sleep(10)
+println("Sleep seems to work")
 
-evolution_dicts_directory_path = "../structures/neural_network_networks/ctn/evolution_dicts_1/"
+sleep(24*3600) # sleep for 24 hours
+
+save_path = "../structures/neural_network_networks/lcs/"
+
+evolution_dicts_directory_path = "../structures/neural_network_networks/lcs/evolution_dicts_1/"
 
 print_every_nr_attempted_bond_switches = 200
 print_progress = true

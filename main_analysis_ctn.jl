@@ -28,12 +28,12 @@ import Format
 
 print_lock = Threads.ReentrantLock()
 
-spatial_networks_path = "../structures/neural_network_networks/dia/"
-analysis_data_path = "../analysis_data/neural_network_networks/dia/"
+spatial_networks_path = "../structures/neural_network_networks/ctn/"
+analysis_data_path = "../analysis_data/neural_network_networks/ctn/"
 
 NA.get_all_dicts_from_networks_multithreading(
 spatial_networks_path,
 analysis_data_path;
 print_progress = true,
-runs_vec = [2],
+runs_vec = [1],
 print_lock = print_lock)

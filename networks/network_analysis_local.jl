@@ -782,6 +782,24 @@ end
 
 
 """
+Get an estimate of the critical pore radius from the second moment of the
+pore size distribution according to 10.1103/PhysRevE.104.014127
+"""
+function get_critical_pore_radius(pore_size_distribution_dict::Dict)
+
+    # get second moment of pore size distribution
+    pore_size_distribution_second_moment = (
+        get_pore_size_distribution_second_moment(
+            pore_size_distribution_dict))
+
+    # estimate critical pore radius as square root of second moment
+    critical_pore_radius = sqrt(pore_size_distribution_second_moment)
+
+    return critical_pore_radius
+end
+
+
+"""
 Check if a cycle contains a given bond. The bond is represented as a tuple of
 two vertex indices. The cycle is represented as a vector of vertex indices.
 """
@@ -827,7 +845,7 @@ Get a list of all very strong rings in a spatial network as defined in
 10.1016/0022-3093(91)90145-V and explained in 10.1016/S0927-0256(01)00256-7.
 """
 function get_very_strong_rings_vec(spatial_network::MetaGraphsNext.MetaGraph;
-    max_ring_size_to_check::Int64 = 10)
+    max_ring_size_to_check::Int64 = 12)
 
     # get the number of simple cycles up to the max_ring_size_to_check
     simple_cycles = MetaGraphsNext.simplecycles_limited_length(spatial_network,
@@ -853,7 +871,7 @@ function get_very_strong_rings_vec(spatial_network::MetaGraphsNext.MetaGraph;
 
     # check if each bond is contained in at least one cycle
     if !each_bond_in_at_least_one_cycle(spatial_network, simple_cycles)
-        @error "Not all bonds are contained in at least one cycle. Consider
+        @warn "Not all bonds are contained in at least one cycle. Consider
             increasing the max_ring_size_to_check parameter."
     end
 
@@ -878,13 +896,13 @@ function get_very_strong_rings_vec(spatial_network::MetaGraphsNext.MetaGraph;
             very_strong_rings_vec_current_bond = filter(
                 cycle -> length(cycle) <= min_cycle_length, 
                 cycles_containing_bond)
-        end
 
-        # add the cycles to the list of very strong rings if they are not
-        # already in the list
-        for ring in very_strong_rings_vec_current_bond
-            if !(ring in very_strong_rings_vec)
-                push!(very_strong_rings_vec, ring)
+            # add the cycles to the list of very strong rings if they are not
+            # already in the list
+            for ring in very_strong_rings_vec_current_bond
+                if !(ring in very_strong_rings_vec)
+                    push!(very_strong_rings_vec, ring)
+                end
             end
         end
     end

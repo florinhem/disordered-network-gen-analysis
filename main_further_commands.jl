@@ -25325,3 +25325,224 @@ map(save_path_filename_tuple_chunks) do save_path_filename_tuple_chunk
             = further_evolve_previous_networks,
         print_lock = print_lock)
 end
+
+
+
+evolution_dict_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\neural_network_networks\dia\evolution_dicts_5\\"
+
+network_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\neural_network_networks\dia\run_5\\"
+
+new_evolution_dict_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\neural_network_networks\dia\evolution_dicts_5_1\\"
+
+new_network_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\neural_network_networks\dia\run_5_1\\"
+
+# get list of all network files in the directory
+filenames = readdir(network_path)
+
+# filter all files that end with ".gml"
+filenames = filter(x -> endswith(x, ".gml"), filenames)
+
+
+# loop through all filenames
+for filename in filenames 
+    # load the corresponding network
+    network = NG.load_spatial_network_from_gml(network_path * filename)
+
+    # load final evolution dict
+    final_evolution_dict = GU.load_h5_dict(network_path * filename[1:end-4] * "_evolution.h5")
+
+    # load original evolution dict
+    original_evolution_dict = GU.load_h5_dict(evolution_dict_path * filename[1:end-4] * "_evolution.h5")
+
+    # get beta, t_max and t_gradient from evolution dict
+    beta = original_evolution_dict["bond_bending_const"]
+    t_vec = original_evolution_dict["temperature_vec"]
+    nr_monte_carlo_steps_per_temperature_vec = original_evolution_dict["nr_monte_carlo_steps_per_temperature_vec"]
+    t_max = maximum(t_vec)
+
+    t_gradient = (t_vec[2] - t_vec[1])/nr_monte_carlo_steps_per_temperature_vec[1]
+
+    new_filename = Format.format("dia_beta_{1:.4f}_t_max_{2:.4f}_t_gradient_{3:.4f}", beta, t_max, t_gradient)
+
+    # save files with new names to new directory
+
+    GU.save_dict_to_h5(original_evolution_dict, new_evolution_dict_path*new_filename*"_evolution.h5")
+    GU.save_dict_to_h5(final_evolution_dict, new_network_path*new_filename*"_evolution.h5")
+
+    NG.save_spatial_network_to_gml(
+        network,
+        new_filename;
+        save_path = new_network_path)
+end
+
+
+nr_samples = 400
+
+# choose random beta values for the samples between 0 and 1
+beta_vec = rand(nr_samples)
+
+# get the melting temperature for the beta values
+t_melt_vec = [NA.get_melting_temperature("diamond", beta) for beta in beta_vec]
+
+# get random values of t_max between t_melt/3 and 3*t_melt 
+t_max_vec = t_melt_vec .* (1/3 .+ 8/3 .* rand(nr_samples))
+
+# get random values of the heating/cooling gradient between t_melt/10 and 
+# t_melt
+t_gradient_vec = t_melt_vec .* (1/10 .+ 9/10 .* rand(nr_samples))
+
+
+nr_vertices = 216
+network_type = "diamond"
+theta_ground_state = 180.0
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\neural_network_networks\dia\evolution_dicts_3\\"
+
+for i in 1:nr_samples
+    temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(t_max_vec[i],
+        temperature_gradient = t_gradient_vec[i], 
+        nr_monte_carlo_steps_per_temperature = 0.01,
+        quench = true )
+
+
+    evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,     
+        temperature_vec = temperature_vec,
+        nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
+        bond_bending_const = beta_vec[i], network_type = network_type,
+        theta_ground_state = theta_ground_state,)
+
+    filename = Format.format("dia_beta_{1:.4f}_t_max_{2:.4f}_t_gradient_{3:.4f}", beta_vec[i], t_max_vec[i], t_gradient_vec[i])
+    GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
+end
+
+
+print_lock = Threads.ReentrantLock()
+
+spatial_networks_path = "../structures/neural_network_networks/dia/"
+analysis_data_path = "../analysis_data/neural_network_networks/dia/"
+
+NA.get_all_dicts_from_networks_multithreading(
+spatial_networks_path,
+analysis_data_path;
+print_progress = true,
+runs_vec = [1],
+print_lock = print_lock)
+
+
+analysis_data_path = raw"..\analysis_data\neural_network_networks\dia\run_1\\"
+
+NA.get_order_metrics_all_files(
+    analysis_data_path;
+    l_max_steinhardt_q_l = 12,
+    save_result = true,
+    save_algorithm_parameters_from_filename = true)
+
+
+
+nr_samples = 1000
+
+# choose random beta values for the samples between 0 and 1
+beta_vec = rand(nr_samples)
+
+# get the melting temperature for the beta values
+t_melt_vec = [NA.get_melting_temperature("ctn", beta) for beta in beta_vec]
+
+# get random values of t_max between t_melt/3 and 3*t_melt 
+t_max_vec = t_melt_vec .* (1/3 .+ 8/3 .* rand(nr_samples))
+
+# get random values of the heating/cooling gradient between t_melt/10 and 
+# t_melt
+t_gradient_vec = t_melt_vec .* (1/10 .+ 9/10 .* rand(nr_samples))
+
+
+nr_vertices = 216
+network_type = "ctn"
+theta_ground_state = 180.0
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\neural_network_networks\ctn\evolution_dicts_1\\"
+
+for i in 1:nr_samples
+    temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(t_max_vec[i],
+        temperature_gradient = t_gradient_vec[i], 
+        nr_monte_carlo_steps_per_temperature = 0.01,
+        quench = true )
+
+
+    evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,     
+        temperature_vec = temperature_vec,
+        nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
+        bond_bending_const = beta_vec[i], network_type = network_type,
+        theta_ground_state = theta_ground_state,)
+
+    filename = Format.format("ctn_beta_{1:.4f}_t_max_{2:.4f}_t_gradient_{3:.4f}", beta_vec[i], t_max_vec[i], t_gradient_vec[i])
+    GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
+end
+
+
+save_path = "../structures/neural_network_networks/ctn/"
+
+evolution_dicts_directory_path = "../structures/neural_network_networks/ctn/evolution_dicts_1/"
+
+print_every_nr_attempted_bond_switches = 200
+print_progress = true
+save_network_after_each_temperature = false
+further_evolve_previous_networks = false
+runs_vec = [1] #collect(1:2)
+random_evolution_seed = -1
+print_lock = Threads.ReentrantLock()
+
+evolution_dict = GU.load_h5_dict(evolution_dicts_directory_path*"ctn_beta_0.0305_t_max_0.2727_t_gradient_0.1207_evolution.h5")
+
+spatial_network = NG.get_periodic_network(evolution_dict)
+
+spatial_network, total_energy_vec_new, move_accepted_vec_new = (
+            NG.evolve_network!(spatial_network,
+                evolution_dict,
+                1000, 
+                evolution_dict["temperature_vec"][20];
+                print_progress = print_progress,
+                print_every_nr_attempted_bond_switches 
+                    = print_every_nr_attempted_bond_switches))
+
+
+filename = "ctn_beta_0.9956_t_max_9.8290_t_gradient_3.2893"
+
+spatial_network_path = "../structures/neural_network_networks/ctn/run_1/"
+network = NG.load_spatial_network_from_gml(spatial_network_path * filename * ".gml")
+
+
+analysis_data_path = "../analysis_data/neural_network_networks/ctn/run_1/"
+# get all files that end with "order_metrics.h5" in the analysis_data_path
+files = readdir(analysis_data_path, join=true)
+files = filter(f -> endswith(f, "order_metrics.h5"), files)
+
+# loop over all files
+for file in files
+    order_metrics_dict = GU.load_h5_dict(file)
+
+    # check if the key "pore_size_distribution_second_moment" exists
+    if haskey(order_metrics_dict, "pore_size_distribution_second_moment")
+        critical_pore_radius = sqrt(
+        order_metrics_dict["pore_size_distribution_second_moment"])
+
+        order_metrics_dict["critical_pore_radius"] = critical_pore_radius
+
+        # remove the pore size distribution second moment
+        delete!(order_metrics_dict, "pore_size_distribution_second_moment")
+
+        # save the updated order_metrics_dict back to the file
+        GU.save_dict_to_h5(order_metrics_dict, file)
+    end
+    
+end
+
+
+network_path = "../structures/neural_network_networks/ctn/run_1/"
+analysis_data_path = "../analysis_data/neural_network_networks/ctn/run_1/"
+
+#filename = "ctn_beta_0.1703_t_max_1.1291_t_gradient_0.6395_order_metrics.h5"
+filename = "ctn_beta_0.1703_t_max_1.1291_t_gradient_0.6395"
+order_metrics_dict = NA.get_order_metrics(filename,
+    network_path,
+    analysis_data_path;
+    save_result = true)
