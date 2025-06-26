@@ -306,7 +306,7 @@ are restored
 """
 function load_h5_dict(dict_path::String)
 
-    # save dict
+    # load dict
     loaded_dict = FileIO.load(dict_path)
 
     # restore booleans from integers

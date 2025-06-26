@@ -1,6 +1,6 @@
 
 # include file where structure analysis modules are stored
-include("structure_analysis_modules_no_plotting.jl")
+include("structure_analysis_modules.jl")
 
 # import my module that contains all functions for the generation and analysis of networks
 import .NetworkGeneration as NG
@@ -14,6 +14,7 @@ import MetaGraphsNext
 import LinearAlgebra
 import Polynomials
 import Format
+import Statistics
 #import Statistics
 #import Measurements
 
@@ -26,7 +27,7 @@ import Format
 # 64 vertices: supercell_edge_length = 4.619802153517007
 # which is the cube root of the number of vertices times 2/sqrt(3)
 
-analysis_data_path = raw"..\analysis_data\neural_network_networks\dia\run_1\\"
+analysis_data_path = raw"..\analysis_data\neural_network_networks\ctn\\"
 
 order_metric_dict = NA.get_order_metrics_all_files(
     analysis_data_path;
@@ -35,7 +36,43 @@ order_metric_dict = NA.get_order_metrics_all_files(
     save_algorithm_parameters_from_filename = true)
 
 
-analysis_data_path = raw"..\analysis_data\neural_network_networks\ctn\run_1\\"
+analysis_data_path = raw"..\analysis_data\neural_network_networks\dia\\"
+
+order_metric_dict = NA.get_order_metrics_all_files(
+    analysis_data_path;
+    l_max_steinhardt_q_l = 12,
+    save_result = true,
+    save_algorithm_parameters_from_filename = true)
+
+
+analysis_data_path = raw"..\analysis_data\neural_network_networks\srs\\"
+
+order_metric_dict = NA.get_order_metrics_all_files(
+    analysis_data_path;
+    l_max_steinhardt_q_l = 12,
+    save_result = true,
+    save_algorithm_parameters_from_filename = true)
+
+
+analysis_data_path = raw"..\analysis_data\neural_network_targeted\test_networks\\"
+
+order_metric_dict = NA.get_order_metrics_all_files(
+    analysis_data_path;
+    l_max_steinhardt_q_l = 12,
+    save_result = true,
+    save_algorithm_parameters_from_filename = true)
+
+
+analysis_data_path = raw"..\analysis_data\neural_network_targeted\ctn\target_1\\"
+
+order_metric_dict = NA.get_order_metrics_all_files(
+    analysis_data_path;
+    l_max_steinhardt_q_l = 12,
+    save_result = true,
+    save_algorithm_parameters_from_filename = true)
+
+
+analysis_data_path = raw"..\analysis_data\neural_network_targeted\ctn\target_2\\"
 
 order_metric_dict = NA.get_order_metrics_all_files(
     analysis_data_path;

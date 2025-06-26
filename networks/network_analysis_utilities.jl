@@ -188,7 +188,7 @@ function get_all_dicts_from_network_single_file(
         print_lock = print_lock)
     
     # get structure factor by wavevector array for bonds
-    structure_factor_dict = get_structure_factor_by_wavevector_array(
+    structure_factor_bonds_dict = get_structure_factor_by_wavevector_array(
         spatial_network;
         consider_bonds = true,
         save_result = true,
@@ -200,7 +200,7 @@ function get_all_dicts_from_network_single_file(
 
     # get angle averaged structure factor for vertices
     structure_factor_angle_averaged_dict = get_structure_factor_angle_averaged(
-        structure_factor_dict::Dict;
+        structure_factor_dict;
         consider_bonds = false,
         gaussian_filter = true,
         gaussian_filter_sigma_x = 2*pi/25, 
@@ -212,7 +212,7 @@ function get_all_dicts_from_network_single_file(
     # get angle averaged structure factor for bonds
     structure_factor_bonds_angle_averaged_dict = (
         get_structure_factor_angle_averaged(
-            structure_factor_dict::Dict;
+            structure_factor_bonds_dict;
             consider_bonds = true,
             gaussian_filter = true,
             gaussian_filter_sigma_x = 2*pi/25, 
@@ -301,6 +301,16 @@ function get_all_dicts_from_networks_multithreading(
     runs_vec = collect(1:5),
     print_lock = Threads.ReentrantLock())
 
+    dicts_to_save = ["_correlation_functions.h5",
+        "_pore_size_distribution.h5",
+        "_ring_radius_distribution.h5",
+        "_ring_size_distribution.h5",
+        "_structure_factor_angle_averaged.h5",
+        "_structure_factor_bonds_angle_averaged.h5",
+        "_structure_factor_array.h5",
+        "_structure_factor_bonds_array.h5",
+        "_order_metrics.h5"]
+
     # vector for run and filename
     run_and_filename_vec = []
 
@@ -316,10 +326,19 @@ function get_all_dicts_from_networks_multithreading(
         filenames_spatial_networks = [filename[1:end-13] 
             for filename in filenames_evolution_dicts]
 
-        # filter out filenames that are already in the analysis data path
+        # filter out filenames that are already fully analyzed
         filenames_spatial_networks_not_analyzed = filter(filename 
-            -> !isfile(analysis_data_path*"run_"*string(i)*"/"*filename
-                *"_order_metrics.h5"), filenames_spatial_networks)
+            -> !all(dict -> isfile(analysis_data_path*"run_"*string(i)*"/"*
+                filename*dict), dicts_to_save), filenames_spatial_networks)
+
+        # print number of files not analyzed
+        if print_progress
+            lock(print_lock) do
+                println(length(filenames_spatial_networks_not_analyzed), 
+                " files not analyzed in run ", i)
+            end
+        end
+        
 
         # append to list of all structure dict paths
         append!(run_and_filename_vec, "run_"*string(i)*"/" 
@@ -492,6 +511,21 @@ function get_order_metrics(filename::String,
 end
 
 
+function extract_folder_and_filename(path::AbstractString)
+    # Normalize and split the path into components (handles / and \ correctly)
+    parts = splitpath(path)
+
+    # Get last two components: the folder (e.g., "run_1") and filename
+    folder = parts[end - 1]
+    filename = parts[end]
+
+    # Strip known suffix from filename
+    name = replace(filename, "_order_metrics.h5" => "")
+
+    return "$folder/$name"
+end
+
+
 function get_order_metrics_all_files(
     analysis_data_path::String;
     l_max_steinhardt_q_l::Int64 = 12,
@@ -499,10 +533,17 @@ function get_order_metrics_all_files(
     save_algorithm_parameters_from_filename::Bool = false)
 
     # get all dictionaries containing order metrics
-    all_filenames = readdir(analysis_data_path)
+    all_filenames = []
+    for (root, dirs, fs) in walkdir(analysis_data_path)
+        for file in fs
+            push!(all_filenames, joinpath(root, file))
+        end
+    end
+    # filter for order metrics files with type h5
     order_metrics_filenames = [filename for filename in all_filenames
         if (occursin("order_metrics", filename) 
-            && filename != "all_order_metrics.h5")]
+            && !occursin("all_order_metrics", filename)
+            && endswith(filename, ".h5"))]
 
     # initialize vectors for all order metrics
     total_keating_energy_vec = Vector{Float64}(undef,
@@ -545,7 +586,7 @@ function get_order_metrics_all_files(
 
         # load order metrics
         order_metrics_dict = GU.load_h5_dict(
-            analysis_data_path*order_metrics_filenames[i])
+            order_metrics_filenames[i])
 
         # get all order metrics and save them to the corresponding vectors
         total_keating_energy_vec[i] = (
@@ -618,6 +659,12 @@ function get_order_metrics_all_files(
 
     sort!(total_keating_energy_vec)
 
+    # cut the filenames vector to only contain the filenames and the parent 
+    # directory
+    order_metrics_filenames = [
+        extract_folder_and_filename(filename) for filename in 
+        order_metrics_filenames]
+
     # create dict to save
     order_metrics_dict = Dict(
         "total_keating_energy_vec" => total_keating_energy_vec,
@@ -669,4 +716,31 @@ function get_order_metrics_all_files(
     end
 
     return order_metrics_dict
+end
+
+
+"""
+Save the dictionary containing all order metrics to a csv file
+"""
+function save_order_metrics_dict_to_csv(
+    order_metrics_dict::Dict,
+    save_path::String)
+    
+    # delete the key "q_mat"
+    delete!(order_metrics_dict, "q_l_mat")
+
+    # convert dict to DataFrame
+    df = DataFrames.DataFrame(order_metrics_dict)
+
+    # save to csv file
+    CSV.write(
+        joinpath(save_path, "all_order_metrics.csv"),
+        df;
+        writeheader=true,
+        delim=',',
+        quotechar='"',
+        stringtype=String
+    )
+
+    return
 end

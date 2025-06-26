@@ -26,42 +26,50 @@ import Format
 # 64 vertices: supercell_edge_length = 4.619802153517007
 # which is the cube root of the number of vertices times 2/sqrt(3)
 
+evolution_dicts_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\neural_network_targeted\test_networks\evolution_dicts\\"
 
-nr_samples = 1000
+nr_samples = 20
 
-# choose random beta values for the samples between 0 and 1
-beta_vec = rand(nr_samples)
+network_types = ["ctn", "dia", "lcs", "srs"]
+beta_vec = [1/4, 2/4, 3/4] 
+t_max_over_t_melt_vec = [1/2, 3/2]
+t_gradient_over_t_melt_vec = [2/5, 4/5]
 
-# get the melting temperature for the beta values
-t_melt_vec = [NA.get_melting_temperature("lcs", beta) for beta in beta_vec]
+nr_vertices_vec = [216, 216, 192, 216] # diamond, diamond, lcs, srs
 
-# get random values of t_max between t_melt/3 and 3*t_melt 
-t_max_vec = t_melt_vec .* (1/3 .+ 8/3 .* rand(nr_samples))
-
-# get random values of the heating/cooling gradient between t_melt/10 and 
-# t_melt
-t_gradient_vec = t_melt_vec .* (1/10 .+ 9/10 .* rand(nr_samples))
-
-
-nr_vertices = 192
-network_type = "lcs"
 theta_ground_state = 180.0
 
-save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\neural_network_networks\lcs\evolution_dicts_3\\"
+for i in eachindex(network_types)
+    for beta in beta_vec
+        for t_max_over_t_melt in t_max_over_t_melt_vec
+            for t_gradient_over_t_melt in t_gradient_over_t_melt_vec
 
-for i in 1:nr_samples
-    temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(t_max_vec[i],
-        temperature_gradient = t_gradient_vec[i], 
-        nr_monte_carlo_steps_per_temperature = 0.01,
-        quench = true )
+                nr_vertices = nr_vertices_vec[i]
+                network_type = network_types[i]
+                
 
+                # get the melting temperature for the beta values
+                t_melt = NA.get_melting_temperature(network_type, beta)
 
-    evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,     
-        temperature_vec = temperature_vec,
-        nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
-        bond_bending_const = beta_vec[i], network_type = network_type,
-        theta_ground_state = theta_ground_state,)
+                # get random values of t_max and t_gradient
+                t_max = t_melt * t_max_over_t_melt
+                t_gradient = t_melt * t_gradient_over_t_melt
 
-    filename = Format.format("lcs_beta_{1:.4f}_t_max_{2:.4f}_t_gradient_{3:.4f}", beta_vec[i], t_max_vec[i], t_gradient_vec[i])
-    GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
+                temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(t_max,
+                    temperature_gradient = t_gradient, 
+                    nr_monte_carlo_steps_per_temperature = 0.01,
+                    quench = true )
+
+                evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,
+                    temperature_vec = temperature_vec,
+                    nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
+                    bond_bending_const = beta, network_type = network_type,
+                    theta_ground_state = theta_ground_state,)
+
+                filename = Format.format("$(network_type)_beta_{1:.4f}_t_max_{2:.4f}_t_gradient_{3:.4f}", beta, t_max, t_gradient)
+
+                GU.save_dict_to_h5(evolution_dict, evolution_dicts_path*filename*"_evolution.h5")
+            end
+        end
+    end
 end

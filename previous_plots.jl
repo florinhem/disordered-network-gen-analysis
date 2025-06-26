@@ -3581,7 +3581,7 @@ for j in eachindex(bond_bending_vec)
     # loop through folders and append all order metrics to the order_metrics_dict
     for k in eachindex(nr_vertices_vec)
 
-        analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\\"*string(nr_vertices_vec[k])*"_vertices_bond_bending_"*string(bond_bending_vec[j])*"\\"
+        analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\random_networks\old_order_metrics\\"*string(nr_vertices_vec[k])*"_vertices_bond_bending_"*string(bond_bending_vec[j])*"\\"
 
         order_metrics_dict = Dict()
 
@@ -3646,7 +3646,7 @@ Plots.scatter!([15.3, 13.6, 13.5], [0.045, 0.047, 0.066], color = ["#7BA8D6","#4
 
 min_temp = 0.08
 max_temp = 0.26
-Plots.scatter!(size=(470,400), legend = true, xlabel = Latex.L" \sigma_\mathrm{angle} / °", ylabel = Latex.L" \sigma_\mathrm{length} / d", rightmargin=5Plots.mm, colorbar=true, clim=(min_temp, max_temp), color=Plots.cgrad(:roma, rev = true, scale = :exp), xlims=(-4, 23), ylims=(0.01, 0.097))
+Plots.scatter!(size=(400,400), legend = true, xlabel = Latex.L" \sigma_\mathrm{angle} / °", ylabel = Latex.L" \sigma_\mathrm{length} / d", rightmargin=5Plots.mm, colorbar=true, clim=(min_temp, max_temp), color=Plots.cgrad(:roma, rev = true, scale = :exp), xlims=(-5, 23), ylims=(0.01, 0.1))
 #Plots.plot!(size=(550,400), legend = false, xlabel = "Bond angle st. d. / °", ylabel = "Bond length st. d. / "*Latex.L"d", rightmargin=5Plots.mm, clim=(min_temp, max_temp), color_palette=Plots.cgrad(:roma, rev = true, scale = :exp))
 
 Plots.savefig(plots_save_path*"bond_bending_stretching_highlighted.png")
@@ -4230,3 +4230,269 @@ Plots.plot!(time_vec,  Measurements.value.(excess_spreadability_vec_disorder_3),
     label = Latex.L"kT=0.24",)
 Plots.plot!(time_vec, comparison_func.(time_vec, 1), label = Latex.L"t^{-3/2}", color = :black, linestyle = :dash)
 Plots.savefig(save_path*"excess_spreadability.png")
+
+
+
+function my_func(x, t)
+    return x.^2 .* exp.( .- x.^2 .* t)
+end
+
+x_vec = collect(0:0.1:10)
+Plots.plot(x_vec, my_func.(x_vec, 0.1), label=Latex.L"t=0.1")
+Plots.plot!(x_vec, my_func.(x_vec,1), label=Latex.L"t=1")
+Plots.plot!(xlabel=Latex.L"k", ylabel=Latex.L"k^2 \mathrm{exp}(-k^2 t)", xlim=(0, 10), ylim=(0, 4))
+Plots.savefig(path*"spreadability_func.png")
+
+
+
+
+order_metrics = [
+    "Bond length std. deviation",
+    "Bond angle std. deviation",
+    "Dihedral angle entropy",
+    "Bond orientation entropy",
+    "Anisotropy from structure factor",
+    "Vertex homogeneity metric",
+    "Critical pore radius",
+    "Ring radius mean",
+    "Ring radius std. deviation",
+    "Hyperuniformity alpha ",
+]
+
+network_predictions = [
+    0.18573039770126343,  # bond_length_std_vec
+    0.39029574394226074,  # bond_angle_std_vec
+    1.013838768005371,     # dihedral_angle_entropy_vec
+    0.9829861521720886,   # bond_orientation_entropy_vec
+    0.37492454051971436,  # anisotropy_metric_from_structure_factor_vec
+    0.7437007427215576,   # vertex_homogeneity_metric_vec
+    0.5594326257705688,   # critical_pore_radius_vec
+    0.7401111125946045,   # ring_radius_mean_vec
+    0.06156785786151886,  # ring_radius_std_vec
+    -0.8236029148101807,  # hyperuniformity_alpha_vec_values
+]
+
+network_means = [0.203240492418587,  # bond_length_std_vec
+                 0.3976747915609694,  # bond_angle_std_vec
+                 0.9965101271239464,  # dihedral_angle_entropy_vec
+                 0.9861363855433791,  # bond_orientation_entropy_vec
+                 0.35689439329461065, # anisotropy_metric_from_structure_factor_vec
+                 0.7447058823529412,  # vertex_homogeneity_metric_vec
+                 0.48674841804849805, # critical_pore_radius_vec
+                 0.7303691876648305,  # ring_radius_mean_vec
+                 0.057474754688713,   # ring_radius_std_vec
+                 -0.223,              # hyperuniformity_alpha_vec_values
+                ]
+
+network_stds = [0.053649381996599285,  # bond_length_std_vec
+                0.08306661928092976,  # bond_angle_std_vec
+                0.0012159451211699987, # dihedral_angle_entropy_vec
+                0.003499055250514032,  # bond_orientation_entropy_vec
+                0.01483614201294338,   # anisotropy_metric_from_structure_factor_vec
+                0.06556215159621544,   # vertex_homogeneity_metric_vec
+                0.1006467141361276,    # critical_pore_radius_vec
+                0.043704267868199316,  # ring_radius_mean_vec
+                0.017404312256294262,  # ring_radius_std_vec
+                0.302,                 # hyperuniformity_alpha_vec_values
+                ]
+
+reversed_names = reverse(order_metrics)
+reversed_means = reverse(network_means)
+reversed_stds = reverse(network_stds)
+reversed_predictions = reverse(network_predictions)
+
+
+Plots.plot(
+    [0.98, 0.37, 0.185],
+    length(reversed_predictions)-2:length(reversed_predictions),
+    seriestype = :scatter,
+    markershape = :circle,
+    legend = false,
+    size = (700, 600),
+    yticks = (1:length(reversed_names), reversed_names),
+    bottom_margin = 0Plots.mm,
+    markersize = 5,
+    markercolor = Plots.palette(:tab10)[3],
+    xlims = (-0.9, 1.1),
+    ylims = (0.5, length(reversed_names) + 0.5),
+    grid = true,
+)
+
+Plots.savefig(path*"pachy_metrics.png")
+
+Plots.plot(
+    reversed_predictions,
+    1:length(reversed_predictions),
+    seriestype = :scatter,
+    markershape = :circle,
+    legend = false,
+    size = (700, 600),
+    yticks = (1:length(reversed_names), reversed_names),
+    bottom_margin = 0Plots.mm,
+    markersize = 7,
+    markercolor = Plots.palette(:tab10)[2],
+    xlims = (-0.9, 1.1),
+    ylims = (0.5, length(reversed_names) + 0.5),
+    grid = true,
+)
+
+Plots.plot!(
+    [0.98, 0.37, 0.185],
+    length(reversed_predictions)-2:length(reversed_predictions),
+    seriestype = :scatter,
+    markershape = :circle,
+    legend = false,
+    size = (700, 600),
+    yticks = (1:length(reversed_names), reversed_names),
+    bottom_margin = 0Plots.mm,
+    markersize = 5,
+    markercolor = Plots.palette(:tab10)[3],
+    xlims = (-0.9, 1.1),
+    ylims = (0.5, length(reversed_names) + 0.5),
+    grid = true,
+)
+
+Plots.savefig(path*"network_predictions.png")
+
+Plots.plot(
+    reversed_means,
+    1:length(reversed_means),
+    xerror = reversed_stds,
+    seriestype = :scatter,
+    markershape = :circle,
+    legend = false,
+    size = (700, 600),
+    yticks = (1:length(reversed_names), reversed_names),
+    bottom_margin = 0Plots.mm,
+    markersize = 10,
+    xlims = (-0.9, 1.1),
+    ylims = (0.5, length(reversed_names) + 0.5),
+    grid = true,
+)
+
+Plots.plot!(
+    reversed_predictions,
+    1:length(reversed_predictions),
+    seriestype = :scatter,
+    markershape = :circle,
+    legend = false,
+    size = (700, 600),
+    yticks = (1:length(reversed_names), reversed_names),
+    bottom_margin = 0Plots.mm,
+    markersize = 7,
+)
+
+Plots.plot!(
+    [0.98, 0.37, 0.185],
+    length(reversed_predictions)-2:length(reversed_predictions),
+    seriestype = :scatter,
+    markershape = :circle,
+    legend = false,
+    size = (700, 600),
+    yticks = (1:length(reversed_names), reversed_names),
+    bottom_margin = 0Plots.mm,
+    markersize = 5,
+    markercolor = Plots.palette(:tab10)[3],
+    xlims = (-0.9, 1.1),
+    ylims = (0.5, length(reversed_names) + 0.5),
+    grid = true,
+)
+
+Plots.savefig(path*"network_predictions_results.png")
+
+Plots.plot(
+    reversed_means,
+    1:length(reversed_means),
+    xerror = reversed_stds,
+    seriestype = :scatter,
+    markershape = :circle,
+    legend = false,
+    size = (700, 600),
+    yticks = (1:length(reversed_names), reversed_names),
+    bottom_margin = 0Plots.mm,
+    markersize = 10,
+    xlims = (-0.9, 1.1),
+    ylims = (0.5, length(reversed_names) + 0.5),
+    grid = true,
+)
+
+Plots.plot!(
+    [0.98, 0.37, 0.185],
+    length(reversed_predictions)-2:length(reversed_predictions),
+    seriestype = :scatter,
+    markershape = :circle,
+    legend = false,
+    size = (700, 600),
+    yticks = (1:length(reversed_names), reversed_names),
+    bottom_margin = 0Plots.mm,
+    markersize = 5,
+    markercolor = Plots.palette(:tab10)[3],
+    xlims = (-0.9, 1.1),
+    ylims = (0.5, length(reversed_names) + 0.5),
+    grid = true,
+)
+
+Plots.savefig(path*"weevil_results.png")
+
+
+
+path = raw"..\..\presentations\material\\"
+
+x_vec = collect(0:0.01:2)
+y_vec = collect(0.5:0.01:1.5)
+Plots.plot(x_vec, (3/16) .* (x_vec.^2 .- 1).^2   )
+Plots.plot!(xlabel="Bond length / "*Latex.L"d", ylabel="Energy", right_margin = 3Plots.mm, ylims=(0,0.3), xlims=(0,2), legend=false)
+
+Plots.savefig(path*"bond_stretching_energy_3.png")
+
+
+x_vec = collect(0:0.1:180)
+y_vec = collect(40:0.1:180)
+Plots.plot(x_vec, (3/8 * 0.2) .* (cosd.(x_vec) .+ 1).^2  )
+Plots.plot!(xlabel="Bond angle / °", ylabel="Energy", right_margin = 5Plots.mm, ylims=(0,0.3), xlims=(0,180), legend=false)
+Plots.savefig(path*"bond_bending_energy_3.png")
+
+
+analysis_data_path = raw"..\analysis_data\neural_network_networks\srs\\"
+
+save_path = raw"..\plots\neural_network_networks\srs\\"
+
+all_order_metrics = GU.load_h5_dict(analysis_data_path * "all_order_metrics.h5")
+
+beta_vec = all_order_metrics["bond_bending_const_vec"]
+
+t_max_vec = all_order_metrics["t_max_vec"]
+t_gradient_vec = all_order_metrics["t_gradient_vec"]
+
+t_melt_vec = [NA.get_melting_temperature("srs", beta) for beta in beta_vec]
+
+t_max_over_t_melt_vec = t_max_vec ./ t_melt_vec
+t_gradient_over_t_melt_vec = t_gradient_vec ./ t_melt_vec
+
+critical_pore_radius_vec = all_order_metrics["critical_pore_radius_vec"]
+
+# Filter the three vectors to only the data with pore radii below 0.45
+filter_indices = findall(critical_pore_radius_vec .< 0.45)
+t_max_over_t_melt_vec = t_max_over_t_melt_vec[filter_indices]
+t_gradient_over_t_melt_vec = t_gradient_over_t_melt_vec[filter_indices]
+critical_pore_radius_vec = critical_pore_radius_vec[filter_indices]
+beta_vec = beta_vec[filter_indices]
+
+# Create an interactive 3d scatter plot with Makie 
+fig = GLMakie.Figure()
+ax = GLMakie.Axis3(fig[1, 1], xlabel = Latex.L"T_\mathrm{max} /T_\mathrm{melt}", ylabel = Latex.L"\Delta T /T_\mathrm{melt}", zlabel = Latex.L"\beta")
+
+# Plot the scatter points
+#GLMakie.scatter!(ax, t_max_over_t_melt_vec, t_gradient_over_t_melt_vec, critical_pore_radius_vec)
+GLMakie.scatter!(ax, t_max_over_t_melt_vec, t_gradient_over_t_melt_vec, beta_vec)
+
+fig
+
+Plots.scatter(
+    t_max_over_t_melt_vec, 
+    t_gradient_over_t_melt_vec, 
+    xlabel = Latex.L"T_\mathrm{max} /T_\mathrm{melt}",
+    ylabel = Latex.L"\Delta T /T_\mathrm{melt}",
+    label = "Critical pore radius < 0.45",
+)
+Plots.savefig(save_path*"t_gradient_vs_t_max_critical_pore_radius_below_0.45.png")

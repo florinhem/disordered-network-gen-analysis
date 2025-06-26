@@ -155,6 +155,8 @@ import Plots    # for plotting
 #import GLMakie  # Makie backend for plotting
 import LaTeXStrings as Latex # to display latex symbols in plot labels
 import Format   # for python-like string formatting 
+import DataFrames  # to handle tabular data
+import CSV  # to read and write tabular data in csv format
 
 # set path to files
 if Sys.iswindows()

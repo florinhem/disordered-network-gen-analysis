@@ -9,6 +9,7 @@ import .GeneralUtilities as GU
 import Plots
 import LaTeXStrings as Latex
 import Measurements
+import GLMakie
 
 fontsize=16
 
@@ -25,7 +26,8 @@ legendfontsize=fontsize,
 bottom_margin = 3Plots.mm,
 linewidth=3, 
 thickness_scaling = 1,
-framestyle = :box)
+framestyle = :box,
+fontfamily="DejaVu Sans")
 
 # functions to have pi ticks
 function pitick(start, stop, denom; mode=:text)
@@ -142,12 +144,3 @@ fancylogscale!(; kwargs...) = fancylogscale!(Plots.plot!(); kwargs...)
 
 path = raw"..\..\presentations\material\\"
 
-function my_func(x, t)
-    return x.^2 .* exp.( .- x.^2 .* t)
-end
-
-x_vec = collect(0:0.1:10)
-Plots.plot(x_vec, my_func.(x_vec, 0.1), label=Latex.L"t=0.1")
-Plots.plot!(x_vec, my_func.(x_vec,1), label=Latex.L"t=1")
-Plots.plot!(xlabel=Latex.L"k", ylabel=Latex.L"k^2 \mathrm{exp}(-k^2 t)", xlim=(0, 10), ylim=(0, 4))
-Plots.savefig(path*"spreadability_func.png")

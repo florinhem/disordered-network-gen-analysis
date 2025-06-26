@@ -581,7 +581,8 @@ function cut_bonds_out_of_supercell!(
             for i in 1:2
                 spatial_network[vertex_count + i] = (
                     Dict("position" => (spatial_network[bond[i]]["position"] 
-                        .+ (-1)^(i+1) .* new_vector )) )
+                        .+ (-1)^(i+1) .* new_vector ),
+                        "coordination_nr" => 1 ))
 
                 spatial_network[bond[i], vertex_count + i] = (
                     Dict("vector" => (-1)^(i+1) .* new_vector, 
@@ -605,89 +606,102 @@ end
 
 
 """
-For each bond in the network, if the both its vertices are on the same side of
-the supercell but at least one of them lies close to the supercell edge,
-duplicate the bond on the other side of the supercell just outside the edge.
-This is required when cylinders are assigned to the bonds and it is plotted or
-used in an optical simulation.
+Create a padding of 0.6 bond length outside of the supercell for all bonds that
+are close to the supercell edge. I choose 0.6 times the equilibrium bond length
+to account for bonds that are slightly longer than the equilibrium bond length
 """
 function duplicate_bonds_close_to_supercell_edge!(
     spatial_network::MetaGraphsNext.MetaGraph;
-    bond_radius::Float64 = 0.35)
+    padding = 0.6)
 
-    # count current vortex
-    vortex_count = copy(spatial_network[]["nr_vertices"])
+    # count current vertex
+    vertex_count = copy(spatial_network[]["nr_vertices"])
+
+    initial_bonds = collect(MetaGraphsNext.edge_labels(spatial_network))
 
     # loop through bonds
-    for bond in MetaGraphsNext.edge_labels(spatial_network)
+    for bond in initial_bonds
 
         # get bond's start and target positions and its direction vector
         start_pos = spatial_network[bond[1]]["position"]
         target_pos = spatial_network[bond[2]]["position"]
 
-        # if one of the two vertices is close to the supercell edge but the
-        # vertices are not on opposite sides of the supercell, save another
-        # cylinder just outside the supercell on the other side
-        if ((any(start_pos .< bond_radius ) 
-            || any(target_pos .< bond_radius ) 
-            || any((spatial_network[]["supercell_edge_length"] .- start_pos) 
-                .< bond_radius )
-            || any((spatial_network[]["supercell_edge_length"] .- target_pos) 
-                .< bond_radius ) )
-            && LinearAlgebra.norm(start_pos .- target_pos) 
-                < spatial_network[]["supercell_edge_length"]/2
-            && all(start_pos .< spatial_network[]["supercell_edge_length"] )
-            && all(target_pos .< spatial_network[]["supercell_edge_length"] )
-            && all(start_pos .> 0.0 )
-            && all(target_pos .> 0.0 ) )
-
-            # check on which side of supercell the additional bond should be
-            # added and calculate new start and target positions
-            if (any(start_pos .< bond_radius ) 
-                || any(target_pos .< bond_radius ) )
-                
-                new_start_pos = (
-                    start_pos .+ spatial_network[]["supercell_edge_length"]
-                    .* ((start_pos .< bond_radius ) 
-                    .|| (target_pos .< bond_radius ) ))
-
-                new_target_pos = (target_pos 
-                    .+ spatial_network[]["supercell_edge_length"]
-                    .* ((start_pos .< bond_radius ) 
-                    .|| (target_pos .< bond_radius ) ))
-            else
-                new_start_pos = (start_pos 
-                    .- spatial_network[]["supercell_edge_length"]
-                    .* (((spatial_network[]["supercell_edge_length"] 
-                        .- start_pos) .< bond_radius )
-                    .|| ((spatial_network[]["supercell_edge_length"] 
-                        .- target_pos) .< bond_radius )))
-
-                new_target_pos = (target_pos 
-                    .- spatial_network[]["supercell_edge_length"]
-                    .* (((spatial_network[]["supercell_edge_length"] 
-                        .- start_pos) .< bond_radius )
-                    .|| ((spatial_network[]["supercell_edge_length"] 
-                        .- target_pos) .< bond_radius )))
+        # Loop over shifts: -1, 0, 1 in each direction
+        for dx in -1:1, dy in -1:1, dz in -1:1
+            # skip the case where all shifts are zero
+            if dx == 0 && dy == 0 && dz == 0
+                continue
             end
 
-            # add two new vertices and the bond between them to the spatial
-            # network
-            spatial_network[vortex_count + 1] = (
-                    Dict("position" => new_start_pos) )
-            spatial_network[vortex_count + 2] = (
-                        Dict("position" => new_target_pos) )
+            # Shift vector
+            shift = [dx, dy, dz] .* spatial_network[]["supercell_edge_length"]
 
-            spatial_network[vortex_count + 1, vortex_count + 2] = (
-                Dict("vector" => (new_target_pos .- new_start_pos), 
-                    "distance_squared" => (
-                LinearAlgebra.norm(new_target_pos .- new_start_pos)^2 )) )
+            # Check if point is within l of a face corresponding to the shift
+            xcond = ((dx == 1 && start_pos[1] < padding) 
+                || (dx == -1 && start_pos[1] 
+                    > spatial_network[]["supercell_edge_length"] - padding) 
+                || (dx == 1 && target_pos[1] < padding) 
+                || (dx == -1 && target_pos[1] 
+                    > spatial_network[]["supercell_edge_length"] - padding) 
+                ||(dx == 0))
+            ycond = ((dy == 1 && start_pos[2] < padding) 
+                || (dy == -1 && start_pos[2] 
+                    > spatial_network[]["supercell_edge_length"] - padding)
+                || (dy == 1 && target_pos[2] < padding)
+                || (dy == -1 && target_pos[2] 
+                    > spatial_network[]["supercell_edge_length"] - padding)
+                || (dy == 0))
+            zcond = ((dz == 1 && start_pos[3] < padding)
+                || (dz == -1 && start_pos[3] 
+                    > spatial_network[]["supercell_edge_length"] - padding)
+                || (dz == 1 && target_pos[3] < padding)
+                || (dz == -1 && target_pos[3] 
+                    > spatial_network[]["supercell_edge_length"] - padding)
+                || (dz == 0))
 
-            vortex_count += 2
+            # If the point is within l of a face, create a new vertex
+            if xcond && ycond && zcond
+                # Calculate new positions for the start and target vertices
+                new_start_pos = start_pos .+ shift
+                new_target_pos = target_pos .+ shift
+
+                # check if the new positions are already in the network
+                not_in_network = true
+                for bond in MetaGraphsNext.edge_labels(spatial_network)
+                    if (LinearAlgebra.norm(
+                            spatial_network[bond[1]]["position"] 
+                            .- new_start_pos) < 1e-4
+                        && LinearAlgebra.norm(
+                            spatial_network[bond[2]]["position"] 
+                            .- new_target_pos) < 1e-4)
+                        # if so, do not add the new vertices and bond
+                        not_in_network = false
+                        break
+                    end
+                end
+
+                # if the new positions are not in the network, we can add them
+                # to the network
+                if not_in_network
+                    spatial_network[vertex_count + 1] = (
+                        Dict("position" => new_start_pos, 
+                            "coordination_nr" => 1 ))
+                    spatial_network[vertex_count + 2] = (
+                        Dict("position" => new_target_pos, 
+                        "coordination_nr" => 1))
+
+                    spatial_network[vertex_count + 1, vertex_count + 2] = (
+                        Dict("vector" => (new_target_pos .- new_start_pos), 
+                            "distance_squared" => (LinearAlgebra.norm(
+                                new_target_pos .- new_start_pos)^2 )))
+
+                    vertex_count += 2
+                end
+            end
         end
     end
 
-    spatial_network[]["nr_vertices"] = vortex_count
+    spatial_network[]["nr_vertices"] = vertex_count
 
     return spatial_network
 end
@@ -713,11 +727,7 @@ function get_spatial_network_for_simulation!(
     spatial_network = cut_bonds_out_of_supercell!(spatial_network; 
         vector_out_of_supercell_length = vector_out_of_supercell_length)
 
-    # for each bond in the network, if the both its vertices are on the same
-    # side of the supercell but at least one of them lies close to the
-    # supercell edge, duplicate the bond on the other side of the supercell
-    # just outside the supercell edge. This is required when cylinders are
-    # assigned to the bonds and it is plotted or used in an optical simulation
+    # duplicate bonds close to supercell edge if desired
     if duplicate_bonds_close_to_supercell_edge
         spatial_network = duplicate_bonds_close_to_supercell_edge!(
             spatial_network)
@@ -751,6 +761,12 @@ function save_mesh_from_spatial_network(
     spatial_network = cut_bonds_out_of_supercell!(
         spatial_network; 
         vector_out_of_supercell_length = 1)
+
+    # duplicate bonds close to supercell edge if desired
+    if duplicate_bonds_close_to_supercell_edge
+        spatial_network = duplicate_bonds_close_to_supercell_edge!(
+            spatial_network)
+    end
 
     # loop through bonds
     for bond in MetaGraphsNext.edge_labels(spatial_network)

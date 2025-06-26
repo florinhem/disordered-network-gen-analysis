@@ -28,5 +28,7 @@ Pkg.add([
     "SphericalHarmonics",
     "StatsBase",
     "Polylabel",
-    "LsqFit"
+    "LsqFit",
+    "CSV",
+    "DataFrames",
 ])

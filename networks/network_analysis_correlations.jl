@@ -699,6 +699,10 @@ function get_correlation_functions(
         .* vertex_nr_vec ./ vertex_distance_vec.^2) .* (
             2/distance_histogram_bin_width)
 
+    # set the first entry of the pair correlation function to zero, to correct
+    # for weird behavior of the histogram for crystalline networks
+    pair_correlation_fct_vec[1] = 0.0
+
     # calculate total correlation function
     # (eq. 4 in 10.1016/j.physrep.2018.03.001)
     total_correlation_fct_vec = pair_correlation_fct_vec .- 1
@@ -742,9 +746,12 @@ distance is smaller than 1 if the network is clustered
 """
 function get_vertex_homogeneity_metric(correlation_functions_dict::Dict)
 
+    # get the smallest vertex distance where the cumulative coordination number
+    # is above 1
+    argmin_index = findfirst(
+        correlation_functions_dict["cumulative_coord_nr_vec"] .> 1)
     vertex_homogeneity_metric = (
-        correlation_functions_dict["vertex_distance_vec"][argmin(abs.(
-            correlation_functions_dict["cumulative_coord_nr_vec"] .- 1))])
+        correlation_functions_dict["vertex_distance_vec"][argmin_index])
 
     return vertex_homogeneity_metric
 end

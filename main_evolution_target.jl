@@ -17,20 +17,15 @@ import .GeneralUtilities as GU
 # 64 vertices: supercell_edge_length = 4.619802153517007
 # which is the cube root of the number of vertices times 2/sqrt(3)
 
-sleep(10)
-println("Sleep seems to work")
+save_path = "../structures/neural_network_targeted/ctn/target_2/"
 
-sleep(24*3600) # sleep for 24 hours
-
-save_path = "../structures/neural_network_networks/lcs/"
-
-evolution_dicts_directory_path = "../structures/neural_network_networks/lcs/evolution_dicts_1/"
+evolution_dicts_directory_path = "../structures/neural_network_targeted/ctn/target_2/evolution_dict/"
 
 print_every_nr_attempted_bond_switches = 200
 print_progress = true
 save_network_after_each_temperature = false
 further_evolve_previous_networks = false
-runs_vec = [1] #collect(1:2)
+runs_vec = collect(1:50) #collect(1:2)
 random_evolution_seed = -1
 print_lock = Threads.ReentrantLock()
 

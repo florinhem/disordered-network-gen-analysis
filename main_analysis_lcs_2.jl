@@ -8,14 +8,6 @@ import .NetworkAnalysis as NA
 import .GeneralUtilities as GU
 
 
-import Plots
-import Graphs
-import MetaGraphsNext
-import LinearAlgebra
-import Polynomials
-import Format
-#import Statistics
-#import Measurements
 
 # possible choices of nr_vertices for diamond: 64, 216, 512, 1000, that is (2*n)^3 with natural nr natural
 
@@ -28,12 +20,13 @@ import Format
 
 print_lock = Threads.ReentrantLock()
 
-spatial_networks_path = "../structures/neural_network_networks/ctn/"
-analysis_data_path = "../analysis_data/neural_network_networks/ctn/"
+spatial_networks_path = "../structures/neural_network_networks/lcs/"
+analysis_data_path = "../analysis_data/neural_network_networks/lcs/"
+
 
 NA.get_all_dicts_from_networks_multithreading(
 spatial_networks_path,
 analysis_data_path;
 print_progress = true,
-runs_vec = [1],
+runs_vec = [2],
 print_lock = print_lock)

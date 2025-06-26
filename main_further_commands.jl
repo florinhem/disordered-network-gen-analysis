@@ -25546,3 +25546,329 @@ order_metrics_dict = NA.get_order_metrics(filename,
     network_path,
     analysis_data_path;
     save_result = true)
+
+
+nr_vertices = 28
+network_type = "ctn"
+filename = "ctn_28_vertices"
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\crystals\\"
+
+evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,     
+        bond_bending_const = 0.5, network_type = network_type,)
+
+spatial_network = NG.get_periodic_network(evolution_dict)
+
+NG.save_spatial_network_to_gml(spatial_network, 
+    filename, 
+    save_path = save_path)
+
+NG.save_mesh_from_spatial_network(
+    spatial_network, 
+    filename;
+    bond_radius = 0.2,
+    vector_out_of_supercell_length = 1,
+    save_path= save_path*"geometrical_models\\",
+    duplicate_bonds_close_to_supercell_edge = false)
+
+
+
+nr_vertices = 24
+network_type = "lcs"
+filename = "lcs_24_vertices"
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\crystals\\"
+
+evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,     
+        bond_bending_const = 0.5, network_type = network_type,)
+
+spatial_network = NG.get_periodic_network(evolution_dict)
+
+NG.save_spatial_network_to_gml(spatial_network, 
+    filename, 
+    save_path = save_path)
+
+NG.save_mesh_from_spatial_network(
+    spatial_network, 
+    filename;
+    bond_radius = 0.2,
+    vector_out_of_supercell_length = 1,
+    save_path= save_path*"geometrical_models\\",
+    duplicate_bonds_close_to_supercell_edge = false)
+
+
+nr_vertices = 14
+network_type = "pto"
+filename = "pto_14_vertices"
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\crystals\\"
+
+evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,     
+        bond_bending_const = 0.5, network_type = network_type,)
+
+spatial_network = NG.get_periodic_network(evolution_dict)
+
+NG.save_spatial_network_to_gml(spatial_network, 
+    filename, 
+    save_path = save_path)
+
+NG.save_mesh_from_spatial_network(
+    spatial_network, 
+    filename;
+    bond_radius = 0.2,
+    vector_out_of_supercell_length = 1,
+    save_path= save_path*"geometrical_models\\",
+    duplicate_bonds_close_to_supercell_edge = false)
+
+
+nr_vertices = 14
+network_type = "pto"
+filename = "pto_14_vertices"
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\crystals\\"
+
+evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,     
+        bond_bending_const = 0.5, network_type = network_type,)
+
+spatial_network = NG.get_periodic_network(evolution_dict)
+
+NG.save_mesh_from_spatial_network(
+    spatial_network, 
+    filename*"_bond_radius_0.3344",;
+    bond_radius = 0.3344,
+    vector_out_of_supercell_length = 1,
+    save_path= save_path*"geometrical_models\\",
+    duplicate_bonds_close_to_supercell_edge = false)
+
+
+load_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\neural_network_targeted\ctn\target_2\\"
+filename = "all_order_metrics.h5"
+
+order_metrics_dict = GU.load_h5_dict(load_path*filename)
+
+NA.save_order_metrics_dict_to_csv(order_metrics_dict, load_path)
+
+
+
+
+network_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\neural_network_targeted\ctn\target_2\run_"*string(run)*"\\"
+filename = "ctn_beta_0.6000_t_max_5.0000_t_gradient_1.0000"
+
+for run in 1:34
+
+    #network = NG.load_spatial_network_from_gml(network_path * filename*".gml")
+    #NG.plot_spatial_network(network)
+    data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\neural_network_targeted\ctn\target_2\run_"*string(run)*"\\"
+
+    order_metrics = GU.load_h5_dict(data_path * filename*"_order_metrics.h5")
+    if order_metrics["critical_pore_radius"] < 0.39
+        println("run ", run, " has critical pore radius ", order_metrics["critical_pore_radius"], " < 0.39")
+    end
+end
+
+
+network_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\neural_network_networks\ctn\run_1\\"
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\neural_network_networks\for_simulation\ctn\run_1\\"
+filename = "ctn_beta_0.7498_t_max_2.2070_t_gradient_2.1259"
+
+spatial_network = NG.load_spatial_network_from_gml(network_path * filename*".gml")
+
+spatial_network = NG.get_spatial_network_for_simulation!(
+    spatial_network;
+    save_result = true,
+    filename = filename,
+    save_path= save_path,)
+
+network_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\neural_network_targeted\ctn\target_2\run_12\\"
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\neural_network_targeted\for_simulation\ctn\target_2\run_12\\"
+filename = "ctn_beta_0.6000_t_max_5.0000_t_gradient_1.0000"
+
+spatial_network = NG.load_spatial_network_from_gml(network_path * filename*".gml")
+
+spatial_network = NG.get_spatial_network_for_simulation!(
+    spatial_network;
+    save_result = true,
+    filename = filename,
+    save_path= save_path,)
+
+
+
+nr_vertices = 224
+network_type = "ctn"
+filename = "ctn_224_vertices"
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\crystals\for_simulation\ctn\\"
+
+evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,     
+        bond_bending_const = 0.5, network_type = network_type,)
+
+spatial_network = NG.get_periodic_network(evolution_dict)
+spatial_network = NG.get_spatial_network_for_simulation!(
+    spatial_network;
+    save_result = true,
+    filename = filename,
+    save_path= save_path,)
+
+
+    
+for (key, value) in order_metric_dict
+    #println("Key: $key")
+    if !(key == "q_l_mat") && !(key == "filenames_vec")
+        my_value = Statistics.mean(value)
+        println("Key: $key, Value: $my_value")
+    end
+end
+println("Standard deviations of order metrics:")
+for (key, value) in order_metric_dict
+    #println("Key: $key")
+    if !(key == "q_l_mat") && !(key == "filenames_vec")
+        my_std = Statistics.std(value)
+        println("Key: $key, Value: $my_std")
+    end
+end
+
+
+
+nr_samples = 1000
+
+# choose random beta values for the samples between 0 and 1
+beta_vec = rand(nr_samples)
+
+# get the melting temperature for the beta values
+t_melt_vec = [NA.get_melting_temperature("lcs", beta) for beta in beta_vec]
+
+# get random values of t_max between t_melt/3 and 3*t_melt 
+t_max_vec = t_melt_vec .* (1/3 .+ 8/3 .* rand(nr_samples))
+
+# get random values of the heating/cooling gradient between t_melt/10 and 
+# t_melt
+t_gradient_vec = t_melt_vec .* (1/10 .+ 9/10 .* rand(nr_samples))
+
+
+nr_vertices = 192
+network_type = "lcs"
+theta_ground_state = 180.0
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\neural_network_networks\lcs\evolution_dicts_2\\"
+
+for i in 1:nr_samples
+    temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(t_max_vec[i],
+        temperature_gradient = t_gradient_vec[i], 
+        nr_monte_carlo_steps_per_temperature = 0.01,
+        quench = true )
+
+
+    evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,     
+        temperature_vec = temperature_vec,
+        nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
+        bond_bending_const = beta_vec[i], network_type = network_type,
+        theta_ground_state = theta_ground_state,)
+
+    filename = Format.format("lcs_beta_{1:.4f}_t_max_{2:.4f}_t_gradient_{3:.4f}", beta_vec[i], t_max_vec[i], t_gradient_vec[i])
+    GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
+end
+
+
+
+
+nr_samples = 1000
+
+# choose random beta values for the samples between 0 and 1
+beta_vec = rand(nr_samples)
+
+# get the melting temperature for the beta values
+t_melt_vec = [NA.get_melting_temperature("srs", beta) for beta in beta_vec]
+
+# get random values of t_max between t_melt/3 and 3*t_melt 
+t_max_vec = t_melt_vec .* (1/3 .+ 8/3 .* rand(nr_samples))
+
+# get random values of the heating/cooling gradient between t_melt/10 and 
+# t_melt
+t_gradient_vec = t_melt_vec .* (1/10 .+ 9/10 .* rand(nr_samples))
+
+
+nr_vertices = 216
+network_type = "srs"
+theta_ground_state = 180.0
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\neural_network_networks\srs\evolution_dicts_2\\"
+
+for i in 1:nr_samples
+    temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(t_max_vec[i],
+        temperature_gradient = t_gradient_vec[i], 
+        nr_monte_carlo_steps_per_temperature = 0.01,
+        quench = true )
+
+
+    evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,     
+        temperature_vec = temperature_vec,
+        nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
+        bond_bending_const = beta_vec[i], network_type = network_type,
+        theta_ground_state = theta_ground_state,)
+
+    filename = Format.format("srs_beta_{1:.4f}_t_max_{2:.4f}_t_gradient_{3:.4f}", beta_vec[i], t_max_vec[i], t_gradient_vec[i])
+    GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
+end
+
+
+
+order_metric_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\neural_network_networks\ctn\\"
+spatial_networks_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\neural_network_networks\ctn\run_1\\"
+networks_for_simulation_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\neural_network_networks\for_simulation\ctn\run_1\\"
+
+order_metrics_dict = GU.load_h5_dict(joinpath(order_metric_path, "all_order_metrics.h5"))
+
+critical_pore_radius_vec = order_metrics_dict["critical_pore_radius_vec"]
+
+# get all indices where the critical_pore_radius is between 0.3 and 0.35
+indices = findall(x -> x > 0.3 && x < 0.35, critical_pore_radius_vec)
+
+# go through all keys of the dict and get the values for the indices
+order_metrics_dict_filtered = Dict{String, Any}()
+for (key, value) in order_metrics_dict
+    #println("Processing key: ", key)
+    if length(size(order_metrics_dict[key])) == 1
+        order_metrics_dict_filtered[key] = value[indices]
+    else
+        order_metrics_dict_filtered[key] = value[:, indices]
+    end
+end
+
+println(length(order_metrics_dict_filtered["critical_pore_radius_vec"]))
+
+
+# cut the filenames in the filenames_vec to only contain the last part after the last "\\"
+# and remove the "_order_metrics.h5" extension
+filenames_vec = order_metrics_dict_filtered["filenames_vec"]
+filenames_vec = [replace(basename(filename), "_order_metrics.h5" => "") for filename in filenames_vec]
+
+# shuffle the vector
+shuffled_filenames_vec = Random.shuffle(filenames_vec)
+
+# save the shuffled filenames to a txt file
+open(networks_for_simulation_path*"shuffled_filenames_vec.txt", "w") do io
+    for line in shuffled_filenames_vec
+        println(io, line)
+    end
+end
+
+# for all filenames, load the spatial network and save the network for simulation
+
+for filename in shuffled_filenames_vec
+    # load the spatial network
+    spatial_network = NG.load_spatial_network_from_gml(joinpath(spatial_networks_path, filename * ".gml"))
+    # save the network for simulation
+    spatial_network = NG.get_spatial_network_for_simulation!(
+    spatial_network;
+    save_result = true,
+    filename = filename,
+    save_path= networks_for_simulation_path,)
+end
+
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\neural_network_targeted\test_networks\\"
+
+NA.get_order_metrics_all_files(
+    analysis_data_path;
+    save_result=true,
+    save_algorithm_parameters_from_filename=true)
