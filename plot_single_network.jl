@@ -64,17 +64,17 @@ end
 
 
 plot_single_network(;
-    nr_vertices=216,
-    maximal_temperature=0.0001,
-    bond_bending_const=0.1,
+    nr_vertices=8*3^3,
+    maximal_temperature=1.5,
+    bond_bending_const=0.0,
     temperature_gradient=0.1,
     nr_monte_carlo_steps_per_temperature=0.01,
     theta_ground_state=180.0,
     nr_trials_per_temperature=1,
-    save_path = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/ft_1/",
-    network_type="lcs",
-    filename_start="test_1",
-    plot_appendix="_2.png",
+    save_path = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/melting_temp_search/",
+    network_type="dia",
+    filename_start="mts_5",
+    plot_appendix="_1.png",
     plot_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/analysis_plot/"
 )
 

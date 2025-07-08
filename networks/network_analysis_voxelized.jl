@@ -1024,9 +1024,7 @@ function get_dihedral_angle_std(spatial_network::MetaGraphsNext.MetaGraph)
 
     # loop through all bonds
     for bond in MetaGraphsNext.edge_labels(spatial_network)
-
-        # TODO: store bond[1] and bond[2] here, instead of calculating it always
-
+        
         # get vector along bond
         bond_vec = spatial_network[bond...]["vector"]
 

@@ -560,7 +560,8 @@ Calculate the pore size distribution of the mathematical network with
 infinitely thin bonds following the method described in
 10.1103/PhysRevE.100.053314, to work with periodic boundary conditions
 """
-function get_pore_size_distribution(spatial_network::MetaGraphsNext.MetaGraph;
+function get_pore_size_distribution(
+    spatial_network::MetaGraphsNext.MetaGraph;
     sampling_grid_size = 0.2,
     save_result::Bool = false,
     save_path = raw"..\analysis_data\sample_name",

@@ -437,7 +437,7 @@ chains twice
 function get_remaining_chains(
     spatial_network::MetaGraphsNext.MetaGraph,
     declined_chains::Vector;
-    min_ring_size::Int64 = 5)
+    min_ring_size::Int64 = 3)
 
     # initialize vector of remaining chains
     remaining_chains = []
@@ -497,7 +497,7 @@ function get_random_chain(
     declined_chains::Vector = [], 
     remaining_chains::Vector = [], 
     seed = nothing,
-    min_ring_size::Int64 = 5)
+    min_ring_size::Int64 = 3)
 
     # set seed if desired
     if seed !== nothing

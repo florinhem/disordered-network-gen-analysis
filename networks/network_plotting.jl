@@ -140,7 +140,9 @@ function plot_spatial_network_2(spatial_network::MetaGraphsNext.MetaGraph)
         [pos_1[3], pos_2[3]], 
         type="scatter3d", mode="lines", color="black", showlegend=false)
     end
-
+    
+    #Plots.plot!(figure, xticks=false, yticks=false, zticks=false, xaxis=false, yaxis=false, zaxis=false)
+    Plots.plot!(figure, xticks=([], []), yticks=([], []), zticks=([], []), xaxis=false, yaxis=false, zaxis=false, legend=false)
     Plots.gr()
     return figure
 end

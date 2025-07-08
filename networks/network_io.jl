@@ -173,13 +173,7 @@ function load_spatial_network_from_gml(spatial_network_path::String)
 
         # Extracting coordination_nr
         coordination_nr_match = match(coordination_nr_regex, node_string)
-        
-        #TODO: Take this if away
-        if(coordination_nr_match!==nothing)
-            coordination_nr = parse(Int, coordination_nr_match.captures[1])
-        else
-            coordination_nr=4
-        end
+        coordination_nr = parse(Int, coordination_nr_match.captures[1])
 
         # Extracting position
         position_match = match(position_regex, node_string)
@@ -190,6 +184,123 @@ function load_spatial_network_from_gml(spatial_network_path::String)
         # add vertex to spatial network
         spatial_network[vertex] = Dict(
             "coordination_nr" => coordination_nr,
+            "position" =>  [x_value, y_value, z_value],
+            )
+
+    end
+
+    for edge_string in edges_string_list
+
+        # get source, target, vector and distance squared
+        # Regular expressions to extract integer and float values
+        source_regex = r"source (\d+)"
+        target_regex = r"target (\d+)"
+        vector_regex = r"x ([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?) y ([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?) z ([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)"
+        distance_squared_regex = r"distance_squared (\d+\.\d+)"
+
+        # Extracting source
+        source_match = match(source_regex, edge_string)
+        source_value = parse(Int, source_match.captures[1])
+
+        # Extracting target
+        target_match = match(target_regex, edge_string)
+        target_value = parse(Int, target_match.captures[1])
+
+        # Extracting vector
+        vector_match = match(vector_regex, edge_string)
+        x_value = parse(Float64, vector_match.captures[1])
+        y_value = parse(Float64, vector_match.captures[2])
+        z_value = parse(Float64, vector_match.captures[3])
+
+        # Extracting distance squared
+        distance_squared_match = match(distance_squared_regex, edge_string)
+        distance_squared_value = parse(
+            Float64, distance_squared_match.captures[1])
+
+        # add edge to spatial network
+        spatial_network[source_value, target_value] = Dict(
+            "vector" => [x_value, y_value, z_value],
+            "distance_squared" => distance_squared_value)
+
+    end
+    
+    return spatial_network
+end
+
+
+"""
+Load spatial network from a GML format file 
+"""
+function load_spatial_network_from_gml_old(spatial_network_path::String)
+
+    # create an empty spatial network where vertex positions and edge vectors
+    # will be stored
+    spatial_network = MetaGraphsNext.MetaGraph(
+        Graphs.Graph(); 
+        label_type = Int64,
+        vertex_data_type = Dict{String, Any},
+        edge_data_type = Dict{String, Any},
+        graph_data = Dict{String, Any}() )
+
+    # load gml file to string
+    gml_string = read(spatial_network_path, String)
+
+    # extract network data, node and edge strings
+    network_data_string = gml_string[1:findfirst("node", gml_string)[end]]
+    nodes_string = gml_string[findfirst("node [", gml_string)[end]+1:findfirst(
+        "edge [", gml_string)[1]-1]
+    edges_string = gml_string[findfirst("edge [", gml_string)[end]+1:findlast(
+        "]", gml_string)[end]-1]
+
+    # Regular expression to match network data keys and values
+    pattern = r"(\w+)\s+([\w\.e\-\+]+)"
+
+    # Function to parse values as Int, Float64, or leave as string
+    function parse_value(value_str)
+        if value_str == "0" 
+            return false
+        elseif value_str == "1"  
+            return true
+        elseif !isnothing(tryparse(Int, value_str))  
+            return parse(Int, value_str)
+        elseif !isnothing(tryparse(Float64, value_str))  
+            return parse(Float64, value_str)
+        else 
+            return value_str
+        end
+    end
+
+    # Extract the matches using the regex and save them to the network data
+    # dictionary
+    for m in eachmatch(pattern, network_data_string)
+        key = m.captures[1]
+        value = parse_value(m.captures[2])
+        spatial_network[][key] = value
+    end
+
+    # split strings into individual nodes and edges
+    nodes_string_list = split(nodes_string, "node")
+    edges_string_list = split(edges_string, "edge")
+
+    for node_string in nodes_string_list
+
+        # get vertex and position
+        # Regular expressions to extract integer and float values
+        id_regex = r"id (\d+)"
+        position_regex = r"x ([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?) y ([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?) z ([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)"
+
+        # Extracting id
+        id_match = match(id_regex, node_string)
+        vertex = parse(Int, id_match.captures[1])
+
+        # Extracting position
+        position_match = match(position_regex, node_string)
+        x_value = parse(Float64, position_match.captures[1])
+        y_value = parse(Float64, position_match.captures[2])
+        z_value = parse(Float64, position_match.captures[3])
+
+        # add vertex to spatial network
+        spatial_network[vertex] = Dict(
             "position" =>  [x_value, y_value, z_value],
             )
 
@@ -578,8 +689,11 @@ function cut_bonds_out_of_supercell!(
             # add two new vertices and bonds half way of original bond
             for i in 1:2
                 spatial_network[vertex_count + i] = (
-                    Dict("position" => (spatial_network[bond[i]]["position"] 
-                        .+ (-1)^(i+1) .* new_vector )) )
+                    Dict(
+                        "position" => (spatial_network[bond[i]]["position"] 
+                        .+ (-1)^(i+1) .* new_vector ),
+                        "coordination_nr" => spatial_network[bond[i]]["coordination_nr"]
+                        ) )
 
                 spatial_network[bond[i], vertex_count + i] = (
                     Dict("vector" => (-1)^(i+1) .* new_vector, 
@@ -622,6 +736,8 @@ function duplicate_bonds_close_to_supercell_edge!(
         # get bond's start and target positions and its direction vector
         start_pos = spatial_network[bond[1]]["position"]
         target_pos = spatial_network[bond[2]]["position"]
+        start_coordination_nr = spatial_network[bond[1]]["coordination_nr"]
+        end_coordination_nr = spatial_network[bond[2]]["coordination_nr"]
 
         # if one of the two vertices is close to the supercell edge but the
         # vertices are not on opposite sides of the supercell, save another
@@ -672,12 +788,19 @@ function duplicate_bonds_close_to_supercell_edge!(
             # add two new vertices and the bond between them to the spatial
             # network
             spatial_network[vortex_count + 1] = (
-                    Dict("position" => new_start_pos) )
+                Dict(
+                    "position" => new_start_pos,
+                    "coordination_nr" => start_coordination_nr
+                ) )
             spatial_network[vortex_count + 2] = (
-                        Dict("position" => new_target_pos) )
+                Dict(
+                    "position" => new_target_pos,
+                    "coordination_nr" => end_coordination_nr
+                ) )
 
             spatial_network[vortex_count + 1, vortex_count + 2] = (
-                Dict("vector" => (new_target_pos .- new_start_pos), 
+                Dict(
+                    "vector" => (new_target_pos .- new_start_pos), 
                     "distance_squared" => (
                 LinearAlgebra.norm(new_target_pos .- new_start_pos)^2 )) )
 

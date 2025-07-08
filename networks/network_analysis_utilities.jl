@@ -118,7 +118,6 @@ function get_monte_carlo_steps_for_quenching_vec(
             evolution_dict["nr_monte_carlo_steps_per_temperature_vec"]
 
             nr_monte_carlo_moves_per_step = 18*evolution_dict["nr_vertices"]
-            # TODO convert 18 (hardcoded) into 4*3*3/2 with coordination_nr
 
             nr_monte_carlo_moves_before_quenching = (
                 nr_monte_carlo_moves_per_step*sum(evolution_dict[
@@ -170,11 +169,14 @@ function get_all_dicts_from_network_single_file(
         save_path = analysis_data_path*filename)
 
     # get ring radius distribution
+    #=
     ring_radius_distribution_dict = get_ring_radius_distribution(
         spatial_network,
         ring_size_distribution_dict;
         save_result = true,
         save_path = analysis_data_path*filename)
+        =# 
+        #TODO: Some error for polylabel: ERROR: type Nothing has no field X
 
     # get structure factor by wavevector array for vertices
     structure_factor_dict = get_structure_factor_by_wavevector_array(
@@ -241,6 +243,7 @@ function get_all_dicts_from_network_single_file(
         print_lock = print_lock)
     
     # get all order metrics for the network
+    #=
     order_metrics_dict = get_order_metrics(
         filename,
     spatial_network_path,
@@ -248,6 +251,7 @@ function get_all_dicts_from_network_single_file(
     l_max_steinhardt_q_l = 12,
     save_result = true,
     )
+    =# # TODO: Ring metrics is messing with this as well
 
     return
 end

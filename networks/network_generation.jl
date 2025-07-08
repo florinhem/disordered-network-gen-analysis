@@ -435,8 +435,11 @@ function shift_edge_middle_into_unitcell(edges, unitcell_min, unitcell_max)
     for (edge_nr,(vertex_position_start,vertex_position_end,length)) in edges
 
         # Calculate how to translate the middle of the edge into the unitcell
+        #=
         edge_middle_position=vertex_position_start .+ ( 
             (vertex_position_end .+ vertex_position_start) ./ 2 )
+            =#
+        edge_middle_position=(vertex_position_start .+ vertex_position_end) ./ 2
         new_edge_middle_position=(
             mod.(edge_middle_position, unitcell_length) .+ unitcell_min)
         translation=new_edge_middle_position .- edge_middle_position
@@ -481,22 +484,33 @@ function get_edges_dia()
     # look at the space group name: Fd-3m
     # and find the space group number: 227
 
-    edges = Dict(1 => ([0.0,0.0,0.0], [1/4,1/4,1/4], sqrt(3)/4))
+    # define the position of vertex V1 and edge E1. 
+    # V2 is twice the distance from V1 to E1. 
+    V1=[1/8,1/8,1/8]
+    E1=[0.0,0.0,0.0]
+
+    # the difference between V1 and V2 gives us the length
+    D1=2 .* (V1 .- E1)
+    V2=V1 .- D1
+    L1=LinearAlgebra.norm(D1)
+    
+    edges = Dict(1 => (V1, V2, L1))
     
     # symmetry operations for space group number with the help of the book:
     # "International Tables for Crystallography"
     edges = copy_and_rotate_and_translate(edges,
-        [0.0,0.0,1.0],[0.0,1/4,0.0],[0.0,0.0,1/2],2)
+        [0.0,0.0,1.0],[3/8,1/8,0.0],[0.0,0.0,1/2],2)
     edges = copy_and_rotate_and_translate(edges,
-        [0.0,1.0,0.0],[1/4,0.0,0.0],[0.0,1/2,0.0],2)
+        [0.0,1.0,0.0],[1/8,0.0,3/8],[0.0,1/2,0.0],2)
     edges = copy_and_rotate_and_translate(edges,
         [1.0,1.0,1.0],[0.0,0.0,0.0],[0.0,0.0,0.0],3)
     edges = copy_and_rotate_and_translate(edges,
-        [1.0,1.0,0.0],[0.0,-1/4,3/8],[1/2,1/2,0.0],2)
+        [1.0,1.0,0.0],[0.0,-1/4,1/4],[1/2,1/2,0.0],2)
+    edges = copy_and_invert(edges,[0.0,0.0,0.0])
 
-    edges = copy_and_translate(edges, [0,1/2,1/2])
-    edges = copy_and_translate(edges, [1/2,0,1/2])
-    edges = copy_and_translate(edges, [1/2,1/2,0])
+    edges = copy_and_translate(edges, [0.0,1/2,1/2])
+    edges = copy_and_translate(edges, [1/2,0.0,1/2])
+    edges = copy_and_translate(edges, [1/2,1/2,0.0])
 
     return edges
 end
@@ -511,8 +525,18 @@ function get_edges_srs()
     # look at the space group name: I4(1)32
     # and find the space group number: 214
 
-    edges = Dict(1 => ([1/8, 1/8, 1/8], [-1/8, 3/8, 1/8], sqrt(2)/4))
+    # define the position of vertex V1 and edge E1. 
+    # V2 is twice the distance from V1 to E1. 
+    V1=[1/8,1/8,1/8]
+    E1=[0.0,1/4,1/8]
+
+    # the difference between V1 and V2 gives us the length
+    D1=2 .* (V1 .- E1)
+    V2=V1 .- D1
+    L1=LinearAlgebra.norm(D1)
     
+    edges = Dict(1 => (V1, V2, L1))
+
     # symmetry operations for space group number with the help of the book:
     # "International Tables for Crystallography"
     edges = copy_and_rotate_and_translate(edges,
@@ -539,10 +563,33 @@ function get_edges_srd()
     # look at the space group name: P4(2)32
     # and find the space group number: 213
 
+    # define the position of vertex V1 and edge E1. 
+    # V3 is twice the distance from V1 to E1. 
+    V1=[0.0,1/4,1/2]
+    E1=[0.0,1/2,1/2]
+
+    # the difference between V1 and V2 gives us the length
+    D1=2 .* (V1 .- E1)
+    V3=V1 .- D1
+    L1=LinearAlgebra.norm(D1)
+
+    # define the position of vertex V2 and edge E2. 
+    # V4 is twice the distance from V2 to E2. 
+    x=1/8
+    V2=[1/4,1/4,1/4]
+    E2=[x,1/4,1/2-x]
+
+    # the difference between V1 and V2 gives us the length
+    D2=2 .* (V2 .- E2)
+    V4=V2 .- D2
+    L2=LinearAlgebra.norm(D2)
+
     edges = Dict(
-        1 => ([0.0, 1/4, 1/2], [0.0, 3/4, 1/2], 1/2),
-        2 => ([1/4, 1/4, 1/4], [0.0, 1/4, 1/2], sqrt(2)/4)
+        1 => (V1, V3, L1),
+        2 => (V2, V4, L2)
         )
+    
+    println("edges, $edges")
     
     # symmetry operations for space group number with the help of the book:
     # "International Tables for Crystallography"
@@ -794,30 +841,36 @@ function get_network(nr_vertices, network_name)
 
     # fold all edges back into the supercell
     edges = fold_to_block(edges, nr_unit_cells_per_dimension)
+    
     edges = delete_copys(edges, epsilon)
-
+    #println("edges after fold:, $edges")
+    
     # scale the network up from a unitcell lenght of 1 to edge_length_unit_cell
     edges=scale(edges,edge_length_unit_cell)
 
     # get the positions, edges, nr_vertices, original_graph and edges lengths
     vertex_positions_dict=get_vertex_positions_dict(edges, 
         epsilon, supercell_edge_length)
+    #println("vertex_positions_dict, $vertex_positions_dict")
     vertex_position_mat=get_mat_from_dict(vertex_positions_dict)
+    #println("vertex_position_mat, $(vertex_position_mat)")
     edges_with_vertex=get_edges_with_vertex(edges, vertex_positions_dict, 
         epsilon, supercell_edge_length)
     nr_vertices=length(vertex_positions_dict)
     original_graph=create_graph(edges_with_vertex, nr_vertices)
+    #println("original_graph: $(original_graph)")
 
     # metrics to check that the network is correct
     edge_length_vec=get_edge_length_vec(original_graph, edges_with_vertex)
     coordination_nr_vec=get_coordination_nr_vec(original_graph)
+    count_2 = count(x -> x == 2, coordination_nr_vec)
     count_3 = count(x -> x == 3, coordination_nr_vec)
     count_4 = count(x -> x == 4, coordination_nr_vec)
 
     # this if else can be removed, if you are sure that the network is correct
     if cmp(network_name , "dia") == 0
         println("nr of edges in unitcell should be $nr_edges_per_unit_cell=?=$(
-            length(edge_length_vec)/(nr_unit_cells_per_dimension^3))")
+        length(edge_length_vec)/(nr_unit_cells_per_dimension^3))")
         println("CN_all=$(length(coordination_nr_vec))=?=CN4=$(count_4)")
     elseif cmp(network_name , "srs") == 0
         println("nr of edges in unitcell should be $nr_edges_per_unit_cell=?=$(

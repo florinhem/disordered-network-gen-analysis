@@ -1,10 +1,419 @@
 
 
-#*#
+
+
+
+# include file where structure analysis modules are stored
+include("structure_analysis_modules_no_plotting.jl")    #*#
+
+# import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+import MetaGraphsNext
+import Graphs
+import Plots
+Plots.plotlyjs()
+import .Threads
+import Statistics
+import LinearAlgebra
+
+function save_multiple_N_T_trials_beta_gml(
+    ;
+    nr_vertices_array,
+    maximal_temperature_array,
+    bond_bending_const_array,
+    temperature_gradient_array,
+    nr_monte_carlo_steps_per_temperature_array,
+    theta_ground_state_array,
+    nr_trials_per_temperature_array,
+    network_type,
+    save_path,
+    filename_start
+    )
+    
+    println(Threads.nthreads())
+
+
+    nr_vertices=nr_vertices_array[1]
+    maximal_temperature=maximal_temperature_array[1]
+    bond_bending_const=bond_bending_const_array[1]
+    temperature_gradient=temperature_gradient_array[1]
+    nr_monte_carlo_steps_per_temperature=nr_monte_carlo_steps_per_temperature_array[1]
+    theta_ground_state=theta_ground_state_array[1]
+    trial=nr_trials_per_temperature_array[1]
+
+    println("$nr_vertices"*", "*
+    "$maximal_temperature"*", "*
+    "$bond_bending_const"*", "*
+    "$temperature_gradient"*", "*
+    "$nr_monte_carlo_steps_per_temperature"*", "*
+    "$theta_ground_state"*", "*
+    "$trial" )
+
+    evolution_dict = NA.get_evolution_dict(;
+        nr_vertices = nr_vertices, 
+        network_type=network_type, 
+        bond_bending_const=bond_bending_const, 
+        min_ring_size=3,
+        theta_ground_state=theta_ground_state
+    )
+
+    spatial_network = NG.get_periodic_network(evolution_dict)
+
+    println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
+    println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
+
+    # force one bond switch and then save the network
+
+    switched_chain = NG.get_random_chain(
+        spatial_network; 
+        declined_chains = [],
+        remaining_chains = [],
+        min_ring_size = evolution_dict["min_ring_size"])
+    
+    spatial_network, move_accepted = NG.monte_carlo_move!(spatial_network, evolution_dict, maximal_temperature; switched_chain)
+
+    total_energy_vec =NG.get_total_energy_keating(spatial_network)
+    move_accepted_vec=[move_accepted]
+
+    println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
+    println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
+
+    evolution_dict["total_energy_vec"] = total_energy_vec
+    evolution_dict["move_accepted_vec"] = move_accepted_vec
+
+    filename = (filename_start
+        *"_NW="*"$network_type"
+        *"_N="*"$nr_vertices"
+        *"_T="*"$maximal_temperature"
+        *"_Beta="*"$bond_bending_const"
+        *"_GradT="*"$temperature_gradient"
+        *"_StepsPerT="*"$nr_monte_carlo_steps_per_temperature"
+        *"_Theta_GS="*"$theta_ground_state"
+        *"_Trial="*"$trial"
+        )
+	
+    NG.save_spatial_network_to_gml(
+        spatial_network,
+        filename;
+        evolution_dict = evolution_dict,
+        save_path = save_path)
+
+    
+    return
+end
+
+
+save_multiple_N_T_trials_beta_gml(;
+    nr_vertices_array=[10*2^3],
+    maximal_temperature_array=[111.0],
+    bond_bending_const_array=[0.1],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    network_type="srd",
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/ft_1/",
+    filename_start="MC=1_R=Yes_Q=No_1"
+)
+
+
+
+# include file where structure analysis modules are stored
+include("structure_analysis_modules.jl")    #*#
+
+# import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+import MetaGraphsNext
+import Graphs
+import Plots
+Plots.plotlyjs()
+import .Threads
+import Statistics
+import LinearAlgebra
+
+function save_multiple_N_T_trials_beta_gml(
+    ;
+    nr_vertices_array,
+    maximal_temperature_array,
+    bond_bending_const_array,
+    temperature_gradient_array,
+    nr_monte_carlo_steps_per_temperature_array,
+    theta_ground_state_array,
+    nr_trials_per_temperature_array,
+    network_type,
+    save_path,
+    filename_start
+    )
+    
+    println(Threads.nthreads())
+
+
+    nr_vertices=nr_vertices_array[1]
+    maximal_temperature=maximal_temperature_array[1]
+    bond_bending_const=bond_bending_const_array[1]
+    temperature_gradient=temperature_gradient_array[1]
+    nr_monte_carlo_steps_per_temperature=nr_monte_carlo_steps_per_temperature_array[1]
+    theta_ground_state=theta_ground_state_array[1]
+    trial=nr_trials_per_temperature_array[1]
+
+    println("$nr_vertices"*", "*
+    "$maximal_temperature"*", "*
+    "$bond_bending_const"*", "*
+    "$temperature_gradient"*", "*
+    "$nr_monte_carlo_steps_per_temperature"*", "*
+    "$theta_ground_state"*", "*
+    "$trial" )
+
+    evolution_dict = NA.get_evolution_dict(;
+        nr_vertices = nr_vertices, 
+        network_type=network_type, 
+        bond_bending_const=bond_bending_const, 
+        min_ring_size=3,
+        theta_ground_state=theta_ground_state
+    )
+
+    spatial_network = NG.get_periodic_network(evolution_dict)
+
+    #=plot1=NG.plot_spatial_network_2(spatial_network)
+    Plots.xlabel!("x")
+    Plots.ylabel!("y")
+    Plots.zlabel!("z")
+    display(plot1)
+
+    println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
+    println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
+    =#
+    # force one bond switch and then save the network
+
+    switched_chain = NG.get_random_chain(
+        spatial_network; 
+        declined_chains = [],
+        remaining_chains = [],
+        min_ring_size = evolution_dict["min_ring_size"])
+    
+    #spatial_network = NG.switch_chain!(spatial_network, switched_chain)
+    spatial_network, move_accepted = NG.monte_carlo_move!(
+        spatial_network, evolution_dict, maximal_temperature; switched_chain)
+
+    total_energy_vec=NG.get_total_energy_keating(spatial_network)
+    move_accepted_vec=[move_accepted]
+    
+    plot1=NG.plot_spatial_network_2(spatial_network)
+    Plots.xlabel!("x")
+    Plots.ylabel!("y")
+    Plots.zlabel!("z")
+    display(plot1)
+
+    println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
+    println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
+
+    evolution_dict["total_energy_vec"] = total_energy_vec
+    evolution_dict["move_accepted_vec"] = move_accepted_vec
+
+    filename = (filename_start
+        *"_NW="*"$network_type"
+        *"_N="*"$nr_vertices"
+        *"_T="*"$maximal_temperature"
+        *"_Beta="*"$bond_bending_const"
+        *"_GradT="*"$temperature_gradient"
+        *"_StepsPerT="*"$nr_monte_carlo_steps_per_temperature"
+        *"_Theta_GS="*"$theta_ground_state"
+        *"_Trial="*"$trial"
+        )
+	
+    #=NG.save_spatial_network_to_gml(
+        spatial_network,
+        filename;
+        evolution_dict = evolution_dict,
+        save_path = save_path)=#
+
+    NG.get_spatial_network_for_simulation!(
+        spatial_network,
+        vector_out_of_supercell_length = 1,
+        duplicate_bonds_close_to_supercell_edge = true,
+        save_result = true,
+        filename = filename,
+        save_path = save_path)
+
+    
+    return
+end
+
+
+save_multiple_N_T_trials_beta_gml(;
+    nr_vertices_array=[19*1^3],
+    maximal_temperature_array=[0.3],
+    bond_bending_const_array=[0.3],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    network_type="srd_one_unitcell",
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/srd_simulation/",
+    filename_start="MC=1_Q=No_2"
+)
+
+
+
+
+
+
+# include file where structure analysis modules are stored
+include("structure_analysis_modules_no_plotting.jl")    #*#
+
+# import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+import MetaGraphsNext
+import Graphs
+import Plots
+Plots.plotlyjs()
+import .Threads
+import Statistics
+import LinearAlgebra
+
+function save_multiple_N_T_trials_beta_gml(
+    ;
+    nr_vertices_array,
+    maximal_temperature_array,
+    bond_bending_const_array,
+    temperature_gradient_array,
+    nr_monte_carlo_steps_per_temperature_array,
+    theta_ground_state_array,
+    nr_trials_per_temperature_array,
+    network_type,
+    save_path,
+    filename_start
+    )
+    
+    println(Threads.nthreads())
+
+
+    nr_vertices=nr_vertices_array[1]
+    maximal_temperature=maximal_temperature_array[1]
+    bond_bending_const=bond_bending_const_array[1]
+    temperature_gradient=temperature_gradient_array[1]
+    nr_monte_carlo_steps_per_temperature=nr_monte_carlo_steps_per_temperature_array[1]
+    theta_ground_state=theta_ground_state_array[1]
+    trial=nr_trials_per_temperature_array[1]
+
+    println("$nr_vertices"*", "*
+    "$maximal_temperature"*", "*
+    "$bond_bending_const"*", "*
+    "$temperature_gradient"*", "*
+    "$nr_monte_carlo_steps_per_temperature"*", "*
+    "$theta_ground_state"*", "*
+    "$trial" )
+
+    evolution_dict = NA.get_evolution_dict(;
+        nr_vertices = nr_vertices, 
+        network_type=network_type, 
+        bond_bending_const=bond_bending_const, 
+        min_ring_size=3,
+        theta_ground_state=theta_ground_state
+    )
+
+    spatial_network = NG.get_periodic_network(evolution_dict)
+
+    println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
+    println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
+
+    # force one bond switch and then save the network
+
+    switched_chain = NG.get_random_chain(
+        spatial_network; 
+        declined_chains = [],
+        remaining_chains = [],
+        min_ring_size = evolution_dict["min_ring_size"])
+    
+    spatial_network = NG.switch_chain!(spatial_network, switched_chain)
+
+    total_energy_vec=NG.get_total_energy_keating(spatial_network)
+    move_accepted_vec=[1]
+
+    println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
+    println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
+
+    evolution_dict["total_energy_vec"] = total_energy_vec
+    evolution_dict["move_accepted_vec"] = move_accepted_vec
+
+    filename = (filename_start
+        *"_NW="*"$network_type"
+        *"_N="*"$nr_vertices"
+        *"_T="*"$maximal_temperature"
+        *"_Beta="*"$bond_bending_const"
+        *"_GradT="*"$temperature_gradient"
+        *"_StepsPerT="*"$nr_monte_carlo_steps_per_temperature"
+        *"_Theta_GS="*"$theta_ground_state"
+        *"_Trial="*"$trial"
+        )
+	
+    NG.save_spatial_network_to_gml(
+        spatial_network,
+        filename;
+        evolution_dict = evolution_dict,
+        save_path = save_path)
+
+    
+    return
+end
+
+
+save_multiple_N_T_trials_beta_gml(;
+    nr_vertices_array=[10*2^3],
+    maximal_temperature_array=[0.0001],
+    bond_bending_const_array=[0.2],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    network_type="srd",
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/ft_1/",
+    filename_start="MC=1_Q=No_1"
+)
+
+
+
+
+
+#=
+elseif cmp(network_name , "srd_one_unitcell") == 0
+    println("AAA")
+    nr_dimensions = 3
+    # we calculated numerically the size of the unitcell,
+    # such that the bond length energy is minimal. This value is close
+    # but not exactly the same as the weighted lengths of the different
+    # coordination number 3 and 4.
+    edge_length_unit_cell = 2.3075*2
+    nr_vertices_per_unit_cell = 10+9
+    nr_edges_per_unit_cell=18*2
+    edges = get_edges_srd_one_unitcell()
+=#
+
+#=
+elseif cmp(network_name , "srd_one_unitcell") == 0
+        println("!!!nr of edges in unitcell should be $nr_edges_per_unit_cell=?=$(
+        length(edge_length_vec)/(nr_unit_cells_per_dimension^3))")  
+        println("!!!CN2=$(count_2)")
+        println("!!!CN3=$(count_3)")
+        println("!!!CN4=$(count_4)")
+        println("CN3/CN4=4/6=0.666=?=$(count_3/count_4)")
+=#
 
 
 #*#
 
+
+#*#
+#=
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
@@ -167,7 +576,7 @@ plt.show()
 #  Example:  We might then use PC1 and PC2 as features in a model
 # to predict an output variable (which we're not demonstrating here,
 # but it would involve creating a target variable and training a model).
-
+=#
 
 
 #*#
@@ -250,7 +659,7 @@ function save_multiple_N_T_trials_beta_gml(
             min_ring_size = evolution_dict["min_ring_size"])
         #print(switched_chain)
         # switch bonds
-        spatial_network = NG.switch_chain!(spatial_network, switched_chain)    #TODO
+        spatial_network = NG.switch_chain!(spatial_network, switched_chain) 
 
         # relax total network and only update total energy if there won't be
         # thermal fluctuations included afterward
@@ -8190,10 +8599,10 @@ the information that the unit cell contains 18 vertices
 """
 function get_srd_network(nr_vertices)
     
-    edge_length_unit_cell = 1/(sqrt(2)*1/8) #TODO Check this
+    edge_length_unit_cell = 1/(sqrt(2)*1/8) 
 
     # calculate the actual nr vertices, given that we require a 
-    # cubic supercell and using the fact that the unit cell contains 18 vertices    #TODO: Check 18
+    # cubic supercell and using the fact that the unit cell contains 18 vertices 
     nr_unit_cells_per_dimension = max(1, Int(round( (nr_vertices/18)^(1/3) )) )
     nr_vertices = 18 * nr_unit_cells_per_dimension^3
 
@@ -11290,7 +11699,6 @@ function plot_stretch_vs_bend(;
 
                 P=Plots.scatter!(
                     P,
-                    [x],
                     [y],
                     xerr=x_err,
                     yerr=y_err,

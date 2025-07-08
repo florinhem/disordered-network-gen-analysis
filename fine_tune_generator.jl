@@ -71,11 +71,13 @@ function save_multiple_N_T_trials_beta_gml(
 
         spatial_network = NG.get_periodic_network(evolution_dict)
 
+        #=
         plot1=NG.plot_spatial_network_2(spatial_network)
         Plots.xlabel!("x")
         Plots.ylabel!("y")
         Plots.zlabel!("z")
         display(plot1)
+        =#
 
         println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
         println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
@@ -101,11 +103,13 @@ function save_multiple_N_T_trials_beta_gml(
             print_progress = true,
             print_every_nr_attempted_bond_switches = 1000)
 
+        #=
         plot1=NG.plot_spatial_network_2(spatial_network)
         Plots.xlabel!("x")
         Plots.ylabel!("y")
         Plots.zlabel!("z")
         display(plot1)
+        =#
 
         #break
 
@@ -138,6 +142,219 @@ function save_multiple_N_T_trials_beta_gml(
 end
 
 save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["dia"],
+    nr_vertices_array=[8*3^3],
+    maximal_temperature_array=[0.5,1.0,1.5],
+    bond_bending_const_array=[0.0,1.0],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/melting_temp_search/",     
+    filename_start="mts_5"
+)
+
+#=
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["pto"],
+    nr_vertices_array=[14*2^3],
+    maximal_temperature_array=[0.35],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/melting_temp_search/",     
+    filename_start="mts_4"
+)
+    =#
+#=
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["dia"],
+    nr_vertices_array=[8*3^3],
+    maximal_temperature_array=[0.44],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/melting_temp_search/",     
+    filename_start="mts_4"
+)
+    =#
+#=
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["srd"],
+    nr_vertices_array=[10*3^3],
+    maximal_temperature_array=[0.29],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/melting_temp_search/",     
+    filename_start="mts_4"
+)=#
+
+#=
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["srd"],
+    nr_vertices_array=[10*3^3],
+    maximal_temperature_array=[0.25],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/melting_temp_search/",     
+    filename_start="mts_4"
+)=#
+
+#=
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["srd"],
+    nr_vertices_array=[10*3^3],
+    maximal_temperature_array=[0.1],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/melting_temp_search/",     
+    filename_start="mts_3"
+)=#
+
+#=
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["srs"],
+    nr_vertices_array=[8*3^3],
+    maximal_temperature_array=[0.19],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/melting_temp_search/",     
+    filename_start="mts_3"
+)
+    =#
+
+#=
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["srs"],
+    nr_vertices_array=[8*3^3],
+    maximal_temperature_array=[0.21],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/melting_temp_search/",     
+    filename_start="mts_3"
+)
+    =#
+
+#=
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["dia"],
+    nr_vertices_array=[8*3^3],
+    maximal_temperature_array=[0.5],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/melting_temp_search/",     
+    filename_start="mts_3"
+)
+    =#
+
+#=
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["srd"],
+    nr_vertices_array=[10*3^3],
+    maximal_temperature_array=[0.5],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/melting_temp_search/",     
+    filename_start="mts_3"
+)
+    =#
+
+
+
+#=
+
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["ctn"],
+    nr_vertices_array=[28*3^3],
+    maximal_temperature_array=[1.0],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/melting_temp_search/",     
+    filename_start="mts_3"
+)
+
+=#
+#=
+
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["pto"],
+    nr_vertices_array=[14*2^3],
+    maximal_temperature_array=[0.07, 0.14,0.28,0.56],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/melting_temp_search/",     
+    filename_start="mts_2"
+)
+    =#
+
+
+#=
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["srs"],
+    nr_vertices_array=[8*3^3],
+    maximal_temperature_array=[0.17],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/melting_temp_search/",     
+    filename_start="mts_2"
+)
+    =#
+
+
+
+
+
+
+
+#=
+save_multiple_N_T_trials_beta_gml(;
     network_type_array=["pto"],
     nr_vertices_array=[14*3^3],
     maximal_temperature_array=[0.45],
@@ -150,7 +367,7 @@ save_multiple_N_T_trials_beta_gml(;
     save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/ft_1/",     
     filename_start="test_1"
 )
-
+=#
 #=
 save_multiple_N_T_trials_beta_gml(;
     network_type_array=["srd"],#["pto", "lcs"],

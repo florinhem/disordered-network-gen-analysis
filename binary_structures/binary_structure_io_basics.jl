@@ -59,9 +59,6 @@ function correct_voxel_size!(data_binary::Array{Bool}, voxel_size::Tuple)
             for j in insertion_indices
                 println("slice to be inserted: "*string(j))
 
-                #println("shape of insertion slice: "*
-                #    string(size(insertion_slice)))
-
                 # insert slice at index j along current direction
                 if i == 1
                     # reshape slice that will be inserted by adding a 

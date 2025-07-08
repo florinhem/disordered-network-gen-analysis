@@ -124,9 +124,46 @@ end
 
 
 save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["dia","srs","srd","ctn","pto"],  
+    nr_vertices_array=[8*27,8*27,10*27,28*27,14*27] ,
+    bond_bending_const_array=[0.0,0.25,0.5,0.75,1.0],     
+    theta_ground_state_array=[180.0],                     
+    p_array=[0.001] 
+)
+#=
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["ctn","pto","srd","pto","ctn"],  
+    nr_vertices_array=[28,14,80,378,756] ,
+    bond_bending_const_array=[0.25],     
+    theta_ground_state_array=[180.0],                     
+    p_array=[0.0002] 
+)=#
+
+#=
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["ctn","pto"],  
+    nr_vertices_array=[28,14] .* 3 .^ 3,
+    bond_bending_const_array=[0.25],     
+    theta_ground_state_array=[180.0],                     
+    p_array=[0.0025] 
+)=#
+
+#=
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["dia", "srs", "srd", "ctn", "pto"],  
+    nr_vertices_array=[8, 8, 10, 28, 14] .* 3 .^ 3,
+    bond_bending_const_array=[0.0,0.25,0.5,0.75,1.0],     
+    theta_ground_state_array=[180.0],                     
+    p_array=[0.06] 
+)
+    =#
+
+
+#=
+save_multiple_N_T_trials_beta_gml(;
     network_type_array=["dia"],         #["dia", "srs", "srd", "ctn", "pto", "lcs"],
     nr_vertices_array=[8] .* 2 .^ 3,     #[8, 8, 10, 28, 14, 24] .* 2 .^ 3,
     bond_bending_const_array=[0.0],     #0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0
     theta_ground_state_array=[180.0],   #[110.0, 180.0],
     p_array=[0.06]                             #0.06
-)
+)=#

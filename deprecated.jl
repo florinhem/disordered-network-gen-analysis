@@ -1,6 +1,41 @@
 
 
 """
+returns a dictionary with edges (starting position, ending position, length)
+for the srd structure with the symmetry operations
+"""
+function get_edges_srd_one_unitcell()   
+    
+    # define the edges with the help of rcsr.net
+    # look at the space group name: P4(2)32
+    # and find the space group number: 213
+
+    edges = Dict(
+        1 => ([0.0, 1/4, 1/2], [0.0, 1/2, 1/2], 1/4),
+        2 => ([0.0, 1/2, 1/2], [0.0, 3/4, 1/2], 1/4),
+        3 => ([1/4, 1/4, 1/4], [1/8, 1/4, 3/8], sqrt(2)/8),
+        4 => ([1/8, 1/4, 3/8], [0.0, 1/4, 1/2], sqrt(2)/8)
+        )
+    
+    # symmetry operations for space group number with the help of the book:
+    # "International Tables for Crystallography"
+    edges = copy_and_rotate_and_translate(edges,
+        [0.0,0.0,1.0],[0.0,0.0,0.0],[0.0,0.0,0.0],2)
+    edges = copy_and_rotate_and_translate(edges,
+        [0.0,1.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],2)
+    edges = copy_and_rotate_and_translate(edges,
+        [1.0,1.0,1.0],[0.0,0.0,0.0],[0.0,0.0,0.0],3)
+    edges = copy_and_rotate_and_translate(edges,
+        [1.0,1.0,0.0],[0.0,0.0,1/4],[1/2,1/2,0.0],2)
+    
+    return edges
+end
+
+
+
+
+
+"""
 generate matrix of vertex positions in a primitive cubic lattice, 
 where each column is a position vector
 """
@@ -386,7 +421,7 @@ function get_gyroid_vertex_position_mat(
         for j in 0:nr_unit_cells_per_dimension-1
             for k in 0:nr_unit_cells_per_dimension-1
 
-                for nr_vertex_inside_unit_cell in 1:8   #TODO Change 8 to eachindex
+                for nr_vertex_inside_unit_cell in 1:8  
 
                     vertex_position_mat[:, current_vertex_nr] = ( 
                         [i,j,k] .* edge_length_unit_cell
@@ -412,7 +447,7 @@ the information that the unit cell contains 8 vertices
 """
 function get_gyroid_network(nr_vertices)
     
-    edge_length_unit_cell = sqrt(8) #TODO: Ask if this is correct
+    edge_length_unit_cell = sqrt(8)
 
     # calculate the actual nr vertices, given that we require a 
     # cubic supercell and using the fact that the unit cell contains 8 vertices 
@@ -533,7 +568,7 @@ the information that the unit cell contains 28 vertices
 """
 function get_ctn_network(nr_vertices)
     
-    edge_length_unit_cell = 1/(sqrt((3/8-0.2083)^2+(0-0.2083)^2+(1/4-0.2083)^2)) #TODO Check this
+    edge_length_unit_cell = 1/(sqrt((3/8-0.2083)^2+(0-0.2083)^2+(1/4-0.2083)^2))
 
     # calculate the actual nr vertices, given that we require a 
     # cubic supercell and using the fact that the unit cell contains 28 vertices 
@@ -1270,8 +1305,7 @@ function get_dihedral_angle_std(spatial_network::MetaGraphsNext.MetaGraph)
     # loop through all bonds
     for bond in MetaGraphsNext.edge_labels(spatial_network)
 
-        # TODO: store bond[1] and bond[2] here, instead of calculating it always
-
+ 
         # get vector along bond
         bond_vec = spatial_network[bond...]["vector"]
 

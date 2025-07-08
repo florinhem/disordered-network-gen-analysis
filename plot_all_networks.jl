@@ -75,7 +75,8 @@ function plot_single_network(;
             println("yes, $filename")
             spatial_network=NG.load_spatial_network_from_gml(total_path*".gml")
             A=NG.plot_spatial_network_2(spatial_network)
-
+            display(A)
+            return
             plot_name = filename*plot_appendix
             plot_path = plot_folder*plot_name
             Plots.savefig(A,plot_path)
@@ -87,6 +88,37 @@ end
 
 
 
+plot_single_network(;
+    network_type_array=["dia"],
+    nr_vertices_array=[8*3^3],
+    maximal_temperature_array=[0.5,1.0,1.5],
+    bond_bending_const_array=[0.0,0.25,0.5,0.75,1.0],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    save_path = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/melting_temp_search/",
+    filename_start="mts_5",
+    plot_appendix="_1.png",
+    plot_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/analysis_plot/"
+)
+#=
+plot_single_network(;
+    network_type_array=["srd_one_unitcell"],
+    nr_vertices_array=[19*1^3],
+    maximal_temperature_array=[0.3],
+    bond_bending_const_array=[0.3],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    save_path = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/ft_1/",
+    filename_start="MC=1_Q=No_1",
+    plot_appendix="_1.png",
+    plot_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/analysis_plot/"
+)
+=#
+#=
 plot_single_network(;
     network_type_array=["lcs"],
     nr_vertices_array=[24*2^3],
@@ -101,7 +133,7 @@ plot_single_network(;
     plot_appendix="_5.png",
     plot_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/analysis_plot/"
 )
-
+=#
 #=
 plot_single_network(;
     network_type_array=["pto"],

@@ -121,7 +121,7 @@ function get_data_and_predict(;
                                 if(total_path*".gml" in path_array)
                                     println(filename)
 
-                                    spatial_network=NG.load_spatial_network_from_gml(total_path*".gml")
+                                    spatial_network=NG.load_spatial_network_from_gml_old(total_path*".gml")
                                     #Energies
                                     stretching_energy=NG.get_stretching_energy_keating(spatial_network)
                                     bending_energy=NG.get_bending_energy_keating(spatial_network)
@@ -270,5 +270,5 @@ get_data_and_predict(
     save_path = raw".\simulations\multiple_trials\\",   
     filename_start="m_t_",
     plot_save_path = raw".\simulations\analysis_plot\\",
-    plot_filename_start = "m_r_a1_"
+    plot_filename_start = "m_r_a3_"
 )
