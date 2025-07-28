@@ -508,11 +508,17 @@ function (
     filenames_evolution_dicts_all_runs_vec = Vector{String}(undef, 0)
 
     for run in runs_vec
-        append!(save_path_all_runs_vec, (save_path .* "run_" 
-            .* string.( Int.( ones(length(filenames_evolution_dicts)) 
-            .* run ) ) .* "/" ) )
-        append!(filenames_evolution_dicts_all_runs_vec, 
+        # only consider those files, that have not been generated yet
+        filenames_evolution_dicts_current_run = filter( filename -> !isfile(
+            save_path .* "run_" * string(run) * "/" * filename[1:end-13] 
+            * ".gml"),
             filenames_evolution_dicts)
+
+        append!(save_path_all_runs_vec, (save_path .* "run_" 
+            .* string.( Int.( ones(length(
+                filenames_evolution_dicts_current_run)) .* run ) ) .* "/" ) )
+        append!(filenames_evolution_dicts_all_runs_vec, 
+            filenames_evolution_dicts_current_run)
     end
 
     # create tuples out of the elements of both vectors

@@ -734,7 +734,7 @@ function save_order_metrics_dict_to_csv(
 
     # save to csv file
     CSV.write(
-        joinpath(save_path, "all_order_metrics.csv"),
+        save_path*"all_order_metrics.csv",
         df;
         writeheader=true,
         delim=',',

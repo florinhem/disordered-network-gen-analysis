@@ -27,17 +27,17 @@ all_order_metrics_dict = GU.load_h5_dict(analysis_data_path*"all_order_metrics.h
 # extract the network type, that is srs from a string like "C:\\Users\\HemmannF\\OneDrive - Université de Fribourg\\structure_analysis\\analysis_data\\neural_network_targeted\\test_networks\\run_1\\srs_beta_0.2500_t_max_0.1709_t_gradient_0.1367_order_metrics.h5"
 
 filenames_vec = all_order_metrics_dict["filenames_vec"]
-network_type_vec = [match(r"\\([^\\]+)_beta", path).captures[1] for path in filenames_vec]
+network_type_vec = [match(r"/([^/]+)_beta", path).captures[1] for path in filenames_vec]
 bond_bending_vec = all_order_metrics_dict["bond_bending_const_vec"]
 t_max_vec = all_order_metrics_dict["t_max_vec"]
 t_gradient_vec = all_order_metrics_dict["t_gradient_vec"]
 
-core_filenames_vec = [replace(split(path, '\\') |> last, "_order_metrics.h5" => "") for path in filenames_vec] 
+core_filenames_vec = [replace(split(path, '/') |> last, "_order_metrics.h5" => "") for path in filenames_vec] 
 unique_core_filenames_vec = unique(core_filenames_vec)
 #println(unique_core_filenames_vec)
 
 # remove all unique core filenames that contain the string "lcs"
-unique_core_filenames_vec = filter(name -> !occursin("lcs", name), unique_core_filenames_vec)
+#unique_core_filenames_vec = filter(name -> !occursin("lcs", name), unique_core_filenames_vec)
 
 order_metrics_vec = [
         "network_type",
@@ -65,9 +65,14 @@ all_order_metrics_dict["network_type"] = network_type_vec
 all_order_metrics_dict["hyperuniformity_alpha_vec_values"] = Measurements.value.(all_order_metrics_dict["hyperuniformity_alpha_vec"])
 all_order_metrics_dict["hyperuniformity_alpha_vec_uncertainties"] = Measurements.uncertainty.(all_order_metrics_dict["hyperuniformity_alpha_vec"])
 
-txt_filename = "measured_order_metrics.txt"
+means_filename = "measured_order_metric_means.txt"
+stds_filename = "measured_order_metric_stds.txt"
 
-open(analysis_data_path*txt_filename, "w") do io
+open(analysis_data_path*means_filename, "w") do io
+    println(io, join(order_metrics_vec, '\t'))
+end
+
+open(analysis_data_path*stds_filename, "w") do io
     println(io, join(order_metrics_vec, '\t'))
 end
 
@@ -81,7 +86,14 @@ for unique_core_filename in unique_core_filenames_vec
     means = [all_order_metrics_dict["network_type"][mask][1]]
     append!(means, [string(Statistics.mean(all_order_metrics_dict[metric][mask])) for metric in order_metrics_vec[2:end]])
 
-    open(analysis_data_path*txt_filename, "a") do io
+    open(analysis_data_path*means_filename, "a") do io
         println(io, join(means, '\t'))
+    end
+
+    stds = [all_order_metrics_dict["network_type"][mask][1]]
+    append!(stds, [string(Statistics.std(all_order_metrics_dict[metric][mask])) for metric in order_metrics_vec[2:end]])
+    
+    open(analysis_data_path*stds_filename, "a") do io
+        println(io, join(stds, '\t'))
     end
 end

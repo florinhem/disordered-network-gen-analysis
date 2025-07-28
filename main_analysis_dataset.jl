@@ -27,55 +27,36 @@ import Statistics
 # 64 vertices: supercell_edge_length = 4.619802153517007
 # which is the cube root of the number of vertices times 2/sqrt(3)
 
+neural_network_dataset_path = raw"..\neural_networks\datasets\\"
+
 analysis_data_path = raw"..\analysis_data\neural_network_networks\ctn\\"
 
-order_metric_dict = NA.get_order_metrics_all_files(
-    analysis_data_path;
-    l_max_steinhardt_q_l = 12,
-    save_result = true,
-    save_algorithm_parameters_from_filename = true)
+order_metrics_dict = GU.load_h5_dict(analysis_data_path*"all_order_metrics.h5")
+
+GU.save_dict_to_h5(order_metrics_dict,
+    neural_network_dataset_path*"ctn_all_order_metrics.h5")
 
 
 analysis_data_path = raw"..\analysis_data\neural_network_networks\dia\\"
 
-order_metric_dict = NA.get_order_metrics_all_files(
-    analysis_data_path;
-    l_max_steinhardt_q_l = 12,
-    save_result = true,
-    save_algorithm_parameters_from_filename = true)
+order_metrics_dict = GU.load_h5_dict(analysis_data_path*"all_order_metrics.h5")
+
+GU.save_dict_to_h5(order_metrics_dict,
+    neural_network_dataset_path*"dia_all_order_metrics.h5")
 
 
 analysis_data_path = raw"..\analysis_data\neural_network_networks\srs\\"
 
-order_metric_dict = NA.get_order_metrics_all_files(
-    analysis_data_path;
-    l_max_steinhardt_q_l = 12,
-    save_result = true,
-    save_algorithm_parameters_from_filename = true)
+order_metrics_dict = GU.load_h5_dict(analysis_data_path*"all_order_metrics.h5")
 
+GU.save_dict_to_h5(order_metrics_dict,
+    neural_network_dataset_path*"srs_all_order_metrics.h5")
+    
 
-analysis_data_path = raw"..\analysis_data\neural_network_targeted\test_networks\\"
+analysis_data_path = raw"..\analysis_data\neural_network_networks\lcs\\"
 
-order_metric_dict = NA.get_order_metrics_all_files(
-    analysis_data_path;
-    l_max_steinhardt_q_l = 12,
-    save_result = true,
-    save_algorithm_parameters_from_filename = true)
+order_metrics_dict = GU.load_h5_dict(analysis_data_path*"all_order_metrics.h5")
 
-
-analysis_data_path = raw"..\analysis_data\neural_network_targeted\ctn\target_1\\"
-
-order_metric_dict = NA.get_order_metrics_all_files(
-    analysis_data_path;
-    l_max_steinhardt_q_l = 12,
-    save_result = true,
-    save_algorithm_parameters_from_filename = true)
-
-
-analysis_data_path = raw"..\analysis_data\neural_network_targeted\ctn\target_2\\"
-
-order_metric_dict = NA.get_order_metrics_all_files(
-    analysis_data_path;
-    l_max_steinhardt_q_l = 12,
-    save_result = true,
-    save_algorithm_parameters_from_filename = true)
+GU.save_dict_to_h5(order_metrics_dict,
+    neural_network_dataset_path*"lcs_all_order_metrics.h5")
+    

@@ -11,6 +11,9 @@ import LaTeXStrings as Latex
 import Measurements
 import GLMakie
 
+import CSV
+import DataFrames
+
 fontsize=16
 
 Plots.gr()
@@ -142,5 +145,47 @@ end
 fancylogscale!(p::Plots.Plot; kwargs...) = (fancylogscale!(p.subplots[1]; kwargs...); return p)
 fancylogscale!(; kwargs...) = fancylogscale!(Plots.plot!(); kwargs...)
 
-path = raw"..\..\presentations\material\\"
+path = path = raw"..\..\presentations\material\\"
 
+load_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\photonics\others\\"
+csv_filename = "cie_2006_2deg_xyz_color_matching_functions.csv"
+
+# Load the data (no header)
+df = CSV.read(load_path * csv_filename, DataFrames.DataFrame; header=false)
+
+# Extract columns into separate vectors
+wavelength_nm = df[:, 1]             # Column 1: wavelength in nm
+f1 = df[:, 2]                        # Column 2
+f2 = df[:, 3]                        # Column 3
+f3 = df[:, 4]                        # Column 4
+
+# Convert wavelength [nm] to frequency [THz]
+# λ [nm] → f [THz] = c / λ
+# c = 299792458 m/s = 299792.458 nm/ps = 299792.458 THz·nm
+c_THz_nm = 299792.458
+frequency_THz = c_THz_nm ./ wavelength_nm
+
+# Plot the three functions vs frequency
+plt = Plots.plot(frequency_THz, f1, label="x(ν)", xlabel="Frequency / THz", ylabel="Color Matching Function", c = :red)
+Plots.plot!(plt, frequency_THz, f2, label="y(ν)", c = :green)
+Plots.plot!(plt, frequency_THz, f3, label="z(ν)", c = :blue)
+
+# Set Y limits to [0, 2]
+Plots.ylims!(plt, (0, 2))
+
+# Create a grid
+Plots.plot!(plt, grid=true)
+
+# Optionally display the plot (if running in script or REPL)
+Plots.savefig(path * "cie_2006_2deg_xyz_color_matching_functions.png")
+
+# Now plot the same data as a function of wavelength
+plt2 = Plots.plot(wavelength_nm, f1, label="x(λ)", xlabel="Wavelength / nm", ylabel="Color Matching Function", c = :red)
+Plots.plot!(plt2, wavelength_nm, f2, label="y(λ)", c = :green)
+Plots.plot!(plt2, wavelength_nm, f3, label="z(λ)", c = :blue)       
+# Set Y limits to [0, 2]
+Plots.ylims!(plt2, (0, 2))
+# Create a grid
+Plots.plot!(plt2, grid=true)
+# Optionally display the plot (if running in script or REPL)
+Plots.savefig(path * "cie_2006_2deg_xyz_color_matching_functions_wavelength.png")

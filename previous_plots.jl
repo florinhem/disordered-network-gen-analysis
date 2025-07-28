@@ -16,7 +16,10 @@ import Statistics
 
 path = raw"..\..\presentations\material\\"
 
+fontsize=16
+
 Plots.gr()
+#Plots.plotlyjs()
 Plots.default(grid=false, 
 legend = true, 
 dpi=250,
@@ -28,7 +31,8 @@ legendfontsize=fontsize,
 bottom_margin = 3Plots.mm,
 linewidth=3, 
 thickness_scaling = 1,
-framestyle = :box)
+framestyle = :box,
+fontfamily="DejaVu Sans")
 
 # functions to have pi ticks
 function pitick(start, stop, denom; mode=:text)
@@ -45,7 +49,7 @@ function piticklabel(x::Rational, ::Val{:text})
     n, d = abs(numerator(x)), denominator(x)
     N = n == 1 ? "" : repr(n)
     d == 1 && return S * N * "π"
-    S * N * "π/" * repr(d)
+    S * N * "π\\" * repr(d)
 end
 
 function piticklabel(x::Rational, ::Val{:latex})
@@ -56,6 +60,93 @@ function piticklabel(x::Rational, ::Val{:latex})
     d == 1 && return Latex.L"%$S%$N\pi"
     Latex.L"%$S\frac{%$N\pi}{%$d}"
 end
+
+
+"""
+    get_tickslogscale(lims; skiplog=false)
+Return a tuple (ticks, ticklabels) for the axis limit `lims`
+where multiples of 10 are major ticks with label and minor ticks have no label
+skiplog argument should be set to true if `lims` is already in log scale.
+"""
+function get_tickslogscale(lims::Tuple{T, T}; skiplog::Bool=false) where {T<:AbstractFloat}
+    mags = if skiplog
+        # if the limits are already in log scale
+        floor.(lims)
+    else
+        floor.(log10.(lims))
+    end
+    rlims = if skiplog; 10 .^(lims) else lims end
+
+    total_tickvalues = []
+    total_ticknames = []
+
+    rgs = range(mags..., step=1)
+    for (i, m) in enumerate(rgs)
+        if m >= 0
+            tickvalues = range(Int(10^m), Int(10^(m+1)); step=Int(10^m))
+            ticknames  = vcat([string(round(Int, 10^(m)))],
+                              ["" for i in 2:9],
+                              [string(round(Int, 10^(m+1)))])
+        else
+            tickvalues = range(10^m, 10^(m+1); step=10^m)
+            ticknames  = vcat([string(10^(m))], ["" for i in 2:9], [string(10^(m+1))])
+        end
+
+        if i==1
+            # lower bound
+            indexlb = findlast(x->x<rlims[1], tickvalues)
+            if isnothing(indexlb); indexlb=1 end
+        else
+            indexlb = 1
+        end
+        if i==length(rgs)
+            # higher bound
+            indexhb = findfirst(x->x>rlims[2], tickvalues)
+            if isnothing(indexhb); indexhb=10 end
+        else
+            # do not take the last index if not the last magnitude
+            indexhb = 9
+        end
+
+        total_tickvalues = vcat(total_tickvalues, tickvalues[indexlb:indexhb])
+        total_ticknames = vcat(total_ticknames, ticknames[indexlb:indexhb])
+    end
+    return (total_tickvalues, total_ticknames)
+end
+
+"""
+    fancylogscale!(p; forcex=false, forcey=false)
+Transform the ticks to log scale for the axis with scale=:log10.
+forcex and forcey can be set to true to force the transformation
+if the variable is already expressed in log10 units.
+"""
+function fancylogscale!(p::Plots.Subplot; forcex::Bool=false, forcey::Bool=false)
+    kwargs = Dict()
+    for (ax, force, lims) in zip((:x, :y), (forcex, forcey), (Plots.xlims, Plots.ylims))
+        axis = Symbol("$(ax)axis")
+        ticks = Symbol("$(ax)ticks")
+
+        if force || p.attr[axis][:scale] == :log10
+            # Get limits of the plot and convert to Float
+            ls = float.(lims(p))
+            ts = if force
+                (vals, labs) = get_tickslogscale(ls; skiplog=true)
+                (log10.(vals), labs)
+            else
+                get_tickslogscale(ls)
+            end
+            kwargs[ticks] = ts
+        end
+    end
+
+    if length(kwargs) > 0
+        Plots.plot!(p; kwargs...)
+    end
+    p
+end
+fancylogscale!(p::Plots.Plot; kwargs...) = (fancylogscale!(p.subplots[1]; kwargs...); return p)
+fancylogscale!(; kwargs...) = fancylogscale!(Plots.plot!(); kwargs...)
+
 
 x = collect(0:0.01:10)
 plot_1 = 1/2 * exp.( .- x ./2 )
@@ -4496,3 +4587,278 @@ Plots.scatter(
     label = "Critical pore radius < 0.45",
 )
 Plots.savefig(save_path*"t_gradient_vs_t_max_critical_pore_radius_below_0.45.png")
+
+
+
+
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\neural_network_targeted\test_networks\\"
+
+
+function load_table_as_dict(filename::String)
+    df = CSV.File(filename; delim='\t') |> DataFrames.DataFrame
+    return Dict(col => collect(df[!, col]) for col in names(df))
+end
+
+analysis_data_path = raw"..\analysis_data\neural_network_targeted\test_networks\\"
+
+measured_means_dict = load_table_as_dict(analysis_data_path*"measured_order_metric_means.txt")
+measured_stds_dict = load_table_as_dict(analysis_data_path*"measured_order_metric_stds.txt")
+predicted_dict = load_table_as_dict(analysis_data_path*"predicted_order_metrics.txt")
+
+
+order_metrics_labels = [
+    "Bond length std. deviation",
+    "Bond angle std. deviation",
+    "Dihedral angle entropy",
+    "Bond orientation entropy",
+    "Anisotropy from structure factor",
+    "Vertex homogeneity metric",
+    "Critical pore radius",
+    "Ring radius mean",
+    "Ring radius std. deviation",
+    "Hyperuniformity alpha / 10",
+]
+
+order_metrics_keys = [
+    "bond_length_std_vec",
+    "bond_angle_std_vec",
+    "dihedral_angle_entropy_vec",
+    "bond_orientation_entropy_vec",
+    "anisotropy_metric_from_structure_factor_vec",
+    "vertex_homogeneity_metric_vec",
+    "critical_pore_radius_vec",
+    "ring_radius_mean_vec",
+    "ring_radius_std_vec",
+    "hyperuniformity_alpha_vec_values",
+]
+
+reversed_names = reverse(order_metrics_labels)
+
+network_types_vec = predicted_dict["network_type"]
+
+# loop through all network predictions
+for i in eachindex(network_types_vec)
+    # get the vector of predicitons for the current network type
+    predictions = [predicted_dict[key][i] for key in order_metrics_keys]
+
+    # get the vector of measured means for the current network type
+    means = [measured_means_dict[key][i] for key in order_metrics_keys]
+    # get the vector of measured stds for the current network type
+    stds = [measured_stds_dict[key][i] for key in order_metrics_keys]
+
+    # divide the last element of the three vectors by 10
+    predictions[end] /= 10
+    means[end] /= 10
+    stds[end] /= 10
+
+    # calculate the reversed predictions
+    reversed_predictions = reverse(predictions)
+    reversed_means = reverse(means)
+    reversed_stds = reverse(stds)
+
+    # create a label for the current network type
+    Plots.plot(
+    reversed_predictions,
+    1:length(reversed_predictions),
+    seriestype = :scatter,
+    markershape = :circle,
+    legend = false,
+    size = (700, 600),
+    yticks = (1:length(reversed_names), reversed_names),
+    bottom_margin = 0Plots.mm,
+    markersize = 7,
+    markercolor = Plots.palette(:tab10)[1],
+    xlims = (-0.1, 1.4),
+    ylims = (0.5, length(reversed_names) + 0.5),
+    grid = true,
+    )
+
+    Plots.plot!(
+    reversed_means,
+    1:length(reversed_means),
+    xerror = reversed_stds,
+    seriestype = :scatter,
+    markershape = :circle,
+    legend = false,
+    size = (700, 600),
+    yticks = (1:length(reversed_names), reversed_names),
+    xticks = collect(0.0:0.5:1.0),
+    bottom_margin = 0Plots.mm,
+    markersize = 5,
+    markercolor = Plots.palette(:tab10)[2],
+    xlims = (-0.1, 1.4),
+    ylims = (0.5, length(reversed_names) + 0.5),
+    grid = true,
+    )
+
+    Plots.xlabel!("Order metric")
+
+    network_type = network_types_vec[i]
+    beta = predicted_dict["bond_bending_const_vec"][i]
+    t_max = predicted_dict["t_max_vec"][i]
+    t_gradient = predicted_dict["t_gradient_vec"][i]
+
+    Plots.title!("$(network_type), "*Latex.L"\beta ="*"$(beta), "*Latex.L"T_\mathrm{max} ="*"$(t_max), "*Latex.L"\Delta T ="*"$(t_gradient)                         ")
+
+    Plots.savefig(path*"$(network_type)_beta_$(beta)_t_max_$(t_max)_t_gradient_$(t_gradient).png")
+end
+
+
+
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\neural_network_targeted\test_networks_pca_5_10_epochs\\"
+
+
+function load_table_as_dict(filename::String)
+    df = CSV.File(filename; delim='\t') |> DataFrames.DataFrame
+    return Dict(col => collect(df[!, col]) for col in names(df))
+end
+
+analysis_data_path = raw"..\analysis_data\neural_network_targeted\test_networks\\"
+
+measured_means_dict = load_table_as_dict(analysis_data_path*"measured_order_metric_means.txt")
+measured_stds_dict = load_table_as_dict(analysis_data_path*"measured_order_metric_stds.txt")
+predicted_dict = load_table_as_dict(analysis_data_path*"predicted_order_metrics_pca_5.txt")
+
+
+order_metrics_labels = [
+    "Bond length std. deviation",
+    "Bond angle std. deviation",
+    "Dihedral angle entropy",
+    "Bond orientation entropy",
+    "Anisotropy from structure factor",
+    "Vertex homogeneity metric",
+    "Critical pore radius",
+    "Ring radius mean",
+    "Ring radius std. deviation",
+    "Hyperuniformity alpha / 10",
+]
+
+order_metrics_keys = [
+    "bond_length_std_vec",
+    "bond_angle_std_vec",
+    "dihedral_angle_entropy_vec",
+    "bond_orientation_entropy_vec",
+    "anisotropy_metric_from_structure_factor_vec",
+    "vertex_homogeneity_metric_vec",
+    "critical_pore_radius_vec",
+    "ring_radius_mean_vec",
+    "ring_radius_std_vec",
+    "hyperuniformity_alpha_vec_values",
+]
+
+reversed_names = reverse(order_metrics_labels)
+
+network_types_vec = predicted_dict["network_type"]
+
+# loop through all network predictions
+for i in eachindex(network_types_vec)
+    # get the vector of predicitons for the current network type
+    predictions = [predicted_dict[key][i] for key in order_metrics_keys]
+
+    # get the vector of measured means for the current network type
+    means = [measured_means_dict[key][i] for key in order_metrics_keys]
+    # get the vector of measured stds for the current network type
+    stds = [measured_stds_dict[key][i] for key in order_metrics_keys]
+
+    # divide the last element of the three vectors by 10
+    predictions[end] /= 10
+    means[end] /= 10
+    stds[end] /= 10
+
+    # calculate the reversed predictions
+    reversed_predictions = reverse(predictions)
+    reversed_means = reverse(means)
+    reversed_stds = reverse(stds)
+
+    # create a label for the current network type
+    Plots.plot(
+    reversed_predictions,
+    1:length(reversed_predictions),
+    seriestype = :scatter,
+    markershape = :circle,
+    legend = false,
+    size = (700, 600),
+    yticks = (1:length(reversed_names), reversed_names),
+    bottom_margin = 0Plots.mm,
+    markersize = 7,
+    markercolor = Plots.palette(:tab10)[1],
+    xlims = (-0.1, 1.4),
+    ylims = (0.5, length(reversed_names) + 0.5),
+    grid = true,
+    )
+
+    Plots.plot!(
+    reversed_means,
+    1:length(reversed_means),
+    xerror = reversed_stds,
+    seriestype = :scatter,
+    markershape = :circle,
+    legend = false,
+    size = (700, 600),
+    yticks = (1:length(reversed_names), reversed_names),
+    xticks = collect(0.0:0.5:1.0),
+    bottom_margin = 0Plots.mm,
+    markersize = 5,
+    markercolor = Plots.palette(:tab10)[2],
+    xlims = (-0.1, 1.4),
+    ylims = (0.5, length(reversed_names) + 0.5),
+    grid = true,
+    )
+
+    Plots.xlabel!("Order metric")
+
+    network_type = network_types_vec[i]
+    beta = predicted_dict["bond_bending_const_vec"][i]
+    t_max = predicted_dict["t_max_vec"][i]
+    t_gradient = predicted_dict["t_gradient_vec"][i]
+
+    Plots.title!("$(network_type), "*Latex.L"\beta ="*"$(beta), "*Latex.L"T_\mathrm{max} ="*"$(t_max), "*Latex.L"\Delta T ="*"$(t_gradient)                         ")
+
+    Plots.savefig(path*"$(network_type)_beta_$(beta)_t_max_$(t_max)_t_gradient_$(t_gradient).png")
+end
+
+
+path = path = raw"..\..\presentations\material\\"
+
+load_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\photonics\others\\"
+csv_filename = "cie_2006_2deg_xyz_color_matching_functions.csv"
+
+# Load the data (no header)
+df = CSV.read(load_path * csv_filename, DataFrames.DataFrame; header=false)
+
+# Extract columns into separate vectors
+wavelength_nm = df[:, 1]             # Column 1: wavelength in nm
+f1 = df[:, 2]                        # Column 2
+f2 = df[:, 3]                        # Column 3
+f3 = df[:, 4]                        # Column 4
+
+# Convert wavelength [nm] to frequency [THz]
+# λ [nm] → f [THz] = c / λ
+# c = 299792458 m/s = 299792.458 nm/ps = 299792.458 THz·nm
+c_THz_nm = 299792.458
+frequency_THz = c_THz_nm ./ wavelength_nm
+
+# Plot the three functions vs frequency
+plt = Plots.plot(frequency_THz, f1, label="x(ν)", xlabel="Frequency / THz", ylabel="Color Matching Function", c = :red)
+Plots.plot!(plt, frequency_THz, f2, label="y(ν)", c = :green)
+Plots.plot!(plt, frequency_THz, f3, label="z(ν)", c = :blue)
+
+# Set Y limits to [0, 2]
+Plots.ylims!(plt, (0, 2))
+
+# Create a grid
+Plots.plot!(plt, grid=true)
+
+# Optionally display the plot (if running in script or REPL)
+Plots.savefig(path * "cie_2006_2deg_xyz_color_matching_functions.png")
+
+# Now plot the same data as a function of wavelength
+plt2 = Plots.plot(wavelength_nm, f1, label="x(λ)", xlabel="Wavelength / nm", ylabel="Color Matching Function", c = :red)
+Plots.plot!(plt2, wavelength_nm, f2, label="y(λ)", c = :green)
+Plots.plot!(plt2, wavelength_nm, f3, label="z(λ)", c = :blue)       
+# Set Y limits to [0, 2]
+Plots.ylims!(plt2, (0, 2))
+# Create a grid
+Plots.plot!(plt2, grid=true)
+# Optionally display the plot (if running in script or REPL)
+Plots.savefig(path * "cie_2006_2deg_xyz_color_matching_functions_wavelength.png")

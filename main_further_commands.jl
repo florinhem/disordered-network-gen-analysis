@@ -25872,3 +25872,518 @@ NA.get_order_metrics_all_files(
     analysis_data_path;
     save_result=true,
     save_algorithm_parameters_from_filename=true)
+
+
+
+analysis_data_path = raw"..\analysis_data\neural_network_networks\lcs\run_1\\"
+network_path = replace(analysis_data_path, "analysis_data" => "structures")
+    
+filename = "lcs_beta_0.3858_t_max_1.2016_t_gradient_1.5792"
+
+spatial_network = NG.load_spatial_network_from_gml(network_path*filename*".gml")
+
+correlation_functions_dict = NA.get_correlation_functions(
+    spatial_network;
+    save_result = true,
+    save_path = analysis_data_path*filename,
+    label = nothing)
+
+order_metrics_dict = NA.get_order_metrics(filename,
+    network_path,
+    analysis_data_path;
+    save_result = true)
+
+
+
+    
+function my_func_1()
+    
+
+    analysis_data_path = raw"../analysis_data/neural_network_networks/"
+    network_path = replace(analysis_data_path, "analysis_data" => "structures")
+    
+    all_filenames = []
+    all_roots = []
+    for (root, dirs, fs) in walkdir(analysis_data_path)
+        for file in fs
+            push!(all_filenames, file)
+            push!(all_roots, root*"//")
+        end
+    end
+    
+    order_metrics_filenames = all_filenames[(occursin.("order_metrics", all_filenames)
+            .&& .! occursin.("all_order_metrics", all_filenames)
+            .&& endswith.(all_filenames, ".h5"))]
+    
+    roots = all_roots[(occursin.("order_metrics", all_filenames)
+            .&& .! occursin.("all_order_metrics", all_filenames)
+            .&& endswith.(all_filenames, ".h5"))]
+    
+    # print progress in percentage
+    count = 0
+    total = length(roots)
+    println("Processing ", total, " files...")
+    
+    for i in eachindex(roots)
+        order_metric_dict = GU.load_h5_dict(roots[i]*order_metrics_filenames[i])
+        correlation_functions_dict = GU.load_h5_dict(roots[i]*replace(order_metrics_filenames[i], "_order_metrics.h5" => "_correlation_functions.h5"))
+    
+        #network_filename = replace(order_metrics_filenames[i], "_order_metrics.h5" => ".gml")
+        #network_root = replace(roots[i], "analysis_data" => "structures")
+    
+        #spatial_network = NG.load_spatial_network_from_gml(network_root*network_filename)
+    
+        #filename = replace(network_filename, ".gml" => "")
+    
+        vertex_homogeneity_metric = NA.get_vertex_homogeneity_metric(correlation_functions_dict)
+    
+        order_metric_dict["vertex_homogeneity_metric"] = vertex_homogeneity_metric
+        delete!(order_metric_dict, "vertex_homogeneity_metric_vec")
+    
+        GU.save_dict_to_h5(order_metric_dict, roots[i]*order_metrics_filenames[i])
+    
+        #if i == 1
+        #    println(order_metric_dict)
+        #end
+    
+        count += 1
+    
+        if count % 10 == 0
+            println("Processed ", count, " files (", round(count / total * 100, digits=2), "%)")
+        end
+    end
+end 
+
+# Call the function to execute the analysis
+my_func_1()
+
+
+
+evolution_dicts_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\neural_network_targeted\test_networks\evolution_dicts\\"
+
+nr_samples = 20
+
+network_types = ["ctn", "dia", "lcs", "srs"]
+beta_vec = [1/4, 2/4, 3/4] 
+t_max_over_t_melt_vec = [1/2, 3/2]
+t_gradient_over_t_melt_vec = [2/5, 4/5]
+
+nr_vertices_vec = [216, 216, 192, 216] # diamond, diamond, lcs, srs
+
+theta_ground_state = 180.0
+
+for i in eachindex(network_types)
+    for beta in beta_vec
+        for t_max_over_t_melt in t_max_over_t_melt_vec
+            for t_gradient_over_t_melt in t_gradient_over_t_melt_vec
+
+                nr_vertices = nr_vertices_vec[i]
+                network_type = network_types[i]
+                
+
+                # get the melting temperature for the beta values
+                t_melt = NA.get_melting_temperature(network_type, beta)
+
+                # get random values of t_max and t_gradient
+                t_max = t_melt * t_max_over_t_melt
+                t_gradient = t_melt * t_gradient_over_t_melt
+
+                temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(t_max,
+                    temperature_gradient = t_gradient, 
+                    nr_monte_carlo_steps_per_temperature = 0.01,
+                    quench = true )
+
+                evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,
+                    temperature_vec = temperature_vec,
+                    nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
+                    bond_bending_const = beta, network_type = network_type,
+                    theta_ground_state = theta_ground_state,)
+
+                filename = Format.format("$(network_type)_beta_{1:.4f}_t_max_{2:.4f}_t_gradient_{3:.4f}", beta, t_max, t_gradient)
+
+                GU.save_dict_to_h5(evolution_dict, evolution_dicts_path*filename*"_evolution.h5")
+            end
+        end
+    end
+end
+
+
+
+
+analysis_data_path = raw"../analysis_data/neural_network_networks/srs/run_1//"
+#analysis_data_path = raw"../analysis_data/neural_network_networks/ctn/run_1//"
+
+all_filenames = []
+all_roots = []
+for (root, dirs, fs) in walkdir(analysis_data_path)
+    for file in fs
+        push!(all_filenames, file)
+        push!(all_roots, root*"//")
+    end
+end
+
+order_metrics_filenames = all_filenames[(occursin.("order_metrics", all_filenames)
+        .&& .! occursin.("all_order_metrics", all_filenames))]
+
+roots = all_roots[(occursin.("order_metrics", all_filenames)
+        .&& .! occursin.("all_order_metrics", all_filenames))]
+
+for i in eachindex(roots)
+    order_metric_dict = GU.load_h5_dict(roots[i]*order_metrics_filenames[i])
+
+    structure_factor_filename = replace(order_metrics_filenames[i], "order_metrics" => "structure_factor_array")
+    structure_factor_dict = GU.load_h5_dict(roots[i]*structure_factor_filename)
+
+    filename = replace(order_metrics_filenames[i], "_order_metrics.h5" => "")
+
+    println("Processing file: ", filename)
+
+    structure_factor_angle_averaged_dict = (
+        NA.get_structure_factor_angle_averaged(
+            structure_factor_dict;
+            consider_bonds = true,
+            gaussian_filter = true,
+            gaussian_filter_sigma_x = 2*pi/25, 
+            gaussian_filter_filtered_data_x_step_length = 2*pi/25,
+            save_result = true,
+            save_path = roots[i]*filename,
+            label = nothing))
+
+    spatial_network_path = replace(roots[i], "analysis_data" => "structures")
+
+    order_metrics_dict = NA.get_order_metrics(
+        filename,
+    spatial_network_path,
+    roots[i];
+    l_max_steinhardt_q_l = 12,
+    save_result = true,
+    )
+end
+
+
+for crystal in ["ctn", "dia", "lcs", "srs"]
+
+    spatial_networks_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\neural_network_networks\\"*crystal*"\\run_1\\"
+
+    save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\neural_network_networks\for_simulation\\"*crystal*"\\run_1\\"
+
+    # get all filenames in the spatial network path
+    filenames = readdir(spatial_networks_path)
+
+    # filter the filenames to only contain the ones that end with ".gml"
+    filenames = filter(filename -> endswith(filename, ".gml"), filenames)
+
+    # cut away the ".gml" extension from the filenames
+    filenames = map(filename -> replace(filename, r"\.gml$" => ""), filenames)
+
+    for filename in filenames
+        spatial_network = NG.load_spatial_network_from_gml(joinpath(spatial_networks_path, filename))
+
+        spatial_network = NG.get_spatial_network_for_simulation!(
+            spatial_network;
+            vector_out_of_supercell_length = 1,
+            duplicate_bonds_close_to_supercell_edge = true,
+            save_result = true,
+            filename = filename,
+            save_path = save_path)
+    end
+end
+
+
+
+# include file where structure analysis modules are stored
+include("structure_analysis_modules_no_plotting.jl")
+
+# import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+
+function my_func_1(analysis_data_path = "../analysis_data/neural_network_networks/")
+    
+    all_filenames = []
+    all_roots = []
+    for (root, dirs, fs) in walkdir(analysis_data_path)
+        for file in fs
+            push!(all_filenames, file)
+            push!(all_roots, root*"//")
+        end
+    end
+
+    all_roots = reverse(all_roots)
+    all_filenames = reverse(all_filenames)
+    
+    order_metrics_filenames = all_filenames[(occursin.("order_metrics", all_filenames)
+            .&& .! occursin.("all_order_metrics", all_filenames)
+            .&& endswith.(all_filenames, ".h5"))]
+    
+    roots = all_roots[(occursin.("order_metrics", all_filenames)
+            .&& .! occursin.("all_order_metrics", all_filenames)
+            .&& endswith.(all_filenames, ".h5"))]
+    
+    # print progress in percentage
+    count = 0
+    total = length(roots)
+    println("Processing ", total, " files...")
+    
+    for i in eachindex(roots)
+        
+        structure_factor_dict = GU.load_h5_dict(roots[i]*replace(order_metrics_filenames[i], "_order_metrics.h5" => "_structure_factor_array.h5"))
+
+        structure_factor_bonds_dict = GU.load_h5_dict(roots[i]*replace(order_metrics_filenames[i], "_order_metrics.h5" => "_structure_factor_bonds_array.h5"))
+
+        filename = replace(order_metrics_filenames[i], "_order_metrics.h5" => "")
+
+        structure_factor_angle_averaged_dict = NA.get_structure_factor_angle_averaged(
+            structure_factor_dict;
+            consider_bonds = false,
+            gaussian_filter = true,
+            gaussian_filter_sigma_x = 2*pi/25, 
+            gaussian_filter_filtered_data_x_step_length = 2*pi/25,
+            save_result = true,
+            save_path = roots[i]*filename,
+            label = nothing)
+
+        structure_factor_bonds_angle_averaged_dict = NA.get_structure_factor_angle_averaged(
+            structure_factor_bonds_dict;
+            consider_bonds = true,
+            gaussian_filter = true,
+            gaussian_filter_sigma_x = 2*pi/25, 
+            gaussian_filter_filtered_data_x_step_length = 2*pi/25,
+            save_result = true,
+            save_path = roots[i]*filename,
+            label = nothing)
+
+        anisotropy_metric_from_structure_factor = (
+            NA.get_anisotropy_metric_from_structure_factor(
+                structure_factor_angle_averaged_dict))
+
+        anisotropy_metric_from_structure_factor_bonds = (
+            NA.get_anisotropy_metric_from_structure_factor(
+                structure_factor_bonds_angle_averaged_dict))
+
+        order_metric_dict = GU.load_h5_dict(roots[i]*order_metrics_filenames[i])
+    
+        order_metric_dict["anisotropy_metric_from_structure_factor"] = anisotropy_metric_from_structure_factor
+        order_metric_dict["anisotropy_metric_from_structure_factor_bonds"] = anisotropy_metric_from_structure_factor_bonds
+    
+        GU.save_dict_to_h5(order_metric_dict, roots[i]*order_metrics_filenames[i])
+    
+        count += 1
+    
+        if count % 10 == 0
+            println("Processed ", count, " files (", round(count / total * 100, digits=2), "%)")
+        end
+    end
+end 
+
+# Call the function to execute the analysis
+my_func_1("../analysis_data/neural_network_networks/srs/")
+my_func_1("../analysis_data/neural_network_networks/lcs/run_2/")
+
+
+save_path = "../structures/neural_network_networks/lcs/"
+
+evolution_dicts_directory_path = "../structures/neural_network_networks/lcs/evolution_dicts_2/"
+
+print_every_nr_attempted_bond_switches = 200
+print_progress = true
+save_network_after_each_temperature = false
+further_evolve_previous_networks = false
+runs_vec = [2] #collect(1:2)
+random_evolution_seed = -1
+print_lock = Threads.ReentrantLock()
+
+
+NG.generate_spatial_networks_from_evolution_dicts_in_directory_multiple_runs(
+        evolution_dicts_directory_path,
+        save_path;
+        print_every_nr_attempted_bond_switches=print_every_nr_attempted_bond_switches,
+        print_progress=print_progress,
+        random_evolution_seed=random_evolution_seed,
+        save_network_after_each_temperature=save_network_after_each_temperature,
+        further_evolve_previous_networks=further_evolve_previous_networks,
+        runs_vec=runs_vec,
+        print_lock=print_lock)
+
+
+
+save_path = "../structures/neural_network_networks/lcs/"
+
+evolution_dicts_directory_path = "../structures/neural_network_networks/lcs/evolution_dicts_2/"
+
+print_every_nr_attempted_bond_switches = 200
+print_progress = true
+save_network_after_each_temperature = false
+further_evolve_previous_networks = false
+runs_vec = [2] #collect(1:2)
+random_evolution_seed = -1
+print_lock = Threads.ReentrantLock()
+
+
+NG.generate_spatial_networks_from_evolution_dicts_in_directory_multiple_runs(
+        evolution_dicts_directory_path,
+        save_path;
+        print_every_nr_attempted_bond_switches=print_every_nr_attempted_bond_switches,
+        print_progress=print_progress,
+        random_evolution_seed=random_evolution_seed,
+        save_network_after_each_temperature=save_network_after_each_temperature,
+        further_evolve_previous_networks=further_evolve_previous_networks,
+        runs_vec=runs_vec,
+        print_lock=print_lock)
+
+
+nr_vertices = 224
+network_type = "ctn"
+theta_ground_state = 180.0
+beta = 0.6
+t_max = 5.0
+t_gradient = 1.0
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\neural_network_targeted\ctn\evolution_dict_2\\"
+
+temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(t_max,
+    temperature_gradient = t_gradient, 
+    nr_monte_carlo_steps_per_temperature = 0.01,
+    quench = true )
+evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,     
+    temperature_vec = temperature_vec,
+    nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
+    bond_bending_const = beta, network_type = network_type,
+    theta_ground_state = theta_ground_state,)
+filename = Format.format("ctn_beta_{1:.4f}_t_max_{2:.4f}_t_gradient_{3:.4f}", beta, t_max, t_gradient)
+GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
+
+
+
+analysis_data_path = raw"..\analysis_data\neural_network_networks\srs\\"
+
+order_metrics_dict = GU.load_h5_dict(analysis_data_path*"all_order_metrics.h5")
+
+filenames_vec = order_metrics_dict["filenames_vec"]
+critical_pore_radius_vec = order_metrics_dict["critical_pore_radius_vec"]
+vertex_homogeneity_metric_vec = order_metrics_dict["vertex_homogeneity_metric_vec"]
+bond_orientation_entropy_vec = order_metrics_dict["bond_orientation_entropy_vec"]
+
+
+indices = findall(
+    (critical_pore_radius_vec .< 0.46) .& 
+    (vertex_homogeneity_metric_vec .> 0.9) .& 
+    (bond_orientation_entropy_vec .> 0.985)
+)
+println("Number of networks with critical pore radius smaller than 0.46, vertex homogeneity metric larger than 0.9 and bond orientation entropy larger than 0.985: ", length(indices))
+
+# for each key of the order metrics dicitionary, filter the values and save them in a new dictionary
+filtered_order_metrics_dict = Dict{String, Any}()
+for key in keys(order_metrics_dict)
+    filtered_order_metrics_dict[key] = order_metrics_dict[key][indices]
+end
+
+# shuffle all keys of the dictionary with the same permutation
+permutation = Random.randperm(length(indices))
+for key in keys(filtered_order_metrics_dict)
+    filtered_order_metrics_dict[key] = filtered_order_metrics_dict[key][permutation]
+end
+
+# save the filtered order metrics dictionary to a new h5 file
+GU.save_dict_to_h5(filtered_order_metrics_dict, analysis_data_path*"filtered_order_metrics.h5")
+
+# save to a csv file 
+NA.save_order_metrics_dict_to_csv(filtered_order_metrics_dict, analysis_data_path*"filtered_")
+
+
+
+analysis_data_path = raw"..\analysis_data\neural_network_networks\srs\\"
+
+order_metrics_dict = GU.load_h5_dict(analysis_data_path*"all_order_metrics.h5")
+
+filenames_vec = order_metrics_dict["filenames_vec"]
+critical_pore_radius_vec = order_metrics_dict["critical_pore_radius_vec"]
+vertex_homogeneity_metric_vec = order_metrics_dict["vertex_homogeneity_metric_vec"]
+bond_orientation_entropy_vec = order_metrics_dict["bond_orientation_entropy_vec"]
+
+
+indices = findall(
+    (critical_pore_radius_vec .< 0.46) .& 
+    (vertex_homogeneity_metric_vec .> 0.9) .& 
+    (bond_orientation_entropy_vec .> 0.985)
+)
+println("Number of networks with critical pore radius smaller than 0.46, vertex homogeneity metric larger than 0.9 and bond orientation entropy larger than 0.985: ", length(indices))
+
+# for each key of the order metrics dicitionary, filter the values and save them in a new dictionary
+filtered_order_metrics_dict = Dict{String, Any}()
+for key in keys(order_metrics_dict)
+    filtered_order_metrics_dict[key] = order_metrics_dict[key][indices]
+end
+
+# shuffle all keys of the dictionary with the same permutation
+permutation = Random.randperm(length(indices))
+for key in keys(filtered_order_metrics_dict)
+    filtered_order_metrics_dict[key] = filtered_order_metrics_dict[key][permutation]
+end
+
+# save the filtered order metrics dictionary to a new h5 file
+GU.save_dict_to_h5(filtered_order_metrics_dict, analysis_data_path*"filtered_order_metrics.h5")
+
+# save to a csv file 
+NA.save_order_metrics_dict_to_csv(filtered_order_metrics_dict, analysis_data_path*"filtered_")
+
+
+neural_network_dataset_path = raw"..\neural_networks\datasets\\"
+
+analysis_data_path = raw"..\analysis_data\neural_network_networks\ctn\\"
+
+order_metrics_dict = NA.get_order_metrics_all_files(
+    analysis_data_path;
+    l_max_steinhardt_q_l = 12,
+    save_result = true,
+    save_algorithm_parameters_from_filename = true)
+
+NA.save_order_metrics_dict_to_csv(deepcopy(order_metrics_dict), analysis_data_path)
+
+GU.save_dict_to_h5(order_metrics_dict,
+    neural_network_dataset_path*"ctn_all_order_metrics.h5")
+
+
+analysis_data_path = raw"..\analysis_data\neural_network_networks\dia\\"
+
+order_metrics_dict = NA.get_order_metrics_all_files(
+    analysis_data_path;
+    l_max_steinhardt_q_l = 12,
+    save_result = true,
+    save_algorithm_parameters_from_filename = true)
+
+NA.save_order_metrics_dict_to_csv(deepcopy(order_metrics_dict), analysis_data_path)
+
+GU.save_dict_to_h5(order_metrics_dict,
+    neural_network_dataset_path*"dia_all_order_metrics.h5")
+
+
+analysis_data_path = raw"..\analysis_data\neural_network_networks\srs\\"
+
+order_metrics_dict = NA.get_order_metrics_all_files(
+    analysis_data_path;
+    l_max_steinhardt_q_l = 12,
+    save_result = true,
+    save_algorithm_parameters_from_filename = true)
+
+NA.save_order_metrics_dict_to_csv(deepcopy(order_metrics_dict), analysis_data_path)
+
+GU.save_dict_to_h5(order_metrics_dict,
+    neural_network_dataset_path*"srs_all_order_metrics.h5")
+    
+
+analysis_data_path = raw"..\analysis_data\neural_network_networks\lcs\\"
+
+order_metrics_dict = NA.get_order_metrics_all_files(
+    analysis_data_path;
+    l_max_steinhardt_q_l = 12,
+    save_result = true,
+    save_algorithm_parameters_from_filename = true)
+
+NA.save_order_metrics_dict_to_csv(deepcopy(order_metrics_dict), analysis_data_path)
+
+GU.save_dict_to_h5(order_metrics_dict,
+    neural_network_dataset_path*"lcs_all_order_metrics.h5")
+    
