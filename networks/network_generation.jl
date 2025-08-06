@@ -675,6 +675,82 @@ function get_edges_pto()
     return edges
 end
 
+function get_edges_pto_half_fill()
+    # define the edges with the help of rcsr.net
+    # look at the space group name: Pm-3n
+    # and find the space group number: 223
+
+    # V1 & V2 are fixed.
+    V1=[1/4, 1/4, 1/4]
+    V2=[1/4, 0.0, 1/2]
+
+    # the difference between V1 and V2 gives us the length
+    D1=V1 .- V2
+    L1=LinearAlgebra.norm(D1)
+    
+    edges = Dict(1 => (V1, V2, L1))
+    
+    # symmetry operations for space group number with the help of the book:
+    # "International Tables for Crystallography"
+    edges = copy_and_rotate_and_translate(edges,
+        [0.0,0.0,1.0],[0.0,0.0,0.0],[0.0,0.0,0.0],2)
+    edges = copy_and_rotate_and_translate(edges,
+        [0.0,1.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],2)
+    edges = copy_and_rotate_and_translate(edges,
+        [1.0,1.0,1.0],[0.0,0.0,0.0],[0.0,0.0,0.0],3)
+    edges = copy_and_rotate_and_translate(edges,
+        [1.0,1.0,0.0],[0.0,0.0,1/4],[1/2,1/2,0.0],2)
+    edges = copy_and_invert(edges, [0.0,0.0,0.0])
+
+    edges[length(edges)+1] = ([1/2, 1/2, 1/2], [1/4, 1/4, 1/4], sqrt(3)/4)
+    edges[length(edges)+1] = ([1/2, 1/2, 1/2], [1/4, 3/4, 3/4], sqrt(3)/4)
+    edges[length(edges)+1] = ([1/2, 1/2, 1/2], [3/4, 1/4, 3/4], sqrt(3)/4)
+    edges[length(edges)+1] = ([1/2, 1/2, 1/2], [3/4, 3/4, 1/4], sqrt(3)/4)
+    
+    return edges
+end
+
+
+function get_edges_pto_fill()
+    # define the edges with the help of rcsr.net
+    # look at the space group name: Pm-3n
+    # and find the space group number: 223
+
+    # V1 & V2 are fixed.
+    V1=[1/4, 1/4, 1/4]
+    V2=[1/4, 0.0, 1/2]
+
+    # the difference between V1 and V2 gives us the length
+    D1=V1 .- V2
+    L1=LinearAlgebra.norm(D1)
+    
+    edges = Dict(1 => (V1, V2, L1))
+    
+    # symmetry operations for space group number with the help of the book:
+    # "International Tables for Crystallography"
+    edges = copy_and_rotate_and_translate(edges,
+        [0.0,0.0,1.0],[0.0,0.0,0.0],[0.0,0.0,0.0],2)
+    edges = copy_and_rotate_and_translate(edges,
+        [0.0,1.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],2)
+    edges = copy_and_rotate_and_translate(edges,
+        [1.0,1.0,1.0],[0.0,0.0,0.0],[0.0,0.0,0.0],3)
+    edges = copy_and_rotate_and_translate(edges,
+        [1.0,1.0,0.0],[0.0,0.0,1/4],[1/2,1/2,0.0],2)
+    edges = copy_and_invert(edges, [0.0,0.0,0.0])
+
+    edges[length(edges)+1] = ([1/2, 1/2, 1/2], [1/4, 1/4, 1/4], sqrt(3)/4)
+    edges[length(edges)+1] = ([1/2, 1/2, 1/2], [1/4, 3/4, 3/4], sqrt(3)/4)
+    edges[length(edges)+1] = ([1/2, 1/2, 1/2], [3/4, 1/4, 3/4], sqrt(3)/4)
+    edges[length(edges)+1] = ([1/2, 1/2, 1/2], [3/4, 3/4, 1/4], sqrt(3)/4)
+
+    edges[length(edges)+1] = ([0.9999,0.9999,0.9999], [3/4, 3/4, 3/4], sqrt(3)/4)
+    edges[length(edges)+1] = ([0.9999,0.0,0.0], [3/4, 1/4, 1/4], sqrt(3)/4)
+    edges[length(edges)+1] = ([0.0,0.9999,0.0], [1/4, 3/4, 1/4], sqrt(3)/4)
+    edges[length(edges)+1] = ([0.0,0.0,0.9999], [1/4, 1/4, 3/4], sqrt(3)/4)
+    
+    return edges
+end
+
 
 """
 returns a dictionary with edges (starting position, ending position, length)
@@ -780,6 +856,18 @@ function get_network(nr_vertices, network_name)
         nr_vertices_per_unit_cell = 14
         nr_edges_per_unit_cell=24
         edges = get_edges_pto()
+    elseif cmp(network_name , "pto_half_fill") == 0
+        nr_dimensions = 3
+        edge_length_unit_cell = 2.8284
+        nr_vertices_per_unit_cell = 15
+        nr_edges_per_unit_cell=28
+        edges = get_edges_pto_half_fill()
+    elseif cmp(network_name , "pto_fill") == 0
+        nr_dimensions = 3
+        edge_length_unit_cell = 2.8284
+        nr_vertices_per_unit_cell = 16
+        nr_edges_per_unit_cell=32
+        edges = get_edges_pto_half_fill()
     elseif cmp(network_name , "lcs") == 0
         nr_dimensions = 3
         edge_length_unit_cell = 3.2660
@@ -888,6 +976,14 @@ function get_network(nr_vertices, network_name)
         println("nr of edges in unitcell should be $nr_edges_per_unit_cell=?=$(
         length(edge_length_vec)/(nr_unit_cells_per_dimension^3))")  
         println("CN3/CN4=8/6=1.333=?=$(count_3/count_4)")
+    elseif cmp(network_name , "pto_half_fill") == 0
+        println("nr of edges in unitcell should be $nr_edges_per_unit_cell=?=$(
+        length(edge_length_vec)/(nr_unit_cells_per_dimension^3))")  
+        println("CN3/CN4=4/11=0.3636...=?=$(count_3/count_4)")
+    elseif cmp(network_name , "pto_fill") == 0
+        println("nr of edges in unitcell should be $nr_edges_per_unit_cell=?=$(
+        length(edge_length_vec)/(nr_unit_cells_per_dimension^3))")
+        println("CN_all=$(length(coordination_nr_vec))=?=CN4=$(count_4)")
     elseif cmp(network_name , "lcs") == 0
         println("nr of edges in unitcell should be $nr_edges_per_unit_cell=?=$(
         length(edge_length_vec)/(nr_unit_cells_per_dimension^3))")    
