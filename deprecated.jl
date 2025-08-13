@@ -6034,3 +6034,181 @@ function duplicate_bonds_close_to_supercell_edge!(
 
     return spatial_network
 end
+
+
+
+"""
+This function calculates the Pearson correlation, the Spearman correlation, and 
+the mutual information between the saturation metric and the order metrics. It 
+returns three dictionaries with the keys being the order metric names and the 
+values being the correlation coefficients.
+"""
+function get_order_saturation_correlations(
+    order_metric_dict::Dict{String, Any},    
+    r_t_dict_path::String,
+    analysis_data_path::String;
+    consider_freq_range = [0.15, 0.35],
+    freq_window_size = 0.1,
+    save_results::Bool = false)
+    
+    # get all files in the directory that end with "r_t_only"
+    files = readdir(r_t_dict_path, join=true)
+    r_t_files = filter(x -> endswith(x, "r_t_only.hdf5"), files)
+
+    # get the saturation metrics and the beta, t_max, and t_gradient values for
+    # each file
+    saturation_metric_vec = zeros(length(r_t_files))
+    beta_t_max_t_gradient_vec = []
+    
+    for (i, file) in enumerate(r_t_files)
+        # get the saturation metric
+        r_t_dict = GU.load_h5_dict(file)
+        saturation_metric = get_saturation_metric(r_t_dict, 
+            consider_freq_range=consider_freq_range,
+            freq_window_size=freq_window_size)
+        saturation_metric_vec[i] = saturation_metric
+
+        # get the beta, t_max, and t_gradient values from the filename
+        filename = basename(file)
+        parts = split(filename, '_')
+        push!(beta_t_max_t_gradient_vec, (parse(Float64, parts[3]), 
+        parse(Float64, parts[6]), parse(Float64, parts[9])))
+    end
+
+    # equally, get the combinations of beta, t_max, and t_gradient from the 
+    # order metrics dict
+    order_metric_beta_t_max_t_gradient_vec = [
+        (order_metric_dict["bond_bending_const_vec"][i], 
+        order_metric_dict["t_max_vec"][i], 
+        order_metric_dict["t_gradient_vec"][i]) 
+        for i in eachindex(order_metric_dict["bond_bending_const_vec"])]
+
+    # find the indices where the entries of the
+    # order_metric_beta_t_max_t_gradient_vec are the sames as the entries of 
+    # the beta_t_max_t_gradient_vec
+    indices = [findfirst(x -> x == beta_t_max_t_gradient_vec[i],
+        order_metric_beta_t_max_t_gradient_vec) 
+        for i in eachindex(beta_t_max_t_gradient_vec)]
+
+    # loop through keys of the dictionary which are all vectors and concatenate 
+    # them to a matrix 
+    order_metric_matrix = Matrix{Any}(undef, length(indices), 28)
+    key_vec = []
+    current_index = 1
+    for key in keys(order_metric_dict)
+        if (key == "filenames_vec" || key == "bond_bending_const_vec" 
+            || key == "t_max_vec" || key == "t_gradient_vec" 
+            || key == "total_keating_energy_vec")
+            continue
+        elseif key == "q_l_mat"
+            order_metric_matrix[:, current_index:current_index+12] = (
+                transpose(order_metric_dict[key][:,indices]))
+            q_l_key_vec = ["q_$(i)" for i in 0:12]
+            append!(key_vec, q_l_key_vec)
+            current_index += 13
+        else
+            order_metric_matrix[:, current_index] = (
+                order_metric_dict[key][indices])
+            push!(key_vec, key)
+            current_index += 1
+        end
+    end
+
+    # using Pearson's correlation coefficient, calculate the correlation 
+    # between the saturation metrics and the order metrics
+    correlations = [Statistics.cor(saturation_metric_vec, 
+        order_metric_matrix[:, i]) for i in 1:size(order_metric_matrix, 2)]
+
+    # sort keys according to the absolute values of their correlation 
+    # coefficients
+    sorted_indices = sortperm(abs.(correlations), rev=true)
+    sorted_keys = key_vec[sorted_indices]
+    sorted_correlations = correlations[sorted_indices]
+
+    # Print the correlation coefficients
+    for (i, key) in enumerate(sorted_keys)
+        println("Pearson corr. for $key: ", sorted_correlations[i])
+    end
+
+    # create a dictionary with the keys being the order metric names and the
+    # values being the correlation coefficients
+    correlations_dict = Dict(zip(sorted_keys, sorted_correlations))
+
+    if save_results
+        GU.save_dict_to_h5(copy(correlations_dict),
+            analysis_data_path*"order_saturation_pearson_correlations.h5")
+    end
+
+    # calculate Spearman's rank correlation coefficient between the saturation
+    # metric and the order metrics
+    spearman_correlations = []
+    for i in 1:size(order_metric_matrix, 2)
+        println("Calculating Spearman's rank correlation for order metric $i: $(key_vec[i])")
+        # calculate the Spearman's rank correlation coefficient
+        if typeof(order_metric_matrix[:, i][1]) == Measurements.Measurement{Float64}
+            spearman_correlations[i] = StatsBase.corspearman(saturation_metric_vec,
+                Measurements.measurement.(Measurements.value.(order_metric_matrix[:, i]), Measurements.uncertainty.(order_metric_matrix[:, i])))
+        elseif typeof(order_metric_matrix[:, i][1]) == Float64
+            spearman_correlations[i] = StatsBase.corspearman(
+                saturation_metric_vec, float.(order_metric_matrix[:, i]))
+        elseif typeof(order_metric_matrix[:, i][1]) == Int
+            spearman_correlations[i] = StatsBase.corspearman(
+                saturation_metric_vec, order_metric_matrix[:, i])
+        else
+            @warn "Unknown type for order metric $i: $(typeof(order_metric_matrix[:, i][1]))"
+            spearman_correlations[i] = NaN
+        end
+    end
+
+    #[StatsBase.corspearman(saturation_metric_vec, order_metric_matrix[:, i]) for i in 1:size(order_metric_matrix, 2)]
+
+    # sort keys according to the absolute values of their Spearman's rank
+    # correlation coefficients
+    sorted_spearman_indices = sortperm(abs.(spearman_correlations), rev=true)
+    sorted_spearman_keys = key_vec[sorted_spearman_indices]
+    sorted_spearman_correlations = (
+        spearman_correlations[sorted_spearman_indices])
+
+    # Print the Spearman's rank correlation coefficients
+    for (i, key) in enumerate(sorted_spearman_keys)
+        println("Spearman corr. for $key: ", sorted_spearman_correlations[i])
+    end
+
+    # create a dictionary with the keys being the order metric names and the
+    # values being the Spearman's rank correlation coefficients
+    spearman_correlations_dict = Dict(zip(sorted_spearman_keys, 
+        sorted_spearman_correlations))
+
+    if save_results
+        GU.save_dict_to_h5(copy(spearman_correlations_dict),
+            analysis_data_path*"order_saturation_spearman_correlations.h5")
+    end
+
+    # calculate the mutual information between the saturation metric and the
+    # order metrics
+    mutual_info = [InformationMeasures.get_mutual_information(
+        saturation_metric_vec,
+        order_metric_matrix[:, i]) for i in 1:size(order_metric_matrix, 2)]
+
+    # sort keys according to the absolute values of their mutual information
+    # coefficients
+    sorted_mutual_info_indices = sortperm(abs.(mutual_info), rev=true)
+    sorted_mutual_info_keys = key_vec[sorted_mutual_info_indices]
+    sorted_mutual_info = mutual_info[sorted_mutual_info_indices]
+
+    # Print the mutual information coefficients
+    for (i, key) in enumerate(sorted_mutual_info_keys)
+        println("Mutual info. for $key: ", sorted_mutual_info[i])
+    end
+
+    # create a dictionary with the keys being the order metric names and the
+    # values being the mutual information coefficients
+    mutual_info_dict = Dict(zip(sorted_mutual_info_keys, sorted_mutual_info))
+
+    if save_results
+        GU.save_dict_to_h5(copy(mutual_info_dict),
+            analysis_data_path*"order_saturation_mutual_info.h5")
+    end
+
+    return [correlations_dict, spearman_correlations_dict, mutual_info_dict]
+end

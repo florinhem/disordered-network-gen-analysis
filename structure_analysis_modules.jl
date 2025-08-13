@@ -149,7 +149,7 @@ import Peaks    # to locate peaks of a function
 import Combinatorics    # mainly used to get all possible combinations of bonds
 import SphericalHarmonics   # to calculate spherical harmonics
 import FFTW     # to calculate the Fast Fourier Transform
-import StatsBase    # to fit histograms
+import StatsBase    # to fit histograms and calculate correlations
 import Polylabel # to find the pole of inaccessibility of a polygon
 import GeometryBasics  # to create polygons that can be handled by Polylabel
 import LsqFit   # to perform curve fitting
@@ -183,6 +183,9 @@ include(load_path*"network_analysis_and_evolution.jl")
 
 # these functions generate and analyze voxelized data from networks
 include(load_path*"network_analysis_voxelized.jl")
+
+# functions to analyze the photonic response of networks
+include(load_path*"network_analysis_photonic.jl")
 
 # functions to plot network analysis results
 include(load_path*"network_analysis_plotting.jl")

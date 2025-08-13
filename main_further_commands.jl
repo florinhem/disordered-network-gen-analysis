@@ -26293,43 +26293,6 @@ GU.save_dict_to_h5(filtered_order_metrics_dict, analysis_data_path*"filtered_ord
 NA.save_order_metrics_dict_to_csv(filtered_order_metrics_dict, analysis_data_path*"filtered_")
 
 
-
-analysis_data_path = raw"..\analysis_data\neural_network_networks\srs\\"
-
-order_metrics_dict = GU.load_h5_dict(analysis_data_path*"all_order_metrics.h5")
-
-filenames_vec = order_metrics_dict["filenames_vec"]
-critical_pore_radius_vec = order_metrics_dict["critical_pore_radius_vec"]
-vertex_homogeneity_metric_vec = order_metrics_dict["vertex_homogeneity_metric_vec"]
-bond_orientation_entropy_vec = order_metrics_dict["bond_orientation_entropy_vec"]
-
-
-indices = findall(
-    (critical_pore_radius_vec .< 0.46) .& 
-    (vertex_homogeneity_metric_vec .> 0.9) .& 
-    (bond_orientation_entropy_vec .> 0.985)
-)
-println("Number of networks with critical pore radius smaller than 0.46, vertex homogeneity metric larger than 0.9 and bond orientation entropy larger than 0.985: ", length(indices))
-
-# for each key of the order metrics dicitionary, filter the values and save them in a new dictionary
-filtered_order_metrics_dict = Dict{String, Any}()
-for key in keys(order_metrics_dict)
-    filtered_order_metrics_dict[key] = order_metrics_dict[key][indices]
-end
-
-# shuffle all keys of the dictionary with the same permutation
-permutation = Random.randperm(length(indices))
-for key in keys(filtered_order_metrics_dict)
-    filtered_order_metrics_dict[key] = filtered_order_metrics_dict[key][permutation]
-end
-
-# save the filtered order metrics dictionary to a new h5 file
-GU.save_dict_to_h5(filtered_order_metrics_dict, analysis_data_path*"filtered_order_metrics.h5")
-
-# save to a csv file 
-NA.save_order_metrics_dict_to_csv(filtered_order_metrics_dict, analysis_data_path*"filtered_")
-
-
 neural_network_dataset_path = raw"..\neural_networks\datasets\\"
 
 analysis_data_path = raw"..\analysis_data\neural_network_networks\ctn\\"
@@ -26387,3 +26350,541 @@ NA.save_order_metrics_dict_to_csv(deepcopy(order_metrics_dict), analysis_data_pa
 GU.save_dict_to_h5(order_metrics_dict,
     neural_network_dataset_path*"lcs_all_order_metrics.h5")
     
+
+crystals = ["ctn", "dia", "lcs", "srs"]
+
+for crystal in crystals
+    spatial_networks_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\neural_network_networks\\"*crystal*"\\run_2\\"
+    save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\neural_network_networks\for_simulation\\"*crystal*"\\run_2\\"
+    # get all filenames in the spatial network path
+    filenames = readdir(spatial_networks_path)
+    # filter the filenames to only contain the ones that end with ".gml"
+    filenames = filter(filename -> endswith(filename, ".gml"), filenames)
+
+    # filter out those files that have already been processed
+    filenames = filter(filename -> !isfile(joinpath(save_path, replace(filename, ".gml" => "_for_sim.gml"))), filenames)
+
+    # cut away the ".gml" extension from the filenames
+    filenames = map(filename -> replace(filename, r"\.gml$" => ""), filenames)
+    for filename in filenames
+        spatial_network = NG.load_spatial_network_from_gml(joinpath(spatial_networks_path, filename)*".gml")
+        spatial_network = NG.get_spatial_network_for_simulation!(
+            spatial_network;
+            vector_out_of_supercell_length = 1,
+            duplicate_bonds_close_to_supercell_edge = true,
+            save_result = true,
+            filename = filename,
+            save_path = save_path)
+    end
+end
+
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\neural_network_networks\lcs\\"
+
+order_metrics_dict = NA.get_order_metrics_all_files(
+    analysis_data_path;
+    save_result=true,
+    save_algorithm_parameters_from_filename=true)
+
+#filename = "all_order_metrics.h5"
+#order_metrics_dict = GU.load_h5_dict(load_path*filename)
+
+NA.save_order_metrics_dict_to_csv(order_metrics_dict, load_path)
+
+
+
+neural_network_dataset_path = raw"..\neural_networks\datasets\\"
+
+analysis_data_path = raw"..\analysis_data\neural_network_networks\ctn\\"
+
+order_metrics_dict = GU.load_h5_dict(analysis_data_path*"all_order_metrics.h5")
+
+GU.save_dict_to_h5(order_metrics_dict,
+    neural_network_dataset_path*"ctn_all_order_metrics.h5")
+
+
+analysis_data_path = raw"..\analysis_data\neural_network_networks\dia\\"
+
+order_metrics_dict = GU.load_h5_dict(analysis_data_path*"all_order_metrics.h5")
+
+GU.save_dict_to_h5(order_metrics_dict,
+    neural_network_dataset_path*"dia_all_order_metrics.h5")
+
+
+analysis_data_path = raw"..\analysis_data\neural_network_networks\srs\\"
+
+order_metrics_dict = GU.load_h5_dict(analysis_data_path*"all_order_metrics.h5")
+
+GU.save_dict_to_h5(order_metrics_dict,
+    neural_network_dataset_path*"srs_all_order_metrics.h5")
+    
+
+analysis_data_path = raw"..\analysis_data\neural_network_networks\lcs\\"
+
+order_metrics_dict = GU.load_h5_dict(analysis_data_path*"all_order_metrics.h5")
+
+GU.save_dict_to_h5(order_metrics_dict,
+    neural_network_dataset_path*"lcs_all_order_metrics.h5")
+    
+
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\neural_network_targeted\test_networks\\"
+
+all_order_metrics_dict = GU.load_h5_dict(analysis_data_path*"all_order_metrics.h5")
+
+# extract the network type, that is srs from a string like "C:\\Users\\HemmannF\\OneDrive - Université de Fribourg\\structure_analysis\\analysis_data\\neural_network_targeted\\test_networks\\run_1\\srs_beta_0.2500_t_max_0.1709_t_gradient_0.1367_order_metrics.h5"
+
+filenames_vec = all_order_metrics_dict["filenames_vec"]
+network_type_vec = [match(r"/([^/]+)_beta", path).captures[1] for path in filenames_vec]
+bond_bending_vec = all_order_metrics_dict["bond_bending_const_vec"]
+t_max_vec = all_order_metrics_dict["t_max_vec"]
+t_gradient_vec = all_order_metrics_dict["t_gradient_vec"]
+
+core_filenames_vec = [replace(split(path, '/') |> last, "_order_metrics.h5" => "") for path in filenames_vec] 
+unique_core_filenames_vec = unique(core_filenames_vec)
+#println(unique_core_filenames_vec)
+
+# remove all unique core filenames that contain the string "lcs"
+#unique_core_filenames_vec = filter(name -> !occursin("lcs", name), unique_core_filenames_vec)
+
+order_metrics_vec = [
+        "network_type",
+        "bond_bending_const_vec",
+        "t_max_vec",
+        "t_gradient_vec",
+        "bond_length_std_vec",
+        "bond_angle_std_vec",
+        "dihedral_angle_entropy_vec",
+        "bond_orientation_entropy_vec",
+        "coordination_nr_mean_vec",
+        "coordination_nr_std_vec",
+        "vertex_homogeneity_metric_vec",
+        "ring_size_mean_vec",
+        "ring_size_std_vec",
+        "ring_radius_mean_vec",
+        "ring_radius_std_vec",
+        "critical_pore_radius_vec",
+        "anisotropy_metric_from_structure_factor_vec",
+        "anisotropy_metric_from_structure_factor_bonds_vec",
+        "hyperuniformity_alpha_vec_values",
+        "hyperuniformity_alpha_vec_uncertainties",]
+
+all_order_metrics_dict["network_type"] = network_type_vec   
+all_order_metrics_dict["hyperuniformity_alpha_vec_values"] = Measurements.value.(all_order_metrics_dict["hyperuniformity_alpha_vec"])
+all_order_metrics_dict["hyperuniformity_alpha_vec_uncertainties"] = Measurements.uncertainty.(all_order_metrics_dict["hyperuniformity_alpha_vec"])
+
+means_filename = "measured_order_metric_means.txt"
+stds_filename = "measured_order_metric_stds.txt"
+
+open(analysis_data_path*means_filename, "w") do io
+    println(io, join(order_metrics_vec, '\t'))
+end
+
+open(analysis_data_path*stds_filename, "w") do io
+    println(io, join(order_metrics_vec, '\t'))
+end
+
+# each core filename appears 20 times and has different values for the order
+# metrics. Create a table that, for each filename contains the mean values of 
+# all order metrics
+for unique_core_filename in unique_core_filenames_vec
+    println("Processing core filename: ", unique_core_filename)
+    # get the mask of the current core filename
+    mask = core_filenames_vec .== unique_core_filename
+    means = [all_order_metrics_dict["network_type"][mask][1]]
+    append!(means, [string(Statistics.mean(all_order_metrics_dict[metric][mask])) for metric in order_metrics_vec[2:end]])
+
+    open(analysis_data_path*means_filename, "a") do io
+        println(io, join(means, '\t'))
+    end
+
+    stds = [all_order_metrics_dict["network_type"][mask][1]]
+    append!(stds, [string(Statistics.std(all_order_metrics_dict[metric][mask])) for metric in order_metrics_vec[2:end]])
+    
+    open(analysis_data_path*stds_filename, "a") do io
+        println(io, join(stds, '\t'))
+    end
+end
+
+
+
+
+data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\photonics\tidy3d\simulation_data\neural_network_networks\dia\run_1_2_r_t\\"
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\neural_network_networks\dia\\"
+
+# get all files in the directory that end with "r_t_only"
+files = readdir(data_path, join=true)
+r_t_files = filter(x -> endswith(x, "r_t_only.hdf5"), files)
+
+saturation_metrics = zeros(length(r_t_files))
+
+for (i, file) in enumerate(r_t_files)
+    r_t_dict = GU.load_h5_dict(file)
+    saturation_metric = NA.get_saturation_metric(r_t_dict)
+    saturation_metrics[i] = saturation_metric
+end
+
+# from the filename that looks like "C:\Users\HemmannF\OneDrive - Université de Fribourg\photonics\tidy3d\simulation_data\neural_network_networks\dia\run_1_2_r_t\dia_beta_0.3597_t_max_0.4654_t_gradient_0.2856_r_t_only.hdf5"
+# extract the beta, t_max, and t_gradient values
+beta_t_max_t_gradient_vec = []
+for (i, file) in enumerate(r_t_files)
+    filename = basename(file)
+    #println("Processing file: ", filename)
+
+    # split the filename by underscores
+    parts = split(filename, '_')
+
+    # extract the beta, t_max, and t_gradient values
+    push!(beta_t_max_t_gradient_vec, (parse(Float64, parts[3]), parse(Float64, parts[6]), parse(Float64, parts[9])))
+end
+
+# load the order metrics dict
+order_metric_dict = GU.load_h5_dict(analysis_data_path * "filtered_order_metrics.h5")
+
+# for each combination of beta, t_max, and t_gradient, find the index of the corresponding keys in the order metrics dict that correspond to the same beta, t_max, and t_gradient values
+order_metric_beta_t_max_t_gradient_vec = [(order_metric_dict["bond_bending_const_vec"][i], 
+    order_metric_dict["t_max_vec"][i], 
+    order_metric_dict["t_gradient_vec"][i]) for i in eachindex(order_metric_dict["bond_bending_const_vec"])]
+
+# find the indices where the entries of the order_metric_beta_t_max_t_gradient_vec are the sames as the entries of the beta_t_max_t_gradient_vec
+indices = [findfirst(x -> x == beta_t_max_t_gradient_vec[i], order_metric_beta_t_max_t_gradient_vec) for i in eachindex(beta_t_max_t_gradient_vec)]
+
+# loop through keys of the dictionary which are all vectors and concatenate them to a matrix 
+order_metric_matrix = Matrix{Any}(undef, length(indices), 15)
+key_vec = []
+current_index = 1
+for key in keys(order_metric_dict)
+    if key == "filenames_vec" || key == "bond_bending_const_vec" || key == "t_max_vec" || key == "t_gradient_vec" || key == "q_l_mat" || key == "total_keating_energy_vec"
+        continue
+    else
+        order_metric_matrix[:, current_index] = order_metric_dict[key][indices]
+        push!(key_vec, key)
+        println("Processed key: ", key)
+        global current_index += 1
+    end
+end
+
+# using Pearson's correlation coefficient, calculate the correlation between the saturation metrics and the order metrics
+# Compute Pearson correlation of every other column with the target
+correlations = [Statistics.cor(saturation_metrics, order_metric_matrix[:, i]) for i in 1:size(order_metric_matrix, 2)]
+
+# sort keys according to the absolute values of their correlation coefficients
+sorted_indices = sortperm(abs.(correlations), rev=true)
+sorted_keys = [key_vec[i] for i in sorted_indices]
+sorted_correlations = [correlations[i] for i in sorted_indices]
+
+# Print the correlation coefficients
+for (i, key) in enumerate(sorted_keys)
+    println("Correlation between saturation metric and $key: ", sorted_correlations[i])
+end
+
+
+
+analysis_data_path = raw"..\analysis_data\neural_network_networks\srs\\"
+
+order_metrics_dict = GU.load_h5_dict(analysis_data_path*"all_order_metrics.h5")
+
+filtered_order_metrics_dict_original = GU.load_h5_dict(analysis_data_path*"filtered_order_metrics.h5")
+
+filenames_vec = order_metrics_dict["filenames_vec"]
+critical_pore_radius_vec = order_metrics_dict["critical_pore_radius_vec"]
+vertex_homogeneity_metric_vec = order_metrics_dict["vertex_homogeneity_metric_vec"]
+bond_orientation_entropy_vec = order_metrics_dict["bond_orientation_entropy_vec"]
+
+
+indices = findall(
+    (critical_pore_radius_vec .< 0.46) .& 
+    (vertex_homogeneity_metric_vec .> 0.9) .& 
+    (bond_orientation_entropy_vec .> 0.985)
+)
+println("Number of networks with critical pore radius smaller than 0.46, vertex homogeneity metric larger than 0.9 and bond orientation entropy larger than 0.985: ", length(indices))
+
+# for each key of the order metrics dicitionary, filter the values and save them in a new dictionary
+filtered_order_metrics_dict = Dict{String, Any}()
+for key in keys(order_metrics_dict)
+    if key == "q_l_mat"
+        filtered_order_metrics_dict[key] = order_metrics_dict[key][:,indices]
+    else
+        filtered_order_metrics_dict[key] = order_metrics_dict[key][indices]
+    end
+end
+
+# sort the filename vec in the filtered order metrics dictionary such that the indices are in the same order as the original filtered filenames_vec
+original_filenames_vec = filtered_order_metrics_dict_original["filenames_vec"]
+new_filenames_vec = filtered_order_metrics_dict["filenames_vec"]
+permutation = [findfirst(filename -> filename == original_filenames_vec[i], new_filenames_vec) for i in 1:length(new_filenames_vec)]
+if permutation === nothing
+    error("The filenames_vec in the filtered order metrics dictionary does not match the original filenames_vec.")
+end
+
+for key in keys(filtered_order_metrics_dict)
+    if key == "q_l_mat"
+        filtered_order_metrics_dict[key] = filtered_order_metrics_dict[key][:,permutation]
+    else
+        filtered_order_metrics_dict[key] = filtered_order_metrics_dict[key][permutation]
+    end
+end
+
+# save the filtered order metrics dictionary to a new h5 file
+GU.save_dict_to_h5(filtered_order_metrics_dict, analysis_data_path*"filtered_2_order_metrics.h5")
+
+# save to a csv file 
+NA.save_order_metrics_dict_to_csv(filtered_order_metrics_dict, analysis_data_path*"filtered_2_")
+
+
+r_t_dict_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\photonics\tidy3d\simulation_data\neural_network_networks\srs\run_1_2_r_t\\"
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\neural_network_networks\srs\\"
+
+# load the order metrics dict
+order_metric_dict = GU.load_h5_dict(analysis_data_path * "filtered_order_metrics.h5")
+
+correlations_dict = NA.get_order_saturation_correlations(
+    order_metric_dict,
+    r_t_dict_path,
+    analysis_data_path,
+    save_results = true)
+
+
+import StatsBase
+import Measurements
+
+# create one arbritrary vector with entries of type measurement
+saturation_metric_vec = [Measurements.measurement(0.1, 0.01),
+                         Measurements.measurement(0.2, 0.02),
+                         Measurements.measurement(0.3, 0.03)]
+                         
+# create another vector with integers
+order_metric_vec = [3,4,5]
+
+# calculate the Spearman correlation coefficient between the two vectors
+spearman_corr = StatsBase.corspearman(saturation_metric_vec, order_metric_vec)
+
+
+network_type_vec = ["ctn", "dia", "lcs", "srs"]
+freq_range_vec = [[0.14, 0.35], [0.15, 0.35], [0.16, 0.35], [0.12, 0.35]]
+
+for (i, network_type) in enumerate(network_type_vec)
+    # load the order metrics dict
+    analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\neural_network_networks\\" * network_type * raw"\\"
+    order_metric_dict = GU.load_h5_dict(analysis_data_path * "filtered_order_metrics.h5")
+
+    # get the r_t dict path
+    r_t_dict_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\photonics\tidy3d\simulation_data\neural_network_networks\\" * network_type * raw"\run_1_2_r_t\\"
+
+    correlations_dict = NA.get_order_saturation_correlations(
+        order_metric_dict,
+        r_t_dict_path,
+        analysis_data_path,
+        consider_freq_range = freq_range_vec[i],
+        save_results = true)
+end
+
+
+
+analysis_data_path = raw"..\analysis_data\neural_network_networks\lcs\\"
+
+order_metrics_dict = GU.load_h5_dict(analysis_data_path*"all_order_metrics.h5")
+
+filenames_vec = order_metrics_dict["filenames_vec"]
+critical_pore_radius_vec = order_metrics_dict["critical_pore_radius_vec"]
+vertex_homogeneity_metric_vec = order_metrics_dict["vertex_homogeneity_metric_vec"]
+bond_orientation_entropy_vec = order_metrics_dict["bond_orientation_entropy_vec"]
+
+indices = findall(
+    (critical_pore_radius_vec .> 0.3) .& 
+    (critical_pore_radius_vec .< 0.4) .& 
+    (vertex_homogeneity_metric_vec .> 0.9) .& 
+    (bond_orientation_entropy_vec .> 0.985)
+)
+println("Number of networks with critical pore radius smaller than 0.4 , vertex homogeneity metric larger than 0.9 and bond orientation entropy larger than 0.985: ", length(indices))
+
+# for each key of the order metrics dicitionary, filter the values and save them in a new dictionary
+filtered_order_metrics_dict = Dict{String, Any}()
+for key in keys(order_metrics_dict)
+    if key == "q_l_mat"
+        filtered_order_metrics_dict[key] = order_metrics_dict[key][:,indices]
+    else
+        filtered_order_metrics_dict[key] = order_metrics_dict[key][indices]
+    end
+end
+
+# shuffle all keys of the dictionary with the same permutation
+permutation = Random.randperm(length(indices))
+for key in keys(filtered_order_metrics_dict)
+    if key == "q_l_mat"
+        filtered_order_metrics_dict[key] = filtered_order_metrics_dict[key][:,permutation]
+    else
+        filtered_order_metrics_dict[key] = filtered_order_metrics_dict[key][permutation]
+    end
+end
+
+# save the filtered order metrics dictionary to a new h5 file
+GU.save_dict_to_h5(filtered_order_metrics_dict, analysis_data_path*"filtered_2_order_metrics.h5")
+
+# save to a csv file 
+NA.save_order_metrics_dict_to_csv(filtered_order_metrics_dict, analysis_data_path*"filtered_2_")
+
+
+
+analysis_data_path = raw"..\analysis_data\neural_network_networks\srs\\"
+
+order_metrics_dict = GU.load_h5_dict(analysis_data_path*"all_order_metrics.h5")
+
+filenames_vec = order_metrics_dict["filenames_vec"]
+critical_pore_radius_vec = order_metrics_dict["critical_pore_radius_vec"]
+vertex_homogeneity_metric_vec = order_metrics_dict["vertex_homogeneity_metric_vec"]
+bond_orientation_entropy_vec = order_metrics_dict["bond_orientation_entropy_vec"]
+
+indices = findall(
+    (critical_pore_radius_vec .< 0.5) .& 
+    (vertex_homogeneity_metric_vec .> 0.9) .& 
+    (bond_orientation_entropy_vec .> 0.985)
+)
+println("Number of filtered networks : ", length(indices))
+
+# for each key of the order metrics dicitionary, filter the values and save them in a new dictionary
+filtered_order_metrics_dict = Dict{String, Any}()
+for key in keys(order_metrics_dict)
+    if key == "q_l_mat"
+        filtered_order_metrics_dict[key] = order_metrics_dict[key][:,indices]
+    else
+        filtered_order_metrics_dict[key] = order_metrics_dict[key][indices]
+    end
+end
+
+# shuffle all keys of the dictionary with the same permutation
+permutation = Random.randperm(length(indices))
+for key in keys(filtered_order_metrics_dict)
+    if key == "q_l_mat"
+        filtered_order_metrics_dict[key] = filtered_order_metrics_dict[key][:,permutation]
+    else
+        filtered_order_metrics_dict[key] = filtered_order_metrics_dict[key][permutation]
+    end
+end
+
+# save the filtered order metrics dictionary to a new h5 file
+GU.save_dict_to_h5(filtered_order_metrics_dict, analysis_data_path*"filtered_all_order_metrics.h5")
+
+# save to a csv file 
+NA.save_order_metrics_dict_to_csv(filtered_order_metrics_dict, analysis_data_path*"filtered_all_")
+
+
+network_type_vec = ["ctn", "dia", "lcs", "srs"]
+freq_range_vec = [[0.14, 0.35], [0.15, 0.35], [0.16, 0.35], [0.12, 0.35]]
+
+for (i, network_type) in enumerate(network_type_vec)
+    # load the order metrics dict
+    analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\neural_network_networks\\" * network_type * raw"\\"
+    order_metric_dict = GU.load_h5_dict(analysis_data_path * "all_order_metrics.h5")
+
+    # get the r_t dict path
+    r_t_dict_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\photonics\tidy3d\simulation_data\neural_network_networks\\" * network_type * raw"\run_1_2_r_t\\"
+
+    correlations_dict = NA.get_order_saturation_correlations(
+        order_metric_dict,
+        r_t_dict_path,
+        analysis_data_path,
+        consider_freq_range = freq_range_vec[i],
+        save_results = false)
+end
+
+
+network_type_vec = ["ctn", "dia", "lcs", "srs"]
+freq_range_vec = [[0.2, 0.5], [0.2, 0.5], [0.2, 0.5], [0.2, 0.5]]
+
+for (i, network_type) in enumerate(network_type_vec)
+    # load the order metrics dict
+    analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\neural_network_networks\\" * network_type * raw"\\"
+    order_metric_dict = GU.load_h5_dict(analysis_data_path * "all_order_metrics.h5")
+
+    # get the r_t dict path
+    r_t_dict_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\photonics\tidy3d\simulation_data\neural_network_networks\\" * network_type * raw"\run_1_2_r_t_low_n\\"
+
+    correlations_dict = NA.get_order_saturation_correlations(
+        order_metric_dict,
+        r_t_dict_path,
+        analysis_data_path,
+        consider_freq_range = freq_range_vec[i],
+        save_results = false)
+end
+
+
+
+network_type = "dia"
+
+# get the r_t dict path
+r_t_dict_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\photonics\tidy3d\simulation_data\neural_network_networks\\" * network_type * raw"\run_1_2_r_t_low_n\\"
+
+files = readdir(r_t_dict_path, join=true)
+r_t_files = filter(x -> endswith(x, "r_t_only.hdf5"), files)
+r_t_dict = GU.load_h5_dict(r_t_files[6])
+
+
+# initial guess
+p0_ctn = [0.28, 0.7, 0.25, 0.2, 0.34, 0.05]
+p0_dia = [0.28, 0.7, 0.25, 0.2, 0.4, 0.05]
+p0_lcs = [0.28, 0.7, 0.25, 0.2, 0.38, 0.05]
+p0_srs = [0.28, 0.7, 0.25, 0.2, 0.3, 0.05]
+
+
+
+# fit the model to the reflection data
+fit_result = LsqFit.curve_fit(model, freqs, reflection, p0_dia, lower=lower_bounds, upper=upper_bounds)
+ 
+covariance_matrix = LsqFit.estimate_covar(fit_result)
+standard_errors = sqrt.(LinearAlgebra.diag(covariance_matrix))
+
+fit_params = Measurements.measurement.(fit_result.param, standard_errors)
+println("Fit Parameters with Standard Errors: ", fit_params)
+
+# calculate the value of the background peak at the center frequency of the
+# reflection peak
+background_at_reflection_peak = background_peak(fit_params[5], fit_params[1:3])
+println("Background Peak Value: ", background_at_reflection_peak)
+
+# calculate the relative peak height of the reflection peak
+relative_peak_height = fit_params[4] / background_at_reflection_peak
+println("Relative Peak Height: ", relative_peak_height)
+
+# calculate the relative reflection peak width
+reflection_peak_width = fit_params[6] / fit_params[5]
+println("Relative Reflection Peak Width: ", reflection_peak_width)
+
+# calculate the ratio of relative peak height to relative peak width
+peak_height_to_width_ratio = relative_peak_height / reflection_peak_width
+println("Peak Height to Width Ratio: ", peak_height_to_width_ratio)
+
+fitted_reflection = [model(freq, fit_params) for freq in freqs]
+
+# plot everything
+Plots.plot(freqs, reflection, label="ReflectanSimce", xlabel="Frequency", ylabel="Reflectance")
+Plots.plot!(freqs, Measurements.value.(fitted_reflection), ribbon=Measurements.uncertainty.(fitted_reflection), label="Fit", color=:orange)
+
+
+# initial guess
+p0_ctn = [0.28, 0.7, 0.25, 0.2, 0.34, 0.05]
+p0_dia = [0.28, 0.7, 0.25, 0.2, 0.4, 0.05]
+p0_lcs = [0.28, 0.7, 0.25, 0.2, 0.38, 0.05]
+p0_srs = [0.28, 0.7, 0.25, 0.2, 0.3, 0.05]
+
+
+network_type_vec = ["ctn", "dia", "lcs", "srs"]
+p0_list = [p0_ctn, p0_dia, p0_lcs, p0_srs]
+
+for (i, network_type) in enumerate(network_type_vec)
+    # load the order metrics dict
+    analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\neural_network_networks\\" * network_type * raw"\\"
+    order_metric_dict = GU.load_h5_dict(analysis_data_path * "all_order_metrics.h5")
+
+    # get the r_t dict path
+    r_t_dict_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\photonics\tidy3d\simulation_data\neural_network_networks\\" * network_type * raw"\run_1_2_r_t_low_n\\"
+
+    correlations_dict = NA.get_order_peak_height_to_width_correlations(
+        order_metric_dict,
+        r_t_dict_path,
+        analysis_data_path;
+        p0=p0_list[i],
+        save_results = true)
+end
