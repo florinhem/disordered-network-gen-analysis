@@ -37,19 +37,15 @@ function get_evolution_dict(;
         must have the same length"
     end
 
-    # TODO if mit diamond, cubic, bcc, fcc => coordination nbr (und dann auch in den evol_dict rein)
-
     # estimate the total number of bond switches
     estimated_nr_bond_switches = 0
     for i in eachindex(temperature_vec)
         if temperature_vec[i] == 0 && nr_monte_carlo_steps_per_temperature_vec[i] == 50
             estimated_nr_bond_switches += 
                 mean_nr_monte_carlo_steps_for_quenching * 18 * nr_vertices
-                # TODO convert 18 (hardcoded) into 4*3*3/2 with coordination_nr
         else
             estimated_nr_bond_switches += 
                 nr_monte_carlo_steps_per_temperature_vec[i] * 18 * nr_vertices
-                # TODO convert 18 (hardcoded) into 4*3*3/2 with coordination_nr
         end
     end
 

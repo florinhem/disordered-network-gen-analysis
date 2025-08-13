@@ -1,10 +1,5433 @@
 
+# include file where structure analysis modules are stored
+include("structure_analysis_modules.jl")
+
+# import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+import MetaGraphsNext
+import Graphs
+import Plots
+Plots.plotlyjs()
+import .Threads
+import Glob
+
+function spatial_network_for_simulation(;
+    network_type_array,
+    nr_vertices_array,
+    maximal_temperature_array,
+    bond_bending_const_array,
+    temperature_gradient_array,
+    nr_monte_carlo_steps_per_temperature_array,
+    theta_ground_state_array,
+    nr_trials_per_temperature_array,
+    save_path,
+    filename_start,
+    plot_appendix,
+    plot_folder,
+    sim_appendix,
+    sim_folder
+    )
+
+    println(Threads.nthreads())
+
+    Iter=collect(Iterators.product(
+        network_type_array,
+        nr_vertices_array,
+        maximal_temperature_array,
+        bond_bending_const_array,
+        temperature_gradient_array,
+        nr_monte_carlo_steps_per_temperature_array,
+        theta_ground_state_array,
+        nr_trials_per_temperature_array
+        ))
+
+    Threads.@threads for (
+        network_type,
+        nr_vertices,
+        maximal_temperature,
+        bond_bending_const,
+        temperature_gradient,
+        nr_monte_carlo_steps_per_temperature,
+        theta_ground_state,
+        trial) in Iter
+
+        filename = (filename_start
+            *"_NW="*"$network_type"
+            *"_N="*"$nr_vertices"
+            *"_T="*"$maximal_temperature"
+            *"_Beta="*"$bond_bending_const"
+            *"_GradT="*"$temperature_gradient"
+            *"_StepsPerT="*"$nr_monte_carlo_steps_per_temperature"
+            *"_Theta_GS="*"$theta_ground_state"
+            *"_Trial="*"$trial"
+            )
+
+        total_path=save_path*filename
+
+        path_array=Glob.glob(filename_start*"*",save_path)
+        #println("path_array, $path_array")
+
+        if(total_path*".gml" in path_array)
+            #println("scatter done")
+            println("yes, $filename")
+            spatial_network=NG.load_spatial_network_from_gml(total_path*".gml")
+
+            spatial_network=NG.get_spatial_network_for_simulation!(
+                spatial_network;
+                vector_out_of_supercell_length = 1,
+                duplicate_bonds_close_to_supercell_edge = true,
+                save_result = true,
+                filename = filename*sim_appendix,
+                save_path = sim_folder)
+
+
+            A=NG.plot_spatial_network_2(spatial_network)
+
+            plot_name = filename*plot_appendix
+            plot_path = plot_folder*plot_name
+            Plots.savefig(A,plot_path)
+        else
+            println("no, $filename")
+        end
+    end
+end
+
+
+
+spatial_network_for_simulation(;
+    network_type_array=["pto"],
+    nr_vertices_array=[14*2^3],
+    maximal_temperature_array=[0.35],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    save_path = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/thesis/",
+    filename_start="thesis_1",
+    plot_appendix="_1.png",
+    plot_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/analysis_plot/",
+    sim_appendix="-",
+    sim_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/thesis/for_sim/"
+)
+
+#=
+spatial_network_for_simulation(;
+    network_type_array=["ctn"],
+    nr_vertices_array=[28*3^3],
+    maximal_temperature_array=[1.15],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    save_path = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/thesis/",
+    filename_start="thesis_1",
+    plot_appendix="_2.png",
+    plot_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/analysis_plot/",
+    sim_appendix="-",
+    sim_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/thesis/for_sim/"
+)
+=#
+
+#=
+spatial_network_for_simulation(;
+    network_type_array=["srd"],
+    nr_vertices_array=[10*2^3],
+    maximal_temperature_array=[0.22],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    save_path = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/thesis/",
+    filename_start="thesis_1",
+    plot_appendix="_2.png",
+    plot_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/analysis_plot/",
+    sim_appendix="-",
+    sim_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/thesis/for_sim/"
+)=#
+
+#=
+spatial_network_for_simulation(;
+    network_type_array=["pto"],
+    nr_vertices_array=[14*1^3],
+    maximal_temperature_array=[0.08],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    save_path = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/thesis/",
+    filename_start="thesis_1",
+    plot_appendix="_2.png",
+    plot_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/analysis_plot/",
+    sim_appendix="-",
+    sim_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/thesis/for_sim/"
+)
+    =#
+
+#=
+spatial_network_for_simulation(;
+    network_type_array=["ctn"],
+    nr_vertices_array=[28*1^3],
+    maximal_temperature_array=[0.13],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    save_path = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/thesis/",
+    filename_start="thesis_1",
+    plot_appendix="_2.png",
+    plot_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/analysis_plot/",
+    sim_appendix="-",
+    sim_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/thesis/for_sim/"
+)
+    =#
+
+
+#=
+spatial_network_for_simulation(;
+    network_type_array=["pto"],
+    nr_vertices_array=[14*3^3],
+    maximal_temperature_array=[1.17],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    save_path = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/thesis/",
+    filename_start="thesis_1",
+    plot_appendix="_2.png",
+    plot_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/analysis_plot/",
+    sim_appendix="-",
+    sim_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/thesis/for_sim/"
+)=#
+
+
+
+
+
+#=
+spatial_network_for_simulation(;
+    network_type_array=["srd"],
+    nr_vertices_array=[10*3^3],
+    maximal_temperature_array=[0.33],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    save_path = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/thesis/",
+    filename_start="thesis_1",
+    plot_appendix="_2.png",
+    plot_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/analysis_plot/",
+    sim_appendix="-",
+    sim_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/thesis/for_sim/"
+)
+    =#
+
+#=
+spatial_network_for_simulation(;
+    network_type_array=["ctn"],
+    nr_vertices_array=[28*1^3],
+    maximal_temperature_array=[1.15],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    save_path = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/thesis/",
+    filename_start="thesis_1",
+    plot_appendix="_2.png",
+    plot_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/analysis_plot/",
+    sim_appendix="-",
+    sim_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/thesis/for_sim/"
+)
+    =#
+
+#=
+spatial_network_for_simulation(;
+    network_type_array=["ctn"],
+    nr_vertices_array=[28*3^3],
+    maximal_temperature_array=[1.15],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    save_path = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/disordered_pto_ctn/",
+    filename_start="dpc_1",
+    plot_appendix="_1.png",
+    plot_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/analysis_plot/",
+    sim_appendix="_1",
+    sim_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/disordered_pto_ctn/for_sim/"
+)
+=#
+
+#=
+spatial_network_for_simulation(;
+    network_type_array=["pto"],
+    nr_vertices_array=[14*3^3],
+    maximal_temperature_array=[1.56],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    save_path = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/disordered_pto_ctn/",
+    filename_start="dpc_1",
+    plot_appendix="_1.png",
+    plot_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/analysis_plot/",
+    sim_appendix="_1",
+    sim_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/disordered_pto_ctn/for_sim/"
+)=#
+
+import Plots
+
+data = [
+["ctn", 224, 0.0, 180.0, 0.06, 0.00031779651885594445 ],
+["ctn", 224, 0.25, 180.0, 0.06, 1.1511070269351324 ],
+["ctn", 224, 0.5, 180.0, 0.06, 2.7958110652423622 ],
+["ctn", 224, 0.75, 180.0, 0.06, 4.585660340210036 ],
+["ctn", 224, 1.0, 180.0, 0.06, 6.415852631785852 ],
+["dia", 64, 0.0, 180.0, 0.06, 0.0009204175214628252 ],
+["dia", 64, 0.25, 180.0, 0.06, 0.3061062214612626 ],
+["dia", 64, 0.5, 180.0, 0.06, 0.6897997003855234 ],
+["dia", 64, 0.75, 180.0, 0.06, 1.1801646529256444 ],
+["dia", 64, 1.0, 180.0, 0.06, 1.8723883922952942 ],
+["lcs", 192, 0.0, 180.0, 0.06, 0.00019776541351310378 ],
+["lcs", 192, 0.25, 180.0, 0.06, 1.071663395930038 ],
+["lcs", 192, 0.5, 180.0, 0.06, 2.5884136096353902 ],
+["lcs", 192, 0.75, 180.0, 0.06, 4.313285672070859 ],
+["lcs", 192, 1.0, 180.0, 0.06, 7.128334985976234 ],
+["pto", 112, 0.0, 180.0, 0.06, 0.0032579250096590583 ],
+["pto", 112, 0.25, 180.0, 0.06, 0.7813861085162169 ],
+["pto", 112, 0.5, 180.0, 0.06, 1.5409201350892336 ],
+["pto", 112, 0.75, 180.0, 0.06, 2.2759438445283595 ],
+["pto", 112, 1.0, 180.0, 0.06, 3.3613117404334374 ],
+["srd", 80, 0.0, 180.0, 0.06, -0.7407408623269777 ],
+["srd", 80, 0.25, 180.0, 0.06, 0.3300682873059035 ],
+["srd", 80, 0.5, 180.0, 0.06, 1.1013913412535 ],
+["srd", 80, 0.75, 180.0, 0.06, 1.830137437807958 ],
+["srd", 80, 1.0, 180.0, 0.06, 2.9236032169832975 ],
+["srs", 64, 0.0, 180.0, 0.06, 0.0013561265418390608 ],
+["srs", 64, 0.25, 180.0, 0.06, 0.34187449273557846 ],
+["srs", 64, 0.5, 180.0, 0.06, 0.7734640806305035 ],
+["srs", 64, 0.75, 180.0, 0.06, 1.2002240438551928 ],
+["srs", 64, 1.0, 180.0, 0.06, 1.707019829012384 ],
+]
+
+# Define a color map for groups
+group_colors = Dict(
+    "dia" => :red,
+    "srs"=> :blue,
+    "srd"=> :green,
+    "ctn"=> :brown,
+    "pto"=> :orange,
+    "lcs"=> :black,
+)
+
+# Group data by the first column and plot
+p=Plots.plot(title="T_melt_min vs Beta, p=0.06, theta_GS=180", xlabel="Beta", ylabel="T_melt_min", legend=:topleft)
+
+
+for group in unique(d[1] for d in data)
+    x = [d[3] for d in data if d[1] == group]
+    y = [d[6] for d in data if d[1] == group]
+    Plots.scatter!(x, y, color=group_colors[group], label=group)
+    Plots.plot!(x, y, color=group_colors[group], label="")
+end
+
+display(p)
+
+
+#=
+
+import Plots
+
+data = [
+   
+    ["dia", 64, 0.05, 110.0, 0.008236931229175333],
+    ["dia", 64, 0.05, 180.0, 0.017645148963279508],
+    ["dia", 64, 0.4, 110.0, 0.051254758170237336],
+    ["dia", 64, 0.4, 180.0, 0.211852859746535],
+    #=
+    ["srs", 64, 0.05, 110.0, 0.003982922259734537],
+    ["srs", 64, 0.05, 180.0, 0.012473534447792348],
+    ["srs", 64, 0.4, 110.0, 0.09045810811000399],
+    ["srs", 64, 0.4, 180.0, 0.2530274424607178],
+
+    ["srd", 80, 0.05, 110.0, -0.20517471460133493],
+    ["srd", 80, 0.05, 180.0, -0.1423886337926595],
+    ["srd", 80, 0.4, 110.0, 0.04575271367231706],
+    ["srd", 80, 0.4, 180.0, 0.31456371597692706],
+
+    ["ctn", 224, 0.05, 110.0, -0.00034507065027222805],
+    ["ctn", 224, 0.05, 180.0, 0.03854948881732978],
+    ["ctn", 224, 0.4, 110.0, -0.019196505031232405],
+    ["ctn", 224, 0.4, 180.0, 0.8745543484892777],
+
+    ["pto", 112, 0.05, 110.0, 0.009844797510861496],
+    ["pto", 112, 0.05, 180.0, 0.038448177226420334],
+    ["pto", 112, 0.4, 110.0, 0.2472757703833047],
+    ["pto", 112, 0.4, 180.0, 0.5019245277552278],
+    
+    ["lcs", 192, 0.05, 110.0, 0.00928689245208305],
+    ["lcs", 192, 0.05, 180.0, 0.05027178909889527],
+    ["lcs", 192, 0.4, 110.0, 0.1301426088165054],
+    ["lcs", 192, 0.4, 180.0, 0.7738153098168629],=#
+]
+
+# Define a color map for groups
+group_colors = Dict(
+    "dia" => :red,
+    "srs"=> :blue,
+    "srd"=> :green,
+    "ctn"=> :brown,
+    "pto"=> :orange,
+    "lcs"=> :black,
+)
+
+# Group data by the first column and plot
+p=Plots.plot(title="T_melt_min vs Beta, p=0.001, theta_GS=180&110", xlabel="Beta", ylabel="T_melt_min", legend=:bottomright)
+
+theta=110.0
+
+for group in unique(d[1] for d in data)
+    x = [d[3] for d in data if d[1] == group && d[4] == theta]
+    y = [d[5] for d in data if d[1] == group && d[4] == theta]
+    Plots.scatter!(x, y, color=group_colors[group], label=group)
+    Plots.plot!(x, y, color=group_colors[group], label="")
+end
+
+display(p)
+=#
+
+
+
+
+import Plots
+
+data = [
+    ["dia", 0.05, 0.007934685997103716, 180],
+    ["srs", 0.05, 0.003955249897730818, 180],
+    ["srd", 0.05, -0.5498937954459524, 180],
+    ["ctn", 0.05, -0.0005283827871525198, 180],
+    ["pto", 0.05, 0.031147308591069005, 180],
+    ["lcs", 0.05, 0.04689, 180],
+
+    ["dia", 0.1, 0.014909371518426568, 180],
+    ["srs", 0.1, 0.020450893995663754, 180],
+    ["srd", 0.1, -0.39098012799315, 180],
+    ["ctn", 0.1, -0.0044599984518162656, 180],
+    ["pto", 0.1, 0.0904834568623931, 180],
+    ["lcs", 0.1, 0.11741, 180],
+
+    ["dia", 0.2, 0.02756512968723091, 180],
+    ["srs", 0.2, 0.08338025057054665, 180],
+    ["srd", 0.2, -0.05727708229476416, 180],
+    ["ctn", 0.2, -0.010633504898127814, 180],
+    ["pto", 0.2, 0.21486873390822503, 180],
+    ["lcs", 0.2, 0.30213004526206544, 180],
+
+    ["dia", 0.3, 0.03899226183066535, 180],
+    ["srs", 0.3, 0.16706711393261434, 180],
+    ["srd", 0.3, 0.07855009221632703, 180],
+    ["ctn", 0.3, -0.015260818753880048, 180],
+    ["pto", 0.3, 0.32730347061301757, 180],
+    ["lcs", 0.3, 0.50785, 180],
+
+    ["dia", 0.4, 0.049716138737225524, 180],
+    ["srs", 0.4, 0.2661397111338844, 180],
+    ["srd", 0.4, 0.19973016654196743, 180],
+    ["ctn", 0.4, -0.02015308365613684, 180],
+    ["pto", 0.4, 0.45761889546366746, 180],
+    ["lcs", 0.4, 0.73485, 180],
+]
+
+# Define a color map for groups
+group_colors = Dict(
+    "dia" => :red,
+    "srs" => :blue,
+    "srd" => :green,
+    "ctn" => :orange,
+    "pto" => :brown,
+    "lcs" => :black,
+)
+
+# Group data by the first column and plot
+p=Plots.plot(title="T_melt_min vs Beta, p=0.001, theta_GS=180", xlabel="Beta", ylabel="T_melt_min", legend=:bottomright)
+
+for group in unique(d[1] for d in data)
+    x = [d[2] for d in data if d[1] == group]
+    y = [d[3] for d in data if d[1] == group]
+    Plots.scatter!(x, y, color=group_colors[group], label=group)
+    Plots.plot!(x, y, color=group_colors[group], label="")
+end
+
+display(p)
+
+
+
+# include file where structure analysis modules are stored
+include("structure_analysis_modules_no_plotting.jl")
+
+# import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+import MetaGraphsNext
+import Graphs
+import Plots
+import .Threads
+
+function save_multiple_N_T_trials_beta_gml(
+    ;
+    network_array,
+    save_path,
+    filename_start
+    )
+    
+    println(Threads.nthreads())
+
+    @assert length(network_array[1])===7
+
+    Iter=collect(network_array)
+    println(Iter)
+    
+
+    Threads.@threads for (
+        nr_vertices,
+        maximal_temperature,
+        bond_bending_const,
+        temperature_gradient,
+        nr_monte_carlo_steps_per_temperature,
+        theta_ground_state,
+        trial) in Iter
+
+        nr_vertices=Int(nr_vertices)
+        trial=Int(trial)
+                
+        println("$nr_vertices"*", "*
+		"$maximal_temperature"*", "*
+		"$bond_bending_const"*", "*
+		"$temperature_gradient"*", "*
+        "$nr_monte_carlo_steps_per_temperature"*", "*
+        "$theta_ground_state"*", "*
+        "$trial" )
+    
+        evolution_dict = NA.get_evolution_dict(;
+            nr_vertices = nr_vertices, 
+            network_type="diamond", 
+            bond_bending_const=bond_bending_const, 
+            min_ring_size=3,
+            theta_ground_state=theta_ground_state
+            )
+        spatial_network = NG.get_periodic_network(evolution_dict)
+    
+        temperature_vec, nr_monte_carlo_steps_per_temperature_vec = 
+            NA.get_temperature_sequence_heating_cooling_gradient(
+                maximal_temperature;
+                temperature_gradient = temperature_gradient, 
+                nr_monte_carlo_steps_per_temperature = nr_monte_carlo_steps_per_temperature,
+                quench = true)
+
+        evolution_dict["temperature_vec"] = temperature_vec
+        evolution_dict["nr_monte_carlo_steps_per_temperature_vec"] = nr_monte_carlo_steps_per_temperature_vec
+
+        total_energy_vec::Vector{Float64}=[]
+        move_accepted_vec::Vector{Bool}=[]
+
+        spatial_network, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_sequence!(
+            spatial_network,
+            evolution_dict;
+            total_energy_vec = total_energy_vec,
+            move_accepted_vec= move_accepted_vec,
+            print_progress = true,
+            print_every_nr_attempted_bond_switches = 1000)
+
+        evolution_dict["total_energy_vec"] = total_energy_vec
+        evolution_dict["move_accepted_vec"] = move_accepted_vec
+
+        filename = (filename_start
+            *"_N="*"$nr_vertices"
+            *"_T="*"$maximal_temperature"
+            *"_Beta="*"$bond_bending_const"
+            *"_GradT="*"$temperature_gradient"
+            *"_StepsPerT="*"$nr_monte_carlo_steps_per_temperature"
+            *"_Theta_GS="*"$theta_ground_state"
+            *"_Trial="*"$trial"
+            )
+	
+        NG.save_spatial_network_to_gml(
+            spatial_network,
+            filename;
+            evolution_dict = evolution_dict,
+            save_path = save_path)
+                    
+    end
+end
+
+try
+    save_multiple_N_T_trials_beta_gml(;
+        network_array=[
+            [216,0.1,0.4,0.1,0.01,100.0,2],
+            [216,0.2,0.3,0.1,0.01,100.0,2],
+
+            [216,0.2,0.35,0.1,0.01,100.0,2],
+            [216,0.15,0.3,0.1,0.01,100.0,2],
+
+            [216,0.15,0.35,0.1,0.01,100.0,2],
+            [216,0.125,0.4,0.1,0.01,100.0,2],
+
+            [216,0.125,0.25,0.1,0.01,100.0,2],
+            [216,0.175,0.3,0.1,0.01,100.0,2],
+            [216,0.175,0.3,0.1,0.01,100.0,3],
+
+            [216,0.175,0.35,0.1,0.01,100.0,2]
+            ],
+        save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/multiple_trials/",     
+        filename_start="m_t_"
+    )
+catch e
+    error_msg = sprint(showerror, e)
+    st = sprint((io,v) -> show(io, "text/plain", v), stacktrace(catch_backtrace()))
+    @warn "Trouble doing things:\n$(error_msg)\n$(st)"
+    println("Trouble doing things:\n$(error_msg)\n$(st)")
+end
+
+
+
+# include file where structure analysis modules are stored
+include("structure_analysis_modules.jl")    #*#
+
+# import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+import MetaGraphsNext
+import Graphs
+import .Threads
+import Plots
+Plots.pyplot()
+
+function save_multiple_N_T_trials_beta_gml(
+    ;
+    network_type_array,
+    nr_vertices_array,
+    maximal_temperature_array,
+    bond_bending_const_array,
+    temperature_gradient_array,
+    nr_monte_carlo_steps_per_temperature_array,
+    theta_ground_state_array,
+    nr_trials_per_temperature_array,
+    quench,
+    save_path,
+    filename_start
+    )
+    
+    println(Threads.nthreads())
+
+    Iter=collect(Iterators.product(
+        network_type_array,
+        nr_vertices_array,
+        maximal_temperature_array,
+        bond_bending_const_array,
+        temperature_gradient_array,
+        nr_monte_carlo_steps_per_temperature_array,
+        theta_ground_state_array,
+        nr_trials_per_temperature_array
+        ))
+
+    Threads.@threads for (
+        network_type,
+        nr_vertices,
+        maximal_temperature,
+        bond_bending_const,
+        temperature_gradient,
+        nr_monte_carlo_steps_per_temperature,
+        theta_ground_state,
+        trial) in Iter
+                
+        println(
+        "$network_type"*", "*
+        "$nr_vertices"*", "*
+		"$maximal_temperature"*", "*
+		"$bond_bending_const"*", "*
+		"$temperature_gradient"*", "*
+        "$nr_monte_carlo_steps_per_temperature"*", "*
+        "$theta_ground_state"*", "*
+        "$trial" )
+    
+        evolution_dict = NA.get_evolution_dict(;
+            nr_vertices = nr_vertices, 
+            network_type=network_type, 
+            bond_bending_const=bond_bending_const, 
+            min_ring_size=3,
+            theta_ground_state=theta_ground_state
+            )
+
+        spatial_network = NG.get_periodic_network(evolution_dict)
+
+        plot1=NG.plot_spatial_network_2(spatial_network)
+        Plots.xlabel!("x")
+        Plots.ylabel!("y")
+        Plots.zlabel!("z")
+        display(plot1)
+
+        println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
+        println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
+    
+        temperature_vec, nr_monte_carlo_steps_per_temperature_vec = 
+            NA.get_temperature_sequence_heating_cooling_gradient(
+                maximal_temperature;
+                temperature_gradient = temperature_gradient, 
+                nr_monte_carlo_steps_per_temperature = nr_monte_carlo_steps_per_temperature,
+                quench = quench) 
+
+        evolution_dict["temperature_vec"] = temperature_vec
+        evolution_dict["nr_monte_carlo_steps_per_temperature_vec"] = nr_monte_carlo_steps_per_temperature_vec
+
+        total_energy_vec::Vector{Float64}=[]
+        move_accepted_vec::Vector{Bool}=[]
+
+        spatial_network, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_sequence!(
+            spatial_network,
+            evolution_dict;
+            total_energy_vec = total_energy_vec,
+            move_accepted_vec= move_accepted_vec,
+            print_progress = true,
+            print_every_nr_attempted_bond_switches = 1000)
+
+        
+        plot1=NG.plot_spatial_network_2(spatial_network)
+        Plots.xlabel!("x")
+        Plots.ylabel!("y")
+        Plots.zlabel!("z")
+        display(plot1)
+        
+
+        #break
+
+        println("nbr acc moves, $(length(move_accepted_vec)), $(sum(move_accepted_vec))")
+        println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
+        println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
+        println("evolve_network_temperature_sequence end")
+
+        evolution_dict["total_energy_vec"] = total_energy_vec
+        evolution_dict["move_accepted_vec"] = move_accepted_vec
+
+        filename = (filename_start
+            *"_NW="*"$network_type"
+            *"_N="*"$nr_vertices"
+            *"_T="*"$maximal_temperature"
+            *"_Beta="*"$bond_bending_const"
+            *"_GradT="*"$temperature_gradient"
+            *"_StepsPerT="*"$nr_monte_carlo_steps_per_temperature"
+            *"_Theta_GS="*"$theta_ground_state"
+            *"_Trial="*"$trial"
+            )
+	
+        NG.save_spatial_network_to_gml(
+            spatial_network,
+            filename;
+            evolution_dict = evolution_dict,
+            save_path = save_path)
+                    
+    end
+end
+
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["pto_fill"],
+    nr_vertices_array=[16*2^3],
+    maximal_temperature_array=[0.0], #[0.5,1.0,1.5],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/melting_temp_search/",     
+    filename_start="mts_6"
+)
+
+#=
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["dia"],
+    nr_vertices_array=[8*3^3],
+    maximal_temperature_array=[0.5,1.0,1.5], #[0.5,1.0,1.5],
+    bond_bending_const_array=[0.0,0.25,0.5,0.75,1.0],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/melting_temp_search/",     
+    filename_start="mts_5"
+)=#
+
+#=
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["pto"],
+    nr_vertices_array=[14*2^3],
+    maximal_temperature_array=[0.35],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/melting_temp_search/",     
+    filename_start="mts_4"
+)
+    =#
+#=
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["dia"],
+    nr_vertices_array=[8*3^3],
+    maximal_temperature_array=[0.44],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/melting_temp_search/",     
+    filename_start="mts_4"
+)
+    =#
+#=
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["srd"],
+    nr_vertices_array=[10*3^3],
+    maximal_temperature_array=[0.29],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/melting_temp_search/",     
+    filename_start="mts_4"
+)=#
+
+#=
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["srd"],
+    nr_vertices_array=[10*3^3],
+    maximal_temperature_array=[0.25],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/melting_temp_search/",     
+    filename_start="mts_4"
+)=#
+
+#=
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["srd"],
+    nr_vertices_array=[10*3^3],
+    maximal_temperature_array=[0.1],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/melting_temp_search/",     
+    filename_start="mts_3"
+)=#
+
+#=
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["srs"],
+    nr_vertices_array=[8*3^3],
+    maximal_temperature_array=[0.19],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/melting_temp_search/",     
+    filename_start="mts_3"
+)
+    =#
+
+#=
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["srs"],
+    nr_vertices_array=[8*3^3],
+    maximal_temperature_array=[0.21],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/melting_temp_search/",     
+    filename_start="mts_3"
+)
+    =#
+
+#=
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["dia"],
+    nr_vertices_array=[8*3^3],
+    maximal_temperature_array=[0.5],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/melting_temp_search/",     
+    filename_start="mts_3"
+)
+    =#
+
+#=
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["srd"],
+    nr_vertices_array=[10*3^3],
+    maximal_temperature_array=[0.5],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/melting_temp_search/",     
+    filename_start="mts_3"
+)
+    =#
+
+
+
+#=
+
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["ctn"],
+    nr_vertices_array=[28*3^3],
+    maximal_temperature_array=[1.0],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/melting_temp_search/",     
+    filename_start="mts_3"
+)
+
+=#
+#=
+
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["pto"],
+    nr_vertices_array=[14*2^3],
+    maximal_temperature_array=[0.07, 0.14,0.28,0.56],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/melting_temp_search/",     
+    filename_start="mts_2"
+)
+    =#
+
+
+#=
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["srs"],
+    nr_vertices_array=[8*3^3],
+    maximal_temperature_array=[0.17],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/melting_temp_search/",     
+    filename_start="mts_2"
+)
+    =#
+
+
+
+
+
+
+
+#=
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["pto"],
+    nr_vertices_array=[14*3^3],
+    maximal_temperature_array=[0.45],
+    bond_bending_const_array=[0.1],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/ft_1/",     
+    filename_start="test_1"
+)
+=#
+#=
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["srd"],#["pto", "lcs"],
+    nr_vertices_array=[18],#[216],
+    maximal_temperature_array=[0.0001],
+    bond_bending_const_array=[0.1],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/ft_1/",     
+    filename_start="test_1"
+)
+
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["dia", "srs", "srd", "ctn"],
+    nr_vertices_array=[216],
+    maximal_temperature_array=[0.1,0.15,0.2],
+    bond_bending_const_array=[0.1,0.05,0.025],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    quench=true,
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/ft_1/",     
+    filename_start="ft_1"
+)
+=#
+
+
+#=
+import matplotlib.pyplot as plt
+import numpy as np
+
+data = [
+    ["ctn", 756, 0.0, 180.0, 0.001, 5.4383687603934305e-5 ],
+    ["ctn", 756, 0.25, 180.0, 0.001, 1.7033567133561598 ],
+    ["ctn", 756, 0.5, 180.0, 0.001, 4.318526673205224 ],
+    ["ctn", 756, 0.75, 180.0, 0.001, 7.221094906217558 ],
+    ["ctn", 756, 1.0, 180.0, 0.001, 9.99464031700634 ],
+    ["dia", 216, 0.0, 180.0, 0.001, 0.00013619791956073047 ],
+    ["dia", 216, 0.25, 180.0, 0.001, 0.356205565998753 ],
+    ["dia", 216, 0.5, 180.0, 0.001, 0.8892545300216163 ],
+    ["dia", 216, 0.75, 180.0, 0.001, 1.5017797695203432 ],
+    ["dia", 216, 1.0, 180.0, 0.001, 2.475022028930397 ],
+    ["pto", 378, 0.0, 180.0, 0.001, 0.00039662531710252187 ],
+    ["pto", 378, 0.25, 180.0, 0.001, 1.4159209433727635 ],
+    ["pto", 378, 0.5, 180.0, 0.001, 3.1342923541943315 ],
+    ["pto", 378, 0.75, 180.0, 0.001, 4.699422212043759 ],
+    ["pto", 378, 1.0, 180.0, 0.001, 6.41225146319425 ],
+    ["srd", 270, 0.0, 180.0, 0.001, -0.9600301605705759 ],
+    ["srd", 270, 0.25, 180.0, 0.001, 0.8183243620240556 ],
+    ["srd", 270, 0.5, 180.0, 0.001, 2.0154665854770877 ],
+    ["srd", 270, 0.75, 180.0, 0.001, 3.446663705985313 ],
+    ["srd", 270, 1.0, 180.0, 0.001, 4.678955840938107 ],
+    ["srs", 216, 0.0, 180.0, 0.001, 0.00019026075258227957 ],
+    ["srs", 216, 0.25, 180.0, 0.001, 0.45102563239280974 ],
+    ["srs", 216, 0.5, 180.0, 0.001, 1.098237360224993 ],
+    ["srs", 216, 0.75, 180.0, 0.001, 1.799312622582123 ],
+    ["srs", 216, 1.0, 180.0, 0.001, 2.4612236029485097 ],
+]
+
+networks = ["dia", "srs", "srd", "pto", "ctn"]
+colors = np.array([
+    (46,37,133),
+    (51,117,56),
+    (93,168,153),
+    (148,203,236),
+    (220,205,125),
+    (194,106,119),
+    (159,74,150),
+    (126,41,84),
+    (221,221,221)
+])/255
+
+plt.axhline(0, color="black", linewidth=1.5, linestyle='-')
+for i, net in enumerate(networks):
+    x = [row[2] for row in data if row[0] == net]
+    y = [row[5] for row in data if row[0] == net]
+    plt.plot(x, y, "-o", color=colors[i], label=net)
+
+fontsize=11
+plt.xlabel(r'$\beta$', fontsize=fontsize)
+plt.ylabel(r'$T_\mathrm{melt}$',fontsize=fontsize)
+plt.legend(fontsize=fontsize)
+plt.xticks([0, 0.25, 0.5, 0.75, 1], fontsize=fontsize)
+plt.yticks(fontsize=fontsize)
+
+plt.show()
+=#
+
+
+
+#=
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+"""T = np.array([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5])
+B = np.array([0.0, 0.0, 0.25, 0.25, 0.5, 0.5, 0.75, 0.75, 1.0, 1.0, 0.0, 0.0, 0.25, 0.25, 0.5, 0.5, 0.75, 0.75, 1.0, 1.0, 0.0, 0.0, 0.25, 0.25, 0.5, 0.5, 0.75, 0.75, 1.0, 1.0])
+A = np.array([0.7722538276396544, 0.7321325867558519, 0.2800591395694734, 0.31554017622010533, 1.5351618658460002e-15, 1.5351618658460002e-15, 1.5351618658460002e-15, 1.5351618658460002e-15, 1.5351618658460002e-15, 1.5351618658460002e-15, 0.759521138550489, 0.7759276532794269, 0.36913724746341187, 0.33398189175068843, 0.5499753743068438, 0.49427426472500646, 0.4872861634095424, 0.5290163238108556, 0.49344421326596094, 0.48533400094522366, 0.7341144197253601, 0.7630442148537132, 0.3693054735420234, 0.4375533168593325, 0.5647098692054914, 0.5852458103617995, 0.5406904571574715, 0.5445115089304406, 0.5451416464326839, 0.5400058759992817])
+L = np.array([3.206638813126536e-9, 5.969434251520569e-13, 0.09097330037699623, 0.10293560011138819, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0002728212059955904, 1.2066734306774423e-6, 0.10437719088937789, 0.09920012767730602, 0.29471076571989213, 0.23955572404081787, 0.2818028831758822, 0.330178173341721, 0.29998895250062013, 0.2917775395009648, 1.0315606238897264e-5, 2.5197859085886173e-6, 0.10097884410726961, 0.11590436592696399, 0.28161969059702235, 0.30629778721740986, 0.3130093234751642, 0.33769027253657274, 0.3481752972314297, 0.3634712808131592])
+R = np.array([1.1100724519434453, 1.1331140146144483, 0.08429065841546853, 0.09351242485871532, 0.07682538514163212, 0.07682538514163212, 0.07682538514163212, 0.07682538514163212, 0.07682538514163212, 0.07682538514163212, 1.145307675081479, 1.1363230764010928, 0.38862967791077196, 0.299506369656208, 0.11661045587396451, 0.11974542165980458, 0.10157770413499725, 0.10588049043217164, 0.0839625045981906, 0.0841807253976746, 1.1668492698240915, 1.1630135367508196, 0.3858226855924728, 0.6590632187928773, 0.1997990947788974, 0.18250650614972305, 0.09396732533216536, 0.09720904350853328, 0.09463425210642017, 0.10365301349253032])
+"""
+"""
+T=np.array([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5])
+B=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
+A=np.array([0.7722538276396544, 0.7321325867558519, 0.7831345004769124, 0.7564460207570158, 0.7876442202817471, 0.7579238666383621, 0.2800591395694734, 0.31554017622010533, 0.2861762943196521, 0.30821477221116955, 0.29689040547892914, 0.3051117578256807, 1.5351618658460002e-15, 1.5351618658460002e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.5351618658460002e-15, 1.5351618658460002e-15, 0.09485258169998236, 1.6090375681134203e-15, 0.39097469691618086, 1.6090375681134203e-15, 1.5351618658460002e-15, 1.5351618658460002e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 0.759521138550489, 0.7759276532794269, 0.7924937858795768, 0.7433881403887204, 0.7335605808165089, 0.7680824089388288, 0.36913724746341187, 0.33398189175068843, 0.36244059143854573, 0.35159154932058945, 0.37581088220415676, 0.4064911749263389, 0.5499753743068438, 0.49427426472500646, 0.5539179092449221, 0.5624408857247668, 0.5399560796693847, 0.49531236944317086, 0.4872861634095424, 0.5290163238108556, 0.5116338069885265, 0.5151781339167216, 0.5426040431933448, 0.5168432068560582, 0.49344421326596094, 0.48533400094522366, 0.4713069793081515, 0.4803443810175372, 0.49111827281702136, 0.4934342099771602, 0.7341144197253601, 0.7630442148537132, 0.785190658023439, 0.7650370170402727, 0.782996475908403, 0.7284609908948243, 0.3693054735420234, 0.4375533168593325, 0.42960241184677483, 0.4190391516478911, 0.6476756537160155, 0.32174723530090094, 0.5647098692054914, 0.5852458103617995, 0.5446139965450423, 0.577118001719755, 0.5684116103174002, 0.4961100677221627, 0.5406904571574715, 0.5445115089304406, 0.5647569949651976, 0.5231712169778755, 0.5561571312914132, 0.5497634371938751, 0.5451416464326839, 0.5400058759992817, 0.5475303547169564, 0.533285973373223, 0.5132849179928505, 0.5462965512523394])
+L=np.array([3.206638813126536e-9, 5.969434251520569e-13, 7.499902062505485e-5, 1.2459906140547205e-6, 4.926505577029421e-7, 1.2738342634110038e-5, 0.09097330037699623, 0.10293560011138819, 0.0937636614334943, 0.09079977415673729, 0.083973854166318, 0.08426284223942511, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.06659488339466987, 0.0, 0.21183466063213585, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0002728212059955904, 1.2066734306774423e-6, 1.7368906967184656e-6, 1.6351107636076122e-8, 3.135051402208302e-7, 1.2999930487407325e-7, 0.10437719088937789, 0.09920012767730602, 0.10402911290827989, 0.10229184390182527, 0.10605530123335478, 0.10816950279411701, 0.29471076571989213, 0.23955572404081787, 0.27947151002108006, 0.2937199184268096, 0.26567493270610576, 0.2370275976292249, 0.2818028831758822, 0.330178173341721, 0.31175419854023706, 0.308209879389022, 0.3115190977613461, 0.31606767438022565, 0.29998895250062013, 0.2917775395009648, 0.3116687311916138, 0.31616560049006165, 0.30077527191951886, 0.3055287394750935, 1.0315606238897264e-5, 2.5197859085886173e-6, 3.4605239690928607e-7, 8.228428973117178e-8, 0.000267650171757799, 1.423005428304834e-7, 0.10097884410726961, 0.11590436592696399, 0.1080813390869237, 0.11402723654432412, 0.24721073219234507, 0.09282494796718, 0.28161969059702235, 0.30629778721740986, 0.28360176243878926, 0.2772817806263266, 0.2986171057760218, 0.21352496948337857, 0.3130093234751642, 0.33769027253657274, 0.35920241141411996, 0.2814969174886706, 0.3572705244608917, 0.33183525231698274, 0.3481752972314297, 0.3634712808131592, 0.3791065881488386, 0.32823047124430016, 0.34659499018620726, 0.3507076545957583])
+R=np.array([1.1100724519434453, 1.1331140146144483, 1.1373351567946866, 1.1469766063864182, 1.1349252695602952, 1.134888382597331, 0.08429065841546853, 0.09351242485871532, 0.08390584628260671, 0.09386469867840573, 0.08825474640737466, 0.08713912092264095, 0.07682538514163212, 0.07682538514163212, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07682538514163212, 0.07682538514163212, 0.07587189956123522, 0.07598389151557651, 0.08323353687141774, 0.07598389151557651, 0.07682538514163212, 0.07682538514163212, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 1.145307675081479, 1.1363230764010928, 1.1507995512423312, 1.135828000605651, 1.1538730751203459, 1.1269148318977964, 0.38862967791077196, 0.299506369656208, 0.3430862162481676, 0.1616835573995811, 0.35799163814270074, 0.4919656902930854, 0.11661045587396451, 0.11974542165980458, 0.10130955426430752, 0.10634089020852246, 0.1431763951342161, 0.10406046553201093, 0.10157770413499725, 0.10588049043217164, 0.08880872347662691, 0.09843115985839289, 0.10379460811659687, 0.08525457746845085, 0.0839625045981906, 0.0841807253976746, 0.07830615699821024, 0.08480984269337231, 0.08531494853379414, 0.08212264419984779, 1.1668492698240915, 1.1630135367508196, 1.138272906501428, 1.1202275043577807, 1.1466921701686716, 1.1435821790663625, 0.3858226855924728, 0.6590632187928773, 0.6130622181619604, 0.5139695726276851, 0.983939414255518, 0.10941149149524695, 0.1997990947788974, 0.18250650614972305, 0.1442059909748828, 0.1954242195771944, 0.24063533464833123, 0.36005278684321335, 0.09396732533216536, 0.09720904350853328, 0.10800068453857047, 0.16385878673459284, 0.09485140681322457, 0.09408889436274756, 0.09463425210642017, 0.10365301349253032, 0.09572257558104706, 0.10340057218201215, 0.087543547472587, 0.09538558342788843])
+"""
+T=[0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5]
+B=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+A=[0.7722538276396544, 0.7321325867558519, 0.7831345004769124, 0.7564460207570158, 0.7876442202817471, 0.7579238666383621, 0.7754303307384808, 0.7366440894794885, 0.7709520227362712, 0.7741192313474561, 0.2800591395694734, 0.31554017622010533, 0.2861762943196521, 0.30821477221116955, 0.29689040547892914, 0.3051117578256807, 0.3425986947172864, 0.30154937107969154, 0.31951099228752117, 0.2959798886621148, 1.5351618658460002e-15, 1.5351618658460002e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.5351618658460002e-15, 1.5351618658460002e-15, 0.09485258169998236, 1.6090375681134203e-15, 0.39097469691618086, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.5351618658460002e-15, 1.5351618658460002e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 0.759521138550489, 0.7759276532794269, 0.7924937858795768, 0.7433881403887204, 0.7335605808165089, 0.7680824089388288, 0.7881095277776021, 0.7685432574917537, 0.8163209819217336, 0.7586752617900985, 0.36913724746341187, 0.33398189175068843, 0.36244059143854573, 0.35159154932058945, 0.37581088220415676, 0.4064911749263389, 0.3638983780989767, 0.3263033969533932, 0.33853904155134806, 0.3522564953098693, 0.5499753743068438, 0.49427426472500646, 0.5539179092449221, 0.5624408857247668, 0.5399560796693847, 0.49531236944317086, 0.5212886577252785, 0.5104576527094935, 0.5322955266755927, 0.5513160940987982, 0.4872861634095424, 0.5290163238108556, 0.5116338069885265, 0.5151781339167216, 0.5426040431933448, 0.5168432068560582, 0.5067484087741572, 0.5213761156783324, 0.5290857809404634, 0.5221525122305983, 0.49344421326596094, 0.48533400094522366, 0.4713069793081515, 0.4803443810175372, 0.49111827281702136, 0.4934342099771602, 0.4907341430552427, 0.4950262640040593, 0.49438288466393127, 0.5017989886061793, 0.7341144197253601, 0.7630442148537132, 0.785190658023439, 0.7650370170402727, 0.782996475908403, 0.7284609908948243, 0.7591066033697487, 0.7521430048544635, 0.7509299555501003, 0.7935188198240074, 0.3693054735420234, 0.4375533168593325, 0.42960241184677483, 0.4190391516478911, 0.6476756537160155, 0.32174723530090094, 0.4110185694541524, 0.4240760716440976, 0.43110323698028297, 0.39321571819445456, 0.5647098692054914, 0.5852458103617995, 0.5446139965450423, 0.577118001719755, 0.5684116103174002, 0.4961100677221627, 0.591984731715252, 0.5462432651340056, 0.5730615335732713, 0.5825886601959775, 0.5406904571574715, 0.5445115089304406, 0.5647569949651976, 0.5231712169778755, 0.5561571312914132, 0.5497634371938751, 0.5591061834095956, 0.5595169457572488, 0.5450410345161909, 0.5344351643859612, 0.5451416464326839, 0.5400058759992817, 0.5475303547169564, 0.533285973373223, 0.5132849179928505, 0.5462965512523394, 0.5769613462328215, 0.5453190099361286, 0.5281926823288088, 0.5531291528197105]
+L=[3.206638813126536e-9, 5.969434251520569e-13, 7.499902062505485e-5, 1.2459906140547205e-6, 4.926505577029421e-7, 1.2738342634110038e-5, 2.2227112180645262e-5, 1.6203494733277935e-9, 6.589736838113735e-11, 0.0002656781881709157, 0.09097330037699623, 0.10293560011138819, 0.0937636614334943, 0.09079977415673729, 0.083973854166318, 0.08426284223942511, 0.0939603550858048, 0.09553751522570328, 0.09791800980970645, 0.09481877108406406, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.06659488339466987, 0.0, 0.21183466063213585, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0002728212059955904, 1.2066734306774423e-6, 1.7368906967184656e-6, 1.6351107636076122e-8, 3.135051402208302e-7, 1.2999930487407325e-7, 4.2115468838048635e-7, 2.3599247482924435e-5, 1.4780907676465411e-5, 9.03823560226124e-5, 0.10437719088937789, 0.09920012767730602, 0.10402911290827989, 0.10229184390182527, 0.10605530123335478, 0.10816950279411701, 0.10251000897470382, 0.08540209192177224, 0.10671668883750285, 0.10435922478234183, 0.29471076571989213, 0.23955572404081787, 0.27947151002108006, 0.2937199184268096, 0.26567493270610576, 0.2370275976292249, 0.2635922503601271, 0.23164657640509123, 0.28804131414659223, 0.2779343705472207, 0.2818028831758822, 0.330178173341721, 0.31175419854023706, 0.308209879389022, 0.3115190977613461, 0.31606767438022565, 0.2921231097468325, 0.32960899963501966, 0.3126131701677662, 0.2946238781351375, 0.29998895250062013, 0.2917775395009648, 0.3116687311916138, 0.31616560049006165, 0.30077527191951886, 0.3055287394750935, 0.29413620684081215, 0.2920704751073603, 0.3075854033787196, 0.32353710420506954, 1.0315606238897264e-5, 2.5197859085886173e-6, 3.4605239690928607e-7, 8.228428973117178e-8, 0.000267650171757799, 1.423005428304834e-7, 4.854003509455409e-7, 2.1667371595502542e-13, 7.518505935785401e-12, 1.826174811025268e-5, 0.10097884410726961, 0.11590436592696399, 0.1080813390869237, 0.11402723654432412, 0.24721073219234507, 0.09282494796718, 0.1159287993640134, 0.11742197797991469, 0.11037926002547842, 0.11250471955126237, 0.28161969059702235, 0.30629778721740986, 0.28360176243878926, 0.2772817806263266, 0.2986171057760218, 0.21352496948337857, 0.3242600845586833, 0.2804600312016109, 0.296487215930309, 0.35349659209748374, 0.3130093234751642, 0.33769027253657274, 0.35920241141411996, 0.2814969174886706, 0.3572705244608917, 0.33183525231698274, 0.3574769050778, 0.35221520162566883, 0.3197784371067521, 0.30849501789517186, 0.3481752972314297, 0.3634712808131592, 0.3791065881488386, 0.32823047124430016, 0.34659499018620726, 0.3507076545957583, 0.3630225615101747, 0.3848928252878646, 0.36903004463306566, 0.36292894237527]
+R=[1.1100724519434453, 1.1331140146144483, 1.1373351567946866, 1.1469766063864182, 1.1349252695602952, 1.134888382597331, 1.1543536578285802, 1.1366704754996755, 1.132283507786512, 1.1394151758494269, 0.08429065841546853, 0.09351242485871532, 0.08390584628260671, 0.09386469867840573, 0.08825474640737466, 0.08713912092264095, 0.11328149374703023, 0.09224168232374949, 0.09322072361753339, 0.09158315952827623, 0.07682538514163212, 0.07682538514163212, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07682538514163212, 0.07682538514163212, 0.07587189956123522, 0.07598389151557651, 0.08323353687141774, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07682538514163212, 0.07682538514163212, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 1.145307675081479, 1.1363230764010928, 1.1507995512423312, 1.135828000605651, 1.1538730751203459, 1.1269148318977964, 1.1484884659632375, 1.1495609028301672, 1.1503831985820385, 1.1352230494355826, 0.38862967791077196, 0.299506369656208, 0.3430862162481676, 0.1616835573995811, 0.35799163814270074, 0.4919656902930854, 0.24942944378914184, 0.10147181621518343, 0.1946266423252775, 0.18015325606855354, 0.11661045587396451, 0.11974542165980458, 0.10130955426430752, 0.10634089020852246, 0.1431763951342161, 0.10406046553201093, 0.11399455790161428, 0.13412510161414995, 0.09562031790219727, 0.1122984731491175, 0.10157770413499725, 0.10588049043217164, 0.08880872347662691, 0.09843115985839289, 0.10379460811659687, 0.08525457746845085, 0.084989260666537, 0.08270964472439796, 0.10479431630847309, 0.10255145962903318, 0.0839625045981906, 0.0841807253976746, 0.07830615699821024, 0.08480984269337231, 0.08531494853379414, 0.08212264419984779, 0.08770848058196269, 0.0942663130730299, 0.08922524557771822, 0.0872535652513955, 1.1668492698240915, 1.1630135367508196, 1.138272906501428, 1.1202275043577807, 1.1466921701686716, 1.1435821790663625, 1.1252347314188798, 1.1455150092434998, 1.1476751963150706, 1.151263397319771, 0.3858226855924728, 0.6590632187928773, 0.6130622181619604, 0.5139695726276851, 0.983939414255518, 0.10941149149524695, 0.5903097197223853, 0.6358192346027203, 0.714972043315714, 0.3939867904016939, 0.1997990947788974, 0.18250650614972305, 0.1442059909748828, 0.1954242195771944, 0.24063533464833123, 0.36005278684321335, 0.2159089319862038, 0.15589439416893922, 0.20373711927935853, 0.10940724396759452, 0.09396732533216536, 0.09720904350853328, 0.10800068453857047, 0.16385878673459284, 0.09485140681322457, 0.09408889436274756, 0.13720907131780852, 0.1009796687680303, 0.10105758300433355, 0.13647165754037122, 0.09463425210642017, 0.10365301349253032, 0.09572257558104706, 0.10340057218201215, 0.087543547472587, 0.09538558342788843, 0.1228973554300292, 0.08530227540715671, 0.08792876243346481, 0.094978653953032]
+
+T=np.array(T)
+B=np.array(B)
+A=np.array(A)
+L=np.array(L)
+R=np.array(R)
+
+# Define colors for B
+colors = np.array([
+    (46,37,133),
+    (51,117,56),
+    (93,168,153),
+    (148,203,236),
+    (220,205,125),
+    (194,106,119),
+    (159,74,150),
+    (126,41,84),
+    (221,221,221)
+])/255.
+
+# Define unique T and B values and their corresponding markers and labels
+unique_T = np.unique(T)
+T_markers = ['^', 's', '*']  # triangle, square, star
+T_labels = [r"$%.1f$" % t for t in unique_T]
+T_marker_dict = dict(zip(unique_T, T_markers))
+T_label_dict = dict(zip(unique_T, T_labels))
+
+unique_B = np.unique(B)
+B_labels = [r"$%.2f$" % b for b in unique_B]
+B_color_dict = dict(zip(unique_B, colors[:len(unique_B)]))
+B_label_dict = dict(zip(unique_B, B_labels))
+
+# Plotting
+
+# --- First plot: L vs A ---
+fontsize = 11
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch, Ellipse
+import numpy.linalg as la
+
+fig_LA, axL = plt.subplots()
+for t in unique_T:
+    for b in unique_B:
+        mask = (T == t) & (B == b)
+        if np.any(mask):
+            axL.scatter(L[mask], A[mask],
+                        marker=T_marker_dict[t],
+                        color=B_color_dict[b],
+                        edgecolor='k',
+                        s=100)
+            mean_L = np.mean(L[mask])
+            mean_A = np.mean(A[mask])
+            cov = np.cov(L[mask], A[mask])
+            vals, vecs = la.eigh(cov)
+            order = vals.argsort()[::-1]
+            vals = vals[order]
+            vecs = vecs[:, order]
+            vals = np.where(vals < 0.0001, 0.0001, vals)
+            width, height = 2 * np.sqrt(vals)
+            angle = np.degrees(np.arctan2(*vecs[:,0][::-1]))
+            ellipse = Ellipse((mean_L, mean_A), width, height, angle=angle, edgecolor='k', facecolor=B_color_dict[b], alpha=0.3, lw=1.5)
+            axL.add_patch(ellipse)
+
+shape_handles = [Line2D([0], [0], marker=T_marker_dict[t], color='k', linestyle='None', markersize=10, label=T_label_dict[t]) for t in unique_T]
+color_handles = [Patch(facecolor=B_color_dict[b], edgecolor='k', label=B_label_dict[b]) for b in unique_B]
+
+axL.set_xlabel(r"$\sigma_\mathrm{L} / d$", fontsize=fontsize)
+axL.set_ylabel(r"$\sigma_\mathrm{A} / \mathrm{rad}$", fontsize=fontsize)
+axL.tick_params(axis='both', which='major', labelsize=fontsize)
+legend1 = axL.legend(handles=shape_handles, title=r"$T_\mathrm{max}$", loc='lower center', frameon=True, fontsize=fontsize, title_fontsize=fontsize)
+legend2 = axL.legend(handles=color_handles, title=r"$\beta$", loc='lower right', frameon=True, fontsize=fontsize, title_fontsize=fontsize)
+axL.add_artist(legend1)
+plt.tight_layout()
+plt.show()
+
+# --- Second plot: R vs A ---
+fig_RA, axR = plt.subplots()
+for t in unique_T:
+    for b in unique_B:
+        mask = (T == t) & (B == b)
+        if np.any(mask):
+            axR.scatter(R[mask], A[mask],
+                        marker=T_marker_dict[t],
+                        color=B_color_dict[b],
+                        edgecolor='k',
+                        s=100)
+            mean_R = np.mean(R[mask])
+            mean_A = np.mean(A[mask])
+            cov = np.cov(R[mask], A[mask])
+            vals, vecs = la.eigh(cov)
+            order = vals.argsort()[::-1]
+            vals = vals[order]
+            vecs = vecs[:, order]
+            vals = np.where(vals < 0.0001, 0.0001, vals)
+            width, height = 2 * np.sqrt(vals)
+            angle = np.degrees(np.arctan2(*vecs[:,0][::-1]))
+            ellipse = Ellipse((mean_R, mean_A), width, height, angle=angle, edgecolor='k', facecolor=B_color_dict[b], alpha=0.3, lw=1.5)
+            axR.add_patch(ellipse)
+
+axR.set_xlabel(r"$r_\mathrm{p} / d$", fontsize=fontsize)
+axR.set_ylabel(r"$\sigma_\mathrm{A} / \mathrm{rad}$", fontsize=fontsize)
+axR.tick_params(axis='both', which='major', labelsize=fontsize)
+legend1 = axR.legend(handles=shape_handles, title=r"$T_\mathrm{max}$", loc='lower center', frameon=True, fontsize=fontsize, title_fontsize=fontsize)
+legend2 = axR.legend(handles=color_handles, title=r"$\beta$", loc='lower right', frameon=True, fontsize=fontsize, title_fontsize=fontsize)
+axR.add_artist(legend1)
+plt.tight_layout()
+plt.show()
+
+=#
+
+
+#=
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+"""T = np.array([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5])
+B = np.array([0.0, 0.0, 0.25, 0.25, 0.5, 0.5, 0.75, 0.75, 1.0, 1.0, 0.0, 0.0, 0.25, 0.25, 0.5, 0.5, 0.75, 0.75, 1.0, 1.0, 0.0, 0.0, 0.25, 0.25, 0.5, 0.5, 0.75, 0.75, 1.0, 1.0])
+A = np.array([0.7722538276396544, 0.7321325867558519, 0.2800591395694734, 0.31554017622010533, 1.5351618658460002e-15, 1.5351618658460002e-15, 1.5351618658460002e-15, 1.5351618658460002e-15, 1.5351618658460002e-15, 1.5351618658460002e-15, 0.759521138550489, 0.7759276532794269, 0.36913724746341187, 0.33398189175068843, 0.5499753743068438, 0.49427426472500646, 0.4872861634095424, 0.5290163238108556, 0.49344421326596094, 0.48533400094522366, 0.7341144197253601, 0.7630442148537132, 0.3693054735420234, 0.4375533168593325, 0.5647098692054914, 0.5852458103617995, 0.5406904571574715, 0.5445115089304406, 0.5451416464326839, 0.5400058759992817])
+L = np.array([3.206638813126536e-9, 5.969434251520569e-13, 0.09097330037699623, 0.10293560011138819, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0002728212059955904, 1.2066734306774423e-6, 0.10437719088937789, 0.09920012767730602, 0.29471076571989213, 0.23955572404081787, 0.2818028831758822, 0.330178173341721, 0.29998895250062013, 0.2917775395009648, 1.0315606238897264e-5, 2.5197859085886173e-6, 0.10097884410726961, 0.11590436592696399, 0.28161969059702235, 0.30629778721740986, 0.3130093234751642, 0.33769027253657274, 0.3481752972314297, 0.3634712808131592])
+R = np.array([1.1100724519434453, 1.1331140146144483, 0.08429065841546853, 0.09351242485871532, 0.07682538514163212, 0.07682538514163212, 0.07682538514163212, 0.07682538514163212, 0.07682538514163212, 0.07682538514163212, 1.145307675081479, 1.1363230764010928, 0.38862967791077196, 0.299506369656208, 0.11661045587396451, 0.11974542165980458, 0.10157770413499725, 0.10588049043217164, 0.0839625045981906, 0.0841807253976746, 1.1668492698240915, 1.1630135367508196, 0.3858226855924728, 0.6590632187928773, 0.1997990947788974, 0.18250650614972305, 0.09396732533216536, 0.09720904350853328, 0.09463425210642017, 0.10365301349253032])
+"""
+"""
+T=np.array([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5])
+B=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
+A=np.array([0.7722538276396544, 0.7321325867558519, 0.7831345004769124, 0.7564460207570158, 0.7876442202817471, 0.7579238666383621, 0.2800591395694734, 0.31554017622010533, 0.2861762943196521, 0.30821477221116955, 0.29689040547892914, 0.3051117578256807, 1.5351618658460002e-15, 1.5351618658460002e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.5351618658460002e-15, 1.5351618658460002e-15, 0.09485258169998236, 1.6090375681134203e-15, 0.39097469691618086, 1.6090375681134203e-15, 1.5351618658460002e-15, 1.5351618658460002e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 0.759521138550489, 0.7759276532794269, 0.7924937858795768, 0.7433881403887204, 0.7335605808165089, 0.7680824089388288, 0.36913724746341187, 0.33398189175068843, 0.36244059143854573, 0.35159154932058945, 0.37581088220415676, 0.4064911749263389, 0.5499753743068438, 0.49427426472500646, 0.5539179092449221, 0.5624408857247668, 0.5399560796693847, 0.49531236944317086, 0.4872861634095424, 0.5290163238108556, 0.5116338069885265, 0.5151781339167216, 0.5426040431933448, 0.5168432068560582, 0.49344421326596094, 0.48533400094522366, 0.4713069793081515, 0.4803443810175372, 0.49111827281702136, 0.4934342099771602, 0.7341144197253601, 0.7630442148537132, 0.785190658023439, 0.7650370170402727, 0.782996475908403, 0.7284609908948243, 0.3693054735420234, 0.4375533168593325, 0.42960241184677483, 0.4190391516478911, 0.6476756537160155, 0.32174723530090094, 0.5647098692054914, 0.5852458103617995, 0.5446139965450423, 0.577118001719755, 0.5684116103174002, 0.4961100677221627, 0.5406904571574715, 0.5445115089304406, 0.5647569949651976, 0.5231712169778755, 0.5561571312914132, 0.5497634371938751, 0.5451416464326839, 0.5400058759992817, 0.5475303547169564, 0.533285973373223, 0.5132849179928505, 0.5462965512523394])
+L=np.array([3.206638813126536e-9, 5.969434251520569e-13, 7.499902062505485e-5, 1.2459906140547205e-6, 4.926505577029421e-7, 1.2738342634110038e-5, 0.09097330037699623, 0.10293560011138819, 0.0937636614334943, 0.09079977415673729, 0.083973854166318, 0.08426284223942511, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.06659488339466987, 0.0, 0.21183466063213585, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0002728212059955904, 1.2066734306774423e-6, 1.7368906967184656e-6, 1.6351107636076122e-8, 3.135051402208302e-7, 1.2999930487407325e-7, 0.10437719088937789, 0.09920012767730602, 0.10402911290827989, 0.10229184390182527, 0.10605530123335478, 0.10816950279411701, 0.29471076571989213, 0.23955572404081787, 0.27947151002108006, 0.2937199184268096, 0.26567493270610576, 0.2370275976292249, 0.2818028831758822, 0.330178173341721, 0.31175419854023706, 0.308209879389022, 0.3115190977613461, 0.31606767438022565, 0.29998895250062013, 0.2917775395009648, 0.3116687311916138, 0.31616560049006165, 0.30077527191951886, 0.3055287394750935, 1.0315606238897264e-5, 2.5197859085886173e-6, 3.4605239690928607e-7, 8.228428973117178e-8, 0.000267650171757799, 1.423005428304834e-7, 0.10097884410726961, 0.11590436592696399, 0.1080813390869237, 0.11402723654432412, 0.24721073219234507, 0.09282494796718, 0.28161969059702235, 0.30629778721740986, 0.28360176243878926, 0.2772817806263266, 0.2986171057760218, 0.21352496948337857, 0.3130093234751642, 0.33769027253657274, 0.35920241141411996, 0.2814969174886706, 0.3572705244608917, 0.33183525231698274, 0.3481752972314297, 0.3634712808131592, 0.3791065881488386, 0.32823047124430016, 0.34659499018620726, 0.3507076545957583])
+R=np.array([1.1100724519434453, 1.1331140146144483, 1.1373351567946866, 1.1469766063864182, 1.1349252695602952, 1.134888382597331, 0.08429065841546853, 0.09351242485871532, 0.08390584628260671, 0.09386469867840573, 0.08825474640737466, 0.08713912092264095, 0.07682538514163212, 0.07682538514163212, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07682538514163212, 0.07682538514163212, 0.07587189956123522, 0.07598389151557651, 0.08323353687141774, 0.07598389151557651, 0.07682538514163212, 0.07682538514163212, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 1.145307675081479, 1.1363230764010928, 1.1507995512423312, 1.135828000605651, 1.1538730751203459, 1.1269148318977964, 0.38862967791077196, 0.299506369656208, 0.3430862162481676, 0.1616835573995811, 0.35799163814270074, 0.4919656902930854, 0.11661045587396451, 0.11974542165980458, 0.10130955426430752, 0.10634089020852246, 0.1431763951342161, 0.10406046553201093, 0.10157770413499725, 0.10588049043217164, 0.08880872347662691, 0.09843115985839289, 0.10379460811659687, 0.08525457746845085, 0.0839625045981906, 0.0841807253976746, 0.07830615699821024, 0.08480984269337231, 0.08531494853379414, 0.08212264419984779, 1.1668492698240915, 1.1630135367508196, 1.138272906501428, 1.1202275043577807, 1.1466921701686716, 1.1435821790663625, 0.3858226855924728, 0.6590632187928773, 0.6130622181619604, 0.5139695726276851, 0.983939414255518, 0.10941149149524695, 0.1997990947788974, 0.18250650614972305, 0.1442059909748828, 0.1954242195771944, 0.24063533464833123, 0.36005278684321335, 0.09396732533216536, 0.09720904350853328, 0.10800068453857047, 0.16385878673459284, 0.09485140681322457, 0.09408889436274756, 0.09463425210642017, 0.10365301349253032, 0.09572257558104706, 0.10340057218201215, 0.087543547472587, 0.09538558342788843])
+"""
+T=[0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5]
+B=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+A=[0.7722538276396544, 0.7321325867558519, 0.7831345004769124, 0.7564460207570158, 0.7876442202817471, 0.7579238666383621, 0.7754303307384808, 0.7366440894794885, 0.7709520227362712, 0.7741192313474561, 0.2800591395694734, 0.31554017622010533, 0.2861762943196521, 0.30821477221116955, 0.29689040547892914, 0.3051117578256807, 0.3425986947172864, 0.30154937107969154, 0.31951099228752117, 0.2959798886621148, 1.5351618658460002e-15, 1.5351618658460002e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.5351618658460002e-15, 1.5351618658460002e-15, 0.09485258169998236, 1.6090375681134203e-15, 0.39097469691618086, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.5351618658460002e-15, 1.5351618658460002e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 1.6090375681134203e-15, 0.759521138550489, 0.7759276532794269, 0.7924937858795768, 0.7433881403887204, 0.7335605808165089, 0.7680824089388288, 0.7881095277776021, 0.7685432574917537, 0.8163209819217336, 0.7586752617900985, 0.36913724746341187, 0.33398189175068843, 0.36244059143854573, 0.35159154932058945, 0.37581088220415676, 0.4064911749263389, 0.3638983780989767, 0.3263033969533932, 0.33853904155134806, 0.3522564953098693, 0.5499753743068438, 0.49427426472500646, 0.5539179092449221, 0.5624408857247668, 0.5399560796693847, 0.49531236944317086, 0.5212886577252785, 0.5104576527094935, 0.5322955266755927, 0.5513160940987982, 0.4872861634095424, 0.5290163238108556, 0.5116338069885265, 0.5151781339167216, 0.5426040431933448, 0.5168432068560582, 0.5067484087741572, 0.5213761156783324, 0.5290857809404634, 0.5221525122305983, 0.49344421326596094, 0.48533400094522366, 0.4713069793081515, 0.4803443810175372, 0.49111827281702136, 0.4934342099771602, 0.4907341430552427, 0.4950262640040593, 0.49438288466393127, 0.5017989886061793, 0.7341144197253601, 0.7630442148537132, 0.785190658023439, 0.7650370170402727, 0.782996475908403, 0.7284609908948243, 0.7591066033697487, 0.7521430048544635, 0.7509299555501003, 0.7935188198240074, 0.3693054735420234, 0.4375533168593325, 0.42960241184677483, 0.4190391516478911, 0.6476756537160155, 0.32174723530090094, 0.4110185694541524, 0.4240760716440976, 0.43110323698028297, 0.39321571819445456, 0.5647098692054914, 0.5852458103617995, 0.5446139965450423, 0.577118001719755, 0.5684116103174002, 0.4961100677221627, 0.591984731715252, 0.5462432651340056, 0.5730615335732713, 0.5825886601959775, 0.5406904571574715, 0.5445115089304406, 0.5647569949651976, 0.5231712169778755, 0.5561571312914132, 0.5497634371938751, 0.5591061834095956, 0.5595169457572488, 0.5450410345161909, 0.5344351643859612, 0.5451416464326839, 0.5400058759992817, 0.5475303547169564, 0.533285973373223, 0.5132849179928505, 0.5462965512523394, 0.5769613462328215, 0.5453190099361286, 0.5281926823288088, 0.5531291528197105]
+L=[3.206638813126536e-9, 5.969434251520569e-13, 7.499902062505485e-5, 1.2459906140547205e-6, 4.926505577029421e-7, 1.2738342634110038e-5, 2.2227112180645262e-5, 1.6203494733277935e-9, 6.589736838113735e-11, 0.0002656781881709157, 0.09097330037699623, 0.10293560011138819, 0.0937636614334943, 0.09079977415673729, 0.083973854166318, 0.08426284223942511, 0.0939603550858048, 0.09553751522570328, 0.09791800980970645, 0.09481877108406406, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.06659488339466987, 0.0, 0.21183466063213585, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0002728212059955904, 1.2066734306774423e-6, 1.7368906967184656e-6, 1.6351107636076122e-8, 3.135051402208302e-7, 1.2999930487407325e-7, 4.2115468838048635e-7, 2.3599247482924435e-5, 1.4780907676465411e-5, 9.03823560226124e-5, 0.10437719088937789, 0.09920012767730602, 0.10402911290827989, 0.10229184390182527, 0.10605530123335478, 0.10816950279411701, 0.10251000897470382, 0.08540209192177224, 0.10671668883750285, 0.10435922478234183, 0.29471076571989213, 0.23955572404081787, 0.27947151002108006, 0.2937199184268096, 0.26567493270610576, 0.2370275976292249, 0.2635922503601271, 0.23164657640509123, 0.28804131414659223, 0.2779343705472207, 0.2818028831758822, 0.330178173341721, 0.31175419854023706, 0.308209879389022, 0.3115190977613461, 0.31606767438022565, 0.2921231097468325, 0.32960899963501966, 0.3126131701677662, 0.2946238781351375, 0.29998895250062013, 0.2917775395009648, 0.3116687311916138, 0.31616560049006165, 0.30077527191951886, 0.3055287394750935, 0.29413620684081215, 0.2920704751073603, 0.3075854033787196, 0.32353710420506954, 1.0315606238897264e-5, 2.5197859085886173e-6, 3.4605239690928607e-7, 8.228428973117178e-8, 0.000267650171757799, 1.423005428304834e-7, 4.854003509455409e-7, 2.1667371595502542e-13, 7.518505935785401e-12, 1.826174811025268e-5, 0.10097884410726961, 0.11590436592696399, 0.1080813390869237, 0.11402723654432412, 0.24721073219234507, 0.09282494796718, 0.1159287993640134, 0.11742197797991469, 0.11037926002547842, 0.11250471955126237, 0.28161969059702235, 0.30629778721740986, 0.28360176243878926, 0.2772817806263266, 0.2986171057760218, 0.21352496948337857, 0.3242600845586833, 0.2804600312016109, 0.296487215930309, 0.35349659209748374, 0.3130093234751642, 0.33769027253657274, 0.35920241141411996, 0.2814969174886706, 0.3572705244608917, 0.33183525231698274, 0.3574769050778, 0.35221520162566883, 0.3197784371067521, 0.30849501789517186, 0.3481752972314297, 0.3634712808131592, 0.3791065881488386, 0.32823047124430016, 0.34659499018620726, 0.3507076545957583, 0.3630225615101747, 0.3848928252878646, 0.36903004463306566, 0.36292894237527]
+R=[1.1100724519434453, 1.1331140146144483, 1.1373351567946866, 1.1469766063864182, 1.1349252695602952, 1.134888382597331, 1.1543536578285802, 1.1366704754996755, 1.132283507786512, 1.1394151758494269, 0.08429065841546853, 0.09351242485871532, 0.08390584628260671, 0.09386469867840573, 0.08825474640737466, 0.08713912092264095, 0.11328149374703023, 0.09224168232374949, 0.09322072361753339, 0.09158315952827623, 0.07682538514163212, 0.07682538514163212, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07682538514163212, 0.07682538514163212, 0.07587189956123522, 0.07598389151557651, 0.08323353687141774, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07682538514163212, 0.07682538514163212, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 0.07598389151557651, 1.145307675081479, 1.1363230764010928, 1.1507995512423312, 1.135828000605651, 1.1538730751203459, 1.1269148318977964, 1.1484884659632375, 1.1495609028301672, 1.1503831985820385, 1.1352230494355826, 0.38862967791077196, 0.299506369656208, 0.3430862162481676, 0.1616835573995811, 0.35799163814270074, 0.4919656902930854, 0.24942944378914184, 0.10147181621518343, 0.1946266423252775, 0.18015325606855354, 0.11661045587396451, 0.11974542165980458, 0.10130955426430752, 0.10634089020852246, 0.1431763951342161, 0.10406046553201093, 0.11399455790161428, 0.13412510161414995, 0.09562031790219727, 0.1122984731491175, 0.10157770413499725, 0.10588049043217164, 0.08880872347662691, 0.09843115985839289, 0.10379460811659687, 0.08525457746845085, 0.084989260666537, 0.08270964472439796, 0.10479431630847309, 0.10255145962903318, 0.0839625045981906, 0.0841807253976746, 0.07830615699821024, 0.08480984269337231, 0.08531494853379414, 0.08212264419984779, 0.08770848058196269, 0.0942663130730299, 0.08922524557771822, 0.0872535652513955, 1.1668492698240915, 1.1630135367508196, 1.138272906501428, 1.1202275043577807, 1.1466921701686716, 1.1435821790663625, 1.1252347314188798, 1.1455150092434998, 1.1476751963150706, 1.151263397319771, 0.3858226855924728, 0.6590632187928773, 0.6130622181619604, 0.5139695726276851, 0.983939414255518, 0.10941149149524695, 0.5903097197223853, 0.6358192346027203, 0.714972043315714, 0.3939867904016939, 0.1997990947788974, 0.18250650614972305, 0.1442059909748828, 0.1954242195771944, 0.24063533464833123, 0.36005278684321335, 0.2159089319862038, 0.15589439416893922, 0.20373711927935853, 0.10940724396759452, 0.09396732533216536, 0.09720904350853328, 0.10800068453857047, 0.16385878673459284, 0.09485140681322457, 0.09408889436274756, 0.13720907131780852, 0.1009796687680303, 0.10105758300433355, 0.13647165754037122, 0.09463425210642017, 0.10365301349253032, 0.09572257558104706, 0.10340057218201215, 0.087543547472587, 0.09538558342788843, 0.1228973554300292, 0.08530227540715671, 0.08792876243346481, 0.094978653953032]
+
+T=np.array(T)
+B=np.array(B)
+A=np.array(A)
+L=np.array(L)
+R=np.array(R)
+
+# Define colors for B
+colors = np.array([
+    (46,37,133),
+    (51,117,56),
+    (93,168,153),
+    (148,203,236),
+    (220,205,125),
+    (194,106,119),
+    (159,74,150),
+    (126,41,84),
+    (221,221,221)
+])/255.
+
+# Define unique T and B values and their corresponding markers and labels
+unique_T = np.unique(T)
+T_markers = ['^', 's', '*']  # triangle, square, star
+T_labels = [r"$%.1f$" % t for t in unique_T]
+T_marker_dict = dict(zip(unique_T, T_markers))
+T_label_dict = dict(zip(unique_T, T_labels))
+
+unique_B = np.unique(B)
+B_labels = [r"$%.2f$" % b for b in unique_B]
+B_color_dict = dict(zip(unique_B, colors[:len(unique_B)]))
+B_label_dict = dict(zip(unique_B, B_labels))
+
+# Plotting
+fontsize = 11
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
+
+fig, axes = plt.subplots(1, 2, sharey=True) #figsize=(14, 5), #[6.4, 4.8]
+axL, axR = axes
+
+# --- First subplot: L vs A ---
+
+# For ellipses
+from matplotlib.patches import Ellipse
+import numpy.linalg as la
+
+for t in unique_T:
+    for b in unique_B:
+        mask = (T == t) & (B == b)
+        if np.any(mask):
+            # Scatter points
+            axL.scatter(L[mask], A[mask],
+                        marker=T_marker_dict[t],
+                        color=B_color_dict[b],
+                        edgecolor='k',
+                        s=100)
+            # Calculate mean and std
+            mean_L = np.mean(L[mask])
+            mean_A = np.mean(A[mask])
+            cov = np.cov(L[mask], A[mask])
+            vals, vecs = la.eigh(cov)
+            order = vals.argsort()[::-1]
+            vals = vals[order]
+            vecs = vecs[:, order]
+            # Fix negative/very small values for sqrt
+            vals = np.where(vals < 0.0001, 0.0001, vals)
+            width, height = 2 * np.sqrt(vals)  # 2*std for 1 std ellipse
+            angle = np.degrees(np.arctan2(*vecs[:,0][::-1]))
+            ellipse = Ellipse((mean_L, mean_A), width, height, angle=angle, edgecolor='k', facecolor=B_color_dict[b], alpha=0.3, lw=1.5)
+            axL.add_patch(ellipse)
+
+shape_handles = [Line2D([0], [0], marker=T_marker_dict[t], color='k', linestyle='None', markersize=10, label=T_label_dict[t]) for t in unique_T]
+color_handles = [Patch(facecolor=B_color_dict[b], edgecolor='k', label=B_label_dict[b]) for b in unique_B]
+
+axL.set_xlabel(r"$\sigma_\mathrm{L} / d$", fontsize=fontsize)
+axL.set_ylabel(r"$\sigma_\mathrm{A} / \mathrm{rad}$", fontsize=fontsize)
+axL.tick_params(axis='both', which='major', labelsize=fontsize)
+
+# --- Second subplot: R vs A ---
+
+for t in unique_T:
+    for b in unique_B:
+        mask = (T == t) & (B == b)
+        if np.any(mask):
+            axR.scatter(R[mask], A[mask],
+                        marker=T_marker_dict[t],
+                        color=B_color_dict[b],
+                        edgecolor='k',
+                        s=100)
+            # Calculate mean and std
+            mean_R = np.mean(R[mask])
+            mean_A = np.mean(A[mask])
+            cov = np.cov(R[mask], A[mask])
+            vals, vecs = la.eigh(cov)
+            order = vals.argsort()[::-1]
+            vals = vals[order]
+            vecs = vecs[:, order]
+            # Fix negative/very small values for sqrt
+            vals = np.where(vals < 0.0001, 0.0001, vals)
+            width, height = 2 * np.sqrt(vals)  # 2*std for 1 std ellipse
+            angle = np.degrees(np.arctan2(*vecs[:,0][::-1]))
+            ellipse = Ellipse((mean_R, mean_A), width, height, angle=angle, edgecolor='k', facecolor=B_color_dict[b], alpha=0.3, lw=1.5)
+            axR.add_patch(ellipse)
+
+axR.set_xlabel(r"$r_\mathrm{p} / d$", fontsize=fontsize)
+axR.tick_params(axis='both', which='major', labelsize=fontsize)
+
+# --- Legends (shared) ---
+legend1 = axR.legend(handles=shape_handles, title=r"$T_\mathrm{max}$", loc='lower center', frameon=True, fontsize=fontsize, title_fontsize=fontsize)
+legend2 = axR.legend(handles=color_handles, title=r"$\beta$", loc='lower right', frameon=True, fontsize=fontsize, title_fontsize=fontsize)
+axR.add_artist(legend1)
+
+plt.tight_layout()
+plt.show()
+
+=#
+
+
+#=
+import matplotlib.pyplot as plt
+import numpy as np
+
+data_measured=[
+    ["ctn", 28, 0.25, 180.0, 0.1, 0.01, 0.13, 0.14],
+    ["ctn", 224, 0.25, 180.0, 0.1, 0.01, 0.40, 0.47],
+    ["ctn", 756, 0.25, 180.0, 0.1, 0.01, 1.0, 1.15],
+
+    ["dia", 8, 0.25, 180.0, 0.1, 0.01, 0.17, 0.18],
+    ["dia", 64, 0.25, 180.0, 0.1, 0.01, 0.17, 0.18],
+    ["dia", 216, 0.25, 180.0, 0.1, 0.01, 0.38, 0.44],
+
+    ["pto", 14, 0.25, 180.0, 0.1, 0.01, 0.07, 0.08],
+    ["pto", 112, 0.25, 180.0, 0.1, 0.01, 0.30, 0.35],
+    ["pto", 378, 0.25, 180.0, 0.1, 0.01, 1.10, 1.17],
+
+    ["srd", 80, 0.25, 180.0, 0.1, 0.01, 0.21, 0.22],
+    ["srd", 270, 0.25, 180.0, 0.1, 0.01, 0.25, 0.29],
+
+    ["srs", 64, 0.25, 180.0, 0.1, 0.01, 0.10, 0.11],
+    ["srs", 216, 0.25, 180.0, 0.1, 0.01, 0.20, 0.21],
+]
+
+data = [
+    ["ctn", 28, 0.25, 180.0, 0.001, 0.08225647682891701 ],
+    ["ctn", 224, 0.25, 180.0, 0.001, 0.5004858817153227 ],
+    ["ctn", 756, 0.25, 180.0, 0.001, 1.709489436721156 ],
+    ["dia", 8, 0.25, 180.0, 0.001, 0.07433115173976412 ],
+    ["dia", 64, 0.25, 180.0, 0.001, 0.12629940504665044 ],
+    ["dia", 216, 0.25, 180.0, 0.001, 0.35359802369526516 ],
+    ["pto", 14, 0.25, 180.0, 0.001, 0.02641560785080463 ],
+    ["pto", 112, 0.25, 180.0, 0.001, 0.34237940371427256 ],
+    ["pto", 378, 0.25, 180.0, 0.001, 1.4211384360754205 ],
+    ["srd", 10, 0.25, 180.0, 0.001, 0.042627801941970835 ],
+    ["srd", 80, 0.25, 180.0, 0.001, 0.21951131653347236 ],
+    ["srd", 270, 0.25, 180.0, 0.001, 0.9274487670570966 ],
+    ["srs", 8, 0.25, 180.0, 0.001, 0.06701158786879931 ],
+    ["srs", 64, 0.25, 180.0, 0.001, 0.0948350052111373 ],
+    ["srs", 216, 0.25, 180.0, 0.001, 0.4498312032774132 ],
+]
+
+networks = ["dia", "srs", "srd", "pto", "ctn"]
+colors = np.array([
+    (46,37,133),
+    (51,117,56),
+    (93,168,153),
+    (148,203,236),
+    (220,205,125),
+    (194,106,119),
+    (159,74,150),
+    (126,41,84),
+    (221,221,221)
+])/255
+
+plt.axhline(0, color="black", linewidth=1.5, linestyle='-')
+
+for i, net in enumerate(networks):
+    x = [row[1] for row in data_measured if row[0] == net]
+    y1 = [row[6] for row in data_measured if row[0] == net]
+    y2= [row[7] for row in data_measured if row[0] == net]
+    print(x)
+    print(y1)
+    print(y2)
+    plt.fill_between(x, y1, y2, alpha=0.25, color=colors[i], label=net)
+
+
+for i, net in enumerate(networks):
+    x = [row[1] for row in data if row[0] == net]
+    y = [row[5] for row in data if row[0] == net]
+    plt.plot(x, y, "-o", color=colors[i], label=net)
+
+
+fontsize=11
+plt.xlabel(r'$\beta / \alpha$', fontsize=fontsize)
+plt.ylabel(r'$T_\mathrm{melt}$',fontsize=fontsize)
+plt.legend(fontsize=fontsize)
+all_x = sorted(set(row[1] for row in data_measured + data))
+plt.xticks(all_x, fontsize=fontsize)
+plt.yticks(fontsize=fontsize)
+plt.xscale("log")
+
+plt.show()
+=#
+
+
+
+#=
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+NW_array=np.array(["dia","srs","srd","pto","ctn"])
+NW=np.repeat(NW_array, 5)
+
+T=[0.0, 0.18, 0.5, 1.0, 1.5, 0.0, 0.11, 0.5, 1.0, 1.5, 0.0, 0.22, 0.5, 1.0, 1.5, 0.0, 0.35, 0.5, 1.0, 1.5, 0.0, 0.47, 0.5, 1.0, 1.5]
+B=[0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25]
+A=[1.9471447337891082e-15, 0.35299507029278543, 0.3222817636797459, 0.4768777780283862, 0.4265567679844937, 1.35303149303618e-15, 0.17537260281248768, 0.23297771089367936, 0.22700578143229358, 0.23300026117286846, 0.6421115428536338, 0.33031250904282033, 0.3024942234166104, 0.3193589388605564, 0.3532219457282238, 0.5741721287552284, 0.28595956041227605, 0.2965896611039583, 0.2965695240426625, 0.2695466884569763, 0.10551557985089098, 0.28678657780325323, 0.28554835996550865, 0.347213071668169, 0.361140357540167]    
+L=[0.0, 0.11367756843755217, 0.10716828892365704, 0.13465236850956258, 0.11273485561736868, 0.0, 0.044825412011876745, 0.06630224681898875, 0.06535650540737291, 0.05775197842780148, 0.1598556538796509, 0.0896739504830679, 0.08381524887834371, 0.08932284780418537, 0.09381059074842285, 7.791879014035435e-16, 0.07752603463065517, 0.0802659055458578, 0.07651054516443893, 0.07399902130902904, 1.1116714571062199e-15, 0.07650018055920682, 0.0737465005448107, 0.08827693284204975, 0.09782368135751267]
+R=[0.07607192990636054, 0.10367568135475959, 0.1068829223491211, 0.20381648475024752, 0.18964024394286644, 0.14833954320191267, 0.1976961777721143, 0.31285736809609316, 0.21926274898485226, 0.2809477978822524, 0.08091206469117831, 0.08365332030235399, 0.07848557264429826, 0.08926980583187602, 0.13750230742406147, 0.13167168958599643, 0.12017429362208466, 0.12682977970820122, 0.12819651237104027, 0.11463079369377974, 0.0883986422113128, 0.17641009311176403, 0.1450732282106319, 0.6629966988519975, 0.685730902081044] 
+
+T=np.array(T)
+B=np.array(B)
+A=np.array(A)
+L=np.array(L)
+R=np.array(R)
+
+# Define colors for B
+colors = np.array([
+    (46,37,133),
+    (51,117,56),
+    (93,168,153),
+    (148,203,236),
+    (220,205,125),
+    (194,106,119),
+    (159,74,150),
+    (126,41,84),
+    (221,221,221)
+])/255.
+
+# Define unique T and B values and their corresponding markers and labels
+unique_NW = np.unique(NW)
+NW_markers = ['p', 'd', 'X', 'P','^'] #s, ^
+NW_labels = [t for t in unique_NW]
+NW_marker_dict = dict(zip(unique_NW, NW_markers))
+NW_label_dict = dict(zip(unique_NW, NW_labels))
+
+unique_T = np.unique(T)
+T_labels = [b for b in unique_T]
+T_color_dict = dict(zip(unique_T, colors[:len(unique_T)]))
+T_label_dict = dict(zip(unique_T, T_labels))
+
+# Plotting
+fontsize = 11
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 5), sharey=True)
+axL, axR = axes
+
+# --- First subplot: L vs A ---
+
+# For ellipses
+from matplotlib.patches import Ellipse
+import numpy.linalg as la
+
+for t in unique_NW:
+    for b in unique_T:
+        mask = (NW == t) & (T == b)
+        if np.any(mask):
+            # Scatter points
+            axL.scatter(
+                L[mask], A[mask],
+                marker=NW_marker_dict[t],
+                color=T_color_dict[b],
+                edgecolor='k',
+                s=100)
+            
+
+
+shape_handles = [Line2D([0], [0], marker=NW_marker_dict[t], color='k', linestyle='None', markersize=10, label=NW_label_dict[t]) for t in unique_NW]
+color_handles = [Patch(facecolor=T_color_dict[b], edgecolor='k', label=T_label_dict[b]) for b in unique_T]
+
+axL.set_xlabel(r"$\sigma_\mathrm{L} / d$", fontsize=fontsize)
+axL.set_ylabel(r"$\sigma_\mathrm{A} / rad$", fontsize=fontsize)
+axL.tick_params(axis='both', which='major', labelsize=fontsize)
+
+# --- Second subplot: R vs A ---
+
+for t in unique_NW:
+    for b in unique_T:
+        mask = (NW == t) & (T == b)
+        if np.any(mask):
+            axR.scatter(
+                R[mask], A[mask],
+                marker=NW_marker_dict[t],
+                color=T_color_dict[b],
+                edgecolor='k',
+                s=100)
+
+
+axR.set_xlabel(r"$r_\mathrm{p} / d$", fontsize=fontsize)
+axR.tick_params(axis='both', which='major', labelsize=fontsize)
+
+# --- Legends (shared) ---
+legend1 = axR.legend(handles=shape_handles, title="Network", loc='lower center', frameon=True, fontsize=fontsize, title_fontsize=fontsize)
+legend2 = axR.legend(handles=color_handles, title=r"$T_\mathrm{max}$", loc='lower right', frameon=True, fontsize=fontsize, title_fontsize=fontsize)
+axR.add_artist(legend1)
+
+plt.tight_layout()
+plt.show()
+
+=#
+
+
+#=
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+"""
+
+T=[0.44, 0.44, 0.44, 0.44, 0.44, 0.88, 0.88, 0.88, 0.88, 0.88, 0.21, 0.21, 0.21, 0.21, 0.21, 0.42, 0.42, 0.42, 0.42, 0.42, 0.29, 0.29, 0.29, 0.29, 0.29, 0.58, 0.58, 0.58, 0.58, 0.58, 1.17, 1.17, 1.17, 1.17, 1.17, 2.34, 2.34, 2.34, 2.34, 2.34, 1.15, 1.15, 1.15, 1.15, 1.15, 2.3, 2.3, 2.3, 2.3, 2.3]
+Tr=[1.0, 2.0, 3.0, 4.0, 5.0, 1.0, 2.0, 3.0, 4.0, 5.0, 1.0, 2.0, 3.0, 4.0, 5.0, 1.0, 2.0, 3.0, 4.0, 5.0, 1.0, 2.0, 3.0, 4.0, 5.0, 1.0, 2.0, 3.0, 4.0, 5.0, 1.0, 2.0, 3.0, 4.0, 5.0, 1.0, 2.0, 3.0, 4.0, 5.0, 1.0, 2.0, 3.0, 4.0, 5.0, 1.0, 2.0, 3.0, 4.0, 5.0]
+A=[0.3235124425668965, 0.3181713389165047, 0.32729237933650895, 0.32833644734888967, 0.31843048644992794, 0.30617538301718855, 0.31071321568115834, 0.37109294631527145, 0.3336707249747082, 0.358478217910932, 0.1771751674156942, 0.15113817397470092, 9.907087908920148e-16, 9.907087908920148e-16, 9.907087908920148e-16, 0.23289170780168628, 0.20785708683743404, 0.2355884382859196, 0.19853507049748337, 0.25702627831511904, 0.2900757563864737, 0.3025470275073257, 0.2814558443006218, 0.28532282712122714, 0.30168595209039617, 0.3335403657467011, 0.28533556896048917, 0.2995020687593217, 0.31150199638090353, 0.31825345440352026, 0.32485283154425143, 0.3429250934352286, 0.390803869887971, 0.35207574200534786, 0.5737508318807865, 0.3627738564592342, 0.3793863643970133, 0.3828453160082569, 0.3869130868030713, 0.35887374101868136, 0.3584894982857092, 0.10547688805449114, 0.3091520197422946, 0.3702668211044209, 0.10547688805449114, 0.3929425206496509, 0.4251003080226298, 0.3725801448255731, 0.37451914920993895, 0.3840886382409854]
+L=[0.09759538464590987, 0.09898279355456623, 0.09267675537968989, 0.10353682699925951, 0.09545887310594113, 0.097241370068634, 0.09096548243613534, 0.10335824785207944, 0.09742515398427125, 0.10344252386294187, 0.04998061178848735, 0.03976778600589578, 0.0, 0.0, 0.0, 0.0652657825817735, 0.05097434622971598, 0.06525761759134203, 0.055459874466102246, 0.06631604118500946, 0.08928755697557138, 0.09181462028524609, 0.07882226563754463, 0.08152738742683827, 0.0816072780699188, 0.09451548837568502, 0.08672346469155248, 0.08773862760825539, 0.09459713099375675, 0.08879569763010646, 0.08962496558532408, 0.09452810165883474, 0.09879255069490372, 0.08782805198955766, 2.222161341935047e-16, 0.09440693068315384, 0.09568053565080507, 0.08944188636843917, 0.09204254370718017, 0.09368237179896378, 0.09112133356547068, 2.2213031988862735e-16, 0.08490940465689448, 0.09520986564768905, 2.2213031988862735e-16, 0.10099389579170717, 0.1072707183809944, 0.09477495562865336, 0.09638137630272475, 0.10019077281608564]
+R=[0.09131593863237114, 0.09140017840520677, 0.09236733263578173, 0.09094485779087491, 0.09680007830549729, 0.09764475654250176, 0.10938930035932753, 0.2375495800840966, 0.17406805550872506, 0.16426589767427477, 0.20754841654873646, 0.17122430029802482, 0.148392392042316, 0.148392392042316, 0.148392392042316, 0.6880116470818233, 0.3191970352401232, 0.42691790580631944, 0.2520194761113873, 0.7360472959276049, 0.08293989020639955, 0.0781297531250021, 0.07334156292329662, 0.07994571080430876, 0.0835452839909735, 0.22807996972076103, 0.09085120036018421, 0.09946084074167144, 0.12284255931037495, 0.13417430097593244, 0.9598235106707825, 0.7794395805167917, 1.3297281763515214, 0.8050784868910441, 0.09655861975421239, 1.267980000841848, 1.3083075069813954, 1.4439110591548476, 1.488564034514263, 1.2016932412974408, 2.5520234442155596, 0.09236758675550405, 0.8767424176073891, 2.531544578357662, 0.09236758675550405, 2.7515841139724726, 2.7678710747495416, 2.754436430112581, 2.77852689139493, 2.7068695129875913]
+
+T=np.array(T)
+Tr=np.array(Tr)
+A=np.array(A)
+L=np.array(L)
+R=np.array(R)
+
+NW_array=np.array(["dia","srs","srd","pto","ctn"])
+NW = np.repeat(NW_array, len(T) // len(NW_array))
+
+# Define unique values and their corresponding markers and labels
+unique_NW = np.unique(NW)
+NW_markers = ['p', 'd', 'X', 'P','^'] 
+NW_labels = [t for t in unique_NW]
+NW_marker_dict = dict(zip(unique_NW, NW_markers))
+NW_label_dict = dict(zip(unique_NW, NW_labels))
+
+unique_T = np.unique(T)
+T_labels = [b for b in unique_T]
+# Assign blue to specific T, red to the rest
+blue = np.array([46,37,133])/255.
+red = np.array([126,41,84])/255.
+blue_Ts = [0.44, 0.21, 0.58, 1.17, 1.15]
+T_color_dict = {t: (blue if np.isclose(t, blue_Ts).any() else red) for t in unique_T}
+# Only one label for each color group
+T_label_dict = {}
+blue_label_set = False
+red_label_set = False
+for t in unique_T:
+    if np.isclose(t, blue_Ts).any():
+        if not blue_label_set:
+            T_label_dict[t] = r"$T_\mathrm{melt}$"
+            blue_label_set = True
+        else:
+            T_label_dict[t] = None
+    else:
+        if not red_label_set:
+            T_label_dict[t] = r"$2T_\mathrm{melt}$"
+            red_label_set = True
+        else:
+            T_label_dict[t] = None
+
+# Plotting
+fontsize = 11
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
+
+
+# --- First plot: L vs A ---
+fig_LA, axL = plt.subplots()
+unique_Tr = np.unique(Tr)
+tr_handles = []
+for i, tr_val in enumerate(unique_Tr):
+    mask_tr = (Tr == tr_val)
+    for t in unique_NW:
+        for b in unique_T:
+            mask = (NW == t) & (T == b) & mask_tr
+            if np.any(mask):
+                axL.scatter(
+                    L[mask], A[mask],
+                    marker=NW_marker_dict[t],
+                    color=T_color_dict[b],
+                    s=100,
+                )
+
+shape_handles = [Line2D([0], [0], marker=NW_marker_dict[t], color='k', linestyle='None', markersize=10, label=NW_label_dict[t]) for t in unique_NW]
+# Only show one blue and one red entry in the T legend
+color_handles = []
+added_labels = set()
+for b in unique_T:
+    label = T_label_dict[b]
+    if label is not None and label not in added_labels:
+        color_handles.append(Patch(facecolor=T_color_dict[b], edgecolor='k', label=label))
+        added_labels.add(label)
+axL.set_xlabel(r"$\sigma_\mathrm{L} / d$", fontsize=fontsize)
+axL.set_ylabel(r"$\sigma_\mathrm{A} / rad$", fontsize=fontsize)
+axL.tick_params(axis='both', which='major', labelsize=fontsize)
+legend1 = axL.legend(handles=shape_handles, title="Network", loc='lower right', frameon=True, fontsize=fontsize, title_fontsize=fontsize)
+legend2 = axL.legend(handles=color_handles, title=r"$T_\mathrm{max}$", loc='lower center', frameon=True, fontsize=fontsize, title_fontsize=fontsize)
+axL.add_artist(legend1)
+axL.add_artist(legend2)
+plt.tight_layout()
+plt.show()
+
+# --- Second plot: R vs A ---
+fig_RA, axR = plt.subplots()
+tr_handles = []
+for i, tr_val in enumerate(unique_Tr):
+    mask_tr = (Tr == tr_val)
+    for t in unique_NW:
+        for b in unique_T:
+            mask = (NW == t) & (T == b) & mask_tr
+            if np.any(mask):
+                axR.scatter(
+                    R[mask], A[mask],
+                    marker=NW_marker_dict[t],
+                    color=T_color_dict[b],
+                    s=100,
+                )
+
+axR.set_xlabel(r"$r_\mathrm{p} / d$", fontsize=fontsize)
+axR.set_ylabel(r"$\sigma_\mathrm{A} / rad$", fontsize=fontsize)
+axR.tick_params(axis='both', which='major', labelsize=fontsize)
+legend1 = axR.legend(handles=shape_handles, title="Network", loc='lower right', frameon=True, fontsize=fontsize, title_fontsize=fontsize)
+legend2 = axR.legend(handles=color_handles, title=r"$T_\mathrm{max}$", loc='lower center', frameon=True, fontsize=fontsize, title_fontsize=fontsize)
+axR.add_artist(legend1)
+axR.add_artist(legend2)
+plt.tight_layout()
+plt.show()
+
+
+
+
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+T=[0.44, 0.44, 0.44, 0.44, 0.44, 0.88, 0.88, 0.88, 0.88, 0.88, 0.21, 0.21, 0.21, 0.21, 0.21, 0.42, 0.42, 0.42, 0.42, 0.42, 0.29, 0.29, 0.29, 0.29, 0.29, 0.58, 0.58, 0.58, 0.58, 0.58, 1.17, 1.17, 1.17, 1.17, 1.17, 2.34, 2.34, 2.34, 2.34, 2.34, 1.15, 1.15, 1.15, 1.15, 1.15, 2.3, 2.3, 2.3, 2.3, 2.3]
+Tr=[1.0, 2.0, 3.0, 4.0, 5.0, 1.0, 2.0, 3.0, 4.0, 5.0, 1.0, 2.0, 3.0, 4.0, 5.0, 1.0, 2.0, 3.0, 4.0, 5.0, 1.0, 2.0, 3.0, 4.0, 5.0, 1.0, 2.0, 3.0, 4.0, 5.0, 1.0, 2.0, 3.0, 4.0, 5.0, 1.0, 2.0, 3.0, 4.0, 5.0, 1.0, 2.0, 3.0, 4.0, 5.0, 1.0, 2.0, 3.0, 4.0, 5.0]
+A=[0.3235124425668965, 0.3181713389165047, 0.32729237933650895, 0.32833644734888967, 0.31843048644992794, 0.30617538301718855, 0.31071321568115834, 0.37109294631527145, 0.3336707249747082, 0.358478217910932, 0.1771751674156942, 0.15113817397470092, 9.907087908920148e-16, 9.907087908920148e-16, 9.907087908920148e-16, 0.23289170780168628, 0.20785708683743404, 0.2355884382859196, 0.19853507049748337, 0.25702627831511904, 0.2900757563864737, 0.3025470275073257, 0.2814558443006218, 0.28532282712122714, 0.30168595209039617, 0.3335403657467011, 0.28533556896048917, 0.2995020687593217, 0.31150199638090353, 0.31825345440352026, 0.32485283154425143, 0.3429250934352286, 0.390803869887971, 0.35207574200534786, 0.5737508318807865, 0.3627738564592342, 0.3793863643970133, 0.3828453160082569, 0.3869130868030713, 0.35887374101868136, 0.3584894982857092, 0.10547688805449114, 0.3091520197422946, 0.3702668211044209, 0.10547688805449114, 0.3929425206496509, 0.4251003080226298, 0.3725801448255731, 0.37451914920993895, 0.3840886382409854]
+L=[0.09759538464590987, 0.09898279355456623, 0.09267675537968989, 0.10353682699925951, 0.09545887310594113, 0.097241370068634, 0.09096548243613534, 0.10335824785207944, 0.09742515398427125, 0.10344252386294187, 0.04998061178848735, 0.03976778600589578, 0.0, 0.0, 0.0, 0.0652657825817735, 0.05097434622971598, 0.06525761759134203, 0.055459874466102246, 0.06631604118500946, 0.08928755697557138, 0.09181462028524609, 0.07882226563754463, 0.08152738742683827, 0.0816072780699188, 0.09451548837568502, 0.08672346469155248, 0.08773862760825539, 0.09459713099375675, 0.08879569763010646, 0.08962496558532408, 0.09452810165883474, 0.09879255069490372, 0.08782805198955766, 2.222161341935047e-16, 0.09440693068315384, 0.09568053565080507, 0.08944188636843917, 0.09204254370718017, 0.09368237179896378, 0.09112133356547068, 2.2213031988862735e-16, 0.08490940465689448, 0.09520986564768905, 2.2213031988862735e-16, 0.10099389579170717, 0.1072707183809944, 0.09477495562865336, 0.09638137630272475, 0.10019077281608564]
+R=[0.09131593863237114, 0.09140017840520677, 0.09236733263578173, 0.09094485779087491, 0.09680007830549729, 0.09764475654250176, 0.10938930035932753, 0.2375495800840966, 0.17406805550872506, 0.16426589767427477, 0.20754841654873646, 0.17122430029802482, 0.148392392042316, 0.148392392042316, 0.148392392042316, 0.6880116470818233, 0.3191970352401232, 0.42691790580631944, 0.2520194761113873, 0.7360472959276049, 0.08293989020639955, 0.0781297531250021, 0.07334156292329662, 0.07994571080430876, 0.0835452839909735, 0.22807996972076103, 0.09085120036018421, 0.09946084074167144, 0.12284255931037495, 0.13417430097593244, 0.9598235106707825, 0.7794395805167917, 1.3297281763515214, 0.8050784868910441, 0.09655861975421239, 1.267980000841848, 1.3083075069813954, 1.4439110591548476, 1.488564034514263, 1.2016932412974408, 2.5520234442155596, 0.09236758675550405, 0.8767424176073891, 2.531544578357662, 0.09236758675550405, 2.7515841139724726, 2.7678710747495416, 2.754436430112581, 2.77852689139493, 2.7068695129875913]
+
+T=np.array(T)
+Tr=np.array(Tr)
+A=np.array(A)
+L=np.array(L)
+R=np.array(R)
+
+NW_array=np.array(["dia","srs","srd","pto","ctn"])
+NW = np.repeat(NW_array, len(T) // len(NW_array))
+
+# Define colors 
+colors = np.array([
+    (46,37,133),
+    (51,117,56),
+    (93,168,153),
+    (148,203,236),
+    (220,205,125),
+    (194,106,119),
+    (159,74,150),
+    (126,41,84),
+    (221,221,221),
+    (221/2,221/2,221/2),
+    (221/4,221/4,221/4)
+])/255.
+
+# Define unique values and their corresponding markers and labels
+unique_NW = np.unique(NW)
+NW_markers = ['p', 'd', 'X', 'P','^'] 
+NW_labels = [t for t in unique_NW]
+NW_marker_dict = dict(zip(unique_NW, NW_markers))
+NW_label_dict = dict(zip(unique_NW, NW_labels))
+
+unique_T = np.unique(T)
+T_labels = [b for b in unique_T]
+T_color_dict = dict(zip(unique_T, colors[:len(unique_T)]))
+T_label_dict = dict(zip(unique_T, T_labels))
+
+# Plotting
+fontsize = 11
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
+
+
+# --- First plot: L vs A ---
+fig_LA, axL = plt.subplots()
+unique_Tr = np.unique(Tr)
+tr_handles = []
+for i, tr_val in enumerate(unique_Tr):
+    mask_tr = (Tr == tr_val)
+    for t in unique_NW:
+        for b in unique_T:
+            mask = (NW == t) & (T == b) & mask_tr
+            if np.any(mask):
+                axL.scatter(
+                    L[mask], A[mask],
+                    marker=NW_marker_dict[t],
+                    color=T_color_dict[b],
+                    s=100,
+                )
+
+shape_handles = [Line2D([0], [0], marker=NW_marker_dict[t], color='k', linestyle='None', markersize=10, label=NW_label_dict[t]) for t in unique_NW]
+color_handles = [Patch(facecolor=T_color_dict[b], edgecolor='k', label=T_label_dict[b]) for b in unique_T]
+axL.set_xlabel(r"$\sigma_\mathrm{L} / d$", fontsize=fontsize)
+axL.set_ylabel(r"$\sigma_\mathrm{A} / rad$", fontsize=fontsize)
+axL.tick_params(axis='both', which='major', labelsize=fontsize)
+legend1 = axL.legend(handles=shape_handles, title="Network", loc='lower center', frameon=True, fontsize=fontsize, title_fontsize=fontsize)
+legend2 = axL.legend(handles=color_handles, title=r"$T_\mathrm{max}$", loc='lower right', frameon=True, fontsize=fontsize, title_fontsize=fontsize)
+axL.add_artist(legend1)
+axL.add_artist(legend2)
+plt.tight_layout()
+plt.show()
+
+# --- Second plot: R vs A ---
+fig_RA, axR = plt.subplots()
+tr_handles = []
+for i, tr_val in enumerate(unique_Tr):
+    mask_tr = (Tr == tr_val)
+    for t in unique_NW:
+        for b in unique_T:
+            mask = (NW == t) & (T == b) & mask_tr
+            if np.any(mask):
+                axR.scatter(
+                    R[mask], A[mask],
+                    marker=NW_marker_dict[t],
+                    color=T_color_dict[b],
+                    s=100,
+                )
+
+axR.set_xlabel(r"$r_\mathrm{p} / d$", fontsize=fontsize)
+axR.set_ylabel(r"$\sigma_\mathrm{A} / rad$", fontsize=fontsize)
+axR.tick_params(axis='both', which='major', labelsize=fontsize)
+legend1 = axR.legend(handles=shape_handles, title="Network", loc='lower center', frameon=True, fontsize=fontsize, title_fontsize=fontsize)
+legend2 = axR.legend(handles=color_handles, title=r"$T_\mathrm{max}$", loc='lower right', frameon=True, fontsize=fontsize, title_fontsize=fontsize)
+axR.add_artist(legend1)
+axR.add_artist(legend2)
+plt.tight_layout()
+plt.show()
+
+
+=#
+
+#=
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+NW_array=np.array(["dia","srs","srd","pto","ctn"])
+NW=np.repeat(NW_array, 4)
+
+T=[0.0, 0.18, 0.5, 1.0, 0.0, 0.11, 0.5, 1.0, 1.5, 0.0, 0.22, 0.5, 1.0, 0.0, 0.35, 0.5, 1.0, 1.5, 0.0, 0.47, 0.5, 1.0]
+B=[0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25]
+A=[1.9471447337891082e-15, 0.35299507029278543, 0.3222817636797459, 0.4768777780283862, 1.35303149303618e-15, 0.17537260281248768, 0.23297771089367936, 0.22700578143229358, 0.23300026117286846, 0.6421115428536338, 0.33031250904282033, 0.3024942234166104, 0.3193589388605564, 0.5741721287552284, 0.28595956041227605, 0.2965896611039583, 0.2965695240426625, 0.2695466884569763, 0.10551557985089098, 0.28678657780325323, 0.28554835996550865, 0.347213071668169]
+L=[0.0, 0.11367756843755217, 0.10716828892365704, 0.13465236850956258, 0.0, 0.044825412011876745, 0.06630224681898875, 0.06535650540737291, 0.05775197842780148, 0.1598556538796509, 0.0896739504830679, 0.08381524887834371, 0.08932284780418537, 7.791879014035435e-16, 0.07752603463065517, 0.0802659055458578, 0.07651054516443893, 0.07399902130902904, 1.1116714571062199e-15, 0.07650018055920682, 0.0737465005448107, 0.08827693284204975]
+R=[0.07607192990636054, 0.10367568135475959, 0.1068829223491211, 0.20381648475024752, 0.14833954320191267, 0.1976961777721143, 0.31285736809609316, 0.21926274898485226, 0.2809477978822524, 0.08091206469117831, 0.08365332030235399, 0.07848557264429826, 0.08926980583187602, 0.13167168958599643, 0.12017429362208466, 0.12682977970820122, 0.12819651237104027, 0.11463079369377974, 0.0883986422113128, 0.17641009311176403, 0.1450732282106319, 0.6629966988519975]
+
+T=np.array(T)
+B=np.array(B)
+A=np.array(A)
+L=np.array(L)
+R=np.array(R)
+
+# Define colors for B
+colors = np.array([
+    (46,37,133),
+    (51,117,56),
+    (93,168,153),
+    (148,203,236),
+    (220,205,125),
+    (194,106,119),
+    (159,74,150),
+    (126,41,84),
+    (221,221,221)
+])/255.
+
+
+# Assign one color per network
+unique_NW = np.unique(NW)
+NW_colors = colors[:len(unique_NW)]
+NW_color_dict = dict(zip(unique_NW, NW_colors))
+NW_labels = [t for t in unique_NW]
+
+# Plotting
+fontsize = 11
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 5), sharey=True)
+axL, axR = axes
+
+
+# --- First subplot: L vs A ---
+
+from matplotlib.patches import FancyArrowPatch
+
+for t in unique_NW:
+    mask = (NW == t)
+    idx = np.argsort(T[mask])
+    L_sorted = L[mask][idx]
+    A_sorted = A[mask][idx]
+    axL.plot(L_sorted, A_sorted, color=NW_color_dict[t], label=t, linewidth=2)
+    # Add arrows at the midpoint of each segment
+    for i in range(len(L_sorted)-1):
+        x0, y0 = L_sorted[i], A_sorted[i]
+        x1, y1 = L_sorted[i+1], A_sorted[i+1]
+        xm, ym = (x0 + x1) / 2, (y0 + y1) / 2
+        dx, dy = x1 - x0, y1 - y0
+        # Shorten the arrow to 40% of the segment length
+        arrow_frac = 0.4
+        arrow_dx, arrow_dy = dx * arrow_frac, dy * arrow_frac
+        arrow = FancyArrowPatch((xm - arrow_dx/2, ym - arrow_dy/2), (xm + arrow_dx/2, ym + arrow_dy/2),
+                                arrowstyle='->', color=NW_color_dict[t], mutation_scale=15, linewidth=2)
+        axL.add_patch(arrow)
+
+axL.set_xlabel(r"$\sigma_\mathrm{L} / d$", fontsize=fontsize)
+axL.set_ylabel(r"$\sigma_\mathrm{A} / rad$", fontsize=fontsize)
+axL.tick_params(axis='both', which='major', labelsize=fontsize)
+
+
+# --- Second subplot: R vs A ---
+
+for t in unique_NW:
+    mask = (NW == t)
+    idx = np.argsort(T[mask])
+    R_sorted = R[mask][idx]
+    A_sorted = A[mask][idx]
+    axR.plot(R_sorted, A_sorted, color=NW_color_dict[t], label=t, linewidth=2)
+    # Add arrows at the midpoint of each segment
+    for i in range(len(R_sorted)-1):
+        x0, y0 = R_sorted[i], A_sorted[i]
+        x1, y1 = R_sorted[i+1], A_sorted[i+1]
+        xm, ym = (x0 + x1) / 2, (y0 + y1) / 2
+        dx, dy = x1 - x0, y1 - y0
+        arrow_frac = 0.4
+        arrow_dx, arrow_dy = dx * arrow_frac, dy * arrow_frac
+        arrow = FancyArrowPatch((xm - arrow_dx/2, ym - arrow_dy/2), (xm + arrow_dx/2, ym + arrow_dy/2),
+                                arrowstyle='->', color=NW_color_dict[t], mutation_scale=15, linewidth=2)
+        axR.add_patch(arrow)
+
+axR.set_xlabel(r"$r_\mathrm{p} / d$", fontsize=fontsize)
+axR.tick_params(axis='both', which='major', labelsize=fontsize)
+
+
+# --- Legend ---
+axR.legend(title="Network", loc='lower center', frameon=True, fontsize=fontsize, title_fontsize=fontsize)
+
+plt.tight_layout()
+plt.show()
+
+
+=#
+
+#=
+import matplotlib.pyplot as plt
+import numpy as np
+
+data = [
+    ["ctn", 224, 0.0, 180.0, 0.06, 0.00031779651885594445 ],
+    ["ctn", 224, 0.25, 180.0, 0.06, 1.1511070269351324 ],
+    ["ctn", 224, 0.5, 180.0, 0.06, 2.7958110652423622 ],
+    ["ctn", 224, 0.75, 180.0, 0.06, 4.585660340210036 ],
+    ["ctn", 224, 1.0, 180.0, 0.06, 6.415852631785852 ],
+    ["dia", 64, 0.0, 180.0, 0.06, 0.0009204175214628252 ],
+    ["dia", 64, 0.25, 180.0, 0.06, 0.3061062214612626 ],
+    ["dia", 64, 0.5, 180.0, 0.06, 0.6897997003855234 ],
+    ["dia", 64, 0.75, 180.0, 0.06, 1.1801646529256444 ],
+    ["dia", 64, 1.0, 180.0, 0.06, 1.8723883922952942 ],
+    ["lcs", 192, 0.0, 180.0, 0.06, 0.00019776541351310378 ],
+    ["lcs", 192, 0.25, 180.0, 0.06, 1.071663395930038 ],
+    ["lcs", 192, 0.5, 180.0, 0.06, 2.5884136096353902 ],
+    ["lcs", 192, 0.75, 180.0, 0.06, 4.313285672070859 ],
+    ["lcs", 192, 1.0, 180.0, 0.06, 7.128334985976234 ],
+    ["pto", 112, 0.0, 180.0, 0.06, 0.0032579250096590583 ],
+    ["pto", 112, 0.25, 180.0, 0.06, 0.7813861085162169 ],
+    ["pto", 112, 0.5, 180.0, 0.06, 1.5409201350892336 ],
+    ["pto", 112, 0.75, 180.0, 0.06, 2.2759438445283595 ],
+    ["pto", 112, 1.0, 180.0, 0.06, 3.3613117404334374 ],
+    ["srd", 80, 0.0, 180.0, 0.06, -0.7407408623269777 ],
+    ["srd", 80, 0.25, 180.0, 0.06, 0.3300682873059035 ],
+    ["srd", 80, 0.5, 180.0, 0.06, 1.1013913412535 ],
+    ["srd", 80, 0.75, 180.0, 0.06, 1.830137437807958 ],
+    ["srd", 80, 1.0, 180.0, 0.06, 2.9236032169832975 ],
+    ["srs", 64, 0.0, 180.0, 0.06, 0.0013561265418390608 ],
+    ["srs", 64, 0.25, 180.0, 0.06, 0.34187449273557846 ],
+    ["srs", 64, 0.5, 180.0, 0.06, 0.7734640806305035 ],
+    ["srs", 64, 0.75, 180.0, 0.06, 1.2002240438551928 ],
+    ["srs", 64, 1.0, 180.0, 0.06, 1.707019829012384 ],
+]
+
+networks = ["dia", "srs", "srd", "pto", "ctn"]
+colors = np.array([
+    (46,37,133),
+    (51,117,56),
+    (93,168,153),
+    (148,203,236),
+    (220,205,125),
+    (194,106,119),
+    (159,74,150),
+    (126,41,84),
+    (221,221,221)
+])/255
+
+plt.axhline(0, color="black", linewidth=1.5, linestyle='-')
+for i, net in enumerate(networks):
+    x = [row[2] for row in data if row[0] == net]
+    y = [row[5] for row in data if row[0] == net]
+    plt.plot(x, y, "-o", color=colors[i], label=net)
+
+fontsize=11
+plt.xlabel(r'$\beta / \alpha$', fontsize=fontsize)
+plt.ylabel(r'$T_\mathrm{melt}$',fontsize=fontsize)
+plt.legend(fontsize=fontsize)
+plt.xticks([0, 0.25, 0.5, 0.75, 1], fontsize=fontsize)
+plt.yticks(fontsize=fontsize)
+
+plt.show()
+=#
+
+
+
+# include file where structure analysis modules are stored
+include("structure_analysis_modules.jl")    #*#
+
+# import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+import MetaGraphsNext
+import Graphs
+import Plots
+Plots.plotlyjs()
+import .Threads
+import Statistics
+import LinearAlgebra
+
+function save_multiple_N_T_trials_beta_gml(
+    ;
+    nr_vertices_array,
+    maximal_temperature_array,
+    bond_bending_const_array,
+    temperature_gradient_array,
+    nr_monte_carlo_steps_per_temperature_array,
+    theta_ground_state_array,
+    nr_trials_per_temperature_array,
+    network_type,
+    save_path,
+    filename_start
+    )
+    
+    println(Threads.nthreads())
+
+
+    nr_vertices=nr_vertices_array[1]
+    maximal_temperature=maximal_temperature_array[1]
+    bond_bending_const=bond_bending_const_array[1]
+    temperature_gradient=temperature_gradient_array[1]
+    nr_monte_carlo_steps_per_temperature=nr_monte_carlo_steps_per_temperature_array[1]
+    theta_ground_state=theta_ground_state_array[1]
+    trial=nr_trials_per_temperature_array[1]
+
+    println("$nr_vertices"*", "*
+    "$maximal_temperature"*", "*
+    "$bond_bending_const"*", "*
+    "$temperature_gradient"*", "*
+    "$nr_monte_carlo_steps_per_temperature"*", "*
+    "$theta_ground_state"*", "*
+    "$trial" )
+
+    evolution_dict = NA.get_evolution_dict(;
+        nr_vertices = nr_vertices, 
+        network_type=network_type, 
+        bond_bending_const=bond_bending_const, 
+        min_ring_size=3,
+        theta_ground_state=theta_ground_state
+    )
+
+    spatial_network = NG.get_periodic_network(evolution_dict)
+
+    for vertex_label in MetaGraphsNext.labels(spatial_network)
+   
+        neighbor_label_vec::Vector{Int64} = collect(MetaGraphsNext.neighbor_labels(
+            spatial_network, 
+            vertex_label))
+
+        vertex_coordination_nr=length(neighbor_label_vec)
+
+        for j in 1:(vertex_coordination_nr-1)
+            sign1::Int64=sign(neighbor_label_vec[j] - vertex_label)
+            vector_j::Vector{Float64}=(sign1*
+                spatial_network[vertex_label, neighbor_label_vec[j]]["vector"])
+            
+            for k in j+1:vertex_coordination_nr
+                sign2::Int64=sign1*sign(neighbor_label_vec[k] - vertex_label)
+                vector_k::Vector{Float64}=(sign2*
+                    spatial_network[vertex_label, neighbor_label_vec[k]]["vector"])
+                
+                dot_product = LinearAlgebra.dot(vector_j, vector_k)
+                norm_product = LinearAlgebra.norm(vector_j) * LinearAlgebra.norm(vector_k)
+                angle_rad = LinearAlgebra.acos(clamp(dot_product / norm_product, -1.0, 1.0))
+                angle_deg = LinearAlgebra.rad2deg(angle_rad)
+                angle_deg_rounded = round(angle_deg; digits=2)
+                println("Angle between bonds: $angle_deg_rounded degrees")
+                
+                
+            end
+        end
+    end
+    
+    return
+end
+
+
+println("A")
+
+save_multiple_N_T_trials_beta_gml(;
+    nr_vertices_array=[10*1^3],
+    maximal_temperature_array=[0.0001],
+    bond_bending_const_array=[0.3],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    network_type="srd",
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/srd_simulation/",
+    filename_start="angles"
+)
+
+
+println("B")
+
+save_multiple_N_T_trials_beta_gml(;
+    nr_vertices_array=[28*1^3],
+    maximal_temperature_array=[0.0001],
+    bond_bending_const_array=[0.3],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    network_type="ctn",
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/srd_simulation/",
+    filename_start="angles"
+)
+
+
+println("C")
+
+save_multiple_N_T_trials_beta_gml(;
+    nr_vertices_array=[14*1^3],
+    maximal_temperature_array=[0.0001],
+    bond_bending_const_array=[0.3],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    network_type="pto",
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/srd_simulation/",
+    filename_start="angles"
+)
+
+println("D")
+
+save_multiple_N_T_trials_beta_gml(;
+    nr_vertices_array=[24*1^3],
+    maximal_temperature_array=[0.0001],
+    bond_bending_const_array=[0.3],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    network_type="lcs",
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/srd_simulation/",
+    filename_start="angles"
+)
+
+
+
+
+# include file where structure analysis modules are stored
+include("structure_analysis_modules.jl")
+
+# import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+import MetaGraphsNext
+import Graphs
+import Plots
+import Colors
+import Glob
+import DataFrames
+import LaTeXStrings
+using StatsPlots
+
+function scatter_plot_for_mulitple_gml(;
+    network_type_array,
+    nr_vertices_array,
+    maximal_temperature_array,
+    bond_bending_const_array,
+    temperature_gradient_array,
+    nr_monte_carlo_steps_per_temperature_array,
+    theta_ground_state_array,
+    nr_trials_per_temperature_array,
+    simulation_path,
+    filename_start
+    )
+
+    # test before we begin
+    @assert length(network_type_array)>=1
+    @assert length(nr_vertices_array)>=1
+    @assert length(maximal_temperature_array)>=1
+    @assert length(bond_bending_const_array)>=1
+    @assert length(temperature_gradient_array)>=1
+    @assert length(nr_monte_carlo_steps_per_temperature_array)>=1
+    @assert length(theta_ground_state_array)>=1
+    @assert length(nr_trials_per_temperature_array)>=1
+
+    # store array with all the paths in the directory to check if we have
+    # this .h5 and .gml to be able to plot it.
+    spatial_network_path=simulation_path * raw"mts_SC_1\\"
+    digital_sphere_masks_dict_path=simulation_path * raw"digital_sphere_masks\\"
+    pore_size_dist_data_path=simulation_path * raw"pore_size_dist\\"
+
+    spatial_network_path_array=Glob.glob(filename_start*"*",spatial_network_path)
+    pore_size_dist_data_path_array=Glob.glob(filename_start*"*",pore_size_dist_data_path)
+
+    # for data storage 
+    data::Vector{Vector{Float64}}=[]
+
+    for l in eachindex(network_type_array)
+
+        network_type=network_type_array[l]
+
+        for k in eachindex(nr_vertices_array)
+
+            nr_vertices=nr_vertices_array[k]
+
+            for j in eachindex(maximal_temperature_array)
+
+                maximal_temperature=maximal_temperature_array[j]
+
+                for m in eachindex(bond_bending_const_array)
+
+                    bond_bending_const=bond_bending_const_array[m]
+
+                    for n in eachindex(temperature_gradient_array)
+
+                        temperature_gradient=temperature_gradient_array[n]
+                        
+                        for o in eachindex(nr_monte_carlo_steps_per_temperature_array)
+
+                            nr_monte_carlo_steps_per_temperature=nr_monte_carlo_steps_per_temperature_array[o]
+                        
+                            for p in eachindex(theta_ground_state_array)
+                                
+                                theta_ground_state=theta_ground_state_array[p]
+
+                                for i in eachindex(nr_trials_per_temperature_array)
+
+                                    nr_trials_per_temperature=nr_trials_per_temperature_array[i]
+                                    
+                                    filename = (filename_start
+                                        *"_NW="*"$network_type"
+                                        *"_N="*"$nr_vertices"
+                                        *"_T="*"$maximal_temperature"
+                                        *"_Beta="*"$bond_bending_const"
+                                        *"_GradT="*"$temperature_gradient"
+                                        *"_StepsPerT="*"$nr_monte_carlo_steps_per_temperature"
+                                        *"_Theta_GS="*"$theta_ground_state"
+                                        *"_Trial="*"$nr_trials_per_temperature"
+                                        )
+
+                                    total_path=spatial_network_path*filename
+
+                                    if(total_path*".gml" in spatial_network_path_array)
+                                    
+                                        println(filename)
+
+                                        spatial_network=NG.load_spatial_network_from_gml(total_path*".gml")
+
+                                        bond_length_std, bond_length_vec = NA.get_bond_length_std(spatial_network)
+                                        bond_angle_std, bond_angle_vec = NA.get_bond_angle_std(spatial_network)
+
+                                        pore_size_dist_data_file = pore_size_dist_data_path * filename *"_pore_size_distribution.h5"
+                                        if (!(pore_size_dist_data_file in pore_size_dist_data_path_array))
+
+                                            pore_pixel_radius_array = 
+                                                NA.get_pore_size_distribution(
+                                                    spatial_network;
+                                                    sampling_grid_size = 0.2,
+                                                    save_result = true,
+                                                    save_path = pore_size_dist_data_path*filename,
+                                                    label = nothing,
+                                                    digital_sphere_mask_path 
+                                                        = raw"simulations\digital_sphere_masks\\",
+                                                    print_progress = true,
+                                                    thread_nr = 0,
+                                                    print_lock = Threads.ReentrantLock()
+                                                )
+
+                                        else
+                                            println("Already calculated structure")
+                                        end
+                                        #save_path = simulation_path * raw"pore_size_dist\\"
+
+                                        println("A")
+                                        pore_size_dict = GU.load_h5_dict(pore_size_dist_data_file)
+                                        println("B")
+                                        println("pore_size_dict, $pore_size_dict")
+                                        println("C")
+                                        #pore_pixel_radius_vec= pore_pixel_radius_array["pore_size_distribution"]
+                                        #println(pore_pixel_radius_vec)
+                                        pore_size_distribution_second_moment=NA.get_pore_size_distribution_second_moment(pore_size_dict)
+                                        println(pore_size_distribution_second_moment)
+
+                                        println("bond_length_std, $bond_length_std")
+                                        println("bond_angle_std, $bond_angle_std")
+                                        println("pore_size_distribution_second_moment, $pore_size_distribution_second_moment")
+
+                                        evolution_dict = GU.load_h5_dict(total_path*"_evolution.h5")
+                                        accepted_moves=sum(evolution_dict["move_accepted_vec"])
+
+                                        data=push!(data,
+                                            [
+                                                #nr_vertices,
+                                                maximal_temperature,
+                                                bond_bending_const,
+                                                temperature_gradient,
+                                                nr_monte_carlo_steps_per_temperature,
+                                                theta_ground_state,
+                                                nr_trials_per_temperature,
+                                                bond_length_std,
+                                                bond_angle_std,
+                                                accepted_moves,
+                                                pore_size_distribution_second_moment
+                                            ])
+                                
+                                    else
+                                        println("file not in directory")
+                                        println("total_path, $total_path")
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    # data cleaning
+
+    matrix=mapreduce(permutedims, vcat, data)
+    df=DataFrames.DataFrame(matrix,:auto)
+    DataFrames.rename!(df, [:x1, :x2, :x3, :x4, :x5, :x6, :x7, :x8, :x9, :x10] .=>  [:MaxT, :Beta, :GradT, :MCsteps, :Theta, :Trial, :BondLenghtStd, :BondAngleStd, :AcceptedMoves, :PoreSizeDistSecMoment])
+    df.AcceptedMovesLog10 = log10.(df.AcceptedMoves .+ 1)
+
+    # plot
+
+    println("T=$(df.MaxT)")
+    println("Tr=$(df.Trial)")
+    println("A=$(df.BondAngleStd)")
+    println("L=$(df.BondLenghtStd)")
+    println("R=$(df.PoreSizeDistSecMoment)")
+
+    return
+
+end
+
+
+scatter_plot_for_mulitple_gml(
+    network_type_array=["dia","srs","srd","pto","ctn"],
+    nr_vertices_array=[216,270,378,756],
+    maximal_temperature_array=[0.21,0.42,0.29,0.58,0.44,0.88,1.15,1.17,2.3,2.34],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1,2,3,4,5], 
+    simulation_path=raw"C:\Users\GlauserV\OneDrive - Université de Fribourg\Anlagen\AMI\Projekt\GitFlorin\code_photonic_structures\simulations\\",
+    filename_start = "mts_SC_1",
+)
+
+#=
+# include file where structure analysis modules are stored
+include("structure_analysis_modules.jl")
+
+# import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+import MetaGraphsNext
+import Graphs
+import Plots
+import Colors
+import Glob
+import DataFrames
+import LaTeXStrings
+using StatsPlots
+
+function scatter_plot_for_mulitple_gml(;
+    network_type_array,
+    nr_vertices_array,
+    maximal_temperature_array,
+    bond_bending_const_array,
+    temperature_gradient_array,
+    nr_monte_carlo_steps_per_temperature_array,
+    theta_ground_state_array,
+    nr_trials_per_temperature_array,
+    simulation_path,
+    filename_start
+    )
+
+    # test before we begin
+    @assert length(network_type_array)>=1
+    @assert length(nr_vertices_array)>=1
+    @assert length(maximal_temperature_array)>=1
+    @assert length(bond_bending_const_array)>=1
+    @assert length(temperature_gradient_array)>=1
+    @assert length(nr_monte_carlo_steps_per_temperature_array)>=1
+    @assert length(theta_ground_state_array)>=1
+    @assert length(nr_trials_per_temperature_array)>=1
+
+    # store array with all the paths in the directory to check if we have
+    # this .h5 and .gml to be able to plot it.
+    spatial_network_path=simulation_path * raw"mts_NW\\"
+    digital_sphere_masks_dict_path=simulation_path * raw"digital_sphere_masks\\"
+    pore_size_dist_data_path=simulation_path * raw"pore_size_dist\\"
+
+    spatial_network_path_array=Glob.glob(filename_start*"*",spatial_network_path)
+    pore_size_dist_data_path_array=Glob.glob(filename_start*"*",pore_size_dist_data_path)
+
+    # for data storage 
+    data::Vector{Vector{Float64}}=[]
+
+    for l in eachindex(network_type_array)
+
+        network_type=network_type_array[l]
+
+        for k in eachindex(nr_vertices_array)
+
+            nr_vertices=nr_vertices_array[k]
+
+            for j in eachindex(maximal_temperature_array)
+
+                maximal_temperature=maximal_temperature_array[j]
+
+                for m in eachindex(bond_bending_const_array)
+
+                    bond_bending_const=bond_bending_const_array[m]
+
+                    for n in eachindex(temperature_gradient_array)
+
+                        temperature_gradient=temperature_gradient_array[n]
+                        
+                        for o in eachindex(nr_monte_carlo_steps_per_temperature_array)
+
+                            nr_monte_carlo_steps_per_temperature=nr_monte_carlo_steps_per_temperature_array[o]
+                        
+                            for p in eachindex(theta_ground_state_array)
+                                
+                                theta_ground_state=theta_ground_state_array[p]
+
+                                for i in eachindex(nr_trials_per_temperature_array)
+
+                                    nr_trials_per_temperature=nr_trials_per_temperature_array[i]
+                                    
+                                    filename = (filename_start
+                                        *"_NW="*"$network_type"
+                                        *"_N="*"$nr_vertices"
+                                        *"_T="*"$maximal_temperature"
+                                        *"_Beta="*"$bond_bending_const"
+                                        *"_GradT="*"$temperature_gradient"
+                                        *"_StepsPerT="*"$nr_monte_carlo_steps_per_temperature"
+                                        *"_Theta_GS="*"$theta_ground_state"
+                                        *"_Trial="*"$nr_trials_per_temperature"
+                                        )
+
+                                    total_path=spatial_network_path*filename
+
+                                    if(total_path*".gml" in spatial_network_path_array)
+                                    
+                                        println(filename)
+
+                                        spatial_network=NG.load_spatial_network_from_gml(total_path*".gml")
+
+                                        bond_length_std, bond_length_vec = NA.get_bond_length_std(spatial_network)
+                                        bond_angle_std, bond_angle_vec = NA.get_bond_angle_std(spatial_network)
+
+                                        pore_size_dist_data_file = pore_size_dist_data_path * filename *"_pore_size_distribution.h5"
+                                        if (!(pore_size_dist_data_file in pore_size_dist_data_path_array))
+
+                                            pore_pixel_radius_array = 
+                                                NA.get_pore_size_distribution(
+                                                    spatial_network;
+                                                    sampling_grid_size = 0.2,
+                                                    save_result = true,
+                                                    save_path = pore_size_dist_data_path*filename,
+                                                    label = nothing,
+                                                    digital_sphere_mask_path 
+                                                        = raw"simulations\digital_sphere_masks\\",
+                                                    print_progress = true,
+                                                    thread_nr = 0,
+                                                    print_lock = Threads.ReentrantLock()
+                                                )
+
+                                        else
+                                            println("Already calculated structure")
+                                        end
+                                        #save_path = simulation_path * raw"pore_size_dist\\"
+
+                                        println("A")
+                                        pore_size_dict = GU.load_h5_dict(pore_size_dist_data_file)
+                                        println("B")
+                                        println("pore_size_dict, $pore_size_dict")
+                                        println("C")
+                                        #pore_pixel_radius_vec= pore_pixel_radius_array["pore_size_distribution"]
+                                        #println(pore_pixel_radius_vec)
+                                        pore_size_distribution_second_moment=NA.get_pore_size_distribution_second_moment(pore_size_dict)
+                                        println(pore_size_distribution_second_moment)
+
+                                        println("bond_length_std, $bond_length_std")
+                                        println("bond_angle_std, $bond_angle_std")
+                                        println("pore_size_distribution_second_moment, $pore_size_distribution_second_moment")
+
+                                        evolution_dict = GU.load_h5_dict(total_path*"_evolution.h5")
+                                        accepted_moves=sum(evolution_dict["move_accepted_vec"])
+
+                                        data=push!(data,
+                                            [
+                                                #nr_vertices,
+                                                maximal_temperature,
+                                                bond_bending_const,
+                                                temperature_gradient,
+                                                nr_monte_carlo_steps_per_temperature,
+                                                theta_ground_state,
+                                                nr_trials_per_temperature,
+                                                bond_length_std,
+                                                bond_angle_std,
+                                                accepted_moves,
+                                                pore_size_distribution_second_moment
+                                            ])
+                                
+                                    else
+                                        println("file not in directory")
+                                        println("total_path, $total_path")
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    # data cleaning
+
+    matrix=mapreduce(permutedims, vcat, data)
+    df=DataFrames.DataFrame(matrix,:auto)
+    DataFrames.rename!(df, [:x1, :x2, :x3, :x4, :x5, :x6, :x7, :x8, :x9, :x10] .=>  [:MaxT, :Beta, :GradT, :MCsteps, :Theta, :Trial, :BondLenghtStd, :BondAngleStd, :AcceptedMoves, :PoreSizeDistSecMoment])
+    df.AcceptedMovesLog10 = log10.(df.AcceptedMoves .+ 1)
+
+    # plot
+
+    println("T=$(df.MaxT)")
+    println("B=$(df.Beta)")
+    println("A=$(df.BondAngleStd)")
+    println("L=$(df.BondLenghtStd)")
+    println("R=$(df.PoreSizeDistSecMoment)")
+
+    return
+
+end
+
+
+scatter_plot_for_mulitple_gml(
+    network_type_array=["dia","srs","srd","pto","ctn"],
+    nr_vertices_array=[64,80,112,224],
+    maximal_temperature_array=[0.0,0.11,0.18,0.22,0.35,0.47,0.5,1.0,1.5],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1], 
+    simulation_path=raw"C:\Users\GlauserV\OneDrive - Université de Fribourg\Anlagen\AMI\Projekt\GitFlorin\code_photonic_structures\simulations\\",
+    filename_start = "mts_1",
+)
+    =#
+
+#=
+
+# include file where structure analysis modules are stored
+include("structure_analysis_modules.jl")
+
+# import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+import MetaGraphsNext
+import Graphs
+import Plots
+import Colors
+import Glob
+import DataFrames
+import LaTeXStrings
+using StatsPlots
+
+function scatter_plot_for_mulitple_gml(;
+    nr_vertices_array,
+    maximal_temperature_array,
+    bond_bending_const_array,
+    temperature_gradient_array,
+    nr_monte_carlo_steps_per_temperature_array,
+    theta_ground_state_array,
+    nr_trials_per_temperature_array,
+    simulation_path,
+    filename_start,
+    plot_save_path,
+    plot_filename_start)
+
+    # test before we begin
+    @assert length(nr_vertices_array)>=1
+    @assert length(maximal_temperature_array)>=1
+    @assert length(bond_bending_const_array)>=1
+    @assert length(temperature_gradient_array)>=1
+    @assert length(nr_monte_carlo_steps_per_temperature_array)>=1
+    @assert length(theta_ground_state_array)>=1
+    @assert length(nr_trials_per_temperature_array)>=1
+
+    # store array with all the paths in the directory to check if we have
+    # this .h5 and .gml to be able to plot it.
+    spatial_network_path=simulation_path * raw"mts_5\\"
+    digital_sphere_masks_dict_path=simulation_path * raw"digital_sphere_masks\\"
+    pore_size_dist_data_path=simulation_path * raw"pore_size_dist\\"
+
+    spatial_network_path_array=Glob.glob(filename_start*"*",spatial_network_path)
+    pore_size_dist_data_path_array=Glob.glob(filename_start*"*",pore_size_dist_data_path)
+
+    # for data storage 
+    data::Vector{Vector{Float64}}=[]
+
+    for k in eachindex(nr_vertices_array)
+
+        nr_vertices=nr_vertices_array[k]
+
+        for j in eachindex(maximal_temperature_array)
+
+            maximal_temperature=maximal_temperature_array[j]
+
+            for m in eachindex(bond_bending_const_array)
+
+                bond_bending_const=bond_bending_const_array[m]
+
+                for n in eachindex(temperature_gradient_array)
+
+                    temperature_gradient=temperature_gradient_array[n]
+                    
+                    for o in eachindex(nr_monte_carlo_steps_per_temperature_array)
+
+                        nr_monte_carlo_steps_per_temperature=nr_monte_carlo_steps_per_temperature_array[o]
+                    
+                        for p in eachindex(theta_ground_state_array)
+                            
+                            theta_ground_state=theta_ground_state_array[p]
+
+                            for i in eachindex(nr_trials_per_temperature_array)
+
+                                nr_trials_per_temperature=nr_trials_per_temperature_array[i]
+                                
+                                filename = (filename_start
+                                    *"_N="*"$nr_vertices"
+                                    *"_T="*"$maximal_temperature"
+                                    *"_Beta="*"$bond_bending_const"
+                                    *"_GradT="*"$temperature_gradient"
+                                    *"_StepsPerT="*"$nr_monte_carlo_steps_per_temperature"
+                                    *"_Theta_GS="*"$theta_ground_state"
+                                    *"_Trial="*"$nr_trials_per_temperature"
+                                    )
+
+                                total_path=spatial_network_path*filename
+
+                                if(total_path*".gml" in spatial_network_path_array)
+                                  
+                                    println(filename)
+
+                                    spatial_network=NG.load_spatial_network_from_gml(total_path*".gml")
+
+                                    bond_length_std, bond_length_vec = NA.get_bond_length_std(spatial_network)
+                                    bond_angle_std, bond_angle_vec = NA.get_bond_angle_std(spatial_network)
+
+                                    pore_size_dist_data_file = pore_size_dist_data_path * filename *"_pore_size_distribution.h5"
+                                    if (!(pore_size_dist_data_file in pore_size_dist_data_path_array))
+
+                                        pore_pixel_radius_array = 
+                                            NA.get_pore_size_distribution(
+                                                spatial_network;
+                                                sampling_grid_size = 0.2,
+                                                save_result = true,
+                                                save_path = pore_size_dist_data_path*filename,
+                                                label = nothing,
+                                                digital_sphere_mask_path 
+                                                    = raw"simulations\digital_sphere_masks\\",
+                                                print_progress = true,
+                                                thread_nr = 0,
+                                                print_lock = Threads.ReentrantLock()
+                                            )
+
+                                    else
+                                        println("Already calculated structure")
+                                    end
+                                    #save_path = simulation_path * raw"pore_size_dist\\"
+
+                                    println("A")
+                                    pore_size_dict = GU.load_h5_dict(pore_size_dist_data_file)
+                                    println("B")
+                                    println("pore_size_dict, $pore_size_dict")
+                                    println("C")
+                                    #pore_pixel_radius_vec= pore_pixel_radius_array["pore_size_distribution"]
+                                    #println(pore_pixel_radius_vec)
+                                    pore_size_distribution_second_moment=NA.get_pore_size_distribution_second_moment(pore_size_dict)
+                                    println(pore_size_distribution_second_moment)
+
+                                    println("bond_length_std, $bond_length_std")
+                                    println("bond_angle_std, $bond_angle_std")
+                                    println("pore_size_distribution_second_moment, $pore_size_distribution_second_moment")
+
+                                    evolution_dict = GU.load_h5_dict(total_path*"_evolution.h5")
+                                    accepted_moves=sum(evolution_dict["move_accepted_vec"])
+
+                                    data=push!(data,
+                                        [
+                                            #nr_vertices,
+                                            maximal_temperature,
+                                            bond_bending_const,
+                                            temperature_gradient,
+                                            nr_monte_carlo_steps_per_temperature,
+                                            theta_ground_state,
+                                            nr_trials_per_temperature,
+                                            bond_length_std,
+                                            bond_angle_std,
+                                            accepted_moves,
+                                            pore_size_distribution_second_moment
+                                        ])
+                            
+                                else
+                                    println("file not in directory")
+                                    println("total_path, $total_path")
+                                    
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    # data cleaning
+
+    matrix=mapreduce(permutedims, vcat, data)
+    df=DataFrames.DataFrame(matrix,:auto)
+    DataFrames.rename!(df, [:x1, :x2, :x3, :x4, :x5, :x6, :x7, :x8, :x9, :x10] .=>  [:MaxT, :Beta, :GradT, :MCsteps, :Theta, :Trial, :BondLenghtStd, :BondAngleStd, :AcceptedMoves, :PoreSizeDistSecMoment])
+    df.AcceptedMovesLog10 = log10.(df.AcceptedMoves .+ 1)
+
+    # plot
+
+    df.Marker = map(
+        T -> 
+        T == 0.5 ? :utriangle :
+        T == 1.0 ? :rect :
+        T == 1.5 ?  :star5 :
+        :auto, df.MaxT)
+
+    println("T=$(df.MaxT)")
+    println("B=$(df.Beta)")
+    println("A=$(df.BondAngleStd)")
+    println("L=$(df.BondLenghtStd)")
+    println("R=$(df.PoreSizeDistSecMoment)")
+
+    return
+
+end
+
+network_type="dia"
+
+scatter_plot_for_mulitple_gml(
+    nr_vertices_array=[216],
+    maximal_temperature_array=[0.5,1.0,1.5],
+    bond_bending_const_array=[0.0,0.25,0.5,0.75,1.0],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1,2,3,4,5,6,7,8,9,10], 
+    simulation_path=raw"C:\Users\GlauserV\OneDrive - Université de Fribourg\Anlagen\AMI\Projekt\GitFlorin\code_photonic_structures\simulations\\",
+    filename_start = "mts_5_NW=$(network_type)",
+    plot_save_path = raw".\simulations\analysis_plot\\",
+    plot_filename_start = "thesis_pore_$(network_type)_7"
+)
+    =#
+
+
+
+
+# include file where structure analysis modules are stored
+include("structure_analysis_modules.jl")
+
+# import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+import MetaGraphsNext
+import Graphs
+import Plots
+Plots.plotlyjs()
+import .Threads
+import Glob
+
+function plot_single_network(;
+    nr_vertices,
+    maximal_temperature,
+    bond_bending_const,
+    temperature_gradient,
+    nr_monte_carlo_steps_per_temperature,
+    theta_ground_state,
+    nr_trials_per_temperature,
+    save_path,
+    network_type,
+    filename_start,
+    plot_appendix,
+    plot_folder
+)
+
+    filename = (filename_start
+        *"_NW="*"$network_type"
+        *"_N="*"$nr_vertices"
+        *"_T="*"$maximal_temperature"
+        *"_Beta="*"$bond_bending_const"
+        *"_GradT="*"$temperature_gradient"
+        *"_StepsPerT="*"$nr_monte_carlo_steps_per_temperature"
+        *"_Theta_GS="*"$theta_ground_state"
+        *"_Trial="*"$nr_trials_per_temperature"
+        )
+
+    total_path=save_path*filename
+
+    path_array=Glob.glob(filename_start*"*",save_path)
+    #println("path_array, $path_array")
+
+    if(total_path*".gml" in path_array)
+        #println("scatter done")
+        println("yes, $filename")
+        spatial_network=NG.load_spatial_network_from_gml(total_path*".gml")
+        A=NG.plot_spatial_network_2(spatial_network)
+
+        plot_name = filename*plot_appendix
+        plot_path = plot_folder*plot_name
+        Plots.savefig(A,plot_path)
+    else
+        println("no, $filename")
+    end
+end
+
+
+
+plot_single_network(;
+    nr_vertices=8*3^3,
+    maximal_temperature=1.5,
+    bond_bending_const=0.0,
+    temperature_gradient=0.1,
+    nr_monte_carlo_steps_per_temperature=0.01,
+    theta_ground_state=180.0,
+    nr_trials_per_temperature=1,
+    save_path = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/melting_temp_search/",
+    network_type="dia",
+    filename_start="mts_5",
+    plot_appendix="_1.png",
+    plot_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/analysis_plot/"
+)
+
+#=
+plot_single_network(;
+    nr_vertices=216,
+    maximal_temperature=0.0001,
+    bond_bending_const=0.1,
+    temperature_gradient=0.1,
+    nr_monte_carlo_steps_per_temperature=0.01,
+    theta_ground_state=180.0,
+    nr_trials_per_temperature=1,
+    save_path = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/ft_1/",
+    network_type="lcs",
+    filename_start="test_1",
+    plot_appendix="_2.png",
+    plot_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/analysis_plot/"
+)
+    =#
+
+#=
+plot_single_network(;
+    nr_vertices=216,
+    maximal_temperature=0.2,
+    bond_bending_const=0.1,
+    temperature_gradient=0.1,
+    nr_monte_carlo_steps_per_temperature=0.01,
+    theta_ground_state=180.0,
+    nr_trials_per_temperature=1,
+    save_path = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/ft_1/",
+    network_type="srd",
+    filename_start="ft_1",
+    plot_appendix="_2.png",
+    plot_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/analysis_plot/"
+)
+    =#
+
+#=
+plot_single_network(;
+    nr_vertices=216,
+    maximal_temperature=0.00001,
+    bond_bending_const=0.1,
+    temperature_gradient=0.1,
+    nr_monte_carlo_steps_per_temperature=0.01,
+    theta_ground_state=180.0,
+    nr_trials_per_temperature=1,
+    save_path = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/networks_dia_srs_srd_ctn/",
+    network_type="srd",
+    filename_start="ft_1",
+    plot_appendix="_1.png",
+    plot_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/analysis_plot/"
+)
+
+=#
+
+#=
+
+network_type="diamond"
+
+plot_single_network(;
+    nr_vertices=216,
+    maximal_temperature=0.35,
+    bond_bending_const=0.5,
+    temperature_gradient=0.1,
+    nr_monte_carlo_steps_per_temperature=0.01,
+    theta_ground_state=100.0,
+    nr_trials_per_temperature=1,
+    save_path = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/networks_noBr/",
+    network_type=network_type,
+    filename_start="m_$(network_type)_noBr_1",
+    plot_appendix="_1.png",
+    plot_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/analysis_plot/"
+)
+    =#
+
+#=
+network_type="ctn"
+
+plot_single_network(;
+    nr_vertices=216,
+    maximal_temperature=0.1,
+    bond_bending_const=0.2,
+    temperature_gradient=0.1,
+    nr_monte_carlo_steps_per_temperature=0.01,
+    theta_ground_state=100.0,
+    nr_trials_per_temperature=1,
+    save_path = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/networks_noBr/",
+    network_type=network_type,
+    filename_start="m_$(network_type)_noBr_1",
+    plot_appendix="_4.png",
+    plot_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/analysis_plot/"
+)
+=#
+
+#=
+network_type="srd"
+
+plot_single_network(;
+    nr_vertices=216,
+    maximal_temperature=0.4,
+    bond_bending_const=1.0,
+    temperature_gradient=0.1,
+    nr_monte_carlo_steps_per_temperature=0.01,
+    theta_ground_state=180.0,
+    nr_trials_per_temperature=1,
+    save_path = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/networks_noBr/",
+    network_type=network_type,
+    filename_start="m_$(network_type)_noBr_1",
+    plot_appendix="_3.png",
+    plot_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/analysis_plot/"
+)
+    =#
+
+    #=
+    network_type="dia"
+
+plot_single_network(;
+    nr_vertices=216,
+    maximal_temperature=0.00000000001,
+    bond_bending_const=700.0,
+    temperature_gradient=0.1,
+    nr_monte_carlo_steps_per_temperature=0.01,
+    theta_ground_state=180.0,
+    nr_trials_per_temperature=1,
+    save_path = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/networks_dia_srd_ctn/",
+    network_type=network_type,
+    filename_start="m_$(network_type)_2",
+    plot_appendix="_3.png",
+    plot_folder = raw"C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/analysis_plot/"
+)
+    =#
+
+
+
+#=
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# 1. Generate or Load Sample Data (replace with your actual data)
+# Let's create a dataset of 50 samples with 3 features:
+#   - Feature 1 (Height):  Tends to be positively correlated with other features.
+#   - Feature 2 (Weight): Also positively correlated with other features.
+#   - Feature 3 (Age): Less correlated with other features, but may have some relationship.
+np.random.seed(42)  # for reproducibility
+n_samples = 561
+
+# Create correlated features
+MaxT=[0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 
+0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 
+0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.175, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 
+0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2]
+
+Beta=[0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 
+0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 
+0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 
+0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4]
+
+Theta=[100.0, 100.0, 100.0, 100.0, 100.0, 120.0, 120.0, 120.0, 120.0, 120.0, 140.0, 140.0, 140.0, 140.0, 140.0, 160.0, 160.0, 160.0, 160.0, 160.0, 180.0, 180.0, 180.0, 180.0, 180.0, 100.0, 100.0, 100.0, 100.0, 100.0, 120.0, 120.0, 120.0, 120.0, 120.0, 140.0, 140.0, 140.0, 140.0, 140.0, 160.0, 160.0, 160.0, 160.0, 160.0, 180.0, 180.0, 180.0, 180.0, 180.0, 100.0, 100.0, 100.0, 120.0, 140.0, 140.0, 160.0, 160.0, 180.0, 180.0, 180.0, 100.0, 100.0, 100.0, 100.0, 100.0, 120.0, 120.0, 120.0, 120.0, 120.0, 140.0, 140.0, 140.0, 140.0, 140.0, 160.0, 160.0, 160.0, 160.0, 160.0, 180.0, 180.0, 180.0, 180.0, 180.0, 100.0, 100.0, 100.0, 100.0, 100.0, 120.0, 120.0, 120.0, 120.0, 120.0, 140.0, 140.0, 140.0, 140.0, 140.0, 160.0, 160.0, 160.0, 160.0, 160.0, 180.0, 180.0, 180.0, 180.0, 180.0, 100.0, 100.0, 100.0, 100.0, 100.0, 120.0, 120.0, 120.0, 120.0, 120.0, 140.0, 140.0, 140.0, 140.0, 140.0, 160.0, 160.0, 160.0, 160.0, 160.0, 180.0, 180.0, 180.0, 180.0, 180.0, 100.0, 100.0, 100.0, 100.0, 100.0, 120.0, 120.0, 120.0, 120.0, 120.0, 140.0, 140.0, 140.0, 140.0, 140.0, 160.0, 160.0, 160.0, 160.0, 160.0, 180.0, 180.0, 180.0, 180.0, 180.0, 100.0, 100.0, 100.0, 100.0, 100.0, 120.0, 120.0, 120.0, 120.0, 120.0, 140.0, 140.0, 140.0, 140.0, 140.0, 160.0, 160.0, 160.0, 160.0, 160.0, 180.0, 180.0, 180.0, 180.0, 180.0, 100.0, 100.0, 100.0, 100.0, 100.0, 120.0, 120.0, 120.0, 120.0, 120.0, 140.0, 140.0, 140.0, 140.0, 140.0, 160.0, 160.0, 160.0, 160.0, 160.0, 180.0, 180.0, 180.0, 180.0, 180.0, 100.0, 100.0, 100.0, 100.0, 100.0, 120.0, 120.0, 120.0, 120.0, 120.0, 140.0, 140.0, 140.0, 140.0, 140.0, 160.0, 160.0, 160.0, 160.0, 160.0, 180.0, 180.0, 180.0, 180.0, 180.0, 100.0, 100.0, 100.0, 100.0, 100.0, 120.0, 120.0, 120.0, 120.0, 120.0, 140.0, 140.0, 140.0, 140.0, 140.0, 160.0, 160.0, 160.0, 160.0, 160.0, 180.0, 180.0, 180.0, 180.0, 180.0, 100.0, 100.0, 100.0, 100.0, 100.0, 120.0, 120.0, 120.0, 120.0, 120.0, 140.0, 140.0, 140.0, 140.0, 140.0, 160.0, 160.0, 160.0, 160.0, 160.0, 180.0, 180.0, 180.0, 180.0, 180.0, 100.0, 100.0, 100.0, 100.0, 100.0, 120.0, 120.0, 120.0, 120.0, 120.0, 140.0, 140.0, 140.0, 140.0, 140.0, 160.0, 160.0, 160.0, 160.0, 160.0, 180.0, 180.0, 180.0, 180.0, 180.0, 100.0, 100.0, 100.0, 100.0, 100.0, 120.0, 120.0, 120.0, 120.0, 120.0, 140.0, 140.0, 140.0, 140.0, 140.0, 160.0, 160.0, 160.0, 160.0, 160.0, 180.0, 180.0, 180.0, 180.0, 180.0, 100.0, 100.0, 100.0, 100.0, 100.0, 120.0, 120.0, 120.0, 120.0, 120.0, 140.0, 140.0, 140.0, 140.0, 140.0, 160.0, 160.0, 160.0, 160.0, 160.0, 180.0, 180.0, 180.0, 180.0, 180.0, 100.0, 100.0, 100.0, 100.0, 100.0, 120.0, 120.0, 120.0, 120.0, 120.0, 140.0, 140.0, 140.0, 140.0, 140.0, 160.0, 160.0, 160.0, 160.0, 160.0, 180.0, 180.0, 180.0, 180.0, 180.0, 100.0, 100.0, 100.0, 100.0, 100.0, 120.0, 120.0, 120.0, 120.0, 120.0, 140.0, 140.0, 140.0, 140.0, 140.0, 160.0, 160.0, 160.0, 160.0, 160.0, 180.0, 180.0, 180.0, 180.0, 180.0, 100.0, 100.0, 100.0, 100.0, 100.0, 120.0, 120.0, 120.0, 120.0, 120.0, 140.0, 140.0, 140.0, 140.0, 140.0, 160.0, 160.0, 160.0, 160.0, 160.0, 180.0, 180.0, 180.0, 180.0, 180.0, 100.0, 100.0, 100.0, 100.0, 100.0, 120.0, 120.0, 120.0, 120.0, 120.0, 140.0, 140.0, 140.0, 140.0, 140.0, 160.0, 160.0, 160.0, 160.0, 160.0, 180.0, 180.0, 180.0, 180.0, 180.0, 100.0, 100.0, 100.0, 100.0, 100.0, 120.0, 120.0, 120.0, 120.0, 120.0, 140.0, 140.0, 140.0, 140.0, 140.0, 160.0, 160.0, 160.0, 160.0, 160.0, 180.0, 180.0, 180.0, 180.0, 180.0, 100.0, 100.0, 100.0, 100.0, 100.0, 120.0, 120.0, 120.0, 120.0, 120.0, 140.0, 140.0, 140.0, 140.0, 140.0, 160.0, 160.0, 160.0, 160.0, 160.0, 180.0, 180.0, 180.0, 180.0, 180.0, 100.0, 100.0, 100.0, 100.0, 100.0, 120.0, 120.0, 120.0, 120.0, 120.0, 140.0, 140.0, 140.0, 140.0, 140.0, 160.0, 160.0, 160.0, 160.0, 160.0, 180.0, 180.0, 180.0, 180.0, 180.0, 100.0, 100.0, 100.0, 100.0, 100.0, 120.0, 120.0, 120.0, 120.0, 120.0, 140.0, 140.0, 140.0, 140.0, 140.0, 160.0, 160.0, 160.0, 160.0, 160.0, 180.0, 180.0, 180.0, 180.0, 180.0]
+
+σ_L=[0.03825146749439895, 0.04090892496801862, 0.040279637800628654, 0.041682222831223456, 0.04246308365340782, 0.042172184470060756, 0.04220980890562435, 0.037176239544587895, 0.04345624476227691, 0.04218643419324952, 0.0502350970152146, 0.0448417180333201, 0.04820782607892436, 0.045487070908229774, 0.05002996635194556, 0.057427640718134575, 0.05912456675807738, 0.05725992439517857, 0.05914129975886817, 0.057315893325493444, 0.06039989327656451, 0.058760318415540296, 0.0577271867026577, 0.05784090366072068, 0.05268785132562613, 0.04415113847182562, 0.044553540606936635, 0.041168369950681453, 0.04595078647769517, 0.045087244750270504, 0.045369937756239466, 0.03965499757990006, 0.03700758028005456, 0.0488777988503985, 0.04321910771532088, 0.05046802055345826, 0.0497391635763144, 0.05189998416070405, 0.05099855103704931, 0.05325265552910032, 0.05722108043335571, 0.048904059953127944, 0.055831940131151586, 0.0585247944781044, 0.05306493984138572, 0.06289104638636657, 0.06423871517074822, 0.06118635386657305, 0.05797920282282786, 0.06331951995243339, 0.02574851178743349, 0.05386389181085497, 0.04592653874766393, 0.04839341578171851, 0.028266731449061503, 0.03642349158588903, 0.06392931364699023, 0.06273011895947057, 0.07485787954056562, 0.056033975466157106, 0.03592294123108379, 0.04243314040477023, 0.04292395795008511, 0.04597695837825516, 0.03961326606950971, 0.04047586872022214, 0.04607176571405151, 0.0430891300874392, 0.04896752565138482, 
+0.03940217043606315, 0.053605858606230676, 0.046146282464071084, 0.05408953417989567, 0.04936552771558038, 0.05189201712287993, 0.0481875915775649, 0.06413917407788704, 0.054287361202794905, 0.056770655013892, 0.05341115765991158, 0.05452428821619675, 0.0612732236293995, 0.05709200839790128, 0.059537524913116126, 0.05916699452411148, 
+0.06327374265819595, 0.04488947224653124, 0.04479121567399253, 0.04692773463737173, 0.048427728049580517, 0.04768727848336231, 0.04329000374606716, 0.04245733557855915, 0.045665756345830893, 0.0434294955688303, 0.057819754305801684, 0.05348502988565813, 0.0639155424192475, 0.05830094675651311, 0.06076038820590498, 0.05980192743279226, 0.06757686977452323, 0.06848587170377501, 0.065917049294167, 0.06594264551139126, 0.06896258024795753, 0.07320202901057594, 0.06778179810900634, 0.06842830812263948, 0.07345210400459963, 0.07216937668088179, 0.050116833639681065, 0.048593379637548374, 0.05052999361386216, 0.05463141939830701, 0.05265197447254275, 0.046490486498939006, 0.046298401913755984, 0.048722247748260464, 0.053010223889737376, 0.05079726566392692, 0.06464817397976823, 0.06793524973082561, 0.05883175592677092, 0.06632480407240432, 0.06962688419834706, 0.07915481623702107, 0.07496595214460126, 0.08259543974591717, 0.07271867463867643, 0.07076538327978053, 0.08536931785084503, 0.08623254817338595, 0.08367406310872531, 0.07829330702963626, 0.08539195189534134, 0.0544242050893578, 0.058618110325405, 0.060205143385850875, 0.05799194417815973, 0.053079760313024776, 0.057291346048616354, 0.050725972238412576, 0.051039830218135865, 0.055485350171659356, 0.05466254105505432, 0.067904247166058, 0.06246769781643372, 0.06578667313693635, 0.06814121351253527, 0.06786828544440185, 0.07949631335300979, 0.0864415542136662, 0.0823369888018219, 0.07577747842538489, 0.09464089033803362, 0.08410289294643275, 0.09150791608114857, 0.09333354955666012, 0.0926722097199353, 0.08755530784876794, 0.0595125819857387, 0.05759195157304538, 0.05253563534618591, 0.05196869814762607, 0.059853665136780046, 0.0009292229000442091, 0.035654095368472166, 0.059400514924889104, 0.05037158392136435, 
+0.0009260361987375197, 0.06123181477020255, 0.0805805277944026, 0.06677166014657439, 0.07096881052948643, 0.044223019878851376, 0.08468101642328334, 0.08896152524906814, 0.042987842790779475, 0.09156366926840918, 0.0739381544553587, 0.09280800544669418, 0.08469456691445743, 0.09212674301480347, 0.09685187328058721, 0.08140964127540819, 0.04705981542954954, 0.04651794843851781, 0.03987655359822613, 0.04614624063418096, 0.043031322194228776, 0.04313545765801959, 0.04193041636347716, 0.038864446924257647, 0.05305872704958365, 0.043920717304790156, 0.057391393492342964, 0.05203272654738736, 0.04590495442532183, 0.05270943146557254, 0.052818041810046214, 0.050841872493885554, 0.06536294225055614, 0.05778398844598014, 0.0581622808744661, 0.06153254505079329, 0.06496295301080686, 
+0.057764319349730184, 0.06165779955204774, 0.055654657376342696, 0.0568552306787879, 0.051608036699001845, 0.05143666444660905, 0.05018461858910956, 0.05254306459955192, 0.05328243989754994, 0.04721763265575655, 0.047491033795484236, 0.049701753091072914, 0.05294787492537137, 0.05273107890641677, 0.05962663738849389, 0.05863979635504744, 0.05858362987734737, 0.05906245870547931, 0.06049444405456151, 0.06786704565782234, 0.07719349870497595, 0.06780396795756534, 0.06737270492373344, 0.06580414354519164, 0.06586562673044288, 0.07300064016961935, 0.0674004336132754, 0.0746165648416142, 0.07630585822320252, 0.051661782666884364, 0.047409975883362626, 0.053604348503595245, 0.05375531829023915, 0.05524098333013736, 0.059747118286750625, 0.05471141990369896, 0.053223858757920024, 
+0.05897446664480965, 0.0635260965001957, 0.07508172166899091, 0.06331448816670085, 0.07165850214167113, 0.06660626321462962, 0.07013176182710562, 0.08855633167995466, 0.08278235544351745, 0.07880571027242096, 0.07369129149171076, 0.07934513202357224, 0.08147830373442447, 0.08036335244716551, 0.0868833305061268, 0.08978824761185668, 0.08269729028368782, 0.055485289188174323, 0.057340813931160146, 0.05175089437358579, 0.058574151133604126, 0.06121669013823409, 0.052987219908221146, 0.061254426877147286, 0.06130984453024161, 0.06522021845214898, 0.06992474726041427, 0.07734075841253338, 0.07397426262270405, 0.07351231865775543, 0.07864554603547283, 0.07761066435961739, 0.08747866471936318, 0.08281830298594743, 0.09126388034812453, 0.0898389934572322, 0.08493487847705851, 0.08843908889850846, 0.09030715332816472, 0.08621395308920596, 0.08779649794479996, 0.09693435015154894, 0.0646457958454916, 0.05928328561638721, 0.062340073328059714, 0.057000515034885006, 0.06650267873247066, 0.05952267639309026, 0.06183587486235311, 0.06101975088224607, 0.06273935603714763, 0.0661683068124684, 0.08039084021430028, 0.08452805700816872, 0.08278957644473842, 0.08466285768111707, 0.09305138652563072, 0.09741319903300683, 0.10471717419324868, 0.10052333378095833, 0.09701146712687227, 0.09876915618247649, 0.1002000226092383, 0.11137467611665774, 0.10301158022983121, 0.11650680353763991, 0.10464365188915642, 0.04345029007062454, 0.04107429928106126, 0.04239630217394592, 0.04524860446733823, 0.04621089080011346, 0.04089061669015746, 0.047692062673311025, 0.053806943912848494, 0.05384123876960384, 0.04135540774163418, 0.05390124948016285, 0.05300644729235277, 0.05739958644487575, 0.05471742192002749, 0.05492270501476174, 0.06046903702045742, 0.061709676992156515, 0.06187266941795967, 0.05974925680207157, 0.0626508294066424, 0.061612531287813854, 0.05774194120055791, 0.060298027773429005, 0.05709050463938316, 0.06087035885283847, 0.051767128821451, 0.0541264682369118, 0.050438307366002175, 0.054501652009422384, 0.055680281832222726, 0.0627892066809951, 0.05151185050528669, 0.05875159899427363, 0.0560949895885271, 0.05343546829184334, 0.05995539707887902, 0.06400159578833989, 0.06020074132249503, 0.060237208657581594, 0.05986753512278735, 0.06704521879498879, 0.07413384324747149, 0.07216565973740192, 0.06364298696532027, 0.07213021785984007, 0.07315258466979917, 0.07122061633772855, 0.06981892967328099, 0.07264344534147443, 0.06922096860952855, 0.05694975688035937, 0.05945095229091103, 0.060772872953869635, 0.0653126004338366, 0.06169632996581708, 0.05111440713574016, 0.06012554339713036, 0.06191454026266061, 0.0509192188539939, 0.06175079501732147, 0.06453296891157437, 0.07036033600461601, 0.07407572698316296, 0.07168724305340911, 0.07507042837425573, 0.0798558205892079, 0.07929936357584243, 0.07410619461847216, 0.07562099896004244, 0.07954631825689287, 0.08751456778612281, 0.0813315541864825, 0.0917460795734823, 0.07786458538217449, 0.08431424470356053, 0.059198579876485156, 0.06416474914574113, 0.06330996192779012, 0.06683276889175765, 0.06608460886918875, 0.06528842563866831, 0.06421651525409348, 0.07110866134614204, 0.07113626752154237, 0.06662599273044935, 0.07650997203181202, 0.07828247804687927, 0.08138475081801327, 0.06875637959777944, 0.07682948965226234, 0.08459408197168707, 0.1010185265755367, 0.08777706302123407, 
+0.09115765642049624, 0.089583582973521, 0.09517255314794563, 0.09324295936918311, 0.0943214639205695, 0.09435888551005321, 0.09642574376377114, 0.06896838784880528, 0.06739303093934236, 0.07000196217478823, 0.07156978585749399, 0.06370949616888255, 0.06831946531301536, 0.06703707644224817, 0.06733273442238898, 0.07471590150851075, 0.06412948278671911, 0.08265025293643145, 0.08864335496265632, 0.0950514472411957, 0.08242019375549808, 0.08526464928142903, 0.10061458392583512, 0.10447171660494645, 0.10376598971878279, 0.09444565751123728, 0.10942906344848137, 0.10955396864969981, 0.10871146967261743, 0.10456795916118614, 0.09652287555572528, 0.11213267737360057, 0.0540290391527, 0.051334508299337715, 0.04685939897098927, 0.04647991199055412, 0.052934849495612446, 0.05382098176073677, 0.05321358887252699, 0.05024556240283775, 0.052121715906859815, 0.05839357166384427, 0.058768521925683, 
+0.05235543007402462, 0.05229762629555407, 0.06207309117985187, 0.05748991679774844, 0.0653957740778303, 0.059914979472920835, 0.05965485505117303, 0.05952618678232381, 0.06312972751545887, 0.061156187587172235, 0.062305603771796274, 0.059049988026802565, 0.05779764181724371, 0.06279730035896978, 0.058942813106713794, 0.06123611472928273, 0.0543599525408286, 0.05644884549630922, 0.05533205586056321, 0.06243441640776767, 0.05492949739879234, 0.050937125040151, 0.050664997846440414, 0.0572924783193352, 0.06504091686246952, 0.06740273515781513, 0.06525454859080546, 0.06310961954400543, 0.0677085190134678, 0.07452429863767886, 0.06756710418482062, 0.07177606622416667, 
+0.07624618093020712, 0.07050831515306397, 0.07147478339749071, 0.07909617162893091, 0.06393118804271922, 0.06781297128020218, 0.07108856391620362, 0.05994424660405136, 0.05376297547927257, 0.05898322924887189, 0.05568852771644284, 0.06809774815316101, 0.06901356788150213, 0.05736566614853004, 0.06466792889374674, 0.059027094678106386, 0.06701754209725853, 0.07105869587269323, 0.06990364952414511, 0.0799781670764122, 0.07370691463680906, 0.07733355651956299, 0.08230749111545684, 0.07788088047907268, 0.08052698945101294, 0.0828936475741775, 0.08366071797131022, 0.08640784513273722, 0.08242694200638852, 0.08884893050620814, 0.08293460664648396, 0.08174770113767604, 0.07196381000371936, 0.0653892485148284, 0.06746417521459207, 0.07289459282423512, 0.06760695652068914, 0.07178554282502182, 0.06511787010773254, 0.05795325930577235, 0.05699857336945112, 0.05983507277711521, 0.07224204340277471, 0.07444397192079642, 0.08773899713186524, 0.07175382200758876, 0.08617160938243539, 0.08707651944304051, 0.088646605347862, 0.08498370246565122, 0.08499054749056238, 0.09142683825752093, 0.09884595029650625, 0.09089038170769714, 0.08986565704029623, 0.0923611419148658, 0.08651610132172598, 0.07749339186964897, 0.07350387797253527, 0.07624215706872, 0.059885054072429195, 0.07502275800392795, 0.06827358681391157, 0.05365079719860201, 0.06805308901345408, 0.0815018655262472, 0.0735875398839623, 0.09188067942739489, 0.09772678698497418, 0.09225768375138153, 0.08368503822485827, 0.09209235334678005, 0.09877429745034633, 0.10524529986043712, 0.09627504805548494, 0.09721209103483286, 0.11313417882883843, 0.10046661753325087, 0.10929749917009415, 0.10154950008620152, 0.10122684460862193, 0.10409175876622125]
+
+σ_A=[0.2943507916030651, 0.2618147486153417, 0.2865854450464535, 0.2868207827711252, 0.28741203831750456, 0.24896611754457507, 0.2191280502481761, 0.21555193298399414, 0.24892562998840662,0.23999084035031737, 0.23895816431293404, 0.2507482281662805, 0.2464586387657335, 0.2360342369908105, 0.25313408452422526, 0.2590938867576068, 0.2693416699535757, 0.261170654782144, 0.26938778506086747, 0.2645977291192791, 0.28032532635017404, 0.2828063313427388, 0.2881561013686188, 0.27075861893518544, 0.27548032699865466, 0.2519662946427981, 0.2773715616976035, 0.29372872237498493, 0.260101377521169, 0.2833544004964494, 0.2024316046319932, 0.20502520086929002, 0.18294587032150328, 0.21415851312719308, 0.21198863247756145, 0.2190177211441247, 0.2013226911673104, 0.22014196189608032, 0.2202448576727731, 0.22793877970611598, 0.21212498769500304, 0.2240487887481808, 
+0.22825882295786173, 0.23674416457482145, 0.21346469540106783, 0.25691743117549404, 0.2639733793476483, 0.2535489455461276, 0.23560836444671537, 0.25705749238361886, 0.10148476055590042, 0.24388375710250804, 0.20674617905116335, 0.20169880718985617, 0.10096628182986522, 0.14325272199867017, 0.2105788697375823, 0.2341601240831539, 0.26512203764230097, 0.19090080733965517, 0.11679624413284857, 0.33844744253432996, 0.3213560193491674, 0.35216896808730375, 0.32501239502138224, 0.3028983129045074, 0.24872814282420244, 0.2530427191615354, 0.2657385249898513, 0.23981104120321903, 0.292780268123672, 0.239988464350282, 0.2908978250150922, 0.24995164568931555, 0.2595058434795124, 0.2701964705119526, 0.2718534787582167, 0.27708501298041205, 0.2688606871030097, 0.2856284095905665, 0.26205506720587884, 0.2875093744080388, 0.2708677811487529, 0.27822003864012473, 0.28013154586764166, 0.29156472616931506, 0.2966418518505072, 0.2704270309675539, 0.30022170812543003, 0.29603471962860545, 0.30089705735534883, 0.21428504473583745, 0.22345774475541194, 0.23445879341618794, 0.21338639485501984, 0.25025075379874995, 0.2440723835693459, 0.2418557399029385, 0.24224947673355976, 0.24006606743442652, 0.2494665987471508, 0.25985710998936074, 0.271148095076896, 0.24538570617408456, 0.27343743348103616, 0.27652464957626455, 0.2687075702242392, 0.2623073432092364, 0.2755092955621729, 0.2868304376109566, 0.28982560332316276, 0.2764939804846325, 0.2757079525387108, 0.2758061043817711, 0.28487142590016573, 0.3086336142022348, 0.19140093170669045, 0.19802711736110062, 0.2262687664946664, 0.21588744760434564, 0.2259521678812819, 0.24859038770265465, 0.2681610472491023, 0.2594849502562305, 0.26354950476746797, 0.24176351362172055, 0.2687290417931758, 0.2541285744784953, 0.2410639128697621, 0.2533187170734695, 0.2407335563133279, 0.29466263498849554, 0.27647762880293447, 0.27449908817581115, 0.26673546882248467, 0.26985128003063624, 0.2497696965699933, 0.2779186186753227, 0.24378408651951086, 0.27054839588037277, 0.2371062928562111, 0.20994620616106704, 0.1847684732042778, 0.18808885487503813, 0.2010903812169314, 0.19684181014448965, 0.21532125894083676, 0.204694164849044, 0.212503229517963, 0.23366715657054773, 0.2103831915879584, 0.24247770447434186, 0.2510995842700597, 0.2465701902113738, 0.23372059797952988, 0.2624784238244726, 0.2605268994157134, 0.2676953402189408, 0.25771662765153125, 0.2564292450981482, 0.23970508835358417, 0.2038148846065253, 0.24404073940847573, 0.2200855593572824, 0.24270719955077283, 0.21897744651519632, 0.001229006562161214, 0.10592183338038615, 0.17769612681917044, 0.1755774228639298, 0.001229936692648805, 0.18135803788095894, 0.21237826042812158, 0.18642469127560435, 0.20824074881871427, 0.13232039798080927, 0.22804096589554093, 0.24480654222898884, 0.11681670776745633, 0.22981986464378673, 0.19597499055369122, 0.23085101433797306, 0.20713726862683307, 0.24513906071606079, 0.24674100950428882, 0.21296534250696594, 0.36231352441161463, 0.3352257664829986, 0.31300736738624413, 0.3410337768945566, 0.3566280512154995, 0.23629633614386508, 0.2605797498646582, 0.22206907566898884, 0.2717203209831326, 0.2256826775841031, 0.2951123687979046, 0.26367624623159436, 0.22156606595144082, 0.25645136092301785, 0.26901857947547436, 0.281578220401997, 0.30432052693219624, 0.27837259686887683, 0.27983173283682294, 0.2786124865620416, 0.29743645667069685, 0.27711858472071366, 0.28228798364203017, 0.28348622590252814, 0.26790957573073215, 0.3293845027794157, 0.3491210178243247, 0.3210402750044356, 0.34687142312352853, 0.3296766558259183, 0.237057083741832, 0.22215875013115402, 0.23005363619366306, 0.2480412159316916, 0.2519788123556685, 0.25132259175703425, 0.23458867817414905, 0.24994578365528944, 0.24896029114528823, 0.2652557891209969, 0.2809538461602214, 0.28097846844714336, 0.27764853413781415, 0.2684238292167317, 0.2731336122803151, 0.2751178520891447, 0.28616520026341785, 0.29286528427196423, 0.2809884337963317, 0.2849154203863526, 0.30841583400501854, 0.3073806891902524, 0.3207889994384008, 0.3120450038441854, 0.3210493482789514, 0.23083662573021466, 0.22349495659614518, 0.22191594926347105, 0.24687834596797278, 0.2532141929538868, 0.2788739948742254, 0.2256698952386602, 0.24812503043638126, 0.24586078819940507, 0.24584072618381442, 0.27718305249068975, 0.2719490820813058, 0.26847933413667485, 0.24252853451199485, 0.2694361630280905, 0.27618114290835344, 0.2745314005376655, 0.2830726016928939, 0.273327842410927, 0.2718003141968412, 0.2727124579118483, 0.30524321398229637, 0.29866714648032955, 0.3203920812505857, 0.3105233310001801, 0.1905191774794351, 0.21624005109402136, 0.22492392153791904, 0.23236338254933697, 0.2512737817595055, 
+0.2271547827160334, 0.25003678903051474, 0.24660208051428573, 0.23408493250491985, 0.2466923227833254, 0.26753431163526964, 0.26970926051051114, 0.2790124933786135, 0.2746627667075805, 0.2550761762543988, 0.26038279480371024, 0.26529948895430244, 0.260585655916578, 0.2494340302520226, 0.25689709629515206, 0.2584545819453598, 0.25782616764028166, 0.2677838026981898, 0.2389627195281403, 0.2939058107520035, 0.20258235097969618, 0.21845755196629765, 0.21138034356509103, 0.21873430144869793, 0.19943245026314105, 0.23571086238527106, 0.22730270693613128, 0.2306470258930143, 0.2417008378232463, 0.258674840068008, 0.28143300349245975, 0.2603220240196578, 0.2618730890601026, 0.25698666277779464, 0.26391525069573163, 0.2659109552971314, 0.278890844005997, 0.26876933065975744, 0.2647580296053199, 0.2751848234415937, 0.3418796719568101, 0.3474193809070299, 0.3616094421092687, 0.3508288971990341, 0.36490350414329875, 0.23040719453351946, 0.2721607464983159, 0.3342379943455773, 0.31365020387828696, 0.2877756113559881, 0.2813230281102297, 0.26407330008774127, 0.2889667660993327, 0.2794682172010728, 0.28803522086127614, 0.2827769151018132, 0.28504125134696423, 0.30800424546392546, 0.30815715561981566, 0.2934223381631596, 0.29374340550607236, 0.2830507523748542, 0.29676831879696, 0.2707337768354455, 0.26791345957026586, 0.3529762084801191, 0.35198508173047766, 0.33648760028644514, 0.3446764942373808, 0.37651804876406464, 0.28777148763313615, 0.2216893971532309, 0.2664577844660412, 0.2739758623289478, 0.27559264098662023, 0.2765145630876549, 0.2563046885438438, 0.24589576129443677, 0.25906262713943856, 0.24824527178995232, 0.27949700369127206, 0.2793808508758166, 0.2826691651936614, 0.2559826373415908, 0.2831854811847826, 0.27865446544294414, 0.2750932225292318, 0.2760249120144138, 0.2814449739285812, 0.26404023308871494, 0.3298456910302742, 0.3439185443372103, 0.3431664167463747, 0.34105069858761633, 0.3512666721574018, 0.21497576911979183, 0.2539971344835855, 0.2619662541938339, 0.19922778779823622, 0.2458134367486601, 0.24044877829330838, 0.25988591398887473, 0.2757522574467584, 0.25400607551989807, 0.25497274473581844, 0.2734559793501597, 0.2622652773272605, 0.2815570577817932, 0.24848679249449485, 0.28431862332600066, 0.31196820952325083, 0.29280660391217034, 0.3031395280613901, 0.25548755717463956, 0.26901286022341475, 0.29292505287017456, 0.34548080688696875, 0.31088611973040614, 0.32463964055820405, 0.32876986502362104, 0.2280839599820237, 0.23111327487792893, 0.25260612114673003, 0.24664591671355018, 0.24151962244607592, 0.26693163753204124, 0.24062791043491574, 0.23751740904157495, 0.22635269269767436, 0.23792109333607936, 0.26263942091013165, 0.2835278868621523, 0.26651952669509693, 0.2559810116242593, 0.2571605468103797, 0.25436002420580384, 0.27263931264386887, 0.2875729761351798, 0.24975693253617354, 0.28760394712446585, 0.33189542106255976, 0.3197784464588269, 0.33227247276679117, 0.32524115692800676, 0.3079433533882346, 0.22586276043497894, 0.2255091870355604, 0.20645343540807232, 0.2420562729176691, 0.22520243285135513, 0.2275066817825343, 0.25727042635720654, 0.2636060887254165, 
+0.24429775541132953, 0.2527675946514983, 0.26299306845252296, 0.2596380250605131, 0.26025751672984426, 0.25224111588223064, 0.29007731393062514, 0.27885582056699426, 0.28202508462456377, 0.25678010087385283, 0.2614153312364772, 0.27863372234163336, 0.39362540898904586, 0.389354867474051, 0.35962489888156557, 0.38520339883229493, 0.3849487584633721, 0.333502378706622, 0.35976019404434234, 0.32432808492626775, 0.3544205961024294, 0.3491786298514419, 0.29775715824818944, 0.28142719534286775, 0.29057571402436294, 0.30307820707068844, 0.2699827045385605, 0.30584013997188375, 0.28832018507041973, 0.2701244871346052, 0.27440619624692647, 0.30227331913971706, 0.29184827934983376, 0.29309744189365877, 0.2682484248098391, 0.2680657763384127, 0.29253261428752186, 0.3641370057976694, 0.37726493272307604, 0.36873204937221427, 0.3597432946441802, 0.3712544036408649, 0.29712056911070805, 0.2480368387752594, 0.23339884121285395, 0.2431587851098844, 0.31217151184447667, 0.24876298653445914, 0.27763381602264425, 0.2642252568569155, 0.27429318371374684, 0.27541164180121, 0.2809183487506328, 0.2613881004412264, 0.26914701394217605, 0.2740865619568113, 0.277586451567339, 0.28131713996128904, 0.29102791234420816, 0.2675896242059164, 0.2823910646506122, 0.24920279263867748, 0.339666269644238, 0.3458078942693393, 0.3563852768097128, 0.3489849572722631, 0.3547248873022404, 0.29728166948662993, 0.24618031587562514, 0.26108099742768714, 0.22660737057974695, 0.27133543705747165, 0.2775801341437582, 0.2604829979566128, 0.26568108516993477, 0.24528751144349803, 0.28592761821138557, 0.2777677884391093, 0.2488759062064071, 0.2624211732608162, 0.26892721804170927, 0.27313937846505093, 0.2793846973146744, 0.2808390863950964, 0.2920428358839798, 0.27597054407467114, 0.2674979809189366, 0.3676456572063949, 0.35181180670861767, 0.3498967482824846, 0.3608489822971686, 0.34817052144030924, 0.2635430488120506, 
+0.2623126248084451, 0.20852213454285362, 0.21424879748659315, 0.22427963333623696, 0.22859274638481053, 0.26140857317993477, 0.256673518182285, 0.24523633370397604, 0.2803228876542152, 0.26636614178476575, 0.25720271629956515, 0.25815489861572577, 0.2592648891674093, 0.2712512469280517, 0.2889087293393891, 0.2644658512292386, 0.27917452960753564, 0.277220771694837, 0.28039015145842827, 0.33671863512015665, 0.3364782468021458, 0.33756245381284455, 0.29657752921903663, 0.3409415608277137, 0.22343290718226008, 0.19553229889111098, 0.2175099842269562, 0.2362199769616838, 0.26457464965269556, 0.25929543445661896, 0.28212624235256845, 0.24870434927335255, 0.24969230973961706, 0.2570597862237043, 0.2518952232843731, 0.2721824797765361, 0.2700487139975341, 0.2717690300597064, 0.2729596246291808, 0.2724906148113051, 0.2776711016134532, 0.2541344116018261, 0.27929417769061177, 0.27287217424470867]
+
+
+"""height = np.random.normal(65, 5, n_samples)  # Mean height 65 inches, std dev 5 inches
+weight = 2.5 * height + np.random.normal(0, 20, n_samples)  # weight strongly correlated with height
+age = np.random.normal(30, 10, n_samples) #  Age with less correlation"""
+
+data = pd.DataFrame({
+    'T_{\mathrm{max}}': MaxT,
+    '\\beta': Beta,
+    '\\theta_{\mathrm{GS}}': Theta,
+    '\\sigma_{\mathrm{L}}': σ_L,
+    '\\sigma_{\mathrm{A}}': σ_A
+})
+    
+
+# You can load data from a CSV file like this:
+# data = pd.read_csv('your_data.csv')
+# Be sure your CSV has column headers
+
+# 2. Data Preprocessing: Standardize the Data
+# PCA is sensitive to the scale of the data, so standardize it to have
+# zero mean and unit variance.
+scaler = StandardScaler()
+scaled_data = scaler.fit_transform(data)  # Fit and transform
+
+# 3. Apply PCA
+# Create a PCA object.  You can specify the number of components
+# you want to keep, or leave it as the default (which is the same
+# as the number of features).  We'll keep all 3 for now, and then
+# explore explained variance to decide how many components to keep.
+pca = PCA()  # Use PCA(n_components=2) to specify number of components
+pca.fit(scaled_data)  # Fit PCA to the data
+
+# 4. Analyze the Results
+
+# a) Explained Variance Ratio
+# This tells you how much variance is explained by each principal component.
+explained_variance_ratio = pca.explained_variance_ratio_
+print("Explained Variance Ratio:", explained_variance_ratio)
+print("Cumulative Explained Variance:", np.cumsum(explained_variance_ratio))
+
+# b) Transform the Data (Project onto Principal Components)
+# This transforms the original data into the new PCA space.
+pca_data = pca.transform(scaled_data)
+
+# c) View the PCA Results as a DataFrame for Convenience
+pca_df = pd.DataFrame(data=pca_data, columns=['PC1', 'PC2', 'PC3', 'PC4', 'PC5'])
+print("\nPCA Data (first few rows):\n", pca_df.head())
+
+# 5. Visualization (Important for Understanding)
+
+# a) Scree Plot (to help decide how many components to keep)
+fontsize=11
+#plt.figure(figsize=(8, 6))
+print("a:", np.cumsum(explained_variance_ratio))
+plt.bar(range(1, pca.n_components_ + 1), explained_variance_ratio, alpha=0.7, align='center',
+        label='Individual explained variance')
+plt.step(range(1, pca.n_components_ + 1), np.cumsum(explained_variance_ratio), where='mid',
+         label='Cumulative explained variance')
+plt.ylabel('Explained variance ratio', fontsize=fontsize)
+plt.xlabel('Principal component', fontsize=fontsize)
+plt.legend(loc='best', fontsize=fontsize)
+plt.xticks(fontsize=fontsize)
+plt.yticks(fontsize=fontsize)
+plt.tight_layout()
+plt.show()
+
+
+# b) 2D Scatter Plot (if you reduce to 2 components, or for visualization)
+# In our example, we'll plot PC1 vs PC2
+#plt.figure(figsize=(8, 6))
+sns.scatterplot(x='PC1', y='PC2', data=pca_df)
+plt.xlabel('Principal Component 1', fontsize=fontsize)
+plt.ylabel('Principal Component 2', fontsize=fontsize)
+plt.xticks(fontsize=fontsize)
+plt.yticks(fontsize=fontsize)
+plt.grid(True)
+plt.show()
+
+# c) Loading Vectors/Eigenvectors (Optional but insightful)
+# The loading vectors (eigenvectors) show how much each original feature
+# contributes to each principal component. They are often visualized with
+# "biplots" (which is combining a scatter plot of PCA data with the loadings).
+loadings = pca.components_.T * np.sqrt(pca.explained_variance_)  # Scale by sqrt(eigenvalue)
+loadings_df = pd.DataFrame(loadings, index=data.columns, columns=['PC1', 'PC2', 'PC3', 'PC4', 'PC5'])
+print("\nLoadings DataFrame:\n", loadings_df)
+
+# (More advanced)  Biplot (Optional - requires understanding of the loadings)
+#plt.figure(figsize=(8, 6))
+plt.scatter(pca_data[:, 0], pca_data[:, 1], s=3, alpha=0.3)  # Scatter plot of the first two PCs
+
+# Add arrows for the loadings
+scale=1.2
+for i, feature in enumerate(data.columns):
+    plt.arrow(0, 0, loadings[i, 0], loadings[i, 1], color='darkred', alpha=1.0, head_width=0.05, head_length=0.1)
+    print(i, loadings[i, 0] * scale, loadings[i, 1]*scale)
+    if i==2:
+        plt.text(loadings[i, 0] * scale-0.05, loadings[i, 1] * scale-0.1, r"$%s$" %(feature), fontsize=fontsize, color='k', ha='center', va='center')
+    else:
+        plt.text(loadings[i, 0] * scale, loadings[i, 1] * scale, r"$%s$" %(feature), fontsize=fontsize, color='k', ha='center', va='center')
+
+plt.xlabel('Principal component 1', fontsize=fontsize)
+plt.ylabel('Principal component 2', fontsize=fontsize)
+plt.xticks(fontsize=fontsize)
+plt.yticks(fontsize=fontsize)
+
+plt.xlim(-1,1.5)
+plt.ylim(-1,1.5)
+plt.show()
+
+
+# 6.  Interpretation and Dimensionality Reduction
+
+# Look at the explained variance ratio.
+# If the first few components explain a high percentage of the variance,
+# you can often reduce the dimensionality (e.g., keep only PC1 and PC2)
+# without losing much information.
+
+# Example:  Let's say PC1 and PC2 explain 95% of the variance.
+# Then, you could use only these two principal components as your
+# new features in subsequent analysis (e.g., for a machine learning model).
+
+# 7.  Using the Reduced Data in Further Analysis (Example)
+# Let's pretend we decided to keep only PC1 and PC2.
+# We can use pca_data[:, 0:2] for further analysis
+# This reduces the dimensionality to two components
+
+#  Example:  We might then use PC1 and PC2 as features in a model
+# to predict an output variable (which we're not demonstrating here,
+# but it would involve creating a target variable and training a model).
+
+
+
+
+# include file where structure analysis modules are stored
+include("structure_analysis_modules.jl")
+
+# import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+import MetaGraphsNext
+import Graphs
+import Plots
+import Colors
+import Glob
+import DataFrames
+import LaTeXStrings
+import IterTools
+import Combinatorics
+import Statistics
+import Polynomials
+import LinearAlgebra
+import MultivariateStats
+using StatsPlots
+
+function fit_and_predict(df::DataFrames.DataFrame, T_max_interp, beta_interp, theta_interp)
+    # Separate input and output columns
+    input_data = df[:, [:MaxT, :Beta, :Theta]]
+    output_data = df[:, [:σ_L, :σ_A]]
+
+    # Create the design matrix for a quadratic fit
+    X = hcat(ones(size(input_data, 1)), input_data[:, 1], input_data[:, 2], input_data[:, 3], input_data[:, 1].^2, input_data[:, 2].^2, input_data[:, 3].^2, input_data[:, 1].*input_data[:, 2], input_data[:, 1].*input_data[:, 3], input_data[:, 2].*input_data[:, 3])
+    #println("X:")
+    #display(X)
+    # Fit the model for bond_angle_std
+    coeffs_bond_length = X \ output_data[:, 1]
+    #println("coeffs_bond_angle, $coeffs_bond_angle")
+
+    # Fit the model for bond_length_std
+    coeffs_bond_angle = X \ output_data[:, 2]
+
+    # Create the design matrix for the interpolation point
+    X_interp = [1, T_max_interp, beta_interp, theta_interp, T_max_interp^2, beta_interp^2, theta_interp^2, T_max_interp*beta_interp, T_max_interp*theta_interp, beta_interp*theta_interp]
+    #println("X_interp, $X_interp")
+    # Predict the bond_angle_std and bond_length_std for given T_max, beta, and theta
+    
+    bond_length_std_interp = LinearAlgebra.dot(X_interp, coeffs_bond_length)
+    bond_angle_std_interp = LinearAlgebra.dot(X_interp, coeffs_bond_angle)
+
+    return bond_length_std_interp, bond_angle_std_interp
+end
+=#
+
+
+function get_data_and_predict(;
+    nr_vertices_array,
+    maximal_temperature_array,
+    bond_bending_const_array,
+    temperature_gradient_array,
+    nr_monte_carlo_steps_per_temperature_array,
+    theta_ground_state_array,
+    nr_trials_per_temperature_array,
+    save_path,
+    filename_start,
+    plot_save_path,
+    plot_filename_start)
+
+    # test before we begin
+    @assert length(nr_vertices_array)>=1
+    @assert length(maximal_temperature_array)>=1
+    @assert length(bond_bending_const_array)>=1
+    @assert length(temperature_gradient_array)>=1
+    @assert length(nr_monte_carlo_steps_per_temperature_array)>=1
+    @assert length(theta_ground_state_array)>=1
+    @assert length(nr_trials_per_temperature_array)>=1
+
+    # store array with all the paths in the directory to check if we have
+    # this .h5 and .gml to be able to plot it.
+    path_array=Glob.glob(filename_start*"*",save_path)
+
+    # for data storage 
+    data::Vector{Vector{Float64}}=[]
+
+    for k in eachindex(nr_vertices_array)
+
+        nr_vertices=nr_vertices_array[k]
+
+        for j in eachindex(maximal_temperature_array)
+
+            maximal_temperature=maximal_temperature_array[j]
+
+            for m in eachindex(bond_bending_const_array)
+
+                bond_bending_const=bond_bending_const_array[m]
+
+                for n in eachindex(temperature_gradient_array)
+
+                    temperature_gradient=temperature_gradient_array[n]
+                    
+                    for o in eachindex(nr_monte_carlo_steps_per_temperature_array)
+
+                        nr_monte_carlo_steps_per_temperature=nr_monte_carlo_steps_per_temperature_array[o]
+                    
+                        for p in eachindex(theta_ground_state_array)
+                            
+                            theta_ground_state=theta_ground_state_array[p]
+
+                            for i in eachindex(nr_trials_per_temperature_array)
+
+                                trial=nr_trials_per_temperature_array[i]
+                                
+                                filename = (filename_start
+                                    *"_N="*"$nr_vertices"
+                                    *"_T="*"$maximal_temperature"
+                                    *"_Beta="*"$bond_bending_const"
+                                    *"_GradT="*"$temperature_gradient"
+                                    *"_StepsPerT="*"$nr_monte_carlo_steps_per_temperature"
+                                    *"_Theta_GS="*"$theta_ground_state"
+                                    *"_Trial="*"$trial"
+                                    )
+
+                                total_path=save_path*filename
+
+                                if(total_path*".gml" in path_array)
+                                    println(filename)
+
+                                    spatial_network=NG.load_spatial_network_from_gml_old(total_path*".gml")
+                                    #Energies
+                                    stretching_energy=NG.get_stretching_energy_keating(spatial_network)
+                                    bending_energy=NG.get_bending_energy_keating(spatial_network)
+                                    total_energy=NG.get_total_energy_keating(spatial_network)
+                                    @assert stretching_energy+bending_energy===total_energy
+                                    ratio_energy=stretching_energy/bending_energy
+                                    #Std of bond
+                                    bond_length_std, bond_length_vec = NA.get_bond_length_std(spatial_network)
+                                    bond_angle_std, bond_angle_vec = NA.get_bond_angle_std(spatial_network)
+                                    #Accepted moves
+                                    evolution_dict = GU.load_h5_dict(total_path*"_evolution.h5")
+                                    accepted_moves=sum(evolution_dict["move_accepted_vec"])
+
+                                    data=push!(data,
+                                        [
+                                        nr_vertices,
+                                        maximal_temperature,
+                                        bond_bending_const,
+                                        temperature_gradient,
+                                        nr_monte_carlo_steps_per_temperature,
+                                        theta_ground_state,
+                                        trial,
+                                        bond_length_std,
+                                        bond_angle_std,
+                                        accepted_moves,
+                                        stretching_energy,
+                                        bending_energy,
+                                        total_energy,
+                                        ratio_energy
+                                        ]
+                                    )
+                        
+                                else
+                                    println("file not in directory")
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    
+    # data cleaning
+
+    matrix=mapreduce(permutedims, vcat, data)
+
+    df=DataFrames.DataFrame(matrix,:auto)
+
+    DataFrames.rename!(df, 
+        [:x1, :x2, :x3, :x4, :x5, :x6, :x7, :x8, :x9, :x10, :x11, :x12, :x13, :x14] 
+        .=>  [:NrVert, :MaxT, :Beta, :GradT, :MCStp, :Theta, :Trial, :σ_L, 
+            :σ_A, :AccMoves, :StretchE, :BendE ,
+            :TotalE, :RatioE])
+
+    println("df:")
+    display(df)
+
+
+    df_filtered=filter(row -> row.AccMoves > 250, df)
+
+    println("df_filtered:")
+    display(df_filtered)
+
+    
+    print("MaxT=")
+    print("[")
+    for T in Matrix(df_filtered[:, [:MaxT]])
+        print("$T, ")
+    end
+    print("]")
+    println("")
+
+    print("Beta=")
+    print("[")
+    for B in Matrix(df_filtered[:, [:Beta]])
+        print("$B, ")
+    end
+    print("]")
+    println("")
+
+    print("Theta=")
+    print("[")
+    for Th in Matrix(df_filtered[:, [:Theta]])
+        print("$Th, ")
+    end
+    print("]")
+    println("")
+
+    print("σ_L=")
+    print("[")
+    for s in Matrix(df_filtered[:, [:σ_L]])
+        print("$s, ")
+    end
+    print("]")
+    println("")
+
+    print("σ_A=")
+    print("[")
+    for s in Matrix(df_filtered[:, [:σ_A]])
+        print("$s, ")
+    end
+    print("]")
+    println("")
+
+    #PCA
+    pca_input_data = Matrix(df_filtered[:, [:MaxT, :Beta, :Theta, :σ_L, :σ_A]])
+    pca_model = MultivariateStats.fit(MultivariateStats.PCA, pca_input_data; maxoutdim=5)
+    pca_transformed = MultivariateStats.transform(pca_model, pca_input_data)
+
+    println("PCA Results:")
+    display(pca_model)
+    println("Principal Components:")
+    display(MultivariateStats.principalvars(pca_model))
+    println("Transformed Data:")
+    display(pca_transformed)
+
+    # Plotting the PCA results
+    if size(pca_transformed, 2) >= 2
+        Plots.plot(pca_transformed[:, 1], pca_transformed[:, 2], seriestype=:scatter, xlabel="PC1", ylabel="PC2", title="PCA of MaxT, Beta, Theta")
+        # savefig(plot_save_path * plot_filename_start * "pca_plot.png")
+    else
+        println("Only one principal component found.")
+    end
+
+    # Visualize how the transformed input dimensions relate to the output dimensions
+    Plots.plot(pca_transformed[:, 1], df_filtered[:, :σ_L], seriestype=:scatter, xlabel="PC1", ylabel="σ_L", title="PC1 vs σ_L")
+    Plots.plot(pca_transformed[:, 1], df_filtered[:, :σ_A], seriestype=:scatter, xlabel="PC1", ylabel="σ_A", title="PC1 vs σ_A")
+    if size(pca_transformed, 2) >= 2
+        Plots.plot(pca_transformed[:, 2], df_filtered[:, :σ_L], seriestype=:scatter, xlabel="PC2", ylabel="σ_L", title="PC2 vs σ_L")
+        Plots.plot(pca_transformed[:, 2], df_filtered[:, :σ_A], seriestype=:scatter, xlabel="PC2", ylabel="σ_A", title="PC2 vs σ_A")
+    end
+
+
+end
+
+get_data_and_predict(
+    nr_vertices_array=[216],
+    maximal_temperature_array=[0.1,0.125,0.15,0.175,0.2], 
+    bond_bending_const_array=[0.2,0.25,0.3,0.35,0.4],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[100.0,120.0,140.0,160.0,180.0],                 
+    nr_trials_per_temperature_array=[1,2,3,4,5],
+    save_path = raw".\simulations\multiple_trials\\",   
+    filename_start="m_t_",
+    plot_save_path = raw".\simulations\analysis_plot\\",
+    plot_filename_start = "m_r_a3_"
+)
+
+
+
+
+
+# include file where structure analysis modules are stored
+include("structure_analysis_modules.jl")
+
+# import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+import MetaGraphsNext
+import Graphs
+import Plots
+import Colors
+import Glob
+import DataFrames
+import LaTeXStrings
+import IterTools
+import Combinatorics
+import Statistics
+import Polynomials
+import LinearAlgebra
+import MultivariateStats
+using StatsPlots
+
+function fit_and_predict(df::DataFrames.DataFrame, T_max_interp, beta_interp, theta_interp)
+    # Separate input and output columns
+    input_data = df[:, [:MaxT, :Beta, :Theta]]
+    output_data = df[:, [:σ_L, :σ_A]]
+
+    # Create the design matrix for a quadratic fit
+    X = hcat(ones(size(input_data, 1)), input_data[:, 1], input_data[:, 2], input_data[:, 3], input_data[:, 1].^2, input_data[:, 2].^2, input_data[:, 3].^2, input_data[:, 1].*input_data[:, 2], input_data[:, 1].*input_data[:, 3], input_data[:, 2].*input_data[:, 3])
+    #println("X:")
+    #display(X)
+    # Fit the model for bond_angle_std
+    coeffs_bond_length = X \ output_data[:, 1]
+    #println("coeffs_bond_angle, $coeffs_bond_angle")
+
+    # Fit the model for bond_length_std
+    coeffs_bond_angle = X \ output_data[:, 2]
+
+    # Create the design matrix for the interpolation point
+    X_interp = [1, T_max_interp, beta_interp, theta_interp, T_max_interp^2, beta_interp^2, theta_interp^2, T_max_interp*beta_interp, T_max_interp*theta_interp, beta_interp*theta_interp]
+    #println("X_interp, $X_interp")
+    # Predict the bond_angle_std and bond_length_std for given T_max, beta, and theta
+    
+    bond_length_std_interp = LinearAlgebra.dot(X_interp, coeffs_bond_length)
+    bond_angle_std_interp = LinearAlgebra.dot(X_interp, coeffs_bond_angle)
+
+    return bond_length_std_interp, bond_angle_std_interp
+end
+
+
+function get_data_and_predict(;
+    nr_vertices_array,
+    maximal_temperature_array,
+    bond_bending_const_array,
+    temperature_gradient_array,
+    nr_monte_carlo_steps_per_temperature_array,
+    theta_ground_state_array,
+    nr_trials_per_temperature_array,
+    save_path,
+    filename_start,
+    simulation_path)
+
+    # test before we begin
+    @assert length(nr_vertices_array)>=1
+    @assert length(maximal_temperature_array)>=1
+    @assert length(bond_bending_const_array)>=1
+    @assert length(temperature_gradient_array)>=1
+    @assert length(nr_monte_carlo_steps_per_temperature_array)>=1
+    @assert length(theta_ground_state_array)>=1
+    @assert length(nr_trials_per_temperature_array)>=1
+
+
+    pore_size_dist_data_path=simulation_path * raw"pore_size_dist\\"
+
+    # store array with all the paths in the directory to check if we have
+    # this .h5 and .gml to be able to plot it.
+    path_array=Glob.glob(filename_start*"*",save_path)
+    pore_size_dist_data_path_array=Glob.glob(filename_start*"*",pore_size_dist_data_path)
+
+    # for data storage 
+    data::Vector{Vector{Float64}}=[]
+
+    for k in eachindex(nr_vertices_array)
+
+        nr_vertices=nr_vertices_array[k]
+
+        for j in eachindex(maximal_temperature_array)
+
+            maximal_temperature=maximal_temperature_array[j]
+
+            for m in eachindex(bond_bending_const_array)
+
+                bond_bending_const=bond_bending_const_array[m]
+
+                for n in eachindex(temperature_gradient_array)
+
+                    temperature_gradient=temperature_gradient_array[n]
+                    
+                    for o in eachindex(nr_monte_carlo_steps_per_temperature_array)
+
+                        nr_monte_carlo_steps_per_temperature=nr_monte_carlo_steps_per_temperature_array[o]
+                    
+                        for p in eachindex(theta_ground_state_array)
+                            
+                            theta_ground_state=theta_ground_state_array[p]
+
+                            for i in eachindex(nr_trials_per_temperature_array)
+
+                                trial=nr_trials_per_temperature_array[i]
+                                
+                                filename = (filename_start
+                                    *"_N="*"$nr_vertices"
+                                    *"_T="*"$maximal_temperature"
+                                    *"_Beta="*"$bond_bending_const"
+                                    *"_GradT="*"$temperature_gradient"
+                                    *"_StepsPerT="*"$nr_monte_carlo_steps_per_temperature"
+                                    *"_Theta_GS="*"$theta_ground_state"
+                                    *"_Trial="*"$trial"
+                                    )
+
+                                total_path=save_path*filename
+
+                                if(total_path*".gml" in path_array)
+                                    println(filename)
+
+                                    spatial_network=NG.load_spatial_network_from_gml_old(total_path*".gml")
+                                    #Energies
+                                    stretching_energy=NG.get_stretching_energy_keating(spatial_network)
+                                    bending_energy=NG.get_bending_energy_keating(spatial_network)
+                                    total_energy=NG.get_total_energy_keating(spatial_network)
+                                    @assert stretching_energy+bending_energy===total_energy
+                                    ratio_energy=stretching_energy/bending_energy
+                                    #Std of bond
+                                    bond_length_std, bond_length_vec = NA.get_bond_length_std(spatial_network)
+                                    bond_angle_std, bond_angle_vec = NA.get_bond_angle_std(spatial_network)
+                                    #Accepted moves
+                                    evolution_dict = GU.load_h5_dict(total_path*"_evolution.h5")
+                                    accepted_moves=sum(evolution_dict["move_accepted_vec"])
+                                    
+                                    pore_size_dist_data_file = pore_size_dist_data_path * filename *"_pore_size_distribution.h5"
+                                    if (!(pore_size_dist_data_file in pore_size_dist_data_path_array))
+
+                                        pore_pixel_radius_array = 
+                                            NA.get_pore_size_distribution(
+                                                spatial_network;
+                                                sampling_grid_size = 0.2,
+                                                save_result = true,
+                                                save_path = pore_size_dist_data_path*filename,
+                                                label = nothing,
+                                                digital_sphere_mask_path 
+                                                    = raw"simulations\digital_sphere_masks\\",
+                                                print_progress = true,
+                                                thread_nr = 0,
+                                                print_lock = Threads.ReentrantLock()
+                                            )
+
+                                    else
+                                        println("Already calculated structure")
+                                    end
+                                    pore_size_dict = GU.load_h5_dict(pore_size_dist_data_file)
+                                    pore_size_distribution_second_moment=NA.get_pore_size_distribution_second_moment(pore_size_dict)
+                                    print("pore_size_distribution_second_moment",pore_size_distribution_second_moment)
+
+                                    data=push!(data,
+                                        [
+                                        nr_vertices,
+                                        maximal_temperature,
+                                        bond_bending_const,
+                                        temperature_gradient,
+                                        nr_monte_carlo_steps_per_temperature,
+                                        theta_ground_state,
+                                        trial,
+                                        bond_length_std,
+                                        bond_angle_std,
+                                        accepted_moves,
+                                        stretching_energy,
+                                        bending_energy,
+                                        total_energy,
+                                        ratio_energy,
+                                        pore_size_distribution_second_moment
+                                        ]
+                                    )
+                        
+                                else
+                                    println("file not in directory")
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    
+    # data cleaning
+
+    matrix=mapreduce(permutedims, vcat, data)
+
+    df=DataFrames.DataFrame(matrix,:auto)
+
+    DataFrames.rename!(df, 
+        [:x1, :x2, :x3, :x4, :x5, :x6, :x7, :x8, :x9, :x10, :x11, :x12, :x13, :x14, :x15] 
+        .=>  [:NrVert, :MaxT, :Beta, :GradT, :MCStp, :Theta, :Trial, :σ_L, 
+            :σ_A, :AccMoves, :StretchE, :BendE ,
+            :TotalE, :RatioE, :r_p])
+
+    println("df:")
+    display(df)
+
+
+    df_filtered=filter(row -> row.AccMoves > 250, df)
+
+    println("df_filtered:")
+    display(df_filtered)
+
+    
+    print("MaxT=")
+    print("[")
+    for T in Matrix(df_filtered[:, [:MaxT]])
+        print("$T, ")
+    end
+    print("]")
+    println("")
+
+    print("Beta=")
+    print("[")
+    for B in Matrix(df_filtered[:, [:Beta]])
+        print("$B, ")
+    end
+    print("]")
+    println("")
+
+    print("Theta=")
+    print("[")
+    for Th in Matrix(df_filtered[:, [:Theta]])
+        print("$Th, ")
+    end
+    print("]")
+    println("")
+
+    print("σ_L=")
+    print("[")
+    for s in Matrix(df_filtered[:, [:σ_L]])
+        print("$s, ")
+    end
+    print("]")
+    println("")
+
+    print("σ_A=")
+    print("[")
+    for s in Matrix(df_filtered[:, [:σ_A]])
+        print("$s, ")
+    end
+    print("]")
+    println("")
+
+    print("r_p=")
+    print("[")
+    for r in Matrix(df_filtered[:, [:r_p]])
+        print("$r, ")
+    end
+    print("]")
+    println("")
+
+end
+
+get_data_and_predict(
+    nr_vertices_array=[216],
+    maximal_temperature_array=[0.1,0.125,0.15,0.175,0.2], 
+    bond_bending_const_array=[0.2,0.25,0.3,0.35,0.4],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[100.0,120.0,140.0,160.0,180.0],                 
+    nr_trials_per_temperature_array=[1,2,3,4,5],
+    save_path = raw".\simulations\multiple_trials\\",   
+    filename_start="m_t_",
+    simulation_path=raw"C:\Users\GlauserV\OneDrive - Université de Fribourg\Anlagen\AMI\Projekt\GitFlorin\code_photonic_structures\simulations\\"
+)
+
+
+
+
+
+# include file where structure analysis modules are stored
+include("structure_analysis_modules.jl")    #*#
+
+# import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+import MetaGraphsNext
+import Graphs
+import Plots
+Plots.plotlyjs()
+import .Threads
+import Statistics
+import LinearAlgebra
+
+function save_multiple_N_T_trials_beta_gml(
+    ;
+    nr_vertices_array,
+    maximal_temperature_array,
+    bond_bending_const_array,
+    temperature_gradient_array,
+    nr_monte_carlo_steps_per_temperature_array,
+    theta_ground_state_array,
+    nr_trials_per_temperature_array,
+    edge_length_unit_cell_array,
+    network_type
+    )
+    
+    println(Threads.nthreads())
+
+    bond_stretching_energy=[]
+    nr_vertices=nr_vertices_array[1]
+    maximal_temperature=maximal_temperature_array[1]
+    bond_bending_const=bond_bending_const_array[1]
+    temperature_gradient=temperature_gradient_array[1]
+    nr_monte_carlo_steps_per_temperature=nr_monte_carlo_steps_per_temperature_array[1]
+    theta_ground_state=theta_ground_state_array[1]
+    nr_trials_per_temperature=nr_trials_per_temperature_array[1]
+
+    for edge_length_unit_cell in edge_length_unit_cell_array
+            
+        println("$nr_vertices"*", "*
+		"$maximal_temperature"*", "*
+		"$bond_bending_const"*", "*
+		"$temperature_gradient"*", "*
+        "$nr_monte_carlo_steps_per_temperature"*", "*
+        "$theta_ground_state"*", "*
+        "$nr_trials_per_temperature"*", "*
+        "$edge_length_unit_cell" )
+    
+        evolution_dict = NA.get_evolution_dict(;
+            nr_vertices = nr_vertices, 
+            network_type=network_type, 
+            bond_bending_const=bond_bending_const, 
+            min_ring_size=3,
+            theta_ground_state=theta_ground_state
+        )
+
+        spatial_network = NG.get_periodic_network(evolution_dict, edge_length_unit_cell)
+
+        println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
+        println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
+
+        spatial_network_copy=deepcopy(spatial_network)
+
+        E=NG.get_stretching_energy_keating(spatial_network_copy)
+        append!(bond_stretching_energy,E)
+        #println("l=$(edge_length_unit_cell), E: $(E)")
+                    
+    end
+    println("edge_length_unit_cell_array, $edge_length_unit_cell_array")
+    println("bond_stretching_energy, $bond_stretching_energy")
+
+    p=Plots.plot(
+        edge_length_unit_cell_array,
+        bond_stretching_energy,
+        xlabel="Edge Length Unit Cell",
+        ylabel="Bond Stretching Energy",
+        label="Bond Stretching Energy"
+    )
+    
+    # srd
+    if cmp(network_type , "srd") == 0
+        l1=2
+        l2=4/sqrt(2)
+        n1=6
+        n2=4
+
+        l_weighted_average=(l1*n1+l2*n2)/(n1+n2)
+
+    elseif cmp(network_type , "ctn") == 0
+        x=0.2082
+        V1=[x, x, x]
+        V2=[3/8, 0.0, 1/4]
+
+        # the difference between V1 and V2 gives us the length
+        D1=V1 .- V2
+        L1=LinearAlgebra.norm(D1)
+
+        l_weighted_average=1/L1
+
+    elseif cmp(network_type , "pto") == 0
+        V1=[1/4, 1/4, 1/4]
+        V2=[1/4, 0.0, 1/2]
+
+        # the difference between V1 and V2 gives us the length
+        D1=V1 .- V2
+        L1=LinearAlgebra.norm(D1)
+
+        l_weighted_average=1/L1
+
+    elseif cmp(network_type , "lcs") == 0
+        x=7/16
+        E1=[x, 7/8, 3/4-x]
+        V1=[3/8, 0.0, 1/4]
+    
+        # calculate the V2 position
+        V2 = 2*E1 .- V1
+    
+        # the difference between V1 and V2 gives us the length
+        D1=V1 .- V2
+        L1=LinearAlgebra.norm(D1)
+    
+        l_weighted_average=1/L1
+
+    end
+    Plots.vline!(p, [l_weighted_average], color=:red, linewidth=2,label="Weighted Average at, $(round(l_weighted_average,digits=3))")
+
+end
+
+#network_type="dia"     #diamond
+#network_type="srs"      #gyroid
+#network_type="srd"
+#network_type="ctn"
+#network_type="pto"
+network_type="lcs"
+
+save_multiple_N_T_trials_beta_gml(;
+    nr_vertices_array=[216],
+    maximal_temperature_array=[0.1],
+    bond_bending_const_array=[0.1],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    edge_length_unit_cell_array=[0.5,0.525,0.55,0.568,0.569,0.57,0.575,0.6,],
+    network_type=network_type
+)
+
+
+#=
+network_type="ctn"
+
+save_multiple_N_T_trials_beta_gml(;
+    nr_vertices_array=[216],
+    maximal_temperature_array=[0.05],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    edge_length_unit_cell_array=[3.675,3.685,3.69,3.703279044748403,3.71,3.715,3.725] ,# [3.6,3.65,3.675,3.703279044748403,3.725,3.75,3.8],
+    network_type=network_type
+)
+
+pto
+save_multiple_N_T_trials_beta_gml(;
+    nr_vertices_array=[216],
+    maximal_temperature_array=[0.1],
+    bond_bending_const_array=[0.1],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    edge_length_unit_cell_array=[2.65,2.7,2.75,2.8,2.825,2.85,2.9,2.95,3.0], #[0.5,1.0,1.5,2.0,2.5,3.0,3.5,4.0],
+    network_type=network_type
+)
+=#
+
+
+
+#=
+"""
+w=ck in vaccum
+w=|k|c/n_eff in homogenous medium
+w_G=|k_G|c/n_eff for Gamma point
+k_G=b(h,k,l)
+b=2 pi/a
+a=l_s*d for supercell_length times rod length
+n_eff=n_1*phi_1+n_2*phi_2
+
+=> wd/2 pi c = 1/(l_s*n_eff) *(h^2+k^2+l^2)
+"""
+import numpy as np
+
+network_type="ctn"
+n_air=1
+n_cylinder=3.6
+fill_fraction=n_air/(n_air+n_cylinder)
+n_eff=n_cylinder*fill_fraction+n_air*(1-fill_fraction)
+
+print(network_type)
+print(fill_fraction)
+print(n_eff)
+
+if network_type=="dia":
+    supercell_length=4/np.sqrt(3)
+elif network_type=="srs":
+    supercell_length=4/np.sqrt(2)
+elif network_type=="srd":
+    supercell_length=2.3075
+elif network_type=="pto":
+    supercell_length=2.8284
+elif network_type=="ctn":
+    supercell_length=3.7033
+else:
+    print("unknown network type")
+
+n=3
+r=range(-n,n)
+k_Gamma_array=[(h,k,l) for h in r for k in r for l in r]
+
+print()
+print(k_Gamma_array)
+print()
+
+norm_freq=[1/(supercell_length*n_eff)*np.linalg.norm(k_Gamma) for k_Gamma in k_Gamma_array]
+
+print()
+print(norm_freq)
+print()
+
+sort_norm_freq=np.sort(np.round(norm_freq,decimals=3))
+
+print()
+print(sort_norm_freq)
+print()
+
+norm_freq_dict=[
+    (np.round(sort_norm_freq[i+1]-sort_norm_freq[i],decimals=3),
+     np.sum(sort_norm_freq==sort_norm_freq[i])) 
+     for i in range(len(sort_norm_freq)-1) 
+     if sort_norm_freq[i+1]!=sort_norm_freq[i]]
+
+print()
+print(norm_freq_dict)
+print()
+
+spacing_norm_freq_dict=[
+    ( np.round(sort_norm_freq[i+1]-sort_norm_freq[i],decimals=3),
+     (np.sum(sort_norm_freq==sort_norm_freq[i+1])+np.sum(sort_norm_freq==sort_norm_freq[i]))/2) 
+     for i in range(len(sort_norm_freq)-1) 
+     if sort_norm_freq[i+1]!=sort_norm_freq[i]]
+
+print()
+print(spacing_norm_freq_dict)
+print()
+
+distance=[delta_omega/nr_bands for (delta_omega, nr_bands) in spacing_norm_freq_dict]
+
+print()
+print(distance)
+print()
+
+#distance_norm_freq=[sort_norm_freq[i+1]-sort_norm_freq[i] for i in range(len(sort_norm_freq)-1)]
+#print(distance_norm_freq)
+=#
+
+
+
+
+# include file where structure analysis modules are stored
+include("structure_analysis_modules.jl")    #*#
+
+# import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+import MetaGraphsNext
+import Graphs
+import Plots
+Plots.plotlyjs()
+import .Threads
+import Statistics
+import LinearAlgebra
+
+function save_multiple_N_T_trials_beta_gml(
+    ;
+    nr_vertices_array,
+    maximal_temperature_array,
+    bond_bending_const_array,
+    temperature_gradient_array,
+    nr_monte_carlo_steps_per_temperature_array,
+    theta_ground_state_array,
+    nr_trials_per_temperature_array,
+    network_type,
+    save_path,
+    filename_start,
+    quench
+    )
+    
+    println(Threads.nthreads())
+
+
+    nr_vertices=nr_vertices_array[1]
+    maximal_temperature=maximal_temperature_array[1]
+    bond_bending_const=bond_bending_const_array[1]
+    temperature_gradient=temperature_gradient_array[1]
+    nr_monte_carlo_steps_per_temperature=nr_monte_carlo_steps_per_temperature_array[1]
+    theta_ground_state=theta_ground_state_array[1]
+    trial=nr_trials_per_temperature_array[1]
+
+    println("$nr_vertices"*", "*
+    "$maximal_temperature"*", "*
+    "$bond_bending_const"*", "*
+    "$temperature_gradient"*", "*
+    "$nr_monte_carlo_steps_per_temperature"*", "*
+    "$theta_ground_state"*", "*
+    "$trial" )
+
+    evolution_dict = NA.get_evolution_dict(;
+        nr_vertices = nr_vertices, 
+        network_type=network_type, 
+        bond_bending_const=bond_bending_const, 
+        min_ring_size=3,
+        theta_ground_state=theta_ground_state
+    )
+    
+    # ==== Ordered 
+
+    spatial_network = NG.get_periodic_network(evolution_dict)
+
+    filename = (filename_start
+        *"_NW="*"$network_type"
+        *"_N="*"$nr_vertices"
+        *"_T="*"$maximal_temperature"
+        *"_Beta="*"$bond_bending_const"
+        *"_GradT="*"$temperature_gradient"
+        *"_StepsPerT="*"$nr_monte_carlo_steps_per_temperature"
+        *"_Theta_GS="*"$theta_ground_state"
+        *"_Trial="*"$trial"
+        )
+    #=
+    NG.save_spatial_network_to_gml(
+        spatial_network,
+        filename;
+        evolution_dict = evolution_dict,
+        save_path = save_path)
+
+    NG.get_spatial_network_for_simulation!(
+        spatial_network,
+        vector_out_of_supercell_length = 1,
+        duplicate_bonds_close_to_supercell_edge = true,
+        save_result = true,
+        filename = filename*"_o",
+        save_path = save_path)
+    =#
+    
+    plot1=NG.plot_spatial_network_2(spatial_network)
+    Plots.xlabel!("x")
+    Plots.ylabel!("y")
+    Plots.zlabel!("z")
+    display(plot1)
+
+    println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
+    println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
+    
+
+    # ==== Disordered
+
+    temperature_vec, nr_monte_carlo_steps_per_temperature_vec = 
+        NA.get_temperature_sequence_heating_cooling_gradient(
+            maximal_temperature;
+            temperature_gradient = temperature_gradient, 
+            nr_monte_carlo_steps_per_temperature = nr_monte_carlo_steps_per_temperature,
+            quench = quench) 
+
+    evolution_dict["temperature_vec"] = temperature_vec
+    evolution_dict["nr_monte_carlo_steps_per_temperature_vec"] = nr_monte_carlo_steps_per_temperature_vec
+
+    total_energy_vec::Vector{Float64}=[]
+    move_accepted_vec::Vector{Bool}=[]
+
+    spatial_network, total_energy_vec, move_accepted_vec = NG.evolve_network_temperature_sequence!(
+        spatial_network,
+        evolution_dict;
+        total_energy_vec = total_energy_vec,
+        move_accepted_vec= move_accepted_vec,
+        print_progress = true,
+        print_every_nr_attempted_bond_switches = 1000)
+
+    println("total_energy_vec: $(total_energy_vec)")
+    println("move_accepted_vec: $(move_accepted_vec)")
+    
+    evolution_dict["total_energy_vec"] = total_energy_vec
+    evolution_dict["move_accepted_vec"] = move_accepted_vec
+    
+    plot1=NG.plot_spatial_network_2(spatial_network)
+    Plots.xlabel!("x")
+    Plots.ylabel!("y")
+    Plots.zlabel!("z")
+    display(plot1)
+
+    println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
+    println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
+        
+
+
+
+    
+	
+    #=
+    NG.save_spatial_network_to_gml(
+        spatial_network,
+        filename;
+        evolution_dict = evolution_dict,
+        save_path = save_path)
+
+    NG.get_spatial_network_for_simulation!(
+        spatial_network,
+        vector_out_of_supercell_length = 1,
+        duplicate_bonds_close_to_supercell_edge = true,
+        save_result = true,
+        filename = filename*"_d",
+        save_path = save_path)
+    =#
+    
+    return
+end
+
+
+save_multiple_N_T_trials_beta_gml(;
+    nr_vertices_array=[28*1^3],
+    maximal_temperature_array=[1.15],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    network_type="ctn",
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/disordered_pto_ctn/",
+    filename_start="MC=1_R=Yes_Q=Yes_1",
+    quench=true
+)
+
+
+
+# include file where structure analysis modules are stored
+include("structure_analysis_modules.jl")    #*#
+
+# import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+import MetaGraphsNext
+import Graphs
+import Plots
+Plots.plotlyjs()
+import .Threads
+import Statistics
+import LinearAlgebra
+
+function save_multiple_N_T_trials_beta_gml(
+    ;
+    nr_vertices_array,
+    maximal_temperature_array,
+    bond_bending_const_array,
+    temperature_gradient_array,
+    nr_monte_carlo_steps_per_temperature_array,
+    theta_ground_state_array,
+    nr_trials_per_temperature_array,
+    network_type,
+    save_path,
+    filename_start
+    )
+    
+    println(Threads.nthreads())
+
+
+    nr_vertices=nr_vertices_array[1]
+    maximal_temperature=maximal_temperature_array[1]
+    bond_bending_const=bond_bending_const_array[1]
+    temperature_gradient=temperature_gradient_array[1]
+    nr_monte_carlo_steps_per_temperature=nr_monte_carlo_steps_per_temperature_array[1]
+    theta_ground_state=theta_ground_state_array[1]
+    trial=nr_trials_per_temperature_array[1]
+
+    println("$nr_vertices"*", "*
+    "$maximal_temperature"*", "*
+    "$bond_bending_const"*", "*
+    "$temperature_gradient"*", "*
+    "$nr_monte_carlo_steps_per_temperature"*", "*
+    "$theta_ground_state"*", "*
+    "$trial" )
+
+    evolution_dict = NA.get_evolution_dict(;
+        nr_vertices = nr_vertices, 
+        network_type=network_type, 
+        bond_bending_const=bond_bending_const, 
+        min_ring_size=3,
+        theta_ground_state=theta_ground_state
+    )
+
+    # ==== Ordered 
+
+    spatial_network = NG.get_periodic_network(evolution_dict)
+    spatial_network_ordered=deepcopy(spatial_network)
+
+    filename = (filename_start
+        *"_NW="*"$network_type"
+        *"_N="*"$nr_vertices"
+        *"_T="*"$maximal_temperature"
+        *"_Beta="*"$bond_bending_const"
+        *"_GradT="*"$temperature_gradient"
+        *"_StepsPerT="*"$nr_monte_carlo_steps_per_temperature"
+        *"_Theta_GS="*"$theta_ground_state"
+        *"_Trial="*"$trial"
+        )
+    
+    NG.save_spatial_network_to_gml(
+        spatial_network_ordered,
+        filename*"_o";
+        evolution_dict = evolution_dict,
+        save_path = save_path)
+
+    NG.get_spatial_network_for_simulation!(
+        spatial_network_ordered,
+        vector_out_of_supercell_length = 1,
+        duplicate_bonds_close_to_supercell_edge = true,
+        save_result = true,
+        filename = filename*"_o",
+        save_path = save_path)
+    
+    plot1=NG.plot_spatial_network_2(spatial_network_ordered)
+    Plots.xlabel!("x")
+    Plots.ylabel!("y")
+    Plots.zlabel!("z")
+    display(plot1)
+
+    println("sigma_L, $((NA.get_bond_length_std(spatial_network_ordered))[1])")
+    println("sigma_A, $((NA.get_bond_angle_std(spatial_network_ordered))[1])")
+    
+
+    # ==== Disordered
+
+    # force one bond switch and then relax and then save t e network
+    switched_chain::Tuple{Int64, Int64, Int64, Int64}=(3, 11, 27, 7)
+    println("s:",switched_chain)
+
+    spatial_network, move_accepted = NG.monte_carlo_move!(
+        spatial_network, 
+        evolution_dict, 
+        maximal_temperature; 
+        switched_chain)
+    
+    println("m: $(move_accepted)")
+
+    move_accepted_vec=[move_accepted]
+    total_energy_vec=NG.get_total_energy_keating(spatial_network)
+    
+    evolution_dict["total_energy_vec"] = total_energy_vec
+    evolution_dict["move_accepted_vec"] = move_accepted_vec
+    
+    plot1=NG.plot_spatial_network_2(spatial_network)
+    Plots.xlabel!("x")
+    Plots.ylabel!("y")
+    Plots.zlabel!("z")
+    display(plot1)
+
+    println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
+    println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
+        
+
+    NG.save_spatial_network_to_gml(
+        spatial_network,
+        filename*"_d";
+        evolution_dict = evolution_dict,
+        save_path = save_path)
+
+    NG.get_spatial_network_for_simulation!(
+        spatial_network,
+        vector_out_of_supercell_length = 1,
+        duplicate_bonds_close_to_supercell_edge = true,
+        save_result = true,
+        filename = filename*"_d",
+        save_path = save_path)
+    
+    return
+end
+
+
+save_multiple_N_T_trials_beta_gml(;
+    nr_vertices_array=[28*1^3],
+    maximal_temperature_array=[10.0],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    network_type="ctn",
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/disordered_pto_ctn/",
+    filename_start="MC=1_R=Yes_Q=No_2"
+)
+
+
+
+# include file where structure analysis modules are stored
+include("structure_analysis_modules.jl")    #*#
+
+# import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+import MetaGraphsNext
+import Graphs
+import Plots
+Plots.plotlyjs()
+import .Threads
+import Statistics
+import LinearAlgebra
+
+function save_multiple_N_T_trials_beta_gml(
+    ;
+    nr_vertices_array,
+    maximal_temperature_array,
+    bond_bending_const_array,
+    temperature_gradient_array,
+    nr_monte_carlo_steps_per_temperature_array,
+    theta_ground_state_array,
+    nr_trials_per_temperature_array,
+    network_type,
+    save_path,
+    filename_start
+    )
+    
+    println(Threads.nthreads())
+
+
+    nr_vertices=nr_vertices_array[1]
+    maximal_temperature=maximal_temperature_array[1]
+    bond_bending_const=bond_bending_const_array[1]
+    temperature_gradient=temperature_gradient_array[1]
+    nr_monte_carlo_steps_per_temperature=nr_monte_carlo_steps_per_temperature_array[1]
+    theta_ground_state=theta_ground_state_array[1]
+    trial=nr_trials_per_temperature_array[1]
+
+    println("$nr_vertices"*", "*
+    "$maximal_temperature"*", "*
+    "$bond_bending_const"*", "*
+    "$temperature_gradient"*", "*
+    "$nr_monte_carlo_steps_per_temperature"*", "*
+    "$theta_ground_state"*", "*
+    "$trial" )
+
+    evolution_dict = NA.get_evolution_dict(;
+        nr_vertices = nr_vertices, 
+        network_type=network_type, 
+        bond_bending_const=bond_bending_const, 
+        min_ring_size=3,
+        theta_ground_state=theta_ground_state
+    )
+
+    # ==== Ordered 
+
+    spatial_network = NG.get_periodic_network(evolution_dict)
+
+    filename = (filename_start
+        *"_NW="*"$network_type"
+        *"_N="*"$nr_vertices"
+        *"_T="*"$maximal_temperature"
+        *"_Beta="*"$bond_bending_const"
+        *"_GradT="*"$temperature_gradient"
+        *"_StepsPerT="*"$nr_monte_carlo_steps_per_temperature"
+        *"_Theta_GS="*"$theta_ground_state"
+        *"_Trial="*"$trial"
+        )
+
+    NG.save_spatial_network_to_gml(
+        spatial_network,
+        filename;
+        evolution_dict = evolution_dict,
+        save_path = save_path)
+
+    NG.get_spatial_network_for_simulation!(
+        spatial_network,
+        vector_out_of_supercell_length = 1,
+        duplicate_bonds_close_to_supercell_edge = true,
+        save_result = true,
+        filename = filename*"_o",
+        save_path = save_path)
+
+    #=
+    plot1=NG.plot_spatial_network_2(spatial_network)
+    Plots.xlabel!("x")
+    Plots.ylabel!("y")
+    Plots.zlabel!("z")
+    display(plot1)
+
+    println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
+    println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
+    =#
+
+    # ==== Disordered
+
+    # force one bond switch and then save the network
+
+    #=
+    switched_chain = NG.get_random_chain(
+        spatial_network; 
+        declined_chains = [],
+        remaining_chains = [],
+        min_ring_size = evolution_dict["min_ring_size"])
+
+    println("switched_chain", switched_chain)
+    =#
+
+    spatial_network = NG.switch_chain!(spatial_network, (3, 11, 27, 7))
+    
+    #spatial_network = NG.switch_chain!(spatial_network, switched_chain)
+    #=
+    spatial_network, move_accepted = NG.monte_carlo_move!(
+        spatial_network, evolution_dict, maximal_temperature; switched_chain)
+
+    move_accepted_vec=[move_accepted]
+        =#
+
+    total_energy_vec=NG.get_total_energy_keating(spatial_network)
+    
+    #=
+    plot1=NG.plot_spatial_network_2(spatial_network)
+    Plots.xlabel!("x")
+    Plots.ylabel!("y")
+    Plots.zlabel!("z")
+    display(plot1)
+
+    println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
+    println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
+        =#
+
+    evolution_dict["total_energy_vec"] = total_energy_vec
+    #evolution_dict["move_accepted_vec"] = move_accepted_vec
+
+    
+	
+    
+    NG.save_spatial_network_to_gml(
+        spatial_network,
+        filename;
+        evolution_dict = evolution_dict,
+        save_path = save_path)
+
+    NG.get_spatial_network_for_simulation!(
+        spatial_network,
+        vector_out_of_supercell_length = 1,
+        duplicate_bonds_close_to_supercell_edge = true,
+        save_result = true,
+        filename = filename*"_d",
+        save_path = save_path)
+    
+    
+    return
+end
+
+
+save_multiple_N_T_trials_beta_gml(;
+    nr_vertices_array=[28*1^3],
+    maximal_temperature_array=[10.0],
+    bond_bending_const_array=[0.25],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    network_type="ctn",
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/disordered_pto_ctn/",
+    filename_start="MC=1_R=No_Q=No_1"
+)
+
+
+
+
+# include file where structure analysis modules are stored
+include("structure_analysis_modules.jl")    #*#
+
+# import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+import MetaGraphsNext
+import Graphs
+import Plots
+Plots.plotlyjs()
+import .Threads
+import Statistics
+import LinearAlgebra
+
+function save_multiple_N_T_trials_beta_gml(
+    ;
+    network_type_array,
+    nr_vertices_array,
+    bond_bending_const_array,
+    theta_ground_state_array,
+    p_array
+    )
+    
+    println(Threads.nthreads())
+
+    # Pair nr_vertices and network_type using zip
+    vertex_network_pairs = zip(network_type_array, nr_vertices_array)
+
+    # Create the iterator for all combinations
+    Iter = collect(Iterators.product(
+        vertex_network_pairs,
+        bond_bending_const_array,
+        theta_ground_state_array,
+        p_array
+    ))
+
+    data=[]
+
+    data_lock = Threads.ReentrantLock()
+
+    Threads.@threads for (
+        (network_type, nr_vertices), 
+        bond_bending_const, 
+        theta_ground_state, 
+        p) in Iter
+
+        println(
+            "$network_type"*", "*
+            "$nr_vertices"*", "*
+            "$bond_bending_const"*", "*
+            "$theta_ground_state"*", "*
+            "$p" )
+
+        evolution_dict = NA.get_evolution_dict(;
+            nr_vertices = nr_vertices, 
+            network_type=network_type, 
+            bond_bending_const=bond_bending_const, 
+            min_ring_size=3,
+            theta_ground_state=theta_ground_state
+        )
+
+        spatial_network = NG.get_periodic_network(evolution_dict)
+
+        #println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
+        #println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
+
+        spatial_network_copy=deepcopy(spatial_network)
+
+        # E start
+        E_start=NG.get_total_energy_keating(spatial_network_copy)
+        T_melt_array=[]
+
+        for i in collect(range(0, 0, length=nr_vertices)) #We choose nr_vertices so that on average we get once every vertex
+            spatial_network=deepcopy(spatial_network_copy)
+
+            # E end
+            switched_chain = NG.get_random_chain(
+                spatial_network; 
+                declined_chains = [],
+                remaining_chains = [],
+                min_ring_size = evolution_dict["min_ring_size"])
+
+            # switch bonds
+            spatial_network = NG.switch_chain!(spatial_network, switched_chain)
+
+            spatial_network = NG.relax_network_keating!(
+                spatial_network,
+                switched_chain,
+                evolution_dict)
+
+            E_end=NG.get_total_energy_keating(spatial_network)
+            dE=E_end-E_start
+            T_melt=-dE/log(p)
+            append!(T_melt_array,T_melt)
+        end
+
+        #println("T_melt_array, $T_melt_array")
+        #println("T_melt_min, $(minimum(T_melt_array))")
+
+        #println("[\"$network_type\", $nr_vertices, $bond_bending_const, $theta_ground_state, $p, $(minimum(T_melt_array))],")
+        result=(network_type, nr_vertices, bond_bending_const, theta_ground_state, p, minimum(T_melt_array))
+        
+        lock(data_lock)
+        try
+            push!(data, result)
+        finally
+            # Always unlock the lock, even if an error occurs
+            unlock(data_lock)
+        end
+
+    end
+
+    sort!(data, by = x -> (x[1], x[2], x[3], x[4], x[5], x[6])) 
+
+
+    for (nt, nv, b, t, p, T) in data
+        println("[\"$nt\", $nv, $b, $t, $p, $T ],")
+    end
+end
+
+
+
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["dia","srs","srd","ctn","pto"],  
+    nr_vertices_array=[8*27,8*27,10*27,28*27,14*27] ,
+    bond_bending_const_array=[0.0,0.25,0.5,0.75,1.0],     
+    theta_ground_state_array=[180.0],                     
+    p_array=[0.001] 
+)
+#=
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["ctn","pto","srd","pto","ctn"],  
+    nr_vertices_array=[28,14,80,378,756] ,
+    bond_bending_const_array=[0.25],     
+    theta_ground_state_array=[180.0],                     
+    p_array=[0.0002] 
+)=#
+
+#=
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["ctn","pto"],  
+    nr_vertices_array=[28,14] .* 3 .^ 3,
+    bond_bending_const_array=[0.25],     
+    theta_ground_state_array=[180.0],                     
+    p_array=[0.0025] 
+)=#
+
+#=
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["dia", "srs", "srd", "ctn", "pto"],  
+    nr_vertices_array=[8, 8, 10, 28, 14] .* 3 .^ 3,
+    bond_bending_const_array=[0.0,0.25,0.5,0.75,1.0],     
+    theta_ground_state_array=[180.0],                     
+    p_array=[0.06] 
+)
+    =#
+
+
+#=
+save_multiple_N_T_trials_beta_gml(;
+    network_type_array=["dia"],         #["dia", "srs", "srd", "ctn", "pto", "lcs"],
+    nr_vertices_array=[8] .* 2 .^ 3,     #[8, 8, 10, 28, 14, 24] .* 2 .^ 3,
+    bond_bending_const_array=[0.0],     #0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0
+    theta_ground_state_array=[180.0],   #[110.0, 180.0],
+    p_array=[0.06]                             #0.06
+)=#
+
+
+
+
+#*#
+
+
+
+
+
+
+
+
+
+#Pore
+
+# include file where structure analysis modules are stored
+include("structure_analysis_modules.jl")
+
+# import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+import MetaGraphsNext
+import Graphs
+import Plots
+import Colors
+import Glob
+import DataFrames
+import LaTeXStrings
+using StatsPlots
+
+function scatter_plot_for_mulitple_gml(;
+    nr_vertices_array,
+    maximal_temperature_array,
+    bond_bending_const_array,
+    temperature_gradient_array,
+    nr_monte_carlo_steps_per_temperature_array,
+    theta_ground_state_array,
+    nr_trials_per_temperature_array,
+    simulation_path,
+    filename_start,
+    plot_save_path,
+    plot_filename_start)
+
+    # test before we begin
+    @assert length(nr_vertices_array)>=1
+    @assert length(maximal_temperature_array)>=1
+    @assert length(bond_bending_const_array)>=1
+    @assert length(temperature_gradient_array)>=1
+    @assert length(nr_monte_carlo_steps_per_temperature_array)>=1
+    @assert length(theta_ground_state_array)>=1
+    @assert length(nr_trials_per_temperature_array)>=1
+
+    # store array with all the paths in the directory to check if we have
+    # this .h5 and .gml to be able to plot it.
+    spatial_network_path=simulation_path * raw"mts_5\\"
+    digital_sphere_masks_dict_path=simulation_path * raw"digital_sphere_masks\\"
+    pore_size_dist_data_path=simulation_path * raw"pore_size_dist\\"
+
+    spatial_network_path_array=Glob.glob(filename_start*"*",spatial_network_path)
+    pore_size_dist_data_path_array=Glob.glob(filename_start*"*",pore_size_dist_data_path)
+
+    # for data storage 
+    data::Vector{Vector{Float64}}=[]
+
+    for k in eachindex(nr_vertices_array)
+
+        nr_vertices=nr_vertices_array[k]
+
+        for j in eachindex(maximal_temperature_array)
+
+            maximal_temperature=maximal_temperature_array[j]
+
+            for m in eachindex(bond_bending_const_array)
+
+                bond_bending_const=bond_bending_const_array[m]
+
+                for n in eachindex(temperature_gradient_array)
+
+                    temperature_gradient=temperature_gradient_array[n]
+                    
+                    for o in eachindex(nr_monte_carlo_steps_per_temperature_array)
+
+                        nr_monte_carlo_steps_per_temperature=nr_monte_carlo_steps_per_temperature_array[o]
+                    
+                        for p in eachindex(theta_ground_state_array)
+                            
+                            theta_ground_state=theta_ground_state_array[p]
+
+                            for i in eachindex(nr_trials_per_temperature_array)
+
+                                nr_trials_per_temperature=nr_trials_per_temperature_array[i]
+                                
+                                filename = (filename_start
+                                    *"_N="*"$nr_vertices"
+                                    *"_T="*"$maximal_temperature"
+                                    *"_Beta="*"$bond_bending_const"
+                                    *"_GradT="*"$temperature_gradient"
+                                    *"_StepsPerT="*"$nr_monte_carlo_steps_per_temperature"
+                                    *"_Theta_GS="*"$theta_ground_state"
+                                    *"_Trial="*"$nr_trials_per_temperature"
+                                    )
+
+                                total_path=spatial_network_path*filename
+
+                                if(total_path*".gml" in spatial_network_path_array)
+                                  
+                                    println(filename)
+
+                                    spatial_network=NG.load_spatial_network_from_gml(total_path*".gml")
+
+                                    bond_length_std, bond_length_vec = NA.get_bond_length_std(spatial_network)
+                                    bond_angle_std, bond_angle_vec = NA.get_bond_angle_std(spatial_network)
+
+                                    pore_size_dist_data_file = pore_size_dist_data_path * filename *"_pore_size_distribution.h5"
+                                    if (!(pore_size_dist_data_file in pore_size_dist_data_path_array))
+
+                                        pore_pixel_radius_array = 
+                                            NA.get_pore_size_distribution(
+                                                spatial_network;
+                                                sampling_grid_size = 0.2,
+                                                save_result = true,
+                                                save_path = pore_size_dist_data_path*filename,
+                                                label = nothing,
+                                                digital_sphere_mask_path 
+                                                    = raw"simulations\digital_sphere_masks\\",
+                                                print_progress = true,
+                                                thread_nr = 0,
+                                                print_lock = Threads.ReentrantLock()
+                                            )
+
+                                    else
+                                        println("Already calculated structure")
+                                    end
+                                    #save_path = simulation_path * raw"pore_size_dist\\"
+
+                                    println("A")
+                                    pore_size_dict = GU.load_h5_dict(pore_size_dist_data_file)
+                                    println("B")
+                                    println("pore_size_dict, $pore_size_dict")
+                                    
+                                    println("C")
+                                    #pore_pixel_radius_vec= pore_pixel_radius_array["pore_size_distribution"]
+                                    #println(pore_pixel_radius_vec)
+                                    pore_size_distribution_second_moment=NA.get_pore_size_distribution_second_moment(pore_size_dict)
+                                    println(pore_size_distribution_second_moment)
+
+                                    
+
+                                    println("bond_length_std, $bond_length_std")
+                                    println("bond_angle_std, $bond_angle_std")
+                                    println("pore_size_distribution_second_moment, $pore_size_distribution_second_moment")
+
+                                    evolution_dict = GU.load_h5_dict(total_path*"_evolution.h5")
+                                    accepted_moves=sum(evolution_dict["move_accepted_vec"])
+
+                                    data=push!(data,
+                                        [
+                                            #nr_vertices,
+                                            maximal_temperature,
+                                            bond_bending_const,
+                                            temperature_gradient,
+                                            nr_monte_carlo_steps_per_temperature,
+                                            theta_ground_state,
+                                            nr_trials_per_temperature,
+                                            bond_length_std,
+                                            bond_angle_std,
+                                            accepted_moves,
+                                            pore_size_distribution_second_moment
+                                        ])
+                            
+                                else
+                                    println("file not in directory")
+                                    println("total_path, $total_path")
+                                    
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    
+    #println(data)
+    #println(typeof(data))
+
+    # data cleaning
+
+    matrix=mapreduce(permutedims, vcat, data)
+
+    df=DataFrames.DataFrame(matrix,:auto)
+
+    DataFrames.rename!(df, [:x1, :x2, :x3, :x4, :x5, :x6, :x7, :x8, :x9, :x10] .=>  [:MaxT, :Beta, :GradT, :MCsteps, :Theta, :Trial, :BondLenghtStd, :BondAngleStd, :AcceptedMoves, :PoreSizeDistSecMoment])
+
+    df.AcceptedMovesLog10 = log10.(df.AcceptedMoves .+ 1)
+   
+    #println(df)
+
+    fontsize=11
+
+    # plot
+
+    df.Marker = map(
+        T -> 
+        T == 0.5 ? :utriangle :
+        T == 1.0 ? :rect :
+        T == 1.5 ?  :star5 :
+        :auto, df.MaxT)
+
+    println("T=$(df.MaxT)")
+    println("B=$(df.Beta)")
+    println("A=$(df.BondAngleStd)")
+    println("L=$(df.BondLenghtStd)")
+    println("R=$(df.PoreSizeDistSecMoment)")
+
+
+    return
+
+    A=@df df Plots.scatter(
+        #left_margin=5Plots.PlotMeasures.mm,
+        layout = (1,2),
+        #size = (1200, 800),
+        xtickfont = font(fontsize),  # Set x-axis tick font size
+        ytickfont = font(fontsize),   # Set y-axis tick font size
+        #=
+        xlim=[-0.005,0.18+0.005],
+        xticks = (
+            0:0.025:0.175, 
+            ["0","0.025","0.05","0.075","0.1", "0.125", "0.15", "0.175"]
+        ),
+        =#
+        xguidefont = font(fontsize),
+        yguidefont = font(fontsize),
+        )
+        
+
+    @df df StatsPlots.scatter!(
+        :BondLenghtStd, 
+        :BondAngleStd, 
+        color_palette=[:blue,:turquoise1,:green,:yellow,:gold,:orange,:red,:maroon],
+        group=:Beta,
+        markershape=:Marker,
+        xlabel=LaTeXStrings.L"\sigma_\mathrm{L} / d",
+        ylabel=LaTeXStrings.L"\sigma_\mathrm{A} / \mathrm{rad}",
+        legend=false,
+        subplot=1)
+
+    # Add a single scatter point at the mean for MaxT=0.5 and Beta=0.25
+    #mask = (df.MaxT .== 0.5) .& (df.Beta .== 0.25)
+    color_palette=[:blue,:turquoise1,:green,:yellow,:gold,:orange,:red,:maroon]
+    for MaxT in [0.5,1.0,1.5]
+        for (i,Beta) in enumerate([0,0.25,0.5,0.75,1])
+            mask = (df.MaxT .== MaxT) .& (df.Beta .== Beta)
+            mean_x = DataFrames.mean(df.BondLenghtStd[mask])
+            mean_y = DataFrames.mean(df.BondAngleStd[mask])
+            std_x = DataFrames.std(df.BondLenghtStd[mask])
+            std_y = DataFrames.std(df.BondAngleStd[mask])
+            color=color_palette[i]
+            r = sqrt(std_x^2 + std_y^2)
+            # Plot a slightly transparent circle (2D sphere) at (mean_x, mean_y) with radius r
+            θ = range(0, 2pi; length=100)
+            circle_x = mean_x .+ r .* cos.(θ)
+            circle_y = mean_y .+ r .* sin.(θ)
+            Plots.plot!(A, circle_x, circle_y, fill=(0, 0.2, color), linecolor=color, linewidth=0.5, subplot=1)
+        end
+    end
+
+    T_marker_label = [
+        (0.5, :utriangle, LaTeXStrings.L"T_\mathrm{max}=0"),
+        (1.0, :rect, LaTeXStrings.L"T_\mathrm{max}=0.25"),
+        (1.5, :star5, LaTeXStrings.L"T_\mathrm{max}=0.5"),
+    ]
+
+    for (T, m, lbl) in T_marker_label
+        # Add a dummy point at a position outside the plot (e.g., NaN, NaN)
+        Plots.scatter!(A, [NaN], [NaN], marker=m, color=:black, label=lbl, subplot=1, legend=true)
+    end
+
+    # Custom legend for Beta (marker shape only, all black)
+    beta_marker_label = [
+        (0.0, color_palette[1], LaTeXStrings.L"\beta=0"),
+        (0.25, color_palette[2], LaTeXStrings.L"\beta=0.25"),
+        (0.5, color_palette[3], LaTeXStrings.L"\beta=0.5"),
+        (0.75, color_palette[4], LaTeXStrings.L"\beta=0.75"),
+        (1.0, color_palette[5], LaTeXStrings.L"\beta=1"),
+    ]
+    for (b, c, lbl) in beta_marker_label
+        Plots.scatter!(A, [NaN], [NaN], marker=:rect, color=c, label=lbl, subplot=1, legend=true)
+    end
+
+    @df df StatsPlots.scatter!(
+        :PoreSizeDistSecMoment, 
+        :BondAngleStd, 
+        color_palette=[:blue,:turquoise1,:green,:yellow,:gold,:orange,:red,:maroon],
+        group=:Beta,
+        markershape=:Marker,
+        xlabel=LaTeXStrings.L"r_\mathrm{p}", 
+        ylabel=LaTeXStrings.L"\sigma_\mathrm{A} / \mathrm{rad}",
+        legend=false,
+        subplot=2)    
+
+
+        
+   
+
+    # plot path and name
+
+    minimum_nr_vertices=minimum(nr_vertices_array)
+    maximum_nr_vertices=maximum(nr_vertices_array)
+
+    minimum_temperature=minimum(maximal_temperature_array)
+    maximum_temperature=maximum(maximal_temperature_array)
+    
+    minimum_bond_bending_const=minimum(bond_bending_const_array)
+    maximum_bond_bending_const=maximum(bond_bending_const_array)
+
+    minimum_temperature_gradient=minimum(temperature_gradient_array)
+    maximum_temperature_gradient=maximum(temperature_gradient_array)
+
+    minimum_nr_monte_carlo_steps_per_temperature=minimum(nr_monte_carlo_steps_per_temperature_array)
+    maximum_nr_monte_carlo_steps_per_temperature=maximum(nr_monte_carlo_steps_per_temperature_array)
+
+    minimum_theta=minimum(theta_ground_state_array)
+    maximum_theta=maximum(theta_ground_state_array)
+
+    minimum_nr_trials_per_temperature=minimum(nr_trials_per_temperature_array)
+    maximum_nr_trials_per_temperature=maximum(nr_trials_per_temperature_array)
+
+    plot_filename = (plot_filename_start
+        *"_N="*"$minimum_nr_vertices" * "-" * "$maximum_nr_vertices"
+        *"_T="*"$minimum_temperature" * "-" * "$maximum_temperature"
+        *"_Beta="*"$minimum_bond_bending_const" * "-" * "$maximum_bond_bending_const"
+        *"_GradT="*"$minimum_temperature_gradient" * "-" * "$maximum_temperature_gradient"
+        *"_StepsPerT="*"$minimum_nr_monte_carlo_steps_per_temperature" * "-" * "$maximum_nr_monte_carlo_steps_per_temperature"
+        *"_Theta_GS="*"$minimum_theta" * "-" * "$maximum_theta"
+        *"_Trials="*"$minimum_nr_trials_per_temperature" * "-" * "$maximum_nr_trials_per_temperature"
+        *".png")
+
+    plot_total_path=plot_save_path*plot_filename
+    Plots.savefig(A,plot_total_path)
+
+end
+
+network_type="dia"
+
+scatter_plot_for_mulitple_gml(
+    nr_vertices_array=[216],
+    maximal_temperature_array=[0.5,1.0,1.5],
+    bond_bending_const_array=[0.0,0.25,0.5,0.75,1.0],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1,2], 
+    simulation_path=raw"C:\Users\GlauserV\OneDrive - Université de Fribourg\Anlagen\AMI\Projekt\GitFlorin\code_photonic_structures\simulations\\",
+    filename_start = "mts_5_NW=$(network_type)",
+    plot_save_path = raw".\simulations\analysis_plot\\",
+    plot_filename_start = "thesis_pore_$(network_type)_6"
+)
+
+
+# include file where structure analysis modules are stored
+include("structure_analysis_modules_no_plotting.jl")    #*#
+
+# import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+import MetaGraphsNext
+import Graphs
+import Plots
+Plots.plotlyjs()
+import .Threads
+import Statistics
+import LinearAlgebra
+
+function save_multiple_N_T_trials_beta_gml(
+    ;
+    nr_vertices_array,
+    maximal_temperature_array,
+    bond_bending_const_array,
+    temperature_gradient_array,
+    nr_monte_carlo_steps_per_temperature_array,
+    theta_ground_state_array,
+    nr_trials_per_temperature_array,
+    network_type,
+    save_path,
+    filename_start
+    )
+    
+    println(Threads.nthreads())
+
+
+    nr_vertices=nr_vertices_array[1]
+    maximal_temperature=maximal_temperature_array[1]
+    bond_bending_const=bond_bending_const_array[1]
+    temperature_gradient=temperature_gradient_array[1]
+    nr_monte_carlo_steps_per_temperature=nr_monte_carlo_steps_per_temperature_array[1]
+    theta_ground_state=theta_ground_state_array[1]
+    trial=nr_trials_per_temperature_array[1]
+
+    println("$nr_vertices"*", "*
+    "$maximal_temperature"*", "*
+    "$bond_bending_const"*", "*
+    "$temperature_gradient"*", "*
+    "$nr_monte_carlo_steps_per_temperature"*", "*
+    "$theta_ground_state"*", "*
+    "$trial" )
+
+    evolution_dict = NA.get_evolution_dict(;
+        nr_vertices = nr_vertices, 
+        network_type=network_type, 
+        bond_bending_const=bond_bending_const, 
+        min_ring_size=3,
+        theta_ground_state=theta_ground_state
+    )
+
+    spatial_network = NG.get_periodic_network(evolution_dict)
+
+    println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
+    println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
+
+    # force one bond switch and then save the network
+
+    switched_chain = NG.get_random_chain(
+        spatial_network; 
+        declined_chains = [],
+        remaining_chains = [],
+        min_ring_size = evolution_dict["min_ring_size"])
+    
+    spatial_network, move_accepted = NG.monte_carlo_move!(spatial_network, evolution_dict, maximal_temperature; switched_chain)
+
+    total_energy_vec =NG.get_total_energy_keating(spatial_network)
+    move_accepted_vec=[move_accepted]
+
+    println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
+    println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
+
+    evolution_dict["total_energy_vec"] = total_energy_vec
+    evolution_dict["move_accepted_vec"] = move_accepted_vec
+
+    filename = (filename_start
+        *"_NW="*"$network_type"
+        *"_N="*"$nr_vertices"
+        *"_T="*"$maximal_temperature"
+        *"_Beta="*"$bond_bending_const"
+        *"_GradT="*"$temperature_gradient"
+        *"_StepsPerT="*"$nr_monte_carlo_steps_per_temperature"
+        *"_Theta_GS="*"$theta_ground_state"
+        *"_Trial="*"$trial"
+        )
+	
+    NG.save_spatial_network_to_gml(
+        spatial_network,
+        filename;
+        evolution_dict = evolution_dict,
+        save_path = save_path)
+
+    
+    return
+end
+
+
+save_multiple_N_T_trials_beta_gml(;
+    nr_vertices_array=[10*2^3],
+    maximal_temperature_array=[111.0],
+    bond_bending_const_array=[0.1],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    network_type="srd",
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/ft_1/",
+    filename_start="MC=1_R=Yes_Q=No_1"
+)
+
+
+
+# include file where structure analysis modules are stored
+include("structure_analysis_modules.jl")    #*#
+
+# import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+import MetaGraphsNext
+import Graphs
+import Plots
+Plots.plotlyjs()
+import .Threads
+import Statistics
+import LinearAlgebra
+
+function save_multiple_N_T_trials_beta_gml(
+    ;
+    nr_vertices_array,
+    maximal_temperature_array,
+    bond_bending_const_array,
+    temperature_gradient_array,
+    nr_monte_carlo_steps_per_temperature_array,
+    theta_ground_state_array,
+    nr_trials_per_temperature_array,
+    network_type,
+    save_path,
+    filename_start
+    )
+    
+    println(Threads.nthreads())
+
+
+    nr_vertices=nr_vertices_array[1]
+    maximal_temperature=maximal_temperature_array[1]
+    bond_bending_const=bond_bending_const_array[1]
+    temperature_gradient=temperature_gradient_array[1]
+    nr_monte_carlo_steps_per_temperature=nr_monte_carlo_steps_per_temperature_array[1]
+    theta_ground_state=theta_ground_state_array[1]
+    trial=nr_trials_per_temperature_array[1]
+
+    println("$nr_vertices"*", "*
+    "$maximal_temperature"*", "*
+    "$bond_bending_const"*", "*
+    "$temperature_gradient"*", "*
+    "$nr_monte_carlo_steps_per_temperature"*", "*
+    "$theta_ground_state"*", "*
+    "$trial" )
+
+    evolution_dict = NA.get_evolution_dict(;
+        nr_vertices = nr_vertices, 
+        network_type=network_type, 
+        bond_bending_const=bond_bending_const, 
+        min_ring_size=3,
+        theta_ground_state=theta_ground_state
+    )
+
+    spatial_network = NG.get_periodic_network(evolution_dict)
+
+    #=plot1=NG.plot_spatial_network_2(spatial_network)
+    Plots.xlabel!("x")
+    Plots.ylabel!("y")
+    Plots.zlabel!("z")
+    display(plot1)
+
+    println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
+    println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
+    =#
+    # force one bond switch and then save the network
+
+    switched_chain = NG.get_random_chain(
+        spatial_network; 
+        declined_chains = [],
+        remaining_chains = [],
+        min_ring_size = evolution_dict["min_ring_size"])
+    
+    #spatial_network = NG.switch_chain!(spatial_network, switched_chain)
+    spatial_network, move_accepted = NG.monte_carlo_move!(
+        spatial_network, evolution_dict, maximal_temperature; switched_chain)
+
+    total_energy_vec=NG.get_total_energy_keating(spatial_network)
+    move_accepted_vec=[move_accepted]
+    
+    plot1=NG.plot_spatial_network_2(spatial_network)
+    Plots.xlabel!("x")
+    Plots.ylabel!("y")
+    Plots.zlabel!("z")
+    display(plot1)
+
+    println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
+    println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
+
+    evolution_dict["total_energy_vec"] = total_energy_vec
+    evolution_dict["move_accepted_vec"] = move_accepted_vec
+
+    filename = (filename_start
+        *"_NW="*"$network_type"
+        *"_N="*"$nr_vertices"
+        *"_T="*"$maximal_temperature"
+        *"_Beta="*"$bond_bending_const"
+        *"_GradT="*"$temperature_gradient"
+        *"_StepsPerT="*"$nr_monte_carlo_steps_per_temperature"
+        *"_Theta_GS="*"$theta_ground_state"
+        *"_Trial="*"$trial"
+        )
+	
+    #=NG.save_spatial_network_to_gml(
+        spatial_network,
+        filename;
+        evolution_dict = evolution_dict,
+        save_path = save_path)=#
+
+    NG.get_spatial_network_for_simulation!(
+        spatial_network,
+        vector_out_of_supercell_length = 1,
+        duplicate_bonds_close_to_supercell_edge = true,
+        save_result = true,
+        filename = filename,
+        save_path = save_path)
+
+    
+    return
+end
+
+
+save_multiple_N_T_trials_beta_gml(;
+    nr_vertices_array=[19*1^3],
+    maximal_temperature_array=[0.3],
+    bond_bending_const_array=[0.3],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    network_type="srd_one_unitcell",
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/srd_simulation/",
+    filename_start="MC=1_Q=No_2"
+)
+
+
+
+
+
+
+# include file where structure analysis modules are stored
+include("structure_analysis_modules_no_plotting.jl")    #*#
+
+# import my module that contains all functions for the generation and analysis of networks
+import .NetworkGeneration as NG
+import .NetworkAnalysis as NA
+import .GeneralUtilities as GU
+
+import MetaGraphsNext
+import Graphs
+import Plots
+Plots.plotlyjs()
+import .Threads
+import Statistics
+import LinearAlgebra
+
+function save_multiple_N_T_trials_beta_gml(
+    ;
+    nr_vertices_array,
+    maximal_temperature_array,
+    bond_bending_const_array,
+    temperature_gradient_array,
+    nr_monte_carlo_steps_per_temperature_array,
+    theta_ground_state_array,
+    nr_trials_per_temperature_array,
+    network_type,
+    save_path,
+    filename_start
+    )
+    
+    println(Threads.nthreads())
+
+
+    nr_vertices=nr_vertices_array[1]
+    maximal_temperature=maximal_temperature_array[1]
+    bond_bending_const=bond_bending_const_array[1]
+    temperature_gradient=temperature_gradient_array[1]
+    nr_monte_carlo_steps_per_temperature=nr_monte_carlo_steps_per_temperature_array[1]
+    theta_ground_state=theta_ground_state_array[1]
+    trial=nr_trials_per_temperature_array[1]
+
+    println("$nr_vertices"*", "*
+    "$maximal_temperature"*", "*
+    "$bond_bending_const"*", "*
+    "$temperature_gradient"*", "*
+    "$nr_monte_carlo_steps_per_temperature"*", "*
+    "$theta_ground_state"*", "*
+    "$trial" )
+
+    evolution_dict = NA.get_evolution_dict(;
+        nr_vertices = nr_vertices, 
+        network_type=network_type, 
+        bond_bending_const=bond_bending_const, 
+        min_ring_size=3,
+        theta_ground_state=theta_ground_state
+    )
+
+    spatial_network = NG.get_periodic_network(evolution_dict)
+
+    println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
+    println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
+
+    # force one bond switch and then save the network
+
+    switched_chain = NG.get_random_chain(
+        spatial_network; 
+        declined_chains = [],
+        remaining_chains = [],
+        min_ring_size = evolution_dict["min_ring_size"])
+    
+    spatial_network = NG.switch_chain!(spatial_network, switched_chain)
+
+    total_energy_vec=NG.get_total_energy_keating(spatial_network)
+    move_accepted_vec=[1]
+
+    println("sigma_L, $((NA.get_bond_length_std(spatial_network))[1])")
+    println("sigma_A, $((NA.get_bond_angle_std(spatial_network))[1])")
+
+    evolution_dict["total_energy_vec"] = total_energy_vec
+    evolution_dict["move_accepted_vec"] = move_accepted_vec
+
+    filename = (filename_start
+        *"_NW="*"$network_type"
+        *"_N="*"$nr_vertices"
+        *"_T="*"$maximal_temperature"
+        *"_Beta="*"$bond_bending_const"
+        *"_GradT="*"$temperature_gradient"
+        *"_StepsPerT="*"$nr_monte_carlo_steps_per_temperature"
+        *"_Theta_GS="*"$theta_ground_state"
+        *"_Trial="*"$trial"
+        )
+	
+    NG.save_spatial_network_to_gml(
+        spatial_network,
+        filename;
+        evolution_dict = evolution_dict,
+        save_path = save_path)
+
+    
+    return
+end
+
+
+save_multiple_N_T_trials_beta_gml(;
+    nr_vertices_array=[10*2^3],
+    maximal_temperature_array=[0.0001],
+    bond_bending_const_array=[0.2],
+    temperature_gradient_array=[0.1],
+    nr_monte_carlo_steps_per_temperature_array=[0.01],
+    theta_ground_state_array=[180.0],
+    nr_trials_per_temperature_array=[1],
+    network_type="srd",
+    save_path ="C:/Users/GlauserV/OneDrive - Université de Fribourg/Anlagen/AMI/Projekt/GitFlorin/code_photonic_structures/simulations/ft_1/",
+    filename_start="MC=1_Q=No_1"
+)
+
+
+
+
+
+#=
+elseif cmp(network_name , "srd_one_unitcell") == 0
+    println("AAA")
+    nr_dimensions = 3
+    # we calculated numerically the size of the unitcell,
+    # such that the bond length energy is minimal. This value is close
+    # but not exactly the same as the weighted lengths of the different
+    # coordination number 3 and 4.
+    edge_length_unit_cell = 2.3075*2
+    nr_vertices_per_unit_cell = 10+9
+    nr_edges_per_unit_cell=18*2
+    edges = get_edges_srd_one_unitcell()
+=#
+
+#=
+elseif cmp(network_name , "srd_one_unitcell") == 0
+        println("!!!nr of edges in unitcell should be $nr_edges_per_unit_cell=?=$(
+        length(edge_length_vec)/(nr_unit_cells_per_dimension^3))")  
+        println("!!!CN2=$(count_2)")
+        println("!!!CN3=$(count_3)")
+        println("!!!CN4=$(count_4)")
+        println("CN3/CN4=4/6=0.666=?=$(count_3/count_4)")
+=#
+
 
 #*#
 
 
 #*#
-
+#=
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
@@ -167,7 +5590,7 @@ plt.show()
 #  Example:  We might then use PC1 and PC2 as features in a model
 # to predict an output variable (which we're not demonstrating here,
 # but it would involve creating a target variable and training a model).
-
+=#
 
 
 #*#
@@ -250,7 +5673,7 @@ function save_multiple_N_T_trials_beta_gml(
             min_ring_size = evolution_dict["min_ring_size"])
         #print(switched_chain)
         # switch bonds
-        spatial_network = NG.switch_chain!(spatial_network, switched_chain)    #TODO
+        spatial_network = NG.switch_chain!(spatial_network, switched_chain) 
 
         # relax total network and only update total energy if there won't be
         # thermal fluctuations included afterward
@@ -8190,10 +13613,10 @@ the information that the unit cell contains 18 vertices
 """
 function get_srd_network(nr_vertices)
     
-    edge_length_unit_cell = 1/(sqrt(2)*1/8) #TODO Check this
+    edge_length_unit_cell = 1/(sqrt(2)*1/8) 
 
     # calculate the actual nr vertices, given that we require a 
-    # cubic supercell and using the fact that the unit cell contains 18 vertices    #TODO: Check 18
+    # cubic supercell and using the fact that the unit cell contains 18 vertices 
     nr_unit_cells_per_dimension = max(1, Int(round( (nr_vertices/18)^(1/3) )) )
     nr_vertices = 18 * nr_unit_cells_per_dimension^3
 
@@ -11290,7 +16713,6 @@ function plot_stretch_vs_bend(;
 
                 P=Plots.scatter!(
                     P,
-                    [x],
                     [y],
                     xerr=x_err,
                     yerr=y_err,

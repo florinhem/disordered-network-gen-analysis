@@ -776,6 +776,8 @@ function evolve_network!(
     quench_counter::Int64 = 0,
     print_lock = Threads.ReentrantLock())
 
+    #print("evolve_network")
+
     # set seed for random evolution if desired
     if random_evolution_seed != -1
         Random.seed!(random_evolution_seed)
@@ -786,6 +788,8 @@ function evolve_network!(
 
     # attempt given number of bond switches
     for i in 1:nr_attempted_bond_switches
+        
+        #print("i",i)
 
         # get remaining chains if list of declined chains is long and
         # remaining have not been determined yet
