@@ -13,6 +13,7 @@ import GLMakie
 
 import CSV
 import DataFrames
+import Statistics
 
 fontsize=16
 
@@ -26,7 +27,7 @@ ytickfontsize=fontsize,
 xguidefontsize=fontsize,
 yguidefontsize=fontsize,
 legendfontsize=fontsize,
-bottom_margin = 3Plots.mm,
+bottom_margin = 1Plots.mm,
 linewidth=3, 
 thickness_scaling = 1,
 framestyle = :box,
@@ -145,47 +146,120 @@ end
 fancylogscale!(p::Plots.Plot; kwargs...) = (fancylogscale!(p.subplots[1]; kwargs...); return p)
 fancylogscale!(; kwargs...) = fancylogscale!(Plots.plot!(); kwargs...)
 
-path = path = raw"..\..\presentations\material\\"
 
-load_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\photonics\others\\"
-csv_filename = "cie_2006_2deg_xyz_color_matching_functions.csv"
 
-# Load the data (no header)
-df = CSV.read(load_path * csv_filename, DataFrames.DataFrame; header=false)
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\neural_network_networks\network_comparison\\"
 
-# Extract columns into separate vectors
-wavelength_nm = df[:, 1]             # Column 1: wavelength in nm
-f1 = df[:, 2]                        # Column 2
-f2 = df[:, 3]                        # Column 3
-f3 = df[:, 4]                        # Column 4
+dicts = [] 
+network_type_vec = ["dia"] #, "ctn", "lcs", "srs"
 
-# Convert wavelength [nm] to frequency [THz]
-# λ [nm] → f [THz] = c / λ
-# c = 299792458 m/s = 299792.458 nm/ps = 299792.458 THz·nm
-c_THz_nm = 299792.458
-frequency_THz = c_THz_nm ./ wavelength_nm
 
-# Plot the three functions vs frequency
-plt = Plots.plot(frequency_THz, f1, label="x(ν)", xlabel="Frequency / THz", ylabel="Color Matching Function", c = :red)
-Plots.plot!(plt, frequency_THz, f2, label="y(ν)", c = :green)
-Plots.plot!(plt, frequency_THz, f3, label="z(ν)", c = :blue)
+key_list = [
+    "dihedral_angle_entropy_vec",
+    "bond_angle_std_vec",
+"bond_length_std_vec",
+"critical_pore_radius_vec",
+"bond_orientation_entropy_vec",
+"hyperuniformity_alpha_vec",
+"vertex_homogeneity_metric_vec",
+"ring_radius_std_vec",
+]
 
-# Set Y limits to [0, 2]
-Plots.ylims!(plt, (0, 2))
+labels = [
+    "Dihedral angle entropy",
+    Latex.L"Bond angles $\sigma$",
+    Latex.L"Bond lengths $\sigma$",
+    "Critical pore radius",
+    "Isotropy",
+    Latex.L"Hyperuniformity $\alpha$",
+    "Vertex homogeneity",
+    Latex.L"Ring radii $\sigma$",
+]
 
-# Create a grid
-Plots.plot!(plt, grid=true)
+# Map keys to numeric y positions
+yvals = 1:length(key_list)
 
-# Optionally display the plot (if running in script or REPL)
-Plots.savefig(path * "cie_2006_2deg_xyz_color_matching_functions.png")
 
-# Now plot the same data as a function of wavelength
-plt2 = Plots.plot(wavelength_nm, f1, label="x(λ)", xlabel="Wavelength / nm", ylabel="Color Matching Function", c = :red)
-Plots.plot!(plt2, wavelength_nm, f2, label="y(λ)", c = :green)
-Plots.plot!(plt2, wavelength_nm, f3, label="z(λ)", c = :blue)       
-# Set Y limits to [0, 2]
-Plots.ylims!(plt2, (0, 2))
-# Create a grid
-Plots.plot!(plt2, grid=true)
-# Optionally display the plot (if running in script or REPL)
-Plots.savefig(path * "cie_2006_2deg_xyz_color_matching_functions_wavelength.png")
+
+for (i, network_type) in enumerate(network_type_vec)
+
+    analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\neural_network_networks\\" * network_type * raw"\\"
+    pearson_corr_dict = GU.load_h5_dict(analysis_data_path * "order_relative_peak_height_pearson_correlations.h5")
+    push!(dicts, pearson_corr_dict)
+end
+
+# Example split indices
+n1 = 3
+n2 = 7
+
+
+# Split the labels and corresponding yvals into three groups
+labels1 = labels[1:n1]
+key_lists1 = key_list[1:n1]
+yvals1 = 1:n1
+
+labels2 = labels[n1+1:n2]
+key_lists2 = key_list[n1+1:n2]
+yvals2 = 1:length(labels2)
+
+labels3 = labels[n2+1:end]
+key_lists3 = key_list[n2+1:end]
+yvals3 = 1:length(labels3)
+
+# Calculate relative heights based on number of labels
+total_labels = length(labels)
+heights = [length(labels1)/total_labels, length(labels2)/total_labels, length(labels3)/total_labels]
+
+
+# Create the layout for the three subplots
+l = @Plots.layout([a b; c d])
+
+# Initialize the three subplots
+p1 = Plots.plot(
+    legend = false,
+    yticks = (yvals1, labels1),
+    xticks = ([-0.3, 0, 0.3], ["", "", ""]),
+    grid = true
+)
+
+p2 = Plots.plot(
+    legend = false,
+    yticks = (yvals2, labels2),
+    xticks = ([-0.3, 0, 0.3], ["", "", ""]),
+    grid = true
+)
+
+p3 = Plots.plot(
+    legend = false,
+    yticks = (yvals3, labels3),
+    xlabel = "Correlation",
+    #ylabel = "Topological",
+    xticks = [-0.3, 0, 0.3],
+    grid = true
+)
+
+# Plot the scatter series for each subplot
+for dict in dicts
+    Plots.scatter!(p1, [Measurements.value.(dict[k]) for k in key_lists1], yvals1; label=labels1, markersize=10, ylims=(0.5, n1+0.5), xlims=(-0.35, 0.35))
+
+    Plots.scatter!(p2, [Measurements.value.(dict[k]) for k in key_lists2], yvals2; label=labels2, markersize=10, ylims=(0.5, length(labels2)+0.5), xlims=(-0.35, 0.35))
+
+    Plots.scatter!(p3, [Measurements.value.(dict[k]) for k in key_lists3], yvals3; label=labels3, markersize=10, ylims=(0.5, length(labels3)+0.5), xlims=(-0.35, 0.35))
+end
+
+
+# Combine the subplots into a single plot
+Plots.plot(p1, p2, p3, layout = (3, 1), size = (600, 600), link = :x,
+bottom_margin = 3Plots.mm,
+    top_margin = 3Plots.mm,
+    left_margin = 1Plots.mm,
+    right_margin = 1Plots.mm)
+
+## Add group labels using annotations
+#Plots.annotate!(p1, -0.5, Statistics.mean(yvals1), Plots.text("Local", :center, 12, :bold, :rotation => 90))
+#Plots.annotate!(p2, -0.5, Statistics.mean(yvals2), Plots.text("Global", :center, 12, :bold, :rotation => 90))
+#Plots.annotate!(p3, -0.5, Statistics.mean(yvals3), Plots.text("Topological", :center, 12, :bold, :rotation => 90))
+#
+
+Plots.savefig(save_path * "order_relative_peak_height_pearson_correlations_dia_grouped.png")
+

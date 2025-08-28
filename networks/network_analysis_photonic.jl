@@ -61,6 +61,62 @@ end
 
 
 """
+Calculate the Pearson and Spearman correlations between a single vector of
+interest and a vector of vectors. Return two dictionaries with the keys being 
+the order metric names and the values being the correlation coefficients.
+"""
+function get_correlations(single_vec, multiple_vec_vec, key_vec;
+    print_correlations::Bool = true,
+    save_results::Bool = true,
+    save_path::String = raw"..\analysis_data\neural_network_networks\\",
+    filename::String = "order_saturation_correlations")
+
+    corr_dict = Dict{String, Float64}()
+    spearman_corr_dict = Dict{String, Float64}()
+
+    for (i, key) in enumerate(key_vec)
+        corr_dict[key] = Statistics.cor(single_vec, multiple_vec_vec[i])
+        spearman_corr_dict[key] = StatsBase.corspearman(single_vec, 
+            multiple_vec_vec[i])
+    end
+
+    # print the correlations for Pearson and Spearman, sorting them by the
+    # absolute value of the correlation
+    if print_correlations
+
+        # Sort by decreasing absolute value
+        sorted = sort(collect(corr_dict), by = x -> abs(x[2]), rev = true)
+        # Print key and value
+        println("Pearson correlations:")
+        for (k, v) in sorted
+            println("$(k): $(v)")
+        end
+
+        # Sort by decreasing absolute value
+        sorted = sort(collect(spearman_corr_dict), by = x -> abs(x[2]), 
+            rev = true)
+        println("Spearman correlations:")
+        # Print key and value
+        for (k, v) in sorted
+            println("$(k): $(v)")
+        end
+
+        println(" ")
+    end
+
+    if save_results
+        GU.save_dict_to_h5(copy(corr_dict),
+            save_path * filename * "_pearson_correlations.h5")
+
+        GU.save_dict_to_h5(copy(spearman_corr_dict),
+            save_path * filename * "_spearman_correlations.h5")
+    end
+
+    return corr_dict, spearman_corr_dict
+end
+
+
+"""
 This function calculates the Pearson correlation and the Spearman correlation
 between the saturation metric and the order metrics. It returns two
 dictionaries with the keys being the order metric names and the values being
@@ -154,59 +210,18 @@ function get_order_saturation_correlations(
         end
     end
 
-    # using Pearson's correlation coefficient, calculate the correlation 
-    # between the saturation metrics and the order metrics
-    correlations = [Statistics.cor(saturation_metric_vec, 
-       order_metric_vec_vec[i]) for i in 1:length(order_metric_vec_vec)]
+    order_metric_values_vec_vec = [Measurements.value.(vec) 
+        for vec in order_metric_vec_vec]
 
-    # sort keys according to the absolute values of their correlation 
-    # coefficients
-    sorted_indices = sortperm(abs.(correlations), rev=true)
-    sorted_keys = key_vec[sorted_indices]
-    sorted_correlations = correlations[sorted_indices]
+    # get correlations of the saturation metric with the order metrics
+    corr_saturation_dict, spearman_corr_saturation_dict = get_correlations(
+        saturation_metric_vec, order_metric_values_vec_vec, key_vec,
+        print_correlations=true, save_results=save_results,
+        save_path=analysis_data_path,
+        filename="order_saturation")
 
-    # Print the correlation coefficients
-    for (i, key) in enumerate(sorted_keys)
-        println("Pearson corr. for $key: ", sorted_correlations[i])
-    end
-
-    # create a dictionary with the keys being the order metric names and the
-    # values being the correlation coefficients
-    correlations_dict = Dict(zip(sorted_keys, sorted_correlations))
-
-    if save_results
-        GU.save_dict_to_h5(copy(correlations_dict),
-            analysis_data_path*"order_saturation_pearson_correlations.h5")
-    end
-
-    spearman_correlations = [StatsBase.corspearman(saturation_metric_vec, 
-        order_metric_vec_vec[i]) for i in 1:length(order_metric_vec_vec)]
-
-    # sort keys according to the absolute values of their Spearman's rank
-    # correlation coefficients
-    sorted_spearman_indices = sortperm(abs.(spearman_correlations), rev=true)
-    sorted_spearman_keys = key_vec[sorted_spearman_indices]
-    sorted_spearman_correlations = (
-        spearman_correlations[sorted_spearman_indices])
-
-    # Print the Spearman's rank correlation coefficients
-    for (i, key) in enumerate(sorted_spearman_keys)
-        println("Spearman corr. for $key: ", sorted_spearman_correlations[i])
-    end
-
-    # create a dictionary with the keys being the order metric names and the
-    # values being the Spearman's rank correlation coefficients
-    spearman_correlations_dict = Dict(zip(sorted_spearman_keys, 
-        sorted_spearman_correlations))
-
-    if save_results
-        GU.save_dict_to_h5(copy(spearman_correlations_dict),
-            analysis_data_path*"order_saturation_spearman_correlations.h5")
-    end
-
-    return [correlations_dict, spearman_correlations_dict]
+    return [corr_saturation_dict, spearman_corr_saturation_dict]
 end
-
 
 
 """
@@ -274,7 +289,7 @@ function get_reflection_peak_height_to_width(r_t_dict::Dict{String, Any};
         Plots.savefig(save_path*"_reflection_fit.png")
     end
 
-    return peak_height_to_width
+    return [relative_peak_height, reflection_peak_width, peak_height_to_width]
 end
 
 
@@ -307,6 +322,10 @@ function get_order_peak_height_to_width_correlations(
 
     # get the peak to width metrics and the beta, t_max, and t_gradient values 
     # for each file
+    relative_peak_height_vec = Vector{Measurements.Measurement{Float64}}(undef, 
+        length(r_t_files))
+    reflection_peak_width_vec = Vector{Measurements.Measurement{Float64}}(
+        undef, length(r_t_files))
     peak_height_to_width_vec = Vector{Measurements.Measurement{Float64}}(undef, 
         length(r_t_files))
     beta_t_max_t_gradient_vec = []
@@ -314,11 +333,16 @@ function get_order_peak_height_to_width_correlations(
     for (i, file) in enumerate(r_t_files)
         # get the peak to width metric
         r_t_dict = GU.load_h5_dict(file)
-        peak_height_to_width = get_reflection_peak_height_to_width(r_t_dict, 
-            p0=p0,
-            upper_bounds=upper_bounds,
-            lower_bounds=lower_bounds,
-            save_plot=false)
+        relative_peak_height, reflection_peak_width, peak_height_to_width =(
+            get_reflection_peak_height_to_width(
+                r_t_dict, 
+                p0=p0,
+                upper_bounds=upper_bounds,
+                lower_bounds=lower_bounds,
+                save_plot=false)
+        )
+        relative_peak_height_vec[i] = relative_peak_height
+        reflection_peak_width_vec[i] = reflection_peak_width
         peak_height_to_width_vec[i] = peak_height_to_width
 
         # get the beta, t_max, and t_gradient values from the filename
@@ -389,57 +413,41 @@ function get_order_peak_height_to_width_correlations(
         end
     end
 
-    # using Pearson's correlation coefficient, calculate the correlation 
-    # between the peak height to width metrics and the order metrics
-    correlations = [Statistics.cor( 
+    order_metric_values_vec_vec = [Measurements.value.(vec) 
+        for vec in order_metric_vec_vec]
+
+    # get correlations of the reflection peak height with the order metrics
+    corr_relative_peak_height_dict, spearman_corr_relative_peak_height_dict = get_correlations(
+        Measurements.value.(relative_peak_height_vec), 
+        order_metric_values_vec_vec, key_vec,
+        print_correlations=true, save_results=save_results,
+        save_path=analysis_data_path,
+        filename="order_relative_peak_height")
+
+    # get correlations fo the reflection peak width with the order metrics
+    corr_reflection_peak_width_vec_dict, spearman_corr_reflection_peak_width_vec_dict = get_correlations(
+        Measurements.value.(reflection_peak_width_vec), 
+        order_metric_values_vec_vec, 
+        key_vec,
+        print_correlations=true, 
+        save_results=save_results,
+        save_path=analysis_data_path,
+        filename="order_reflection_peak_width")
+    
+    # get correlations of the peak height to width ratio with the order metrics
+    corr_peak_height_to_width_dict, spearman_corr_peak_height_to_width_dict = get_correlations(
         Measurements.value.(peak_height_to_width_vec), 
-        order_metric_vec_vec[i]) for i in 1:length(order_metric_vec_vec)]
+        order_metric_values_vec_vec, 
+        key_vec,
+        print_correlations=true, 
+        save_results=save_results,
+        save_path=analysis_data_path,
+        filename="order_peak_height_to_width")
 
-    # sort keys according to the absolute values of their correlation 
-    # coefficients
-    sorted_indices = sortperm(abs.(correlations), rev=true)
-    sorted_keys = key_vec[sorted_indices]
-    sorted_correlations = correlations[sorted_indices]
-
-    # Print the correlation coefficients
-    for (i, key) in enumerate(sorted_keys)
-        println("Pearson corr. for $key: ", sorted_correlations[i])
-    end
-
-    # create a dictionary with the keys being the order metric names and the
-    # values being the correlation coefficients
-    correlations_dict = Dict(zip(sorted_keys, sorted_correlations))
-
-    if save_results
-        GU.save_dict_to_h5(copy(correlations_dict),
-            analysis_data_path
-            *"order_peak_height_to_width_pearson_correlations.h5")
-    end
-
-    spearman_correlations = [StatsBase.corspearman(peak_height_to_width_vec, 
-        order_metric_vec_vec[i]) for i in 1:length(order_metric_vec_vec)]
-
-    # sort keys according to the absolute values of their Spearman's rank
-    # correlation coefficients
-    sorted_spearman_indices = sortperm(abs.(spearman_correlations), rev=true)
-    sorted_spearman_keys = key_vec[sorted_spearman_indices]
-    sorted_spearman_correlations = (
-        spearman_correlations[sorted_spearman_indices])
-
-    # Print the Spearman's rank correlation coefficients
-    for (i, key) in enumerate(sorted_spearman_keys)
-        println("Spearman corr. for $key: ", sorted_spearman_correlations[i])
-    end
-
-    # create a dictionary with the keys being the order metric names and the
-    # values being the Spearman's rank correlation coefficients
-    spearman_correlations_dict = Dict(zip(sorted_spearman_keys, 
-        sorted_spearman_correlations))
-
-    if save_results
-        GU.save_dict_to_h5(copy(spearman_correlations_dict),
-            analysis_data_path*"order_peak_height_to_width_spearman_correlations.h5")
-    end
-
-    return [correlations_dict, spearman_correlations_dict]
+    return [corr_relative_peak_height_dict, 
+        spearman_corr_relative_peak_height_dict,
+        corr_reflection_peak_width_vec_dict, 
+        spearman_corr_reflection_peak_width_vec_dict,
+        corr_peak_height_to_width_dict, 
+        spearman_corr_peak_height_to_width_dict]
 end

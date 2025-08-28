@@ -808,64 +808,6 @@ function duplicate_bonds_close_to_supercell_edge!(
                     spatial_network[vertex_count + 2] = (
                         Dict("position" => new_target_pos, 
                         "coordination_nr" => 1))
-        # if one of the two vertices is close to the supercell edge but the
-        # vertices are not on opposite sides of the supercell, save another
-        # cylinder just outside the supercell on the other side
-        if ((any(start_pos .< bond_radius ) 
-            || any(target_pos .< bond_radius ) 
-            || any((spatial_network[]["supercell_edge_length"] .- start_pos) 
-                .< bond_radius )
-            || any((spatial_network[]["supercell_edge_length"] .- target_pos) 
-                .< bond_radius ) )
-            && LinearAlgebra.norm(start_pos .- target_pos) 
-                < spatial_network[]["supercell_edge_length"]/2
-            && all(start_pos .< spatial_network[]["supercell_edge_length"] )
-            && all(target_pos .< spatial_network[]["supercell_edge_length"] )
-            && all(start_pos .> 0.0 )
-            && all(target_pos .> 0.0 ) )
-
-            # check on which side of supercell the additional bond should be
-            # added and calculate new start and target positions
-            if (any(start_pos .< bond_radius ) 
-                || any(target_pos .< bond_radius ) )
-                
-                new_start_pos = (
-                    start_pos .+ spatial_network[]["supercell_edge_length"]
-                    .* ((start_pos .< bond_radius ) 
-                    .|| (target_pos .< bond_radius ) ))
-
-                new_target_pos = (target_pos 
-                    .+ spatial_network[]["supercell_edge_length"]
-                    .* ((start_pos .< bond_radius ) 
-                    .|| (target_pos .< bond_radius ) ))
-            else
-                new_start_pos = (start_pos 
-                    .- spatial_network[]["supercell_edge_length"]
-                    .* (((spatial_network[]["supercell_edge_length"] 
-                        .- start_pos) .< bond_radius )
-                    .|| ((spatial_network[]["supercell_edge_length"] 
-                        .- target_pos) .< bond_radius )))
-
-                new_target_pos = (target_pos 
-                    .- spatial_network[]["supercell_edge_length"]
-                    .* (((spatial_network[]["supercell_edge_length"] 
-                        .- start_pos) .< bond_radius )
-                    .|| ((spatial_network[]["supercell_edge_length"] 
-                        .- target_pos) .< bond_radius )))
-            end
-
-            # add two new vertices and the bond between them to the spatial
-            # network
-            spatial_network[vortex_count + 1] = (
-                Dict(
-                    "position" => new_start_pos,
-                    "coordination_nr" => start_coordination_nr
-                ) )
-            spatial_network[vortex_count + 2] = (
-                Dict(
-                    "position" => new_target_pos,
-                    "coordination_nr" => end_coordination_nr
-                ) )
 
                     spatial_network[vertex_count + 1, vertex_count + 2] = (
                         Dict("vector" => (new_target_pos .- new_start_pos), 

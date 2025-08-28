@@ -4862,3 +4862,321 @@ Plots.ylims!(plt2, (0, 2))
 Plots.plot!(plt2, grid=true)
 # Optionally display the plot (if running in script or REPL)
 Plots.savefig(path * "cie_2006_2deg_xyz_color_matching_functions_wavelength.png")
+
+
+p0_ctn = [0.28, 0.7, 0.25, 0.2, 0.34, 0.05]
+p0_dia = [0.28, 0.7, 0.25, 0.2, 0.4, 0.05]
+p0_lcs = [0.28, 0.7, 0.25, 0.2, 0.38, 0.05]
+p0_srs = [0.28, 0.7, 0.25, 0.2, 0.3, 0.05]
+
+
+network_type_vec = ["ctn", "dia", "lcs", "srs"]
+p0_list = [p0_ctn, p0_dia, p0_lcs, p0_srs]
+
+i = 2
+network_type = network_type_vec[i]
+
+upper_bounds::Vector{Float64}=[0.4, 0.8, 0.35, 0.4, 0.45, 0.1]
+lower_bounds::Vector{Float64}=[0.2, 0.55, 0.15, 0.0, 0.25, 0.01]
+
+
+# load the order metrics dict
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\neural_network_networks\\" * network_type * raw"\\"
+plot_path = raw"..\..\photonics\tidy3d\plots\neural_network_networks\dia\run_1_2_r_t_low_n\\"
+
+# get the r_t dict path
+r_t_dict_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\photonics\tidy3d\simulation_data\neural_network_networks\\" * network_type * raw"\run_1_2_r_t_low_n\\"
+
+filename_vec = ["dia_beta_0.1369_t_max_0.1993_t_gradient_0.9613_for_sim", # large peak
+                "dia_beta_0.1905_t_max_0.4376_t_gradient_0.6543_for_sim", # no peak
+]
+
+p0 = p0_dia
+
+colors = ["#1C5EDF", "#0DAEDB", "#FF7307", "#FFA907"]
+labels = ["Network 1 FDTD", "Network 1 fit", "Network 2 FDTD", "Network 2 fit"]
+
+Plots.plot()
+
+#file_nr = 1
+for (i, filename) in enumerate(filename_vec)
+
+    r_t_dict = GU.load_h5_dict(r_t_dict_path * filename * "_n_1.5_r_t_only.hdf5")
+
+    freqs = r_t_dict["freqs"]
+    reflection = r_t_dict["reflection"]
+
+    # define a fit model consisting of two gaussians, one broad one as the
+    # background and a narrower one sitting on top of the first one
+    background_peak(x, p) = (p[1] .* exp.((-1/2) .* ((x .- p[2]) ./ p[3]).^2))
+    reflection_peak(x, p) = (p[4] .* exp.((-1/2) .* ((x .- p[5]) ./ p[6]).^2))
+
+    model(x, p) = background_peak(x, p) .+ reflection_peak(x, p)
+
+    # fit the model to the reflection data
+    fit_result = LsqFit.curve_fit(model, freqs, reflection, p0, 
+        lower=lower_bounds, upper=upper_bounds)
+    
+    covariance_matrix = LsqFit.estimate_covar(fit_result)
+    standard_errors = sqrt.(LinearAlgebra.diag(covariance_matrix))
+
+    fit_params = Measurements.measurement.(fit_result.param, standard_errors)
+    fitted_reflection = [model(freq, fit_params) for freq in freqs]
+
+    Plots.plot!(freqs, reflection, label=labels[(i-1)*2 + 1], color=colors[(i-1)*2 + 1])
+    Plots.plot!(freqs, Measurements.value.(fitted_reflection), 
+        ribbon=Measurements.uncertainty.(fitted_reflection), label=labels[(i-1)*2 + 2], 
+        color=colors[(i-1)*2 + 2])
+
+end
+
+Plots.plot!(xlabel=Latex.L"Frequency $\omega d / (2 \pi c)$",  ylabel="Reflectance")
+Plots.xlims!(0.2, 0.7)
+Plots.ylims!(0, 0.65)
+
+
+Plots.savefig(plot_path*"peak_no_peak_reflection_fit.png")
+
+
+i = 1
+filename = filename_vec[i]
+
+r_t_dict = GU.load_h5_dict(r_t_dict_path * filename * "_n_1.5_r_t_only.hdf5")
+freqs = r_t_dict["freqs"]
+reflection = r_t_dict["reflection"]
+# define a fit model consisting of two gaussians, one broad one as the
+# background and a narrower one sitting on top of the first one
+background_peak(x, p) = (p[1] .* exp.((-1/2) .* ((x .- p[2]) ./ p[3]).^2))
+reflection_peak(x, p) = (p[4] .* exp.((-1/2) .* ((x .- p[5]) ./ p[6]).^2))
+model(x, p) = background_peak(x, p) .+ reflection_peak(x, p)
+# fit the model to the reflection data
+fit_result = LsqFit.curve_fit(model, freqs, reflection, p0, 
+    lower=lower_bounds, upper=upper_bounds)
+
+covariance_matrix = LsqFit.estimate_covar(fit_result)
+standard_errors = sqrt.(LinearAlgebra.diag(covariance_matrix))
+fit_params = Measurements.measurement.(fit_result.param, standard_errors)
+fitted_reflection = [model(freq, fit_params) for freq in freqs]
+Plots.plot!(freqs, reflection, label=labels[(i-1)*2 + 1], color=colors[(i-1)*2 + 1])
+Plots.plot!(freqs, Measurements.value.(fitted_reflection), 
+    ribbon=Measurements.uncertainty.(fitted_reflection), label=labels[(i-1)*2 + 2], 
+    color=colors[(i-1)*2 + 2])
+fitted_background = [background_peak(freq, fit_params) for freq in freqs]
+# plot only the fitted background peak
+Plots.plot!(freqs, Measurements.value.(fitted_background), label="Network 1 background", color="#3D7C8E", linestyle=:dot)
+
+Plots.plot!(xlabel=Latex.L"Frequency $\omega d / (2 \pi c)$",  ylabel="Reflectance")
+Plots.xlims!(0.2, 0.7)
+Plots.ylims!(0, 0.65)
+
+
+Plots.savefig(plot_path*"peak_reflection_fit_background.png")
+
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\neural_network_networks\network_comparison\\"
+
+dicts = [] 
+network_type_vec = ["dia", "ctn", "lcs", "srs"]
+
+for (i, network_type) in enumerate(network_type_vec)
+
+    analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\neural_network_networks\\" * network_type * raw"\\"
+    pearson_corr_dict = GU.load_h5_dict(analysis_data_path * "order_relative_peak_height_pearson_correlations.h5")
+    push!(dicts, pearson_corr_dict)
+end
+
+labels = reverse([
+"Vertex homogeneity",
+Latex.L"Hyperuniformity $\alpha$",
+"Ring radius st. d.",
+    "Bond length st. d.",
+    "Bond angle st. d.",
+    "Dihedral angle entropy",
+    "Critical pore radius",
+    "Bond orientation entropy",
+])
+
+key_list = reverse([
+"vertex_homogeneity_metric_vec",
+"hyperuniformity_alpha_vec",
+"ring_radius_std_vec",
+"bond_length_std_vec",
+"bond_angle_std_vec",
+"dihedral_angle_entropy_vec",
+"critical_pore_radius_vec",
+"bond_orientation_entropy_vec",
+])
+
+# Map keys to numeric y positions
+yvals = 1:length(key_list)
+
+# Initialize plot
+plt = Plots.plot(legend=false, xlabel="Pearson corr.", yticks=(yvals, labels),
+size=(600, 600), xticks=[-0.3, 0, 0.3],  grid=true,)
+
+# Add one scatter series per dictionary
+for (dict, label) in zip(dicts, labels)
+    Plots.scatter!([dict[k] for k in key_list], yvals; label=label, markersize=10)
+end
+
+Plots.savefig(save_path * "order_relative_peak_height_pearson_correlations_all_networks.png")
+
+
+path = path = raw"..\..\presentations\material\\"
+
+x = collect(-0.2:0.01:1.0)
+
+color_low_T = "#1C5EDF"
+color_high_T = "#FF7307"
+
+plot_1 = min.(1, exp.( .-  x ./ 0.2  ) )  
+plot_2 = min.(1, exp.( .-  x ./ 0.4  ) )  
+
+myplot = Plots.plot(x, plot_2, label = Latex.L"kT=0.4", linecolor=color_high_T)
+myplot = Plots.plot!(x, plot_1, label = Latex.L"kT=0.2", linecolor=color_low_T)
+
+Plots.plot!(grid=false, xlabel="Energy difference",
+ylabel = "Acceptance prob.", size = (450, 300), xlims=(-0.2,1.0))
+
+Plots.savefig(path*"boltzmann_metropolis_temperatures_0.2_0.4.png")
+
+
+function heat_cool_temperature_vec(x, max_temp, heat_cool_rate)
+
+    if x < max_temp/heat_cool_rate 
+        return heat_cool_rate * x
+    elseif x < 2*max_temp/heat_cool_rate 
+        return 2* max_temp - heat_cool_rate*x
+    else
+        return 0
+    end
+end
+
+
+x_vec = collect(0:0.01:5)
+
+
+Plots.plot()
+
+Plots.plot!(x_vec, heat_cool_temperature_vec.(x_vec, 0.4, 0.7),  alpha=1.0, color=color_high_T)
+Plots.plot!(x_vec, heat_cool_temperature_vec.(x_vec, 0.2, 1.0),  alpha=1.0, color=color_low_T)
+Plots.plot!(legend = false, xlabel="Attempts per bond chain", ylabel=Latex.L"kT", right_margin = 4Plots.mm, size = (450, 300), xlims=(0,2))
+
+Plots.savefig(path*"heat_cool_temperature_profile_5.png")
+
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\neural_network_networks\network_comparison\\"
+
+dicts = [] 
+network_type_vec = ["dia", "ctn", "lcs", "srs"] #
+
+
+key_list = [
+    "dihedral_angle_entropy_vec",
+    "bond_angle_std_vec",
+"bond_length_std_vec",
+"critical_pore_radius_vec",
+"bond_orientation_entropy_vec",
+"hyperuniformity_alpha_vec",
+"vertex_homogeneity_metric_vec",
+"ring_radius_std_vec",
+]
+
+labels = [
+    "Dihedral angle entropy",
+    Latex.L"Bond angles $\sigma$",
+    Latex.L"Bond lengths $\sigma$",
+    "Critical pore radius",
+    "Isotropy",
+    Latex.L"Hyperuniformity $\alpha$",
+    "Vertex homogeneity",
+    Latex.L"Ring radii $\sigma$",
+]
+
+# Map keys to numeric y positions
+yvals = 1:length(key_list)
+
+
+
+for (i, network_type) in enumerate(network_type_vec)
+
+    analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\neural_network_networks\\" * network_type * raw"\\"
+    pearson_corr_dict = GU.load_h5_dict(analysis_data_path * "order_relative_peak_height_pearson_correlations.h5")
+    push!(dicts, pearson_corr_dict)
+end
+
+# Example split indices
+n1 = 3
+n2 = 7
+
+
+# Split the labels and corresponding yvals into three groups
+labels1 = labels[1:n1]
+key_lists1 = key_list[1:n1]
+yvals1 = 1:n1
+
+labels2 = labels[n1+1:n2]
+key_lists2 = key_list[n1+1:n2]
+yvals2 = 1:length(labels2)
+
+labels3 = labels[n2+1:end]
+key_lists3 = key_list[n2+1:end]
+yvals3 = 1:length(labels3)
+
+# Calculate relative heights based on number of labels
+total_labels = length(labels)
+heights = [length(labels1)/total_labels, length(labels2)/total_labels, length(labels3)/total_labels]
+
+
+# Create the layout for the three subplots
+l = @Plots.layout([a b; c d])
+
+# Initialize the three subplots
+p1 = Plots.plot(
+    legend = false,
+    yticks = (yvals1, labels1),
+    xticks = ([-0.3, 0, 0.3], ["", "", ""]),
+    grid = true
+)
+
+p2 = Plots.plot(
+    legend = false,
+    yticks = (yvals2, labels2),
+    xticks = ([-0.3, 0, 0.3], ["", "", ""]),
+    grid = true
+)
+
+p3 = Plots.plot(
+    legend = false,
+    yticks = (yvals3, labels3),
+    xlabel = "Correlation",
+    #ylabel = "Topological",
+    xticks = [-0.3, 0, 0.3],
+    grid = true
+)
+
+# Plot the scatter series for each subplot
+for dict in dicts
+    Plots.scatter!(p1, [Measurements.value.(dict[k]) for k in key_lists1], yvals1; label=labels1, markersize=10, ylims=(0.5, n1+0.5), xlims=(-0.35, 0.35))
+
+    Plots.scatter!(p2, [Measurements.value.(dict[k]) for k in key_lists2], yvals2; label=labels2, markersize=10, ylims=(0.5, length(labels2)+0.5), xlims=(-0.35, 0.35))
+
+    Plots.scatter!(p3, [Measurements.value.(dict[k]) for k in key_lists3], yvals3; label=labels3, markersize=10, ylims=(0.5, length(labels3)+0.5), xlims=(-0.35, 0.35))
+end
+
+
+# Combine the subplots into a single plot
+Plots.plot(p1, p2, p3, layout = (3, 1), size = (600, 600), link = :x,
+bottom_margin = 3Plots.mm,
+    top_margin = 3Plots.mm,
+    left_margin = 1Plots.mm,
+    right_margin = 1Plots.mm)
+
+## Add group labels using annotations
+#Plots.annotate!(p1, -0.5, Statistics.mean(yvals1), Plots.text("Local", :center, 12, :bold, :rotation => 90))
+#Plots.annotate!(p2, -0.5, Statistics.mean(yvals2), Plots.text("Global", :center, 12, :bold, :rotation => 90))
+#Plots.annotate!(p3, -0.5, Statistics.mean(yvals3), Plots.text("Topological", :center, 12, :bold, :rotation => 90))
+#
+
+Plots.savefig(save_path * "order_relative_peak_height_pearson_correlations_all_networks_grouped.png")
+

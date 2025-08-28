@@ -32310,3 +32310,164 @@ for (i, network_type) in enumerate(network_type_vec)
         p0=p0_list[i],
         save_results = true)
 end
+
+
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\neural_network_networks\dia\run_2\\"
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\neural_network_networks\dia\\"
+
+structure_factor_dict = GU.load_h5_dict(analysis_data_path*"dia_beta_0.1369_t_max_0.1993_t_gradient_0.9613_structure_factor_bonds_array.h5")
+
+cmax = 2.0
+
+NA.plot_structure_factor_heatmap(
+    structure_factor_dict,
+    save_path*"dia_beta_0.1369_t_max_0.1993_t_gradient_0.9613_structure_factor_bonds_array_x",
+    save_plot = true,
+    clims = (0, cmax),
+    x_y_lims = nothing,
+    wavevector_component_to_fix = 1,
+    wavevector_value_fixed = 0)
+
+NA.plot_structure_factor_heatmap(
+    structure_factor_dict,
+    save_path*"dia_beta_0.1369_t_max_0.1993_t_gradient_0.9613_structure_factor_bonds_array_y",
+    save_plot = true,
+    clims = (0, cmax),
+    x_y_lims = nothing,
+    wavevector_component_to_fix = 2,
+    wavevector_value_fixed = 0)
+
+NA.plot_structure_factor_heatmap(
+    structure_factor_dict,
+    save_path*"dia_beta_0.1369_t_max_0.1993_t_gradient_0.9613_structure_factor_bonds_array_z",
+    save_plot = true,
+    clims = (0, cmax),
+    x_y_lims = nothing,
+    wavevector_component_to_fix = 3,
+    wavevector_value_fixed = 0)
+
+
+load_path = "../band_structure_data/neural_network_networks_low_n/dia/"
+save_path = "../band_structure_plots/neural_network_networks_low_n/dia/"
+filename = "dia_beta_0.1369_t_max_0.1993_t_gradient_0.9613_for_sim"
+
+plotting_saving.plot_pdos_comparison_effective_medium(
+    ms=None,
+    filename=filename, 
+    save_plot=True,
+    load_path=load_path,
+    save_path=save_path,
+    geometry_index=1.5,
+    supercell_edge_length=6.9282032302755105)
+
+
+
+# initial guess
+p0_ctn = [0.28, 0.7, 0.25, 0.2, 0.34, 0.05]
+p0_dia = [0.28, 0.7, 0.25, 0.2, 0.4, 0.05]
+p0_lcs = [0.28, 0.7, 0.25, 0.2, 0.38, 0.05]
+p0_srs = [0.28, 0.7, 0.25, 0.2, 0.3, 0.05]
+
+
+network_type_vec = ["ctn", "dia", "lcs", "srs"]
+p0_list = [p0_ctn, p0_dia, p0_lcs, p0_srs]
+
+i = 4
+network_type = network_type_vec[i]
+
+
+# load the order metrics dict
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\neural_network_networks\\" * network_type * raw"\\"
+
+# get the r_t dict path
+r_t_dict_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\photonics\tidy3d\simulation_data\neural_network_networks\\" * network_type * raw"\run_1_2_r_t_low_n\\"
+
+files = readdir(r_t_dict_path, join=true)
+r_t_files = filter(x -> endswith(x, "r_t_only.hdf5"), files)
+
+# shuffle files
+Random.shuffle!(r_t_files)
+
+#file_nr = 1
+for file_nr in 1:10
+    r_t_dict = GU.load_h5_dict(r_t_files[file_nr])
+
+    # get the base filename
+    base_filename = basename(r_t_files[file_nr])[1:end-28]
+
+    NA.get_reflection_peak_height_to_width(r_t_dict;
+        p0=[0.28, 0.7, 0.25, 0.2, 0.3, 0.05],
+        save_plot = true,
+        save_path = raw"..\..\photonics\tidy3d\plots\neural_network_networks\\" * network_type * raw"\run_1_2_r_t_low_n\\"*base_filename)
+
+end
+
+
+load_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\neural_network_networks\dia\run_2\\"
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\neural_network_networks\geometrical_models\dia\run_2\\"
+
+filename_vec = ["dia_beta_0.1369_t_max_0.1993_t_gradient_0.9613", # large peak
+                "dia_beta_0.1905_t_max_0.4376_t_gradient_0.6543", # no peak
+]
+
+for (i, filename) in enumerate(filename_vec)
+
+    println("Processing file: ", filename)
+
+    # load the spatial network
+    spatial_network = NG.load_spatial_network_from_gml(load_path*filename*".gml")
+
+    # save the mesh from the spatial network
+    NG.save_mesh_from_spatial_network(
+        spatial_network, 
+        filename*"_bond_radius_0.35",;
+        bond_radius = 0.35,
+        vector_out_of_supercell_length = 1,
+        save_path= save_path,
+        duplicate_bonds_close_to_supercell_edge = false)
+end
+
+
+
+nr_vertices = 1000
+network_type = "dia"
+theta_ground_state = 180.0
+beta = 0.1369
+t_max = 0.1993
+t_gradient = 0.9613
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\neural_network_targeted\dia\1000_vertices\evolution_dicts\\"
+
+temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(t_max,
+    temperature_gradient = t_gradient, 
+    nr_monte_carlo_steps_per_temperature = 0.01,
+    quench = true )
+evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,     
+    temperature_vec = temperature_vec,
+    nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
+    bond_bending_const = beta, network_type = network_type,
+    theta_ground_state = theta_ground_state,)
+filename = Format.format("dia_beta_{1:.4f}_t_max_{2:.4f}_t_gradient_{3:.4f}", beta, t_max, t_gradient)
+GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
+
+
+beta = 0.1905
+t_max = 0.4376
+t_gradient = 0.6543
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\neural_network_targeted\dia\1000_vertices\evolution_dicts_2\\"
+
+temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(t_max,
+    temperature_gradient = t_gradient, 
+    nr_monte_carlo_steps_per_temperature = 0.01,
+    quench = true )
+evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,     
+    temperature_vec = temperature_vec,
+    nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
+    bond_bending_const = beta, network_type = network_type,
+    theta_ground_state = theta_ground_state,)
+filename = Format.format("dia_beta_{1:.4f}_t_max_{2:.4f}_t_gradient_{3:.4f}", beta, t_max, t_gradient)
+GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
