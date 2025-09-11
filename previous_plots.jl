@@ -5180,3 +5180,388 @@ bottom_margin = 3Plots.mm,
 
 Plots.savefig(save_path * "order_relative_peak_height_pearson_correlations_all_networks_grouped.png")
 
+
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\neural_network_networks\network_comparison\\"
+
+dicts = [] 
+network_type_vec = ["dia"] #, "ctn", "lcs", "srs"
+
+
+key_list = [
+    "dihedral_angle_entropy_vec",
+    "bond_angle_std_vec",
+"bond_length_std_vec",
+"critical_pore_radius_vec",
+"bond_orientation_entropy_vec",
+"hyperuniformity_alpha_vec",
+"vertex_homogeneity_metric_vec",
+"ring_radius_std_vec",
+]
+
+labels = [
+    "Dihedral angle entropy",
+    Latex.L"Bond angles $\sigma$",
+    Latex.L"Bond lengths $\sigma$",
+    "Critical pore radius",
+    "Isotropy",
+    Latex.L"Hyperuniformity $\alpha$",
+    "Vertex homogeneity",
+    Latex.L"Ring radii $\sigma$",
+]
+
+# Map keys to numeric y positions
+yvals = 1:length(key_list)
+
+
+
+for (i, network_type) in enumerate(network_type_vec)
+
+    analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\neural_network_networks\\" * network_type * raw"\\"
+    pearson_corr_dict = GU.load_h5_dict(analysis_data_path * "order_relative_peak_height_pearson_correlations.h5")
+    push!(dicts, pearson_corr_dict)
+end
+
+# Example split indices
+n1 = 3
+n2 = 7
+
+
+# Split the labels and corresponding yvals into three groups
+labels1 = labels[1:n1]
+key_lists1 = key_list[1:n1]
+yvals1 = 1:n1
+
+labels2 = labels[n1+1:n2]
+key_lists2 = key_list[n1+1:n2]
+yvals2 = 1:length(labels2)
+
+labels3 = labels[n2+1:end]
+key_lists3 = key_list[n2+1:end]
+yvals3 = 1:length(labels3)
+
+# Calculate relative heights based on number of labels
+total_labels = length(labels)
+heights = [length(labels1)/total_labels, length(labels2)/total_labels, length(labels3)/total_labels]
+
+
+# Create the layout for the three subplots
+l = @Plots.layout([a b; c d])
+
+# Initialize the three subplots
+p1 = Plots.plot(
+    legend = false,
+    yticks = (yvals1, labels1),
+    xticks = ([-0.3, 0, 0.3], ["", "", ""]),
+    grid = true
+)
+
+p2 = Plots.plot(
+    legend = false,
+    yticks = (yvals2, labels2),
+    xticks = ([-0.3, 0, 0.3], ["", "", ""]),
+    grid = true
+)
+
+p3 = Plots.plot(
+    legend = false,
+    yticks = (yvals3, labels3),
+    xlabel = "Correlation",
+    #ylabel = "Topological",
+    xticks = [-0.3, 0, 0.3],
+    grid = true
+)
+
+# Plot the scatter series for each subplot
+for dict in dicts
+    Plots.scatter!(p1, [Measurements.value.(dict[k]) for k in key_lists1], yvals1; label=labels1, markersize=10, ylims=(0.5, n1+0.5), xlims=(-0.35, 0.35))
+
+    Plots.scatter!(p2, [Measurements.value.(dict[k]) for k in key_lists2], yvals2; label=labels2, markersize=10, ylims=(0.5, length(labels2)+0.5), xlims=(-0.35, 0.35))
+
+    Plots.scatter!(p3, [Measurements.value.(dict[k]) for k in key_lists3], yvals3; label=labels3, markersize=10, ylims=(0.5, length(labels3)+0.5), xlims=(-0.35, 0.35))
+end
+
+
+# Combine the subplots into a single plot
+Plots.plot(p1, p2, p3, layout = (3, 1), size = (600, 600), link = :x,
+bottom_margin = 3Plots.mm,
+    top_margin = 3Plots.mm,
+    left_margin = 1Plots.mm,
+    right_margin = 1Plots.mm)
+
+Plots.savefig(save_path * "order_relative_peak_height_pearson_correlations_dia_grouped.png")
+
+
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\neural_network_targeted\test_networks\\"
+
+
+function load_table_as_dict(filename::String)
+    df = CSV.File(filename; delim='\t') |> DataFrames.DataFrame
+    return Dict(col => collect(df[!, col]) for col in names(df))
+end
+
+function reorder_dict(dict1::Dict, dict2::Dict, keys_for_order::Vector; digits::Int=4)
+    # Helper: round floats, leave others unchanged
+    process(x) = x isa AbstractFloat ? round(x; digits=digits) : x
+
+    # Build the reference ordering from dict1
+    tuples1 = collect(zip((process.(dict1[k]) for k in keys_for_order)...))
+
+    # Build tuples from dict2
+    tuples2 = collect(zip((process.(dict2[k]) for k in keys_for_order)...))
+
+    # Find the mapping that sorts tuples2 such that it equals tuples1
+    perm = indexin(tuples1, tuples2)
+    reordered = Dict()
+    for (k, v) in dict2
+        reordered[k] = v[perm]
+    end
+
+    return reordered
+end
+
+analysis_data_path = raw"..\analysis_data\neural_network_targeted\test_networks\\"
+
+measured_means_dict = load_table_as_dict(analysis_data_path*"measured_order_metric_means.txt")
+measured_stds_dict = load_table_as_dict(analysis_data_path*"measured_order_metric_stds.txt")
+predicted_dict = load_table_as_dict(analysis_data_path*"predicted_order_metrics_10_epochs_no_regularization.txt")
+
+predicted_dict = reorder_dict(measured_means_dict, predicted_dict, ["network_type", "bond_bending_const_vec", "t_max_vec", "t_gradient_vec"])
+
+order_metrics_labels = [
+    "Bond length std. deviation",
+    "Bond angle std. deviation",
+    "Dihedral angle entropy",
+    "Bond orientation entropy",
+    "Anisotropy from structure factor",
+    "Vertex homogeneity metric",
+    "Critical pore radius",
+    "Ring radius mean",
+    "Ring radius std. deviation",
+    "Hyperuniformity alpha / 10",
+]
+
+order_metrics_keys = [
+    "bond_length_std_vec",
+    "bond_angle_std_vec",
+    "dihedral_angle_entropy_vec",
+    "bond_orientation_entropy_vec",
+    "anisotropy_metric_from_structure_factor_vec",
+    "vertex_homogeneity_metric_vec",
+    "critical_pore_radius_vec",
+    "ring_radius_mean_vec",
+    "ring_radius_std_vec",
+    "hyperuniformity_alpha_vec_values",
+]
+
+reversed_names = reverse(order_metrics_labels)
+
+network_types_vec = predicted_dict["network_type"]
+
+# loop through all network predictions
+for i in eachindex(network_types_vec)
+    # get the vector of predicitons for the current network type
+    predictions = [predicted_dict[key][i] for key in order_metrics_keys]
+
+    # get the vector of measured means for the current network type
+    means = [measured_means_dict[key][i] for key in order_metrics_keys]
+    # get the vector of measured stds for the current network type
+    stds = [measured_stds_dict[key][i] for key in order_metrics_keys]
+
+    # divide the last element of the three vectors by 10
+    predictions[end] /= 10
+    means[end] /= 10
+    stds[end] /= 10
+
+    # calculate the reversed predictions
+    reversed_predictions = reverse(predictions)
+    reversed_means = reverse(means)
+    reversed_stds = reverse(stds)
+
+    # create a label for the current network type
+    Plots.plot(
+    reversed_predictions,
+    1:length(reversed_predictions),
+    seriestype = :scatter,
+    markershape = :circle,
+    legend = false,
+    size = (700, 600),
+    yticks = (1:length(reversed_names), reversed_names),
+    bottom_margin = 0Plots.mm,
+    markersize = 7,
+    markercolor = Plots.palette(:tab10)[1],
+    xlims = (-0.1, 1.4),
+    ylims = (0.5, length(reversed_names) + 0.5),
+    grid = true,
+    )
+
+    Plots.plot!(
+    reversed_means,
+    1:length(reversed_means),
+    xerror = reversed_stds,
+    seriestype = :scatter,
+    markershape = :circle,
+    legend = false,
+    size = (700, 600),
+    yticks = (1:length(reversed_names), reversed_names),
+    xticks = collect(0.0:0.5:1.0),
+    bottom_margin = 0Plots.mm,
+    markersize = 5,
+    markercolor = Plots.palette(:tab10)[2],
+    xlims = (-0.1, 1.4),
+    ylims = (0.5, length(reversed_names) + 0.5),
+    grid = true,
+    )
+
+    Plots.xlabel!("Order metric")
+
+    network_type = network_types_vec[i]
+    beta = predicted_dict["bond_bending_const_vec"][i]
+    t_max = predicted_dict["t_max_vec"][i]
+    t_gradient = predicted_dict["t_gradient_vec"][i]
+
+    Plots.title!("$(network_type), "*Latex.L"\beta ="*"$(beta), "*Latex.L"T_\mathrm{max} ="*"$(t_max), "*Latex.L"\Delta T ="*"$(t_gradient)                         ")
+
+    Plots.savefig(path*"$(network_type)_beta_$(beta)_t_max_$(t_max)_t_gradient_$(t_gradient).png")
+end
+
+
+function load_table_as_dict(filename::String)
+    df = CSV.File(filename; delim='\t') |> DataFrames.DataFrame
+    return Dict(col => collect(df[!, col]) for col in names(df))
+end
+
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\neural_network_targeted\comparison_t_melt\\"
+
+analysis_data_path_1 = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\neural_network_targeted\test_networks\\"
+
+analysis_data_path_2 = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\neural_network_targeted\dia\1000_vertices\\"
+
+filename_1 = "dia_beta_0.2500_t_max_0.4592_t_gradient_0.1224"
+
+filename_2 = "dia_beta_0.2500_t_max_2.8443_t_gradient_1.5169"
+
+measured_means_dict_1 = load_table_as_dict(analysis_data_path_1*"measured_order_metric_means.txt")
+measured_stds_dict_1 = load_table_as_dict(analysis_data_path_1*"measured_order_metric_stds.txt")
+
+measured_means_dict_2 = load_table_as_dict(analysis_data_path_2*"measured_order_metric_means.txt")
+measured_stds_dict_2 = load_table_as_dict(analysis_data_path_2*"measured_order_metric_stds.txt")
+
+order_metrics_labels = [
+    "Bond length std. deviation",
+    "Bond angle std. deviation",
+    "Dihedral angle entropy",
+    "Bond orientation entropy",
+    "Anisotropy from structure factor",
+    "Vertex homogeneity metric",
+    "Critical pore radius",
+    "Ring radius mean",
+    "Ring radius std. deviation",
+    "Hyperuniformity alpha / 10",
+]
+
+order_metrics_keys = [
+    "bond_length_std_vec",
+    "bond_angle_std_vec",
+    "dihedral_angle_entropy_vec",
+    "bond_orientation_entropy_vec",
+    "anisotropy_metric_from_structure_factor_vec",
+    "vertex_homogeneity_metric_vec",
+    "critical_pore_radius_vec",
+    "ring_radius_mean_vec",
+    "ring_radius_std_vec",
+    "hyperuniformity_alpha_vec_values",
+]
+
+reversed_names = reverse(order_metrics_labels)
+
+# in the measured_means_dict_1 find the entry of the vectors where the network_type is dia
+# bond_bending_const_vec is 0.25, t_max_vec is 0.4592, t_gradient_vec is 0.1224
+index_means = 0 
+
+for i in 1:length(measured_means_dict_1["network_type"])
+
+    if measured_means_dict_1["network_type"][i] == "dia" &&
+        isapprox(measured_means_dict_1["bond_bending_const_vec"][i], 0.25; atol=1e-3) &&
+        isapprox(measured_means_dict_1["t_max_vec"][i], 0.4592; atol=1e-3) &&
+        isapprox(measured_means_dict_1["t_gradient_vec"][i], 0.1224; atol=1e-3)
+        global index_means = i
+        println("Found index_means: $index_means")
+        break
+    end
+end
+
+index_stds = 0
+
+for j in 1:length(measured_stds_dict_1["network_type"])
+    if measured_stds_dict_1["network_type"][j] == "dia" &&
+        isapprox(measured_stds_dict_1["bond_bending_const_vec"][j], 0.25; atol=1e-3) &&
+        isapprox(measured_stds_dict_1["t_max_vec"][j], 0.4592; atol=1e-3) &&
+        isapprox(measured_stds_dict_1["t_gradient_vec"][j], 0.1224; atol=1e-3)
+        global index_stds = j
+        println("Found index_stds: $index_stds")    
+        break
+    end
+end
+
+# get the vector of measured means for the current network type
+means_1 = [measured_means_dict_1[key][index_means] for key in order_metrics_keys]
+# get the vector of measured stds for the current network type
+stds_1 = [measured_stds_dict_1[key][index_stds] for key in order_metrics_keys]
+
+# get the vector of measured means for the current network type
+means_2 = [measured_means_dict_2[key][1] for key in order_metrics_keys]
+# get the vector of measured stds for the current network type
+stds_2 = [measured_stds_dict_2[key][1] for key in order_metrics_keys]
+
+# divide the last element of the three vectors by 10
+means_1[end] /= 10
+stds_1[end] /= 10
+means_2[end] /= 10
+stds_2[end] /= 10
+
+# calculate the reversed means and stds
+reversed_means_1 = reverse(means_1)
+reversed_stds_1 = reverse(stds_1)
+reversed_means_2 = reverse(means_2)
+reversed_stds_2 = reverse(stds_2)
+
+# create a label for the current network type
+Plots.plot(
+reversed_means_1,
+1:length(reversed_means_1),
+xerror = reversed_stds_1,
+seriestype = :scatter,
+markershape = :circle,
+legend = false,
+size = (700, 600),
+yticks = (1:length(reversed_names), reversed_names),
+xticks = collect(0.0:0.5:1.0),
+bottom_margin = 0Plots.mm,
+markersize = 5,
+markercolor = Plots.palette(:tab10)[1],
+xlims = (-0.1, 1.4),
+ylims = (0.5, length(reversed_names) + 0.5),
+grid = true,
+)
+Plots.plot!(
+reversed_means_2,
+1:length(reversed_means_2),
+xerror = reversed_stds_2,
+seriestype = :scatter,
+markershape = :circle,
+legend = false,
+size = (700, 600),
+yticks = (1:length(reversed_names), reversed_names),
+xticks = collect(0.0:0.5:1.0),
+bottom_margin = 0Plots.mm,
+markersize = 5,
+markercolor = Plots.palette(:tab10)[2],
+xlims = (-0.1, 1.4),
+ylims = (0.5, length(reversed_names) + 0.5),
+grid = true,
+)
+Plots.xlabel!("Order metric")
+
+Plots.savefig(save_path*"dia_comparison_t_melt_216_1000.png")

@@ -32471,3 +32471,206 @@ evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,
     theta_ground_state = theta_ground_state,)
 filename = Format.format("dia_beta_{1:.4f}_t_max_{2:.4f}_t_gradient_{3:.4f}", beta, t_max, t_gradient)
 GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
+
+
+save_path = "../structures/neural_network_targeted/dia/1000_vertices/"
+
+evolution_dicts_directory_path = "../structures/neural_network_targeted/dia/1000_vertices/evolution_dicts/"
+
+print_every_nr_attempted_bond_switches = 200
+print_progress = true
+save_network_after_each_temperature = false
+further_evolve_previous_networks = false
+runs_vec = collect(1:10) #collect(1:2)
+random_evolution_seed = -1
+print_lock = Threads.ReentrantLock()
+
+
+NG.generate_spatial_networks_from_evolution_dicts_in_directory_multiple_runs(
+        evolution_dicts_directory_path,
+        save_path;
+        print_every_nr_attempted_bond_switches=print_every_nr_attempted_bond_switches,
+        print_progress=print_progress,
+        random_evolution_seed=random_evolution_seed,
+        save_network_after_each_temperature=save_network_after_each_temperature,
+        further_evolve_previous_networks=further_evolve_previous_networks,
+        runs_vec=runs_vec,
+        print_lock=print_lock)
+
+
+
+network_type_vec = ["dia"]
+nr_vertices_vec = [216] #216, 1000, 1728
+bond_bending_const_vec = [0.0]
+theta_ground_state_vec = [180.0]
+acceptance_probability_vec = [0.001]
+
+NA.print_melting_temperatures(
+    ;
+    network_type_vec,
+    nr_vertices_vec,
+    bond_bending_const_vec,
+    theta_ground_state_vec,
+    acceptance_probability_vec
+    )
+
+
+evolution_dict = NA.get_evolution_dict(;
+            nr_vertices = nr_vertices_vec[1],
+            network_type=network_type_vec[1],
+            bond_bending_const=bond_bending_const_vec[1],
+            min_ring_size=3,
+            theta_ground_state=theta_ground_state_vec[1]
+        )
+spatial_network = NG.get_periodic_network_dia(evolution_dict)
+
+
+network_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\neural_network_targeted\dia\1000_vertices_old_generation_fct\run_1\\"
+
+filename = "dia_beta_0.2500_t_max_2.8443_t_gradient_1.5169.gml"
+
+network = NG.load_spatial_network_from_gml(network_path*filename)
+NG.plot_spatial_network(network)
+
+
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 756 ,     
+    network_type = "ctn",
+    theta_ground_state = 180.0)
+
+spatial_network = NG.get_periodic_network(evolution_dict)
+
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 648 ,     
+    network_type = "lcs",
+    theta_ground_state = 180.0)
+
+spatial_network = NG.get_periodic_network(evolution_dict)
+
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 1000 ,     
+    network_type = "srs",
+    theta_ground_state = 180.0)
+
+spatial_network = NG.get_periodic_network(evolution_dict)
+
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 512 ,     
+    network_type = "dia",
+    theta_ground_state = 180.0)
+
+spatial_network = NG.get_periodic_network(evolution_dict)
+
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 1000 ,     
+    network_type = "dia",
+    theta_ground_state = 180.0)
+
+spatial_network = NG.get_periodic_network(evolution_dict)
+
+
+
+print_lock = Threads.ReentrantLock()
+
+spatial_networks_path = "../structures/neural_network_targeted/dia/1000_vertices_old_generation_fct/"
+analysis_data_path = "../analysis_data/neural_network_targeted/dia/1000_vertices/"
+
+NA.get_all_dicts_from_networks_multithreading(
+spatial_networks_path,
+analysis_data_path;
+print_progress = true,
+runs_vec = collect(1:10),
+print_lock = print_lock)
+
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\neural_network_targeted\test_networks\\"
+
+all_order_metrics_dict = GU.load_h5_dict(analysis_data_path*"all_order_metrics.h5")
+
+# extract the network type, that is srs from a string like "C:\\Users\\HemmannF\\OneDrive - Université de Fribourg\\structure_analysis\\analysis_data\\neural_network_targeted\\test_networks\\run_1\\srs_beta_0.2500_t_max_0.1709_t_gradient_0.1367_order_metrics.h5"
+
+filenames_vec = all_order_metrics_dict["filenames_vec"]
+network_type_vec = [match(r"/([^/]+)_beta", path).captures[1] for path in filenames_vec]
+bond_bending_vec = all_order_metrics_dict["bond_bending_const_vec"]
+t_max_vec = all_order_metrics_dict["t_max_vec"]
+t_gradient_vec = all_order_metrics_dict["t_gradient_vec"]
+
+core_filenames_vec = [replace(split(path, '/') |> last, "_order_metrics.h5" => "") for path in filenames_vec] 
+unique_core_filenames_vec = unique(core_filenames_vec)
+#println(unique_core_filenames_vec)
+
+# remove all unique core filenames that contain the string "lcs"
+#unique_core_filenames_vec = filter(name -> !occursin("lcs", name), unique_core_filenames_vec)
+
+order_metrics_vec = [
+        "network_type",
+        "bond_bending_const_vec",
+        "t_max_vec",
+        "t_gradient_vec",
+        "bond_length_std_vec",
+        "bond_angle_std_vec",
+        "dihedral_angle_entropy_vec",
+        "bond_orientation_entropy_vec",
+        "coordination_nr_mean_vec",
+        "coordination_nr_std_vec",
+        "vertex_homogeneity_metric_vec",
+        "ring_size_mean_vec",
+        "ring_size_std_vec",
+        "ring_radius_mean_vec",
+        "ring_radius_std_vec",
+        "critical_pore_radius_vec",
+        "anisotropy_metric_from_structure_factor_vec",
+        "anisotropy_metric_from_structure_factor_bonds_vec",
+        "hyperuniformity_alpha_vec_values",
+        "hyperuniformity_alpha_vec_uncertainties",]
+
+all_order_metrics_dict["network_type"] = network_type_vec   
+all_order_metrics_dict["hyperuniformity_alpha_vec_values"] = Measurements.value.(all_order_metrics_dict["hyperuniformity_alpha_vec"])
+all_order_metrics_dict["hyperuniformity_alpha_vec_uncertainties"] = Measurements.uncertainty.(all_order_metrics_dict["hyperuniformity_alpha_vec"])
+
+means_filename = "measured_order_metric_means.txt"
+stds_filename = "measured_order_metric_stds.txt"
+
+open(analysis_data_path*means_filename, "w") do io
+    println(io, join(order_metrics_vec, '\t'))
+end
+
+open(analysis_data_path*stds_filename, "w") do io
+    println(io, join(order_metrics_vec, '\t'))
+end
+
+# each core filename appears 20 times and has different values for the order
+# metrics. Create a table that, for each filename contains the mean values of 
+# all order metrics
+for unique_core_filename in unique_core_filenames_vec
+    println("Processing core filename: ", unique_core_filename)
+    # get the mask of the current core filename
+    mask = core_filenames_vec .== unique_core_filename
+    means = [all_order_metrics_dict["network_type"][mask][1]]
+    append!(means, [string(Statistics.mean(all_order_metrics_dict[metric][mask])) for metric in order_metrics_vec[2:end]])
+
+    open(analysis_data_path*means_filename, "a") do io
+        println(io, join(means, '\t'))
+    end
+
+    stds = [all_order_metrics_dict["network_type"][mask][1],
+    all_order_metrics_dict["bond_bending_const_vec"][mask][1],
+    all_order_metrics_dict["t_max_vec"][mask][1],
+    all_order_metrics_dict["t_gradient_vec"][mask][1]]
+    append!(stds, [string(Statistics.std(all_order_metrics_dict[metric][mask])) for metric in order_metrics_vec[5:end]])
+    
+    open(analysis_data_path*stds_filename, "a") do io
+        println(io, join(stds, '\t'))
+    end
+end
+
+
+network_type_vec = ["dia"]
+nr_vertices_vec = [216] # 1000, 1728
+bond_bending_const_vec = [0.25]
+theta_ground_state_vec = [109.5, 180.0]
+acceptance_probability_vec = [0.001]
+
+NA.print_melting_temperatures(
+    ;
+    network_type_vec,
+    nr_vertices_vec,
+    bond_bending_const_vec,
+    theta_ground_state_vec,
+    acceptance_probability_vec
+    )

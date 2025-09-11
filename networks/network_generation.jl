@@ -178,7 +178,11 @@ function array_3D(
     nbr_y, 
     translate_z,
     nbr_z)
-    
+
+    # change the labels of the edges dictionary to ascending numbers from 1 to
+    # length(edges)
+    edges = Dict(1:length(edges) .=> collect(values(edges)))
+
     edges = copy_and_translate_n_times(edges,translate_x,nbr_x)
     edges = copy_and_translate_n_times(edges,translate_y,nbr_y)
     edges = copy_and_translate_n_times(edges,translate_z,nbr_z)
@@ -931,7 +935,6 @@ function get_network(nr_vertices, network_name)
     edges = fold_to_block(edges, nr_unit_cells_per_dimension)
     
     edges = delete_copys(edges, epsilon)
-    #println("edges after fold:, $edges")
     
     # scale the network up from a unitcell lenght of 1 to edge_length_unit_cell
     edges=scale(edges,edge_length_unit_cell)

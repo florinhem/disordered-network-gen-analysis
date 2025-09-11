@@ -71,6 +71,7 @@ Plot a spatial network in 3d
 """
 function plot_spatial_network(
     spatial_network::MetaGraphsNext.MetaGraph;
+    vector_out_of_supercell_length = 1,
     highlight_nodes::Tuple = (),
     highlight_edges::Vector = [])
 
@@ -79,7 +80,8 @@ function plot_spatial_network(
     
     # cut all bonds that reach out of supercell and replace
     # them by half way bonds
-    spatial_network = cut_bonds_out_of_supercell!(spatial_network)
+    spatial_network = cut_bonds_out_of_supercell!(spatial_network, 
+        vector_out_of_supercell_length=vector_out_of_supercell_length)
 
     # get nr of new virtual vertices
     nr_virtual_vertices = spatial_network[]["nr_vertices"] - nr_vertices

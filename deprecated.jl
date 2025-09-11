@@ -6246,3 +6246,140 @@ function get_order_saturation_correlations(
 
     return [correlations_dict, spearman_correlations_dict, mutual_info_dict]
 end
+
+
+
+"""
+generate matrix of vertex positions in the cubic diamond structure,
+where each column is a position vector.
+Inside a unit cell, the vertex positions in units of the nearest
+neighbor distance are
+1/sqrt(3) .* [[0,0,0], [0,2,2], [2,0,2], [2,2,0],
+    [3,3,3], [3,1,1], [1,3,1], [1,1,3]]
+"""
+function get_diamond_vertex_position_mat(
+    nr_unit_cells_per_dimension::Int64, 
+    nr_vertices,
+    edge_length_unit_cell)
+
+    # generate empty matrix for vertex positions
+    vertex_position_mat = Matrix{Float64}(undef, 3, nr_vertices)
+
+    # set the coordinates inside a unit cell in units of the equilibrium bond
+    # length
+    coordinates_inside_unit_cell_vec = (
+        ( 1/sqrt(3) ) .* [[0,0,0], [0,2,2], [2,0,2], [2,2,0],
+                          [3,3,3], [3,1,1], [1,3,1], [1,1,3]] )
+
+    # shift all coordinates, such that none lie on the edge of the supercell
+    coordinate_shift_vector =  ( 1/(2*sqrt(3)) ) .* [1,1,1]
+
+    current_vertex_nr = 1
+
+    for i in 0:nr_unit_cells_per_dimension-1
+        for j in 0:nr_unit_cells_per_dimension-1
+            for k in 0:nr_unit_cells_per_dimension-1
+
+                for nr_vertex_inside_unit_cell in 1:8
+
+                    vertex_position_mat[:, current_vertex_nr] = ( 
+                        [i,j,k] .* edge_length_unit_cell
+                        .+ coordinates_inside_unit_cell_vec[
+                            nr_vertex_inside_unit_cell]
+                        .+ coordinate_shift_vector   )
+
+                    current_vertex_nr += 1
+
+                end
+
+            end
+        end
+    end
+
+    return vertex_position_mat
+end
+
+
+"""
+generate a diamond network using the graphs package. This algorithm is based on
+the information that the unit cell contains 8 vertices
+"""
+function get_diamond_network(nr_vertices)
+    
+    edge_length_unit_cell = 4/sqrt(3)
+
+    # calculate the actual nr vertices, given that we require a 
+    # cubic supercell and using the fact that the unit cell contains 8 vertices 
+    nr_unit_cells_per_dimension = max(1, Int(round( (nr_vertices/8)^(1/3) )) )
+    nr_vertices = 8 * nr_unit_cells_per_dimension^3
+
+    supercell_edge_length = nr_unit_cells_per_dimension*edge_length_unit_cell
+
+
+    # get matrix of vertex positions, where each column is a position vector
+    vertex_position_mat = get_diamond_vertex_position_mat(
+        nr_unit_cells_per_dimension, 
+        nr_vertices,
+        edge_length_unit_cell)
+
+    # generate a graph by connecting all vertices of specified vertex positions
+    # that are closer to each other than the distance cutoff
+    # p=2 is the Euclidean distance
+    original_graph, edge_length_vec = Graphs.euclidean_graph(
+        vertex_position_mat, 
+        L= supercell_edge_length,
+        p=2, 
+        cutoff=1.1,
+        bc=:periodic)
+
+    original_spatial_network = Dict("original_graph" => original_graph,
+                    "edge_length_vec" => edge_length_vec,
+                    "coordination_nr_vec" => fill(4,nr_vertices),
+                    "nr_vertices" => nr_vertices,
+                    "nr_dimensions" => 3,
+                    "supercell_edge_length" => supercell_edge_length,
+                    "vertex_position_mat" => vertex_position_mat
+                    )
+    
+    return original_spatial_network
+end
+
+
+"""
+create a network graph representing the given network structure
+"""
+function get_periodic_network_dia(evolution_dict)
+
+    original_spatial_network = get_diamond_network(
+                evolution_dict["nr_vertices"] ) 
+
+    # convert original graph into a network graph that contains positional
+    # information
+    spatial_network = convert_original_graph_to_spatial_network(
+        original_spatial_network)
+
+    spatial_network[]["bond_bending_const"] = evolution_dict[
+        "bond_bending_const"]
+    
+    spatial_network[]["theta_ground_state"] = evolution_dict[
+        "theta_ground_state"]
+
+    # thermally excite network if desired
+    if evolution_dict["thermal_fluctuations"]
+        spatial_network[]["total_energy_up_to_date"] = false
+
+        spatial_network = excite_entire_network!(spatial_network,
+            evolution_dict;
+            relax_first = false,
+            update_total_energy = true)
+
+    # otherwise just get total energy
+    else
+        spatial_network[]["total_energy"] = get_total_energy_keating(
+            spatial_network)
+        spatial_network[]["total_energy_up_to_date"] = true
+
+    end
+
+    return spatial_network
+end

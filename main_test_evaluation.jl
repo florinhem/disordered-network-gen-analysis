@@ -20,7 +20,7 @@ import Statistics
 # which is the cube root of the number of vertices times 2/sqrt(3)
 
 
-analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\neural_network_targeted\test_networks\\"
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\neural_network_targeted\dia\1000_vertices\\"
 
 all_order_metrics_dict = GU.load_h5_dict(analysis_data_path*"all_order_metrics.h5")
 
@@ -90,8 +90,11 @@ for unique_core_filename in unique_core_filenames_vec
         println(io, join(means, '\t'))
     end
 
-    stds = [all_order_metrics_dict["network_type"][mask][1]]
-    append!(stds, [string(Statistics.std(all_order_metrics_dict[metric][mask])) for metric in order_metrics_vec[2:end]])
+    stds = [all_order_metrics_dict["network_type"][mask][1],
+    all_order_metrics_dict["bond_bending_const_vec"][mask][1],
+    all_order_metrics_dict["t_max_vec"][mask][1],
+    all_order_metrics_dict["t_gradient_vec"][mask][1]]
+    append!(stds, [string(Statistics.std(all_order_metrics_dict[metric][mask])) for metric in order_metrics_vec[5:end]])
     
     open(analysis_data_path*stds_filename, "a") do io
         println(io, join(stds, '\t'))
