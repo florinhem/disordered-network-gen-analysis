@@ -96,7 +96,7 @@ import NetworkLayout  # required to plot networks
 import FileIO   # for file loading and saving
 import Random   # to access more features for random number generation like seeds
 import Statistics   # for statistical operations like mean()
-import GeometryBasics   # to create meshes out of networks
+import GeometryBasics   # to create meshes out of networksdistributions
 import Plots    # for plotting
 import LaTeXStrings as Latex # to display latex symbols in plot labels
 import Format   # for python-like string formatting 
@@ -152,6 +152,8 @@ import FFTW     # to calculate the Fast Fourier Transform
 import StatsBase    # to fit histograms and calculate correlations
 import Polylabel # to find the pole of inaccessibility of a polygon
 import GeometryBasics  # to create polygons that can be handled by Polylabel
+import Distributions  # to access statistical 
+import Random
 import LsqFit   # to perform curve fitting
 import Plots    # for plotting
 import GLMakie  # Makie backend for plotting

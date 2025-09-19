@@ -7,10 +7,14 @@ import .NetworkGeneration as NG
 import .NetworkAnalysis as NA
 import .GeneralUtilities as GU
 
-analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\neural_network_targeted\dia\1000_vertices\\"
+print_lock = Threads.ReentrantLock()
 
-order_metrics_dict = NA.get_order_metrics_all_files(
-    analysis_data_path;
-    l_max_steinhardt_q_l = 12,
-    save_result = true,
-    save_algorithm_parameters_from_filename = true)
+spatial_networks_path = "../structures/local_relaxation/targeted/shell_nr_4/"
+analysis_data_path = "../analysis_data/local_relaxation/targeted/shell_nr_4/"
+
+NA.get_all_dicts_from_networks_multithreading(
+spatial_networks_path,
+analysis_data_path;
+print_progress = true,
+runs_vec = collect(1:10),
+print_lock = print_lock)

@@ -339,7 +339,6 @@ function get_all_dicts_from_networks_multithreading(
                 " files not analyzed in run ", i)
             end
         end
-        
 
         # append to list of all structure dict paths
         append!(run_and_filename_vec, "run_"*string(i)*"/" 
@@ -756,7 +755,9 @@ function print_melting_temperatures(
     nr_vertices_vec,
     bond_bending_const_vec,
     theta_ground_state_vec,
-    acceptance_probability_vec
+    acceptance_probability_vec,
+    relax_globally_after_threshold_cycle_vec,
+    shell_nr_vec
     )
 
     println(Threads.nthreads())
@@ -768,7 +769,9 @@ function print_melting_temperatures(
         vertex_network_pairs,
         bond_bending_const_vec,
         theta_ground_state_vec,
-        acceptance_probability_vec
+        acceptance_probability_vec,
+        relax_globally_after_threshold_cycle_vec,
+        shell_nr_vec
     ))
     data=[]
     data_lock = Threads.ReentrantLock()
@@ -776,19 +779,26 @@ function print_melting_temperatures(
         (network_type, nr_vertices),
         bond_bending_const,
         theta_ground_state,
-        acceptance_probability) in Iter
+        acceptance_probability,
+        relax_globally_after_threshold_cycle,
+        shell_nr) in Iter
         println(
             "$network_type"*", "*
             "$nr_vertices"*", "*
             "$bond_bending_const"*", "*
             "$theta_ground_state"*", "*
-            "$acceptance_probability" )
+            "$acceptance_probability"*", "*
+            "$relax_globally_after_threshold_cycle"*", "*
+            "$shell_nr" )
         evolution_dict = get_evolution_dict(;
             nr_vertices = nr_vertices,
             network_type=network_type,
             bond_bending_const=bond_bending_const,
             min_ring_size=3,
-            theta_ground_state=theta_ground_state
+            theta_ground_state=theta_ground_state,
+            relax_globally_after_threshold_cycle
+                =relax_globally_after_threshold_cycle,
+            shell_nr=shell_nr
         )
         spatial_network = NG.get_periodic_network(evolution_dict)
         spatial_network_copy=deepcopy(spatial_network)
@@ -819,7 +829,9 @@ function print_melting_temperatures(
         end
         
         result=(network_type, nr_vertices, bond_bending_const, 
-            theta_ground_state, acceptance_probability, minimum(T_melt_vec))
+            theta_ground_state, acceptance_probability, 
+            relax_globally_after_threshold_cycle, shell_nr, 
+            minimum(T_melt_vec))
         lock(data_lock)
         try
             push!(data, result)
@@ -828,10 +840,11 @@ function print_melting_temperatures(
             unlock(data_lock)
         end
     end
-    
-    sort!(data, by = x -> (x[1], x[2], x[3], x[4], x[5], x[6]))
-    for (nt, nv, b, t, acceptance_probability, T) in data
-        println("[\"$nt\", $nv, $b, $t, $acceptance_probability, $T ],")
+
+    sort!(data, by = x -> (x[1], x[2], x[3], x[4], x[5], x[6], x[7], x[8]))
+    for (nt, nv, b, t, acceptance_probability, 
+        relax_globally_after_threshold_cycle, shell_nr, T) in data
+        println("[\"$nt\", $nv, $b, $t, $acceptance_probability, $relax_globally_after_threshold_cycle, $shell_nr, $T ],")
     end
 
     return

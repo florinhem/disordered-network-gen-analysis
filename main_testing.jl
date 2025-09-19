@@ -7,24 +7,19 @@ import .NetworkGeneration as NG
 import .NetworkAnalysis as NA
 import .GeneralUtilities as GU
 
-#import MetaGraphsNext
-#import Graphs
-#import Plots
-#Plots.plotlyjs()
-#import .Threads
-#import Statistics
-#import LinearAlgebra
-
-import ProfileView
+import GeometryBasics
+import Polylabel
+import Random
+import Distributions
 
 
-network_type_vec = ["ctn",  "dia",  "lcs", "srs", ]
-nr_vertices_vec = [224, 216,  192,  216,] 
+network_type_vec = ["pcu_cn_4_5_6"]
+nr_vertices_vec = [216] 
 bond_bending_const_vec = [0.0, 0.25, 0.5, 0.75, 1.0]
 theta_ground_state_vec = [180.0]
 acceptance_probability_vec = [0.001]
-relax_globally_after_threshold_cycle_vec = [false]
-shell_nr_vec = [3]
+relax_globally_after_threshold_cycle_vec = [true]
+shell_nr_vec = [4]
 
 NA.print_melting_temperatures(
     ;

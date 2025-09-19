@@ -800,6 +800,143 @@ end
 
 
 """
+returns a dictionary with edges (starting position, ending position, length)
+for the bcu_cn_5_6_7_8 structure which is the bcu network with bonds removed
+to achieve coordination numbers of 5, 6, 7, and 8 as in the disordered networks
+of 10.1002/adfm.202302720. Here, we place the edges by hand, because the
+network has no apparent symmetry.
+"""
+function get_edges_bcu_cn_5_6_7_8()
+
+    L1 = 1/(2*sqrt(3/2))
+
+    ax = [1/8, 0, 0]
+    ay = [0, 1/8, 0]
+    az = [0, 0, 1/8]
+
+    edges = Dict(
+        1 => (ax .+ ay .+ az, 3 .* (ax .+ ay .+ az), L1),
+        2 => ( 5 .* ax .+ ay .+ az, 3 .* (ax .+ ay .+ az), L1),
+        3 => ( 5 .* ax .+ ay .+ az, 7 .* ax .+ 3 .* (ay .+ az), L1),
+        4 => ( 9 .* ax .+ ay .+ az, 7 .* ax .+ 3 .* (ay .+ az), L1),
+
+        5 => (ax .+ 5 .* ay .+ az, 3 .* (ax .+ ay .+ az), L1),
+        6 => (5 .* ax .+ 5 .* ay .+ az, 3 .* (ax .+ ay .+ az), L1),
+        7 => (5 .* ax .+ 5 .* ay .+ az, 7 .* ax .+ 3 .* (ay .+ az), L1),
+
+        8 => (ax .+ 5 .* ay .+ az, 3 .* ax .+ 7 .* ay .+ 3 .* az, L1),
+        9 => (5 .* ax .+ 5 .* ay .+ az, 3 .* ax .+ 7 .* ay .+ 3 .* az, L1),
+        10 => (9 .* ax .+ 5 .* ay .+ az,  7 .* ax .+ 7 .* ay .+ 3 .* az, L1),
+
+        11 => (ax .+ 9 .* ay .+ az, 3 .* ax .+ 7 .* ay .+ 3 .* az, L1),
+        12 => (5 .* ax .+ 9 .* ay .+ az, 3 .* ax .+ 7 .* ay .+ 3 .* az, L1),
+        13 => (5 .* ax .+ 9 .* ay .+ az, 7 .* ax .+ 7 .* ay .+ 3 .* az, L1),
+        14 => (9 .* ax .+ 9 .* ay .+ az, 7 .* ax .+ 7 .* ay .+ 3 .* az, L1),
+
+        15 => (ax .+ ay .+ 5 .* az, 3 .* (ax .+ ay .+ az), L1),
+        16 => (5 .* ax .+ ay .+ 5 .* az, 3 .* (ax .+ ay .+ az), L1),
+        17 => (9 .* ax .+ ay .+ 5 .* az, 7 .* ax .+ 3 .* (ay .+ az), L1),
+
+        18 => (ax .+ 5 .* ay .+ 5 .* az, 3 .* (ax .+ ay .+ az), L1),
+        19 => (5 .* ax .+ 5 .* ay .+ 5 .* az, 3 .* (ax .+ ay .+ az), L1),
+        20 => (5 .* ax .+ 5 .* ay .+ 5 .* az, 7 .* ax .+ 3 .* (ay .+ az), L1),
+        21 => (9 .* ax .+ 5 .* ay .+ 5 .* az, 7 .* ax .+ 3 .* (ay .+ az), L1),
+
+        22 => (3 .* ax .+ 7 .* ay .+ 3 .* az, 5 .* (ax .+ ay .+ az), L1),
+        23 => (7 .* ax .+ 7 .* ay .+ 3 .* az, 5 .* (ax .+ ay .+ az), L1),
+        24 => (7 .* ax .+ 7 .* ay .+ 3 .* az, 9 .* ax .+ 5 .* (ay .+ az), L1),
+
+        25 => (3 .* ax .+ 7 .* ay .+ 3 .* az, 5 .* ax .+ 9 .* ay .+ 5 .* az, L1),
+        26 => (7 .* ax .+ 7 .* ay .+ 3 .* az, 5 .* ax .+ 9 .* ay .+ 5 .* az, L1),
+        27 => (7 .* ax .+ 7 .* ay .+ 3 .* az, 9 .* ax .+ 9 .* ay .+ 5 .* az, L1),
+
+        28 => (ax .+ ay .+ 5 .* az, 3 .* ax .+ 3 .* ay .+ 7 .* az, L1),
+        29 => (5 .* ax .+ ay .+ 5 .* az, 3 .* ax .+ 3 .* ay .+ 7 .* az, L1),
+        30 => (5 .* ax .+ ay .+ 5 .* az, 7 .* ax .+ 3 .* ay .+ 7 .* az, L1),
+        31 => (9 .* ax .+ ay .+ 5 .* az, 7 .* ax .+ 3 .* ay .+ 7 .* az, L1),
+
+        32 => (ax .+ 5 .* ay .+ 5 .* az, 3 .* ax .+ 3 .* ay .+ 7 .* az, L1),
+        33 => (5 .* ax .+ 5 .* ay .+ 5 .* az, 3 .* ax .+ 3 .* ay .+ 7 .* az, L1),
+        34 => (5 .* ax .+ 5 .* ay .+ 5 .* az, 7 .* ax .+ 3 .* ay .+ 7 .* az, L1),
+        35 => (9 .* ax .+ 5 .* ay .+ 5 .* az, 7 .* ax .+ 3 .* ay .+ 7 .* az, L1),
+
+        36 => (ax .+ 5 .* ay .+ 5 .* az, 3 .* ax .+ 7 .* ay .+ 7 .* az, L1),
+        37 => (5 .* ax .+ 5 .* ay .+ 5 .* az, 7 .* ax .+ 7 .* ay .+ 7 .* az, L1),
+
+        38 => (ax .+ 9 .* ay .+ 5 .* az, 3 .* ax .+ 7 .* ay .+ 7 .* az, L1),
+        39 => (5 .* ax .+ 9 .* ay .+ 5 .* az, 3 .* ax .+ 7 .* ay .+ 7 .* az, L1),
+        40 => (9 .* ax .+ 9 .* ay .+ 5 .* az, 7 .* ax .+ 7 .* ay .+ 7 .* az, L1),
+
+        41 => (3 .* ax .+ 3 .* ay .+ 7 .* az, ax .+ ay .+ 9 .* az, L1),
+        42 => (7 .* ax .+ 3 .* ay .+ 7 .* az, 9 .* ax .+ ay .+ 9 .* az, L1),
+
+        43 => (3 .* ax .+ 3 .* ay .+ 7 .* az, 5 .* ax .+ 5 .* ay .+ 9 .* az, L1),
+        44 => (7 .* ax .+ 3 .* ay .+ 7 .* az, 5 .* ax .+ 5 .* ay .+ 9 .* az, L1),
+        45 => (7 .* ax .+ 3 .* ay .+ 7 .* az, 9 .* ax .+ 5 .* ay .+ 9 .* az, L1),
+
+        46 => (3 .* ax .+ 7 .* ay .+ 7 .* az, 1 .* ax .+ 5 .* ay .+ 9 .* az, L1),
+        47 => (3 .* ax .+ 7 .* ay .+ 7 .* az, 5 .* ax .+ 5 .* ay .+ 9 .* az, L1),
+        48 => (7 .* ax .+ 7 .* ay .+ 7 .* az, 5 .* ax .+ 5 .* ay .+ 9 .* az, L1),
+        49 => (7 .* ax .+ 7 .* ay .+ 7 .* az, 9 .* ax .+ 5 .* ay .+ 9 .* az, L1),
+
+        50 => (3 .* ax .+ 7 .* ay .+ 7 .* az, 1 .* ax .+ 9 .* ay .+ 9 .* az, L1),
+        51 => (3 .* ax .+ 7 .* ay .+ 7 .* az, 5 .* ax .+ 9 .* ay .+ 9 .* az, L1),
+        52 => (7 .* ax .+ 7 .* ay .+ 7 .* az, 5 .* ax .+ 9 .* ay .+ 9 .* az, L1),
+    )
+    
+    return edges
+end
+
+
+"""
+returns a dictionary with edges (starting position, ending position, length)
+for the pcu_cn_4_5_6 structure which is the pcu network with bonds removed
+to achieve coordination numbers of 4, 5, and 6 as in the disordered network
+of 10.1016/j.mtadv.2024.100524. Here, we place the edges by hand, because the
+network has no apparent symmetry.
+"""
+function get_edges_pcu_cn_4_5_6()
+
+    L1 = 1/2
+
+    ax = [1/4, 0, 0]
+    ay = [0, 1/4, 0]
+    az = [0, 0, 1/4]
+
+    edges = Dict(
+        1 => (ax .+ ay .+ az, ax .+ ay .+ 3 .* az, L1),
+        2 => (ax .+ ay .+ az, ax .+ ay .- az, L1),
+        3 => (ax .+ ay .+ az, 3 .* ax .+ ay .+ az, L1),
+        4 => (ax .+ ay .+ az, ax .+ 3 .* ay .+ az, L1),
+        5 => (ax .+ ay .+ az, ax .- ay .+ az, L1),
+
+        6 => (3 .* ax .+ ay .+ az, 3 .* ax .+ ay .+ 3 .* az, L1),
+        7 => (3 .* ax .+ ay .+ az, 3 .* ax .+ ay .- az, L1),
+        8 => (3 .* ax .+ ay .+ az, 3 .* ax .+ 3 .* ay .+ az, L1),
+        9 => (3 .* ax .+ ay .+ az, 3 .* ax .- ay .+ az, L1),
+
+        10 => (ax .+ 3 .* ay .+ az, 3 .* ax .+ 3 .* ay .+ az, L1),
+        11 => (ax .+ 3 .* ay .+ az, .- ax .+ 3 .* ay .+ az, L1),
+
+        12 => (3 .* ax .+ 3 .* ay .+ az, 3 .* ax .+ 3 .* ay .+ 3 .* az, L1),
+        13 => (3 .* ax .+ 3 .* ay .+ az, 3 .* ax .+ 3 .* ay .- az, L1),
+
+        14 => (ax .+ ay .+ 3 .* az, ax .+ 3 .* ay .+ 3 .* az, L1),
+        15 => (ax .+ ay .+ 3 .* az, ax .- ay .+ 3 .* az, L1),
+        16 => (ax .+ ay .+ 3 .* az, .- ax .+ ay .+ 3 .* az, L1),
+
+        17 => (3 .* ax .+ ay .+ 3 .* az, 3 .* ax .+ 3 .* ay .+ 3 .* az, L1),
+        18 => (3 .* ax .+ ay .+ 3 .* az, 3 .* ax .- ay .+ 3 .* az, L1),
+
+        19 => (ax .+ 3 .* ay .+ 3 .* az, 3 .* ax .+ 3 .* ay .+ 3 .* az, L1),
+        20 => (ax .+ 3 .* ay .+ 3 .* az, .- ax .+ 3 .* ay .+ 3 .* az, L1),
+    )
+
+    return edges
+end
+
+
+"""
 returns a vector for the coordination numbers of all vertices of the 
 original graph
 """
@@ -878,9 +1015,20 @@ function get_network(nr_vertices, network_name)
         nr_vertices_per_unit_cell = 24
         nr_edges_per_unit_cell=48
         edges = get_edges_lcs()
+    elseif cmp(network_name , "bcu_cn_5_6_7_8") == 0
+        nr_dimensions = 3
+        edge_length_unit_cell = 2*sqrt(3/2)
+        nr_vertices_per_unit_cell = 16
+        nr_edges_per_unit_cell=52
+        edges = get_edges_bcu_cn_5_6_7_8()
+    elseif cmp(network_name , "pcu_cn_4_5_6") == 0
+        nr_dimensions = 3
+        edge_length_unit_cell = 2
+        nr_vertices_per_unit_cell = 8
+        nr_edges_per_unit_cell=20
+        edges = get_edges_pcu_cn_4_5_6()
     else
-        @error ("Only dia, srd, srs, ctn, pto, lcs are implemented, 
-            $network_name not.")
+        @error ("$network_name not implemented.")
     end
 
     # calculate the actual nr vertices, given that we require a 
@@ -957,6 +1105,10 @@ function get_network(nr_vertices, network_name)
     count_2 = count(x -> x == 2, coordination_nr_vec)
     count_3 = count(x -> x == 3, coordination_nr_vec)
     count_4 = count(x -> x == 4, coordination_nr_vec)
+    count_5 = count(x -> x == 5, coordination_nr_vec)
+    count_6 = count(x -> x == 6, coordination_nr_vec)
+    count_7 = count(x -> x == 7, coordination_nr_vec)
+    count_8 = count(x -> x == 8, coordination_nr_vec)
 
     # this if else can be removed, if you are sure that the network is correct
     if cmp(network_name , "dia") == 0 || cmp(network_name , "diamond") == 0
@@ -991,6 +1143,15 @@ function get_network(nr_vertices, network_name)
         println("nr of edges in unitcell should be $nr_edges_per_unit_cell=?=$(
         length(edge_length_vec)/(nr_unit_cells_per_dimension^3))")    
         println("CN_all=$(length(coordination_nr_vec))=?=CN4=$(count_4)")
+    elseif cmp(network_name , "bcu_cn_5_6_7_8") == 0
+        println("nr of edges in unitcell should be $nr_edges_per_unit_cell=?=$(
+        length(edge_length_vec)/(nr_unit_cells_per_dimension^3))")
+        println("CN6/CN5, CN7/CN5 , CN8/CN5 =7, 7, 1=?=$(count_6/count_5), 
+        $(count_7/count_5), $(count_8/count_5)")
+    elseif cmp(network_name , "pcu_cn_4_5_6") == 0
+        println("nr of edges in unitcell should be $nr_edges_per_unit_cell=?=$(
+        length(edge_length_vec)/(nr_unit_cells_per_dimension^3))")
+        println("CN5/CN4, CN6/CN4 = 2, 1=?=$(count_5/count_4), $(count_6/count_4)")
     end
 
     # create original spatial network

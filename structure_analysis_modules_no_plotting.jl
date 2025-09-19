@@ -150,6 +150,8 @@ import FFTW     # to calculate the Fast Fourier Transform
 import StatsBase    # to fit histograms and calculate correlations
 import Polylabel # to find the pole of inaccessibility of a polygon
 import GeometryBasics  # to create polygons that can be handled by Polylabel
+import Distributions  # to access statistical distributions
+import Random
 import LsqFit   # to perform curve fitting
 import Plots    # for plotting
 #import GLMakie  # Makie backend for plotting

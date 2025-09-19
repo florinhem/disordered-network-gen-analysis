@@ -32674,3 +32674,228 @@ NA.print_melting_temperatures(
     theta_ground_state_vec,
     acceptance_probability_vec
     )
+
+
+
+network_type_vec = ["ctn", "ctn", "dia", "dia", "lcs", "lcs", "srs", "srs"]
+nr_vertices_vec = [224, 756, 216, 1000, 192, 648, 216, 1000] # 1000, 1728
+bond_bending_const_vec = [0.25, 0.75]
+theta_ground_state_vec = [180.0]
+acceptance_probability_vec = [0.001]
+relax_globally_after_threshold_cycle_vec = [false]
+shell_nr_vec = [3, 4]
+
+NA.print_melting_temperatures(
+    ;
+    network_type_vec,
+    nr_vertices_vec,
+    bond_bending_const_vec,
+    theta_ground_state_vec,
+    acceptance_probability_vec,
+    relax_globally_after_threshold_cycle_vec,
+    shell_nr_vec
+    )
+
+
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 ,     
+    network_type = "dia",
+    theta_ground_state = 180.0)
+
+spatial_network = NG.get_periodic_network(evolution_dict)
+
+#random_chain = (70, 44, 59, 214) # NG.get_random_chain(spatial_network)
+
+cluster_dict = NG.get_cluster_in_shells_dict(
+    spatial_network, 
+    random_chain; 
+    shell_nr = 3,
+    calculate_cluster_energy = false)
+
+all_cluster_vertices_vec = vcat(cluster_dict["cluster_vertices_to_move_vec"], cluster_dict["cluster_vertices_outer_shell_vec"])
+
+# convert all_cluster_vertices_vec to a tuple 
+all_cluster_vertices_tuple = tuple(all_cluster_vertices_vec...)
+
+NG.plot_spatial_network(spatial_network; highlight_nodes = all_cluster_vertices_tuple)
+
+
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 16 ,     
+    network_type = "bcu_cn_5_6_7_8",
+    theta_ground_state = 180.0,
+    relax_globally_after_threshold_cycle = false,
+    shell_nr = 4)
+
+spatial_network = NG.get_periodic_network(evolution_dict)
+
+NG.plot_spatial_network(spatial_network)
+
+network_type_vec = ["bcu_cn_5_6_7_8", "bcu_cn_5_6_7_8"]
+nr_vertices_vec = [432, 1024] 
+bond_bending_const_vec = [0.0, 0.25, 0.5, 0.75, 1.0]
+theta_ground_state_vec = [180.0]
+acceptance_probability_vec = [0.001]
+relax_globally_after_threshold_cycle_vec = [false]
+shell_nr_vec = [3, 4]
+
+NA.print_melting_temperatures(
+    ;
+    network_type_vec,
+    nr_vertices_vec,
+    bond_bending_const_vec,
+    theta_ground_state_vec,
+    acceptance_probability_vec,
+    relax_globally_after_threshold_cycle_vec,
+    shell_nr_vec
+    )
+
+network_type_vec = ["bcu_cn_5_6_7_8", "bcu_cn_5_6_7_8"]
+nr_vertices_vec = [432, 1024] 
+bond_bending_const_vec = [0.0, 0.25, 0.5, 0.75, 1.0]
+theta_ground_state_vec = [180.0]
+acceptance_probability_vec = [0.001]
+relax_globally_after_threshold_cycle_vec = [true]
+shell_nr_vec = [4]
+
+NA.print_melting_temperatures(
+    ;
+    network_type_vec,
+    nr_vertices_vec,
+    bond_bending_const_vec,
+    theta_ground_state_vec,
+    acceptance_probability_vec,
+    relax_globally_after_threshold_cycle_vec,
+    shell_nr_vec
+    )
+
+
+
+evolution_dicts_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\targeted\shell_nr_4\evolution_dicts\\"
+
+nr_samples = 10
+
+network_types = ["ctn", "dia", "lcs", "srs"]
+nr_vertices_vec = [224, 216, 192, 216] # diamond, diamond, lcs, srs
+nr_vertices_large_vec = [756, 1000, 648, 1000] # diamond, diamond, lcs, srs
+beta_vec = [1/4, 3/4] 
+t_max_over_t_melt_vec = [1/2, 3/2]
+t_gradient_over_t_melt_vec = [2/5, 4/5]
+
+nr_vertices_vec = [216, 216, 192, 216] # diamond, diamond, lcs, srs
+
+theta_ground_state = 180.0
+relax_globally_after_threshold_cycle = false
+shell_nr = 4
+
+for i in eachindex(network_types)
+    for beta in beta_vec
+        for t_max_over_t_melt in t_max_over_t_melt_vec
+            for t_gradient_over_t_melt in t_gradient_over_t_melt_vec
+
+                nr_vertices = nr_vertices_vec[i]
+                network_type = network_types[i]
+
+                # get the melting temperature for the beta values
+                t_melt = NA.get_melting_temperature(network_type, beta, relax_globally_after_threshold_cycle=relax_globally_after_threshold_cycle, shell_nr=shell_nr)
+
+                # get random values of t_max and t_gradient
+                t_max = t_melt * t_max_over_t_melt
+                t_gradient = t_melt * t_gradient_over_t_melt
+
+                temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(t_max,
+                    temperature_gradient = t_gradient, 
+                    nr_monte_carlo_steps_per_temperature = 0.01,
+                    quench = true )
+
+                evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,
+                    temperature_vec = temperature_vec,
+                    nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
+                    bond_bending_const = beta, network_type = network_type,
+                    theta_ground_state = theta_ground_state,
+                    relax_globally_after_threshold_cycle = relax_globally_after_threshold_cycle,
+                    shell_nr = shell_nr)
+
+                filename = Format.format("$(network_type)_nr_vertices_{1:d}_beta_{2:.4f}_t_max_{3:.4f}_t_gradient_{4:.4f}", nr_vertices, beta, t_max, t_gradient)
+
+                GU.save_dict_to_h5(evolution_dict, evolution_dicts_path*filename*"_evolution.h5")
+
+                nr_vertices = nr_vertices_large_vec[i]
+
+                evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,
+                    temperature_vec = temperature_vec,
+                    nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
+                    bond_bending_const = beta, network_type = network_type,
+                    theta_ground_state = theta_ground_state,
+                    relax_globally_after_threshold_cycle = relax_globally_after_threshold_cycle,
+                    shell_nr = shell_nr)
+
+                filename = Format.format("$(network_type)_nr_vertices_{1:d}_beta_{2:.4f}_t_max_{3:.4f}_t_gradient_{4:.4f}", nr_vertices, beta, t_max, t_gradient)
+
+                GU.save_dict_to_h5(evolution_dict, evolution_dicts_path*filename*"_evolution.h5")
+            end
+        end
+    end
+end
+
+
+network_type_vec = ["bcu_cn_5_6_7_8", "bcu_cn_5_6_7_8"]
+nr_vertices_vec = [432, 1024] 
+bond_bending_const_vec = [0.0, 0.25, 0.5, 0.75, 1.0]
+theta_ground_state_vec = [180.0]
+acceptance_probability_vec = [0.001]
+relax_globally_after_threshold_cycle_vec = [true]
+shell_nr_vec = [4]
+
+NA.print_melting_temperatures(
+    ;
+    network_type_vec,
+    nr_vertices_vec,
+    bond_bending_const_vec,
+    theta_ground_state_vec,
+    acceptance_probability_vec,
+    relax_globally_after_threshold_cycle_vec,
+    shell_nr_vec
+    )
+
+
+nr_samples = 1000
+
+nr_vertices = 432
+network_type = "bcu_cn_5_6_7_8"
+theta_ground_state = 180.0
+shell_nr = 4
+relax_globally_after_threshold_cycle = false
+
+# choose random beta values for the samples between 0 and 1
+beta_vec = rand(nr_samples)
+
+# get the melting temperature for the beta values
+t_melt_vec = [NA.get_melting_temperature("bcu_cn_5_6_7_8", beta; relax_globally_after_threshold_cycle=relax_globally_after_threshold_cycle, shell_nr=shell_nr) for beta in beta_vec]
+
+# get random values of t_max between t_melt/3 and 3*t_melt 
+t_max_vec = t_melt_vec .* (1/3 .+ 8/3 .* rand(nr_samples))
+
+# get random values of the heating/cooling gradient between t_melt/10 and 
+# t_melt
+t_gradient_vec = t_melt_vec .* (1/10 .+ 9/10 .* rand(nr_samples))
+
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\random\bcu_cn_5_6_7_8\evolution_dicts\\"
+
+for i in 1:nr_samples
+    temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(t_max_vec[i],
+        temperature_gradient = t_gradient_vec[i], 
+        nr_monte_carlo_steps_per_temperature = 0.01,
+        quench = true )
+
+
+    evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,     
+        temperature_vec = temperature_vec,
+        nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
+        bond_bending_const = beta_vec[i], network_type = network_type,
+        theta_ground_state = theta_ground_state,
+        relax_globally_after_threshold_cycle = relax_globally_after_threshold_cycle,
+        shell_nr = shell_nr,)
+
+    filename = Format.format("bcu_cn_5_6_7_8_beta_{1:.4f}_t_max_{2:.4f}_t_gradient_{3:.4f}", beta_vec[i], t_max_vec[i], t_gradient_vec[i])
+    GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
+end

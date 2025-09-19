@@ -1116,9 +1116,23 @@ function get_ring_radius_distribution(
 
         # project the ring onto the plane defined by the normal vector
         projected_ring = project_to_plane(vertex_positions, normal_vector)
+
+        # add some noise to the projected ring points to avoid issues with
+        # the Polylabel package when rings are very symmetric
+        d = Distributions.Normal(0, 1e-6)
+        noise_map = Dict{Tuple{Float64,Float64},Tuple{Float64,Float64}}()
+        function noisy_point(p, d, noise_map)
+            if !haskey(noise_map, p)
+                noise_map[p] = (Random.rand(d), Random.rand(d))  
+            end
+            return (p[1] + noise_map[p][1], p[2] + noise_map[p][2])
+        end
+        projected_ring_noisy = [noisy_point(p, d, noise_map) 
+            for p in projected_ring]
+
         # create a polygon from the projected ring
         polygon = GeometryBasics.Polygon(
-            GeometryBasics.Point{2, Float64}[projected_ring...])
+            GeometryBasics.Point{2, Float64}[projected_ring_noisy...])
 
         # determine the pole of inaccessibility of the polygon
         # (the point in the polygon that is farthest away from the edges of the

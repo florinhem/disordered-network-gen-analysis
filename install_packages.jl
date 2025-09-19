@@ -31,4 +31,5 @@ Pkg.add([
     "LsqFit",
     "CSV",
     "DataFrames",
+    "Distributions"
 ])
