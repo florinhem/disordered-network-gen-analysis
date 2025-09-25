@@ -19,7 +19,7 @@ function get_distance_vector_pbc(
 
     # modify the vector according to boundary conditions
     distance_vector = ( ( abs.(distance_vector_without_pbc) 
-                .< (supercell_edge_length/2) ) 
+                .<= (supercell_edge_length/2) ) 
             .* distance_vector_without_pbc
         .+ ( abs.(distance_vector_without_pbc .+ supercell_edge_length) 
                 .< (supercell_edge_length/2) ) 
@@ -685,4 +685,5 @@ function get_energy_relaxation_coefficients(x_vec::Vector, y_vec::Vector)
 
     return [a, c]
 end
+
 

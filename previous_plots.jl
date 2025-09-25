@@ -5565,3 +5565,203 @@ grid = true,
 Plots.xlabel!("Order metric")
 
 Plots.savefig(save_path*"dia_comparison_t_melt_216_1000.png")
+
+
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\local_relaxation\comparison_t_melt\\"
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\targeted\shell_nr_4\\"
+
+measured_means_dict = load_table_as_dict(analysis_data_path*"measured_order_metric_means.txt")
+measured_stds_dict = load_table_as_dict(analysis_data_path*"measured_order_metric_stds.txt")
+
+order_metrics_labels = [
+    "Bond length std. deviation",
+    "Bond angle std. deviation",
+    "Dihedral angle entropy",
+    "Bond orientation entropy",
+    "Anisotropy from structure factor",
+    "Vertex homogeneity metric",
+    "Critical pore radius",
+    "Ring radius mean",
+    "Ring radius std. deviation",
+    "Hyperuniformity alpha / 10",
+]
+
+order_metrics_keys = [
+    "bond_length_std_vec",
+    "bond_angle_std_vec",
+    "dihedral_angle_entropy_vec",
+    "bond_orientation_entropy_vec",
+    "anisotropy_metric_from_structure_factor_vec",
+    "vertex_homogeneity_metric_vec",
+    "critical_pore_radius_vec",
+    "ring_radius_mean_vec",
+    "ring_radius_std_vec",
+    "hyperuniformity_alpha_vec_values",
+]
+
+reversed_names = reverse(order_metrics_labels)
+
+# in the measured_means_dict find the entry of the vectors where the network_type is dia
+# bond_bending_const_vec is 0.25, t_max_vec is 0.4592, t_gradient_vec is 0.1224
+network_type_vec = ["ctn", "dia", "lcs", "srs"]
+nr_vertices_small = [224, 216, 192, 216]
+nr_vertices_large = [756, 1000, 648, 1000]
+
+means_identifier = zip(measured_means_dict["network_type"],
+                        measured_means_dict["bond_bending_const_vec"],
+                        measured_means_dict["t_max_vec"],
+                        measured_means_dict["t_gradient_vec"])
+
+stds_identifier = zip(measured_stds_dict["network_type"],
+                        measured_stds_dict["bond_bending_const_vec"],
+                        measured_stds_dict["t_max_vec"],
+                        measured_stds_dict["t_gradient_vec"])
+
+for (i, mean_id) in enumerate(means_identifier)
+
+    j = 0
+
+    if measured_means_dict["nr_vertices_vec"][i] < 300
+        
+        # Find the first j that matches the same tuple and has measured_means_dict["nr_vertices_vec"][j] > 600
+        j = findfirst(j -> 
+            measured_stds_dict["network_type"][j] == mean_id[1]
+            && isapprox(measured_stds_dict["bond_bending_const_vec"][j], mean_id[2]) 
+            && isapprox(measured_stds_dict["t_max_vec"][j], mean_id[3]) 
+            && isapprox(measured_stds_dict["t_gradient_vec"][j], mean_id[4]) 
+            && measured_means_dict["nr_vertices_vec"][j] > 600, 1:length(measured_stds_dict["network_type"]))
+
+        # get the vector of measured means for the current network type
+        means_small = [measured_means_dict[key][i] for key in order_metrics_keys]
+        means_large = [measured_means_dict[key][j] for key in order_metrics_keys]
+        stds_small = [measured_stds_dict[key][i] for key in order_metrics_keys]
+        stds_large = [measured_stds_dict[key][j] for key in order_metrics_keys]
+
+        means_small[end] /= 10
+        means_large[end] /= 10
+        stds_small[end] /= 10
+        stds_large[end] /= 10
+
+        reversed_means_small = reverse(means_small)
+        reversed_means_large = reverse(means_large)
+        reversed_stds_small = reverse(stds_small)
+        reversed_stds_large = reverse(stds_large)
+
+        Plots.plot(
+        reversed_means_large,
+        1:length(reversed_means_large),
+        xerror = reversed_stds_large,
+        seriestype = :scatter,
+        markershape = :circle,
+        legend = false,
+        size = (700, 600),
+        yticks = (1:length(reversed_names), reversed_names),
+        xticks = collect(0.0:0.5:1.0),
+        bottom_margin = 0Plots.mm,
+        markersize = 7,
+        markercolor = Plots.palette(:tab10)[1],
+        xlims = (-0.1, 1.4),
+        ylims = (0.5, length(reversed_names) + 0.5),
+        grid = true,
+        )
+
+        Plots.plot!(
+        reversed_means_small,
+        1:length(reversed_means_small),
+        xerror = reversed_stds_small,
+        seriestype = :scatter,
+        markershape = :circle,
+        markersize = 5,
+        markercolor = Plots.palette(:tab10)[2],
+        )
+
+        Plots.xlabel!("Order metric")
+
+        network_type = mean_id[1]
+        beta = mean_id[2]
+        t_max = mean_id[3]
+        t_gradient = mean_id[4]
+
+        # round these values to 4 decimal places
+        beta = round(beta, digits=4)
+        t_max = round(t_max, digits=4)
+        t_gradient = round(t_gradient, digits=4)
+
+        Plots.title!("$(network_type), "*Latex.L"\beta ="*"$(beta), "*Latex.L"T_\mathrm{max} ="*"$(t_max), "*Latex.L"\Delta T ="*"$(t_gradient)                         ")
+
+        Plots.savefig(save_path*"$(network_type)_beta_$(beta)_t_max_$(t_max)_t_gradient_$(t_gradient).png")
+    end
+end
+
+
+
+save_filename = "dia_64_vertices"
+network_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\crystals\\"
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\crystals\\"
+digital_sphere_mask_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\crystals\digital_sphere_masks\\"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\crystals\pore_size_distribution_comparison\\"
+
+spatial_network = NG.load_spatial_network_from_gml(
+    network_path*save_filename*".gml")
+
+println(spatial_network[]["supercell_edge_length"]/2)
+
+pore_size_distribution_dict = NA.get_pore_size_distribution(
+    spatial_network;
+    sampling_grid_size = 0.2,
+    max_pore_radius = 1.5,
+    periodic_boundary_conditions = true,
+    save_result = true,
+    save_path = analysis_data_path*save_filename,
+    label = nothing,
+    digital_sphere_mask_path 
+        = digital_sphere_mask_path,
+    print_progress = true,
+    thread_nr = 0,
+    print_lock = Threads.ReentrantLock())
+
+# convert to a spatial_network_without periodic boundaries
+spatial_network_no_pbc = NA.convert_periodic_to_non_periodic(spatial_network)
+
+pore_size_distribution_dict_no_pbc = NA.get_pore_size_distribution(
+    spatial_network_no_pbc;
+    sampling_grid_size = 0.2,
+    max_pore_radius = 1.5,
+    periodic_boundary_conditions = false,
+    save_result = true,
+    save_path = analysis_data_path*save_filename*"_no_pbc",
+    label = nothing,
+    digital_sphere_mask_path 
+        = digital_sphere_mask_path,
+    print_progress = true,
+    thread_nr = 0,
+    print_lock = Threads.ReentrantLock())
+
+Plots.plot(pore_size_distribution_dict["pore_size_vec"], pore_size_distribution_dict["pore_size_distribution"], label="with PBC")
+Plots.plot!(pore_size_distribution_dict_no_pbc["pore_size_vec"], pore_size_distribution_dict_no_pbc["pore_size_distribution"], label="without PBC")
+Plots.xlabel!("Pore radius / d")
+Plots.ylabel!("Pore size distribution")
+Plots.savefig(plot_path*save_filename*"_pore_size_distribution_comparison.png")
+
+
+network_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\targeted\shell_nr_4\run_1\\"
+
+save_filename = "lcs_nr_vertices_192_beta_0.2500_t_max_0.2138_t_gradient_0.1140"
+
+analysis_data_path_1 = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\targeted\shell_nr_4\run_1\\"
+analysis_data_path_2 = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\targeted\new_pore_size_distribution\run_1\\"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\local_relaxation\pore_size_distribution_comparison\\"
+
+dict_1 = GU.load_h5_dict(analysis_data_path_1*save_filename*"_pore_size_distribution.h5")
+dict_2 = GU.load_h5_dict(analysis_data_path_2*save_filename*"_pore_size_distribution.h5")
+
+Plots.plot(dict_1["pore_size_vec"], dict_1["pore_size_distribution"], label="with error")
+Plots.plot!(dict_2["pore_size_vec"], dict_2["pore_size_distribution"], label="corrected")
+Plots.xlabel!("Pore radius / d")
+Plots.ylabel!("Pore size distribution")
+Plots.savefig(plot_path*save_filename*"_with_and_without_error.png")

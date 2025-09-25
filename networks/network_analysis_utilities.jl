@@ -154,6 +154,8 @@ function get_all_dicts_from_network_single_file(
     filename::String,
     spatial_network_path::String,
     analysis_data_path::String;
+    digital_sphere_mask_path 
+        = raw"..\analysis_data\random_networks\digital_sphere_masks\\",
     pore_size_sampling_grid_size = 0.2,
     print_progress::Bool = false,
     print_lock = Threads.ReentrantLock())
@@ -236,6 +238,7 @@ function get_all_dicts_from_network_single_file(
         save_result = true,
         save_path = analysis_data_path*filename,
         label = nothing,
+        digital_sphere_mask_path = digital_sphere_mask_path,
         print_progress = print_progress,
         thread_nr = Threads.threadid(),
         print_lock = print_lock)
@@ -261,6 +264,8 @@ several functions that characterize the structure
 function get_all_dicts_from_networks_single_thread(run_and_filename_chunk,
     spatial_networks_path::String,
     analysis_data_path::String;
+    digital_sphere_mask_path 
+        = raw"..\analysis_data\random_networks\digital_sphere_masks\\",
     pore_size_sampling_grid_size::Float64 = 0.2,
     print_progress::Bool = false,
     print_lock = Threads.ReentrantLock())
@@ -280,6 +285,7 @@ function get_all_dicts_from_networks_single_thread(run_and_filename_chunk,
             run_and_filename[7:end],
             spatial_networks_path*run_and_filename[1:6],
             analysis_data_path*run_and_filename[1:6];
+            digital_sphere_mask_path = digital_sphere_mask_path,
             pore_size_sampling_grid_size = pore_size_sampling_grid_size,
             print_progress = print_progress,
             print_lock = print_lock)
@@ -297,6 +303,8 @@ characterize the structures using multithreading
 function get_all_dicts_from_networks_multithreading(
     spatial_networks_path::String,
     analysis_data_path::String;
+    digital_sphere_mask_path 
+        = raw"..\analysis_data\random_networks\digital_sphere_masks\\",
     pore_size_sampling_grid_size::Float64 = 0.2,
     print_progress::Bool = false,
     runs_vec = collect(1:5),
@@ -357,6 +365,7 @@ function get_all_dicts_from_networks_multithreading(
             run_and_filename_chunk,
             spatial_networks_path,
             analysis_data_path;
+            digital_sphere_mask_path = digital_sphere_mask_path,
             pore_size_sampling_grid_size = pore_size_sampling_grid_size,
             print_progress = print_progress,
             print_lock = print_lock)
@@ -397,8 +406,11 @@ function get_order_metrics(filename::String,
     spatial_network = NG.load_spatial_network_from_gml(
         network_path*filename*".gml")
 
-    # get total keating energy of final network
-    total_keating_energy = spatial_network[]["total_energy"]
+    # if the key "total_energy" is present in the spatial network,
+    # save its
+    if haskey(spatial_network[], "total_energy")
+        total_keating_energy = spatial_network[]["total_energy"]
+    end
 
     # Measure the standard deviation of bond lengths
     bond_length_std, bond_length_vec = get_bond_length_std(spatial_network)
@@ -481,7 +493,6 @@ function get_order_metrics(filename::String,
 
     # create dict to save
     order_metrics_dict = Dict(
-        "total_keating_energy" => total_keating_energy,
         "bond_length_std" => bond_length_std,
         "bond_angle_std" => bond_angle_std,
         "dihedral_angle_entropy" => dihedral_angle_entropy,
@@ -501,6 +512,10 @@ function get_order_metrics(filename::String,
             => anisotropy_metric_from_structure_factor_bonds,
         "hyperuniformity_alpha" => hyperuniformity_alpha,
     )
+
+    if haskey(spatial_network[], "total_energy")
+        order_metrics_dict["total_keating_energy"] = (total_keating_energy)
+    end
 
     if save_result
         GU.save_dict_to_h5(order_metrics_dict, 
@@ -589,8 +604,12 @@ function get_order_metrics_all_files(
             order_metrics_filenames[i])
 
         # get all order metrics and save them to the corresponding vectors
-        total_keating_energy_vec[i] = (
-            order_metrics_dict["total_keating_energy"])
+        if haskey(order_metrics_dict, "total_keating_energy")
+            total_keating_energy_vec[i] = (
+                order_metrics_dict["total_keating_energy"])
+        else
+            total_keating_energy_vec[i] = 0.0
+        end
         bond_length_std_vec[i] = order_metrics_dict["bond_length_std"]
         bond_angle_std_vec[i] = order_metrics_dict["bond_angle_std"]
         dihedral_angle_entropy_vec[i] = (
@@ -848,4 +867,35 @@ function print_melting_temperatures(
     end
 
     return
+end
+
+
+"""
+Convert a network with periodic boundary conditions into a network without
+periodic boundary conditions.
+"""
+function convert_periodic_to_non_periodic(spatial_network)
+
+    # convert to a spatial_network_without periodic boundaries
+    spatial_network_no_pbc = NG.cut_bonds_out_of_supercell!(
+        deepcopy(spatial_network);
+        vector_out_of_supercell_length = 1)
+
+    # get the minimal
+    min_vertex_coord, max_vertex_coord = get_min_max_vertex_coords(
+                spatial_network_no_pbc)
+
+    new_supercell_edge_length = (
+        maximum(max_vertex_coord .- min_vertex_coord) * 2)
+
+    spatial_network_no_pbc[]["supercell_edge_length"] = (
+        new_supercell_edge_length)
+
+    # shift all vertices by half the new supercell edge length
+    for vertex in MetaGraphsNext.labels(spatial_network_no_pbc)
+        spatial_network_no_pbc[vertex]["position"] .+= (
+            new_supercell_edge_length/4 .- min_vertex_coord)
+    end
+
+    return spatial_network_no_pbc
 end

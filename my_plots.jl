@@ -146,4 +146,25 @@ end
 fancylogscale!(p::Plots.Plot; kwargs...) = (fancylogscale!(p.subplots[1]; kwargs...); return p)
 fancylogscale!(; kwargs...) = fancylogscale!(Plots.plot!(); kwargs...)
 
+function load_table_as_dict(filename::String)
+    df = CSV.File(filename; delim='\t') |> DataFrames.DataFrame
+    return Dict(col => collect(df[!, col]) for col in names(df))
+end
 
+network_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\targeted\shell_nr_4\run_1\\"
+
+save_filename = "lcs_nr_vertices_192_beta_0.2500_t_max_0.2138_t_gradient_0.1140"
+
+analysis_data_path_1 = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\targeted\shell_nr_4\run_1\\"
+analysis_data_path_2 = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\targeted\new_pore_size_distribution\run_1\\"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\local_relaxation\pore_size_distribution_comparison\\"
+
+dict_1 = GU.load_h5_dict(analysis_data_path_1*save_filename*"_pore_size_distribution.h5")
+dict_2 = GU.load_h5_dict(analysis_data_path_2*save_filename*"_pore_size_distribution.h5")
+
+Plots.plot(dict_1["pore_size_vec"], dict_1["pore_size_distribution"], label="with error")
+Plots.plot!(dict_2["pore_size_vec"], dict_2["pore_size_distribution"], label="corrected")
+Plots.xlabel!("Pore radius / d")
+Plots.ylabel!("Pore size distribution")
+Plots.savefig(plot_path*save_filename*"_with_and_without_error.png")

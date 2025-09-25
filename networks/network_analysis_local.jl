@@ -38,13 +38,13 @@ function get_bond_angle_std(spatial_network::MetaGraphsNext.MetaGraph)
     
     nr_angles=0
     for vertex in MetaGraphsNext.labels(spatial_network)
+        if spatial_network[vertex]["coordination_nr"] > 1
+            # get iterator of bond combinations
+            bond_combinations_iter = Combinatorics.combinations(collect(
+                MetaGraphsNext.neighbor_labels(spatial_network, vertex)), 2)
 
-        # get iterator of bond combinations
-        bond_combinations_iter = Combinatorics.combinations(collect(
-            MetaGraphsNext.neighbor_labels(spatial_network, vertex)), 2)
-
-        nr_angles+=length(bond_combinations_iter)
-        
+            nr_angles+=length(bond_combinations_iter)
+        end
     end
     
     # initialize vector of bond angles
@@ -53,40 +53,42 @@ function get_bond_angle_std(spatial_network::MetaGraphsNext.MetaGraph)
 
     # loop through all vertices
     for vertex in MetaGraphsNext.labels(spatial_network)
+        if spatial_network[vertex]["coordination_nr"] > 1
 
-        # get iterator of bond combinations
-        bond_combinations_iter = Combinatorics.combinations(collect(
-            MetaGraphsNext.neighbor_labels(spatial_network, vertex)), 2)
+            # get iterator of bond combinations
+            bond_combinations_iter = Combinatorics.combinations(collect(
+                MetaGraphsNext.neighbor_labels(spatial_network, vertex)), 2)
 
-        # loop through bond combinations
-        for bond_combination in bond_combinations_iter
+            # loop through bond combinations
+            for bond_combination in bond_combinations_iter
 
-            # get scalar product of vectors representing the current bond
-            # combination
+                # get scalar product of vectors representing the current bond
+                # combination
 
-            vector_1=spatial_network[vertex, bond_combination[1]]["vector"]
-            vector_2=spatial_network[vertex, bond_combination[2]]["vector"]
+                vector_1=spatial_network[vertex, bond_combination[1]]["vector"]
+                vector_2=spatial_network[vertex, bond_combination[2]]["vector"]
 
-            scalar_product = (sign(bond_combination[1] - vertex)
-                * sign(bond_combination[2] - vertex)
-                * LinearAlgebra.dot(vector_1, vector_2))
+                scalar_product = (sign(bond_combination[1] - vertex)
+                    * sign(bond_combination[2] - vertex)
+                    * LinearAlgebra.dot(vector_1, vector_2))
 
-            cosinus_of_bond_angle=scalar_product/ sqrt(
-                LinearAlgebra.dot(vector_1,vector_1)*
-                LinearAlgebra.dot(vector_2,vector_2))
-            
-            if cosinus_of_bond_angle ≈ 1
-                cosinus_of_bond_angle=1
-            elseif cosinus_of_bond_angle ≈ -1
-                cosinus_of_bond_angle=-1
+                cosinus_of_bond_angle=scalar_product/ sqrt(
+                    LinearAlgebra.dot(vector_1,vector_1)*
+                    LinearAlgebra.dot(vector_2,vector_2))
+
+                if cosinus_of_bond_angle ≈ 1
+                    cosinus_of_bond_angle=1
+                elseif cosinus_of_bond_angle ≈ -1
+                    cosinus_of_bond_angle=-1
+                end
+
+                # calculate bond angle
+                bond_angle = acos(cosinus_of_bond_angle)
+
+                bond_angle_vec[angle_count] = bond_angle
+
+                angle_count += 1
             end
-
-            # calculate bond angle
-            bond_angle = acos(cosinus_of_bond_angle)
-
-            bond_angle_vec[angle_count] = bond_angle
-
-            angle_count += 1
         end
     end
 
@@ -112,41 +114,48 @@ function get_dihedral_angle_entropy(spatial_network::MetaGraphsNext.MetaGraph)
         vertex1=bond[1]
         vertex2=bond[2]
 
-        # get vector along bond
-        bond_vec = spatial_network[bond...]["vector"]
+        # check that both vertices have coordination numbers > 1
+        if (spatial_network[vertex1]["coordination_nr"] > 1 
+            && spatial_network[vertex2]["coordination_nr"] > 1)
 
-        # loop through all neighbors of one vertex 
-        for first_neighbor in setdiff( MetaGraphsNext.neighbor_labels(
-            spatial_network, vertex1), vertex2)
+            # get vector along bond
+            bond_vec = spatial_network[bond...]["vector"]
 
-            # get vector from first neighbor to first bond vertex
-            first_neighbor_to_bond_vertex_vec = ( sign(vertex1 
-                - first_neighbor)*spatial_network[first_neighbor, 
-                vertex1]["vector"])
+            # loop through all neighbors of one vertex 
+            for first_neighbor in setdiff( MetaGraphsNext.neighbor_labels(
+                spatial_network, vertex1), vertex2)
 
-            # loop through all neighbors of other vertex
-            for second_neighbor in setdiff( MetaGraphsNext.neighbor_labels(
-                spatial_network, vertex2), vertex1)
+                # get vector from first neighbor to first bond vertex
+                first_neighbor_to_bond_vertex_vec = ( sign(vertex1 
+                    - first_neighbor)*spatial_network[first_neighbor, 
+                    vertex1]["vector"])
 
-                # get vector from second bond vertex to second neighbor
-                bond_vertex_to_second_neighbor_vec = ( sign(second_neighbor 
-                    - vertex2)*spatial_network[vertex2, 
-                        second_neighbor]["vector"])
+                # loop through all neighbors of other vertex
+                for second_neighbor in setdiff( MetaGraphsNext.neighbor_labels(
+                    spatial_network, vertex2), vertex1)
 
-                # calculate dihedral angle according to the equation given in
-                # https://en.wikipedia.org/wiki/Dihedral_angle# 
-                dihedral_angle = atan( LinearAlgebra.norm(bond_vec)
-                        *LinearAlgebra.dot(first_neighbor_to_bond_vertex_vec,
+                    # get vector from second bond vertex to second neighbor
+                    bond_vertex_to_second_neighbor_vec = ( sign(second_neighbor 
+                        - vertex2)*spatial_network[vertex2, 
+                            second_neighbor]["vector"])
+
+                    # calculate dihedral angle according to the equation given 
+                    # in https://en.wikipedia.org/wiki/Dihedral_angle# 
+                    dihedral_angle = atan( LinearAlgebra.norm(bond_vec)
+                            *LinearAlgebra.dot(
+                                first_neighbor_to_bond_vertex_vec,
+                                LinearAlgebra.cross(bond_vec,
+                                    bond_vertex_to_second_neighbor_vec )),
+                        LinearAlgebra.dot(
+                            LinearAlgebra.cross(
+                                first_neighbor_to_bond_vertex_vec,
+                                bond_vec ),
                             LinearAlgebra.cross(bond_vec,
-                                bond_vertex_to_second_neighbor_vec )),
-                    LinearAlgebra.dot(
-                        LinearAlgebra.cross(first_neighbor_to_bond_vertex_vec,
-                            bond_vec ),
-                        LinearAlgebra.cross(bond_vec,
-                              bond_vertex_to_second_neighbor_vec )))
+                                  bond_vertex_to_second_neighbor_vec )))
 
-                # save dihedral angle
-                push!(dihedral_angle_vec, dihedral_angle)
+                    # save dihedral angle
+                    push!(dihedral_angle_vec, dihedral_angle)
+                end
             end
         end
     end
@@ -165,7 +174,8 @@ function get_dihedral_angle_entropy(spatial_network::MetaGraphsNext.MetaGraph)
     
     # calculate normalized Shannon entropy
     dihedral_angle_entropy = -1/log(length(dihedral_angle_bin_weights)) *sum(
-        dihedral_angle_bin_weights .* log.(dihedral_angle_bin_weights .+ 1e-12))
+        dihedral_angle_bin_weights 
+        .* log.(dihedral_angle_bin_weights .+ 1e-12))
     
     return dihedral_angle_entropy
 end
@@ -333,7 +343,9 @@ function get_coordination_nr_statistics(
                 MetaGraphsNext.neighbor_labels(spatial_network, vertex))
         end
     end
-    
+
+    # remove all elements of the coordination_nr_vec that are 1
+    coordination_nr_vec = filter(x -> x != 1, coordination_nr_vec)
     
     # calculate mean and standard deviation of the coordination number
     coordination_nr_mean = Statistics.mean(coordination_nr_vec)
@@ -471,14 +483,22 @@ function get_q_l_total_network_mean_dict(
     spatial_network::MetaGraphsNext.MetaGraph,
     l_max::Int64)
 
-    # initialize dictionary of q_l averaged over entire network with all values
-    # set to 0
-    q_l_total_network_mean_arr = Array{Float64}(undef, 
-        spatial_network[]["nr_vertices"], l_max+1)
+    # get the vertices with coordination nr > 1
+    considered_vertex_vec = []
+    for vertex in MetaGraphsNext.labels(spatial_network)
+        if spatial_network[vertex]["coordination_nr"] > 1
+            push!(considered_vertex_vec, vertex)
+        end
+    end
 
+    # initialize dictionary of q_l averaged over entire network with all values
+    # set to 0. Here only vertices with coordination_nr > 1 are considered
+    q_l_total_network_mean_arr = Array{Float64}(undef, 
+        length(considered_vertex_vec), l_max+1)
 
     # loop through vertices
-    for vertex in MetaGraphsNext.labels(spatial_network)
+    vertex_count = 1
+    for vertex in considered_vertex_vec
 
         # get vector of steinhardt order parameters for current vertex
         q_l_averaged_single_vertex_dict = (
@@ -487,10 +507,12 @@ function get_q_l_total_network_mean_dict(
 
         # for each l, add current vertex' contribution to sum of all vertices
         for l in 0:l_max
-            q_l_total_network_mean_arr[vertex, l+1] = (
+            q_l_total_network_mean_arr[vertex_count, l+1] = (
                 q_l_averaged_single_vertex_dict[l])
-    
+        
         end
+
+        vertex_count += 1
     end
 
     # calculate mean and standard deviation of q_l for the entire network
@@ -516,7 +538,8 @@ taking into account periodic boundary conditions.
 """
 function get_minimal_distance_to_bond(
     spatial_network::MetaGraphsNext.MetaGraph, 
-    point::Vector{Float64}, bond::Tuple{Int64, Int64})
+    point::Vector{Float64}, bond::Tuple{Int64, Int64};
+    periodic_boundary_conditions::Bool = true)
 
     vertex_1 = spatial_network[bond[1]]["position"]
     vertex_2 = spatial_network[bond[2]]["position"]
@@ -524,12 +547,16 @@ function get_minimal_distance_to_bond(
     bond_vector_normalized = LinearAlgebra.normalize(
         spatial_network[bond...]["vector"])
 
-    bond_length = spatial_network[bond...]["distance_squared"]
+    bond_length = sqrt(spatial_network[bond...]["distance_squared"])
 
     # get vector from vertex 1 to point taking into account periodic boundary
     # conditions
-    vertex_1_to_point_vector = NG.get_distance_vector_pbc(
-        vertex_1, point, spatial_network[]["supercell_edge_length"])
+    if periodic_boundary_conditions
+        vertex_1_to_point_vector = NG.get_distance_vector_pbc(
+            vertex_1, point, spatial_network[]["supercell_edge_length"])
+    else
+        vertex_1_to_point_vector = point .- vertex_1
+    end
 
     # get the projection of the vector from vertex 1 to point onto the bond
     # vector
@@ -540,18 +567,138 @@ function get_minimal_distance_to_bond(
 
     # get the point on the bond closest to the point taking into account 
     # periodic boundary conditions
-    closest_point_on_bond = mod.(vertex_1 .+ (t .* bond_vector_normalized), 
-        spatial_network[]["supercell_edge_length"])
+    if periodic_boundary_conditions
+        closest_point_on_bond = mod.(vertex_1 .+ (t .* bond_vector_normalized), 
+            spatial_network[]["supercell_edge_length"])
+    else
+        closest_point_on_bond = vertex_1 .+ (t .* bond_vector_normalized)
+    end
 
     # get vector from point to closest point on bond taking into account
     # periodic boundary conditions
-    point_to_closest_point_on_bond_vector = NG.get_distance_vector_pbc(
-        point, closest_point_on_bond, spatial_network[]["supercell_edge_length"])
+    if periodic_boundary_conditions
+        point_to_closest_point_on_bond_vector = NG.get_distance_vector_pbc(
+            point, 
+            closest_point_on_bond, 
+            spatial_network[]["supercell_edge_length"])
+    else
+        point_to_closest_point_on_bond_vector = point .- closest_point_on_bond
+    end
 
     # get the distance between point and closest point on bond
     distance = LinearAlgebra.norm(point_to_closest_point_on_bond_vector)
 
     return distance
+end
+
+
+"""
+Get a digital sphere for a given radius
+"""
+function get_digital_sphere(radius)
+
+    # Initialize an empty array to hold the voxel coordinates
+    voxels = []
+
+    # Iterate through a cube that bounds the sphere
+    for x in -Int(round(radius)):Int(round(radius))
+        for y in -Int(round(radius)):Int(round(radius))
+            for z in -Int(round(radius)):Int(round(radius))
+                # Check if the current point lies within the sphere
+                if x^2 + y^2 + z^2 <= radius^2
+                    push!(voxels, [x, y, z])
+                end
+            end
+        end
+    end
+
+    return voxels
+end
+
+
+"""
+For a given digital sphere, get a mask array of the size of the voxelized data
+with only the voxels of the digital sphere set to 1. The digital sphere is
+centered around the index [0,0,0] of the mask array and the array has periodic
+boundary conditions
+"""
+function get_digital_sphere_mask(radius::Float64, size_data::Tuple)
+
+    # get digital sphere
+    digital_sphere = get_digital_sphere(radius)
+
+    # initialize mask array
+    mask_array = zeros(Bool, size_data...)
+
+    # loop through all voxels of the digital sphere
+    for voxel in digital_sphere
+
+        # set voxel to 1
+        mask_array[ ((.- [1,1,1] .+ minimum(size_data) .+ voxel
+                        ).% size_data .+ [1,1,1])...
+                            ] = 1
+
+    end
+
+    return mask_array
+end
+
+
+"""
+For a given data size store all digital sphere masks in a dictionary
+"""
+function get_digital_sphere_mask_dict(size_data::Tuple;
+    max_pixel_radius::Float64 = minimum([minimum(size_data)/2, 50]),
+    save_result::Bool = false,
+    save_path = raw"..\analysis_data\random_networks\digital_sphere_masks\\")
+
+    # create list of digital spheres with increasing radius
+    sphere_pixel_radius_vec = collect(0.5001:0.5:max_pixel_radius)
+    digital_sphere_mask_arr = Array{Bool}(undef, size_data..., 
+        length(sphere_pixel_radius_vec))
+
+    # loop through all radii
+    for i in eachindex(sphere_pixel_radius_vec)
+
+        digital_sphere_mask_arr[:,:,:,i] = get_digital_sphere_mask(
+            sphere_pixel_radius_vec[i], size_data)
+
+    end
+
+    digital_sphere_mask_dict = Dict{String, Any}(
+        "sphere_pixel_radius_vec" => sphere_pixel_radius_vec,
+        "digital_sphere_mask_arr" => digital_sphere_mask_arr,
+        "size_data" => size_data)
+
+
+    if save_result
+        GU.save_dict_to_h5(copy(digital_sphere_mask_dict),
+            save_path*"digital_sphere_mask_size_" *string(size_data)* ".h5")
+
+    end
+
+    return digital_sphere_mask_dict
+end
+
+
+"""
+Get the minimal and maximal vertex coordinates along all three directions
+"""
+function get_min_max_vertex_coords(spatial_network)
+    # get the minimal and maximal vertex positions along the three axes
+    min_vertex_coord = [Inf, Inf, Inf]
+    max_vertex_coord = [-Inf, -Inf, -Inf]
+    for vertex in MetaGraphsNext.labels(spatial_network)
+        for i in 1:3
+            if spatial_network[vertex]["position"][i] < min_vertex_coord[i]
+                min_vertex_coord[i] = spatial_network[vertex]["position"][i]
+            end
+            if spatial_network[vertex]["position"][i] > max_vertex_coord[i]
+                max_vertex_coord[i] = spatial_network[vertex]["position"][i]
+            end
+        end
+    end
+    return min_vertex_coord, max_vertex_coord
 end
 
 
@@ -563,6 +710,9 @@ infinitely thin bonds following the method described in
 function get_pore_size_distribution(
     spatial_network::MetaGraphsNext.MetaGraph;
     sampling_grid_size = 0.2,
+    max_pore_radius = 
+        minimum([spatial_network[]["supercell_edge_length"]/2, 50]),
+    periodic_boundary_conditions::Bool = true,
     save_result::Bool = false,
     save_path = raw"..\analysis_data\sample_name",
     label = nothing,
@@ -574,14 +724,59 @@ function get_pore_size_distribution(
 
     # determine the actual sampling grid size such that the grid is uniform
     # across the periodic boundary conditions
-    sampling_grid_size = (spatial_network[]["supercell_edge_length"]
-        / round(spatial_network[]["supercell_edge_length"]
-        / sampling_grid_size))
+    if periodic_boundary_conditions
+        sampling_grid_size = (spatial_network[]["supercell_edge_length"]
+            / round(spatial_network[]["supercell_edge_length"]
+            / sampling_grid_size))
 
-    # get the vector of grid points along one direction
-    grid_points = collect(
-        0:sampling_grid_size:spatial_network[]["supercell_edge_length"])
-    nr_grid_points_per_direction = length(grid_points)
+        # get the vector of grid points along one direction
+        grid_points = collect(
+            sampling_grid_size/2
+            :sampling_grid_size
+            :(spatial_network[]["supercell_edge_length"] 
+                - 0.9*sampling_grid_size/2))
+
+        nr_grid_points_per_direction = length(grid_points)
+    else
+        # get the minimal and maximal vertex coords along the three axes
+        min_vertex_coord, max_vertex_coord = get_min_max_vertex_coords(
+            spatial_network)
+
+        # get the smallest extension of the network along all three axes
+        sampling_grid_with_padding_edge_length = minimum(
+            max_vertex_coord .- min_vertex_coord)
+
+        # get the number of grid points along one direction including padding
+        nr_grid_points_per_direction_with_padding = Int(round(
+            sampling_grid_with_padding_edge_length/sampling_grid_size))
+
+        # get the actual sampling grid size including padding
+        sampling_grid_size = (sampling_grid_with_padding_edge_length
+            / nr_grid_points_per_direction_with_padding)
+
+        # subtract twice the maximal pore radius, which we use as a padding to
+        # get the edge length of the sampling grid
+        padding_nr_grid_points = ceil(max_pore_radius / sampling_grid_size)
+        sampling_grid_edge_length = (sampling_grid_with_padding_edge_length 
+            - 2 * padding_nr_grid_points * sampling_grid_size)
+
+        nr_grid_points_per_direction = Int(
+            nr_grid_points_per_direction_with_padding 
+            - 2 * padding_nr_grid_points)
+
+        # get the vector of grid points along one direction
+        grid_points = collect(
+            (spatial_network[]["supercell_edge_length"]
+                -nr_grid_points_per_direction*sampling_grid_size)/2
+            :sampling_grid_size
+            :(spatial_network[]["supercell_edge_length"]
+                +nr_grid_points_per_direction*sampling_grid_size)/2)
+
+        # determine the padding offset to convert between coordinates with and
+        # without padding
+        padding_offset = Int((nr_grid_points_per_direction_with_padding 
+            - nr_grid_points_per_direction) / 2)
+    end
     
     # create array of radii of the spheres centered at the grid points
     sphere_radii = Array{Float64}(undef, nr_grid_points_per_direction, 
@@ -604,14 +799,15 @@ function get_pore_size_distribution(
             grid_points[coord[3]]]
 
         # start from the maximal possible pore radius
-        sphere_radius = spatial_network[]["supercell_edge_length"]/2
+        sphere_radius = max_pore_radius
 
         # loop through all bonds of the network
         for bond in MetaGraphsNext.edge_labels(spatial_network)
 
             # get minimal distance between grid point and bond
             min_distance = get_minimal_distance_to_bond(
-                spatial_network, grid_point, bond)
+                spatial_network, grid_point, bond;
+                periodic_boundary_conditions = periodic_boundary_conditions)
 
             # update the pore radius if the distance is smaller than the
             # current pore radius
@@ -642,8 +838,29 @@ function get_pore_size_distribution(
 
     # get digital sphere mask to determine the largest pore radius for each
     # grid point
-    grid_array_size = (nr_grid_points_per_direction, 
-        nr_grid_points_per_direction, nr_grid_points_per_direction)
+    if periodic_boundary_conditions
+        grid_array_size = (nr_grid_points_per_direction, 
+            nr_grid_points_per_direction, nr_grid_points_per_direction)
+    else
+        grid_array_size = (nr_grid_points_per_direction_with_padding, 
+            nr_grid_points_per_direction_with_padding, 
+            nr_grid_points_per_direction_with_padding)
+
+        # add a padding to the sphere radii array to account for the padding of
+        # the grid
+        padded_axes = (
+            1:nr_grid_points_per_direction_with_padding,
+            1:nr_grid_points_per_direction_with_padding,
+            1:nr_grid_points_per_direction_with_padding)
+        core_axes = (
+            padding_offset+1:nr_grid_points_per_direction+padding_offset,
+            padding_offset+1:nr_grid_points_per_direction+padding_offset,
+            padding_offset+1:nr_grid_points_per_direction+padding_offset)
+        sphere_radii = PaddedViews.PaddedView(
+            0.0, sphere_radii, padded_axes, core_axes)
+
+        display(sphere_radii[:,:,12])
+    end
 
     # if digital sphere mask file for given data size exists, load it
     if isfile(digital_sphere_mask_path*"digital_sphere_mask_size_" 
@@ -677,6 +894,7 @@ function get_pore_size_distribution(
 
         digital_sphere_mask_dict = get_digital_sphere_mask_dict(
             grid_array_size;
+            max_pixel_radius = max_pore_radius/sampling_grid_size,
             save_result = true,
             save_path = digital_sphere_mask_path)
     end
@@ -694,6 +912,13 @@ function get_pore_size_distribution(
     pore_radii = zeros(nr_grid_points_per_direction, 
         nr_grid_points_per_direction, nr_grid_points_per_direction)
 
+    # add a padding to the pore radii array to account for the padding of the
+    # grid
+    if !periodic_boundary_conditions
+        pore_radii = Array(PaddedViews.PaddedView(
+            0.0, pore_radii, padded_axes, core_axes))
+    end
+
     # create array of ones of the size of the grid
     ones_array = ones(Bool, size(pore_radii)...)
 
@@ -708,8 +933,8 @@ function get_pore_size_distribution(
                 "digital_sphere_mask_arr"][:,:,:,argmin(
                 abs.(pore_size_vec .- sphere_radii[coord]))])
 
-            # use periodic boundary conditions to shift all entries of the
-            # mask array to center the mask at the current grid point
+            # use periodic boundary conditions or padding to shift all entries 
+            # of the mask array to center the mask at the current grid point
             digital_sphere_mask_shifted = circshift(
                 digital_sphere_mask, coord.I)
 
@@ -721,6 +946,11 @@ function get_pore_size_distribution(
                     sphere_radii[coord] 
                     .*  ones_array[digital_sphere_mask_shifted]))
         end
+    end
+
+    if !periodic_boundary_conditions
+        # remove padding from pore radii array
+        pore_radii = pore_radii[core_axes...]
     end
 
     # shape the pore pixel radius array into a vector

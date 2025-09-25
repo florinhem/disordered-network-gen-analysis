@@ -32899,3 +32899,501 @@ for i in 1:nr_samples
     filename = Format.format("bcu_cn_5_6_7_8_beta_{1:.4f}_t_max_{2:.4f}_t_gradient_{3:.4f}", beta_vec[i], t_max_vec[i], t_gradient_vec[i])
     GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
 end
+
+
+
+root = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\targeted\shell_nr_4\\"
+needle = "ctn_nr_vertices_216"
+needle_2 = ".gml"
+
+matches = [joinpath(dir, f)
+           for (dir, _, files) in walkdir(root)
+           for f in files
+           if occursin(needle, f) && occursin(needle_2, f)]
+
+for my_match in matches
+
+    # the match looks like "C:\\Users\\HemmannF\\OneDrive - Université de Fribourg\\structure_analysis\\structures\\local_relaxation\\targeted\\shell_nr_4\\run_1\\ctn_nr_vertices_216_beta_0.2500_t_max_0.0626_t_gradient_0.0501.gml"
+    # from this, extract the filename like "ctn_nr_vertices_216_beta_0.2500_t_max_0.0626_t_gradient_0.0501"
+    # and extract the directory like "C:\\Users\\HemmannF\\OneDrive - Université de Fribourg\\structure_analysis\\structures\\local_relaxation\\targeted\\shell_nr_4\\run_1\\"
+    filename = string(match(r"([^\\]+)\.gml$", my_match).captures[1])
+
+    # in the filename, replace the number 216 by 224
+    filename = replace(filename, "216" => "224")
+
+    dir = string(match(r"^(.*)\\[^\\]+\.gml$", my_match).captures[1])*raw"\\"
+    println(filename)
+    println(dir)
+
+    network = NG.load_spatial_network_from_gml(my_match)
+
+    NG.save_spatial_network_to_gml(network, 
+    filename, 
+    save_path = dir)
+end
+
+
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\targeted\shell_nr_4\run_1\\"
+
+filename = "lcs_nr_vertices_648_beta_0.7500_t_max_0.2819_t_gradient_0.2256.gml"
+
+network = NG.load_spatial_network_from_gml(path*filename)
+
+filename_2 = "lcs_nr_vertices_192_beta_0.7500_t_max_0.2819_t_gradient_0.2256.gml"
+
+network_2 = NG.load_spatial_network_from_gml(path*filename_2)
+
+#NG.plot_spatial_network(network)
+
+correlation_functions_dict = NA.get_correlation_functions(network)
+
+vertex_homogeneity_metric = NA.get_vertex_homogeneity_metric(correlation_functions_dict)
+
+correlation_functions_dict_2 = NA.get_correlation_functions(network_2)
+vertex_homogeneity_metric_2 = NA.get_vertex_homogeneity_metric(correlation_functions_dict_2)
+
+# plot the two "cumulative_coord_nr_vec" in one plot
+Plots.plot(correlation_functions_dict["vertex_distance_vec"], correlation_functions_dict["pair_correlation_fct_vec"], label="nr_vertices=648", xlabel="r", ylabel="Pair correlation function g(r)")
+Plots.plot!(correlation_functions_dict_2["vertex_distance_vec"], correlation_functions_dict_2["pair_correlation_fct_vec"], label="nr_vertices=192")
+
+# plot x axis from 0 to 1.5 and y axis from 0 to 10
+Plots.xlims!(0, 3)
+Plots.ylims!(0, 20)
+
+
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\crystals\geometrical_models\\"
+
+filename = "bcu_cn_5_6_7_8_16_vertices"
+
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 16 ,     
+    network_type = "bcu_cn_5_6_7_8",
+    theta_ground_state = 180.0,
+    relax_globally_after_threshold_cycle = false,
+    shell_nr = 4)
+
+spatial_network = NG.get_periodic_network(evolution_dict)
+
+NG.save_mesh_from_spatial_network(
+        spatial_network, 
+        filename;
+        bond_radius = 0.2,
+        vector_out_of_supercell_length = 1,
+        save_path= save_path,
+        duplicate_bonds_close_to_supercell_edge = false)
+
+filename = "pcu_cn_4_5_6_8_vertices"
+
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 8 ,     
+    network_type = "pcu_cn_4_5_6",
+    theta_ground_state = 180.0,
+    relax_globally_after_threshold_cycle = false,
+    shell_nr = 4)
+
+spatial_network = NG.get_periodic_network(evolution_dict)
+NG.save_mesh_from_spatial_network(
+        spatial_network, 
+        filename;
+        bond_radius = 0.15,
+        vector_out_of_supercell_length = 1,
+        save_path= save_path,
+        duplicate_bonds_close_to_supercell_edge = false)
+
+
+
+function import_excel_data(filepath::String)
+    # Open the Excel file
+    xf = XLSX.openxlsx(filepath)
+
+    # Get tables from sheets
+    nodes_table = XLSX.gettable(xf["Nodes"]; infer_eltypes=true)
+    segments_table = XLSX.gettable(xf["Segments"]; infer_eltypes=true)
+
+    # Convert to DataFrames
+    nodes_df = DataFrames.DataFrame(nodes_table)
+    segments_df = DataFrames.DataFrame(segments_table)
+
+    # Extract columns from Nodes sheet
+    node_ids = nodes_df[!, "Node ID"] .+ 1  # Adjust for 1-based indexing
+    x_coords = nodes_df[!, "X Coord"]
+    y_coords = nodes_df[!, "Y Coord"]
+    z_coords = nodes_df[!, "Z Coord"]
+    coordination_numbers = nodes_df[!, "Coordination Number"]
+
+    # Extract columns from Segments sheet
+    node_id_1 = segments_df[!, "Node ID #1"] .+ 1  # Adjust for 1-based indexing
+    node_id_2 = segments_df[!, "Node ID #2"] .+ 1  # Adjust for 1-based indexing
+
+    return (
+        node_ids,
+        x_coords,
+        y_coords,
+        z_coords,
+        coordination_numbers,
+        node_id_1,
+        node_id_2
+    )
+end
+
+load_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\biological\networks\pachy\\"
+
+save_path = load_path
+
+load_filename = "Blue.attributegraph"
+save_filename = "pachy_blue"
+
+node_ids, x_coords, y_coords, z_coords, coordination_numbers, node_id_1, node_id_2 = import_excel_data(load_path * load_filename*".xlsx")
+
+eq_bond_length = 162
+nr_vertices = length(node_ids)
+nr_dimensions = 3
+supercell_edge_length = ((maximum(vcat(x_coords, y_coords, z_coords)) 
+    - minimum(vcat(x_coords, y_coords, z_coords))) / eq_bond_length * 2)
+
+# create an empty network graph where vertex positions and edge vectors
+# will be stored
+spatial_network = MetaGraphsNext.MetaGraph(
+    Graphs.Graph(); 
+    label_type = Int64,
+    vertex_data_type = Dict{String, Any},
+    edge_data_type = Dict{String, Union{Float64, Vector{Float64}}},
+    graph_data = Dict{String, Any}(
+        "nr_vertices" => nr_vertices,
+        "nr_dimensions" => nr_dimensions,
+        "supercell_edge_length" => supercell_edge_length
+    )
+)
+
+# label each vertex by its code integer and assign it its position vector
+for vertex in node_ids
+
+    position_vector = [
+            x_coords[vertex],
+            y_coords[vertex],
+            z_coords[vertex]
+        ] ./ eq_bond_length .+ supercell_edge_length / 2
+
+    spatial_network[vertex] = Dict{String, Any}(
+        "position" => position_vector,
+        "coordination_nr" => coordination_numbers[vertex]
+    )
+end
+
+# add edges to the graph
+for (node_id_1, node_id_2) in zip(node_id_1, node_id_2)
+
+    if node_id_1 == node_id_2
+        println("Warning: Self-loop detected at node $node_id_1. Skipping this edge.")
+        continue
+    end
+    if node_id_1 < node_id_2
+        edge_vector = (spatial_network[node_id_2]["position"] 
+        .- spatial_network[node_id_1]["position"])
+    else
+        edge_vector = (spatial_network[node_id_1]["position"] 
+        .- spatial_network[node_id_2]["position"])
+    end
+    
+    distance_squared = LinearAlgebra.dot(edge_vector, edge_vector)
+
+    spatial_network[node_id_1, node_id_2] =  Dict(
+        "vector" => edge_vector, 
+        "distance_squared" => distance_squared
+    )
+end
+
+NG.save_spatial_network_to_gml(
+            spatial_network,
+            save_filename;
+            save_path = save_path)
+
+
+
+load_filename = "Blue.attributegraph"
+save_filename = "pachy_blue"
+network_path = "C:\\Users\\HemmannF\\OneDrive - Université de Fribourg\\structure_analysis\\structures\\biological\\networks\\pachy\\"
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\networks\pachy\\"
+
+spatial_network = NG.load_spatial_network_from_gml(
+    network_path*save_filename*".gml")
+
+bond_length_std, bond_length_vec = NA.get_bond_length_std(spatial_network)
+bond_angle_std, bond_angle_vec = NA.get_bond_angle_std(spatial_network)
+dihedral_angle_entropy = NA.get_dihedral_angle_entropy(spatial_network)
+bond_orientation_entropy = NA.get_bond_orientation_entropy(
+    spatial_network)
+coordination_nr_mean, coordination_nr_std = NA.get_coordination_nr_statistics(
+    spatial_network)
+q_l_total_network_mean_dict = NA.get_q_l_total_network_mean_dict(
+    spatial_network,
+    12)
+
+ring_size_distribution_dict = NA.get_ring_size_distribution(
+        spatial_network;
+        save_result = true,
+        save_path = analysis_data_path*save_filename,)
+
+ring_size_mean, ring_size_std = NA.get_ring_statistics(ring_size_distribution_dict)
+
+ring_radius_distribution_dict = NA.get_ring_radius_distribution(
+        spatial_network,
+        ring_size_distribution_dict;
+        save_result = true,
+        save_path = analysis_data_path*save_filename)
+
+ring_radius_mean, ring_radius_std = NA.get_ring_radius_statistics(
+        ring_radius_distribution_dict)
+
+digital_sphere_mask_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\networks\digital_sphere_masks\\"
+
+pore_size_distribution_dict = NA.get_pore_size_distribution(
+    spatial_network;
+    sampling_grid_size = 1.0,
+    max_pore_radius = 3.001,
+    periodic_boundary_conditions = false,
+    save_result = true,
+    save_path = analysis_data_path,
+    label = nothing,
+    digital_sphere_mask_path 
+        = digital_sphere_mask_path,
+    print_progress = true,
+    thread_nr = 0,
+    print_lock = Threads.ReentrantLock())
+
+
+
+save_filename = "dia_64_vertices"
+network_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\crystals\\"
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\crystals\\"
+digital_sphere_mask_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\crystals\digital_sphere_masks\\"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\crystals\pore_size_distribution_comparison\\"
+
+spatial_network = NG.load_spatial_network_from_gml(
+    network_path*save_filename*".gml")
+
+# convert to a spatial_network_without periodic boundaries
+spatial_network_no_pbc = NA.convert_periodic_to_non_periodic(spatial_network)
+
+
+sampling_grid_size = 0.2
+max_pore_radius = 1.5
+periodic_boundary_conditions = false
+save_result = true
+save_path = analysis_data_path*save_filename*"_no_pbc"
+label = nothing
+digital_sphere_mask_path = digital_sphere_mask_path
+print_progress = true
+thread_nr = 0
+print_lock = Threads.ReentrantLock()
+
+# get the minimal and maximal vertex coords along the three axes
+min_vertex_coord, max_vertex_coord = NA.get_min_max_vertex_coords(
+    spatial_network)
+# get the smallest extension of the network along all three axes
+sampling_grid_with_padding_edge_length = minimum(
+    max_vertex_coord .- min_vertex_coord)
+# get the number of grid points along one direction including padding
+nr_grid_points_per_direction_with_padding = Int(round(
+    sampling_grid_with_padding_edge_length/sampling_grid_size))
+# get the actual sampling grid size including padding
+sampling_grid_size = (sampling_grid_with_padding_edge_length
+    / nr_grid_points_per_direction_with_padding)
+# subtract twice the maximal pore radius, which we use as a padding to
+# get the edge length of the sampling grid
+padding_nr_grid_points = ceil(max_pore_radius / sampling_grid_size)
+sampling_grid_edge_length = (sampling_grid_with_padding_edge_length 
+    - 2 * padding_nr_grid_points * sampling_grid_size)
+nr_grid_points_per_direction = Int(
+    nr_grid_points_per_direction_with_padding 
+    - 2 * padding_nr_grid_points)
+# get the vector of grid points along one direction
+grid_points = collect(
+    (spatial_network[]["supercell_edge_length"]
+        -nr_grid_points_per_direction*sampling_grid_size)/2
+    :sampling_grid_size
+    :(spatial_network[]["supercell_edge_length"]
+        +nr_grid_points_per_direction*sampling_grid_size)/2)
+# determine the padding offset to convert between coordinates with and
+# without padding
+println(nr_grid_points_per_direction_with_padding)
+println(nr_grid_points_per_direction)
+println(padding_nr_grid_points)
+println(sampling_grid_size)
+padding_offset = Int((nr_grid_points_per_direction_with_padding 
+    - nr_grid_points_per_direction) / 2)
+
+# create array of radii of the spheres centered at the grid points
+sphere_radii = Array{Float64}(undef, nr_grid_points_per_direction, 
+    nr_grid_points_per_direction, nr_grid_points_per_direction)
+if print_progress
+    coord_count = 0
+    nr_coords = nr_grid_points_per_direction^3
+    lock(print_lock) do
+        Format.printfmtln("Pore size distribution calculation started 
+            thread nr {1:d}. Nr grid points: {2:d}", thread_nr, nr_coords)
+    end
+end
+# loop through sampling grid points
+for coord in CartesianIndices(sphere_radii)
+    grid_point = [grid_points[coord[1]], grid_points[coord[2]], 
+        grid_points[coord[3]]]
+    # start from the maximal possible pore radius
+    sphere_radius = max_pore_radius
+    # loop through all bonds of the network
+    for bond in MetaGraphsNext.edge_labels(spatial_network)
+        # get minimal distance between grid point and bond
+        min_distance = NA.get_minimal_distance_to_bond(
+            spatial_network, grid_point, bond;
+            periodic_boundary_conditions = periodic_boundary_conditions)
+        # update the pore radius if the distance is smaller than the
+        # current pore radius
+        if min_distance < sphere_radius
+            sphere_radius = min_distance
+        end
+    end
+    # save the pore radius for the current grid point
+    sphere_radii[coord] = sphere_radius
+    # print progress
+    if print_progress
+        global coord_count += 1
+        # print every 100th voxel
+        if coord_count % 1000 == 0
+            progress_percentage = coord_count/nr_coords*100
+            lock(print_lock) do
+                Format.printfmtln("Pore size distribution calculation
+                    progress thread nr {1:d}: {2:.1f} %", 
+                    thread_nr, progress_percentage)
+            end
+        end
+    end
+end
+
+
+grid_array_size = (nr_grid_points_per_direction_with_padding, 
+            nr_grid_points_per_direction_with_padding, 
+            nr_grid_points_per_direction_with_padding)
+
+# add a padding to the sphere radii array to account for the padding of
+# the grid
+padded_axes = (
+    1:nr_grid_points_per_direction_with_padding,
+    1:nr_grid_points_per_direction_with_padding,
+    1:nr_grid_points_per_direction_with_padding)
+core_axes = (
+    padding_offset+1:nr_grid_points_per_direction+padding_offset,
+    padding_offset+1:nr_grid_points_per_direction+padding_offset,
+    padding_offset+1:nr_grid_points_per_direction+padding_offset)
+sphere_radii = PaddedViews.PaddedView(
+    0.0, sphere_radii, padded_axes, core_axes)
+
+
+# if digital sphere mask file for given data size exists, load it
+if isfile(digital_sphere_mask_path*"digital_sphere_mask_size_" 
+    *string(grid_array_size)* ".h5")
+    digital_sphere_mask_dict = GU.load_h5_dict(digital_sphere_mask_path
+        *"digital_sphere_mask_size_" *string(grid_array_size)
+        * ".h5")
+    # print progress
+    if print_progress
+        lock(print_lock) do
+            Format.printfmtln(
+                "Thread nr {1:d}: digital sphere mask dict loaded", 
+                    thread_nr)
+        end
+        
+    end
+# otherwise create and save digital sphere mask dict
+else
+    # print progress
+    if print_progress
+        lock(print_lock) do
+            Format.printfmtln(
+                "Thread nr {1:d}: generating digital sphere mask dict", 
+                    thread_nr)
+        end
+        
+    end
+    digital_sphere_mask_dict = get_digital_sphere_mask_dict(
+        grid_array_size;
+        max_pixel_radius = max_pore_radius/sampling_grid_size,
+        save_result = true,
+        save_path = digital_sphere_mask_path)
+end
+
+
+# get the vector of radii of the digital sphere mask in units of pixels or 
+# grid indices
+digital_sphere_mask_pixel_radius_vec = (
+    digital_sphere_mask_dict["sphere_pixel_radius_vec"])
+# convert this vector to units of the equilibrium bond length
+pore_size_vec = (digital_sphere_mask_pixel_radius_vec 
+    * sampling_grid_size)
+println(pore_size_vec)
+println(sampling_grid_size)
+println(digital_sphere_mask_pixel_radius_vec)
+
+# create array of pore radii, which, for each grid point, contains the
+# radius of the largest pore, that this point can be part of
+pore_radii = zeros(nr_grid_points_per_direction, 
+    nr_grid_points_per_direction, nr_grid_points_per_direction)
+# add a padding to the pore radii array to account for the padding of the
+# grid
+if !periodic_boundary_conditions
+    pore_radii = Array(PaddedViews.PaddedView(
+        0.0, pore_radii, padded_axes, core_axes))
+end
+
+ones_array = ones(Bool, size(pore_radii)...)
+
+#coord = CartesianIndex(12, 9, 12)
+#
+#digital_sphere_mask = (digital_sphere_mask_dict[
+#                "digital_sphere_mask_arr"][:,:,:,argmin(
+#                abs.(pore_size_vec .- sphere_radii[coord]))])
+#
+#digital_sphere_mask_shifted = circshift(
+#                digital_sphere_mask, coord.I)
+#
+#pore_radii[digital_sphere_mask_shifted] = (
+#                max.(pore_radii[digital_sphere_mask_shifted],
+#                    sphere_radii[coord] 
+#                    .*  ones_array[digital_sphere_mask_shifted]))
+#
+for coord in CartesianIndices(pore_radii)
+
+    # only consider grid points that are not too close to any bond
+    if sphere_radii[coord] > 1/4 * sampling_grid_size
+        # get the sphere mask whose radius is closest to the current grid 
+        # point's sphere radius
+        digital_sphere_mask = (digital_sphere_mask_dict[
+            "digital_sphere_mask_arr"][:,:,:,argmin(
+            abs.(pore_size_vec .- sphere_radii[coord]))])
+        # use periodic boundary conditions or padding to shift all entries 
+        # of the mask array to center the mask at the current grid point
+        digital_sphere_mask_shifted = circshift(
+            digital_sphere_mask, coord.I)
+        # set pore radius of surrounding grid points to the maximum of 
+        # their current pore radius and the radius of the digital sphere 
+        # mask
+        pore_radii[digital_sphere_mask_shifted] = (
+            max.(pore_radii[digital_sphere_mask_shifted],
+                sphere_radii[coord] 
+                .*  ones_array[digital_sphere_mask_shifted]))
+    end
+end
+
+pore_radii = pore_radii[core_axes...]
+
+pore_radius_vec = vec(pore_radii)
+
+pore_radius_filtered_vec = pore_radius_vec[
+        pore_radius_vec .> 0.0]
+
+radius_histogram = LinearAlgebra.normalize(
+    radius_histogram, mode=:probability)
+pore_size_distribution = radius_histogram.weights
+
+Plots.plot(pore_size_vec, pore_size_distribution)

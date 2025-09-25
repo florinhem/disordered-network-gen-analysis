@@ -6484,3 +6484,143 @@ function get_melting_temperature_mixed_network_sizes(
     end
     return t_melt_beta
 end
+
+
+
+"""
+Load spatial network from a GML format file 
+"""
+function load_spatial_network_from_gml_old(spatial_network_path::String)
+
+    # create an empty spatial network where vertex positions and edge vectors
+    # will be stored
+    spatial_network = MetaGraphsNext.MetaGraph(
+        Graphs.Graph(); 
+        label_type = Int64,
+        vertex_data_type = Dict{String, Any},
+        edge_data_type = Dict{String, Any},
+        graph_data = Dict{String, Any}() )
+
+    # load gml file to string
+    gml_string = read(spatial_network_path, String)
+
+    # extract network data, node and edge strings
+    network_data_string = gml_string[1:findfirst("node", gml_string)[end]]
+    nodes_string = gml_string[findfirst("node [", gml_string)[end]+1:findfirst(
+        "edge [", gml_string)[1]-1]
+    edges_string = gml_string[findfirst("edge [", gml_string)[end]+1:findlast(
+        "]", gml_string)[end]-1]
+
+    # Regular expression to match network data keys and values
+    pattern = r"(\w+)\s+([\w\.e\-\+]+)"
+
+    # Function to parse values as Int, Float64, or leave as string
+    function parse_value(value_str)
+        if value_str == "0" 
+            return false
+        elseif value_str == "1"  
+            return true
+        elseif !isnothing(tryparse(Int, value_str))  
+            return parse(Int, value_str)
+        elseif !isnothing(tryparse(Float64, value_str))  
+            return parse(Float64, value_str)
+        else 
+            return value_str
+        end
+    end
+
+    # Extract the matches using the regex and save them to the network data
+    # dictionary
+    for m in eachmatch(pattern, network_data_string)
+        key = m.captures[1]
+        value = parse_value(m.captures[2])
+        spatial_network[][key] = value
+    end
+
+    # split strings into individual nodes and edges
+    nodes_string_list = split(nodes_string, "node")
+    edges_string_list = split(edges_string, "edge")
+
+    for node_string in nodes_string_list
+
+        # get vertex and position
+        # Regular expressions to extract integer and float values
+        id_regex = r"id (\d+)"
+        position_regex = r"x ([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?) y ([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?) z ([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)"
+
+        # Extracting id
+        id_match = match(id_regex, node_string)
+        vertex = parse(Int, id_match.captures[1])
+
+        # Extracting position
+        position_match = match(position_regex, node_string)
+        x_value = parse(Float64, position_match.captures[1])
+        y_value = parse(Float64, position_match.captures[2])
+        z_value = parse(Float64, position_match.captures[3])
+
+        # add vertex to spatial network
+        spatial_network[vertex] = Dict(
+            "position" =>  [x_value, y_value, z_value],
+            )
+
+    end
+
+    for edge_string in edges_string_list
+
+        # get source, target, vector and distance squared
+        # Regular expressions to extract integer and float values
+        source_regex = r"source (\d+)"
+        target_regex = r"target (\d+)"
+        vector_regex = r"x ([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?) y ([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?) z ([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)"
+        distance_squared_regex = r"distance_squared (\d+\.\d+)"
+
+        # Extracting source
+        source_match = match(source_regex, edge_string)
+        source_value = parse(Int, source_match.captures[1])
+
+        # Extracting target
+        target_match = match(target_regex, edge_string)
+        target_value = parse(Int, target_match.captures[1])
+
+        # Extracting vector
+        vector_match = match(vector_regex, edge_string)
+        x_value = parse(Float64, vector_match.captures[1])
+        y_value = parse(Float64, vector_match.captures[2])
+        z_value = parse(Float64, vector_match.captures[3])
+
+        # Extracting distance squared
+        distance_squared_match = match(distance_squared_regex, edge_string)
+        distance_squared_value = parse(
+            Float64, distance_squared_match.captures[1])
+
+        # add edge to spatial network
+        spatial_network[source_value, target_value] = Dict(
+            "vector" => [x_value, y_value, z_value],
+            "distance_squared" => distance_squared_value)
+
+    end
+    
+    return spatial_network
+end
+
+
+"""
+Load graph and its properties from a GML file and a h5 dictionary
+"""
+function load_spatial_network_from_h5_and_gml(dict_path_without_format::String)
+
+    # load spatial network without metadata
+    spatial_network = load_spatial_network_from_gml(
+            dict_path_without_format*".gml")
+
+    # load metadata from h5 file
+    metadata_dict = GU.load_h5_dict(dict_path_without_format*".h5")
+
+    # go through all keys in the metadata dict and add them to the spatial
+    # network
+    for (key, value) in metadata_dict
+        spatial_network[][key] = value
+    end
+
+    return spatial_network
+end

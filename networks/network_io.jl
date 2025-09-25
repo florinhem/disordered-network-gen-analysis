@@ -229,138 +229,216 @@ end
 
 
 """
-Load spatial network from a GML format file 
+Load an excel file containing node and segment data and extract the relevant
+information to create a spatial network.
 """
-function load_spatial_network_from_gml_old(spatial_network_path::String)
+function import_excel_data(filepath::String)
+    # Open the Excel file
+    xf = XLSX.openxlsx(filepath)
 
-    # create an empty spatial network where vertex positions and edge vectors
+    # Get tables from sheets
+    nodes_table = XLSX.gettable(xf["Nodes"]; infer_eltypes=true)
+    segments_table = XLSX.gettable(xf["Segments"]; infer_eltypes=true)
+
+    # Convert to DataFrames
+    nodes_df = DataFrames.DataFrame(nodes_table)
+    segments_df = DataFrames.DataFrame(segments_table)
+
+    # Extract columns from Nodes sheet
+    node_ids = nodes_df[!, "Node ID"] .+ 1  # Adjust for 1-based indexing
+    x_coords = nodes_df[!, "X Coord"]
+    y_coords = nodes_df[!, "Y Coord"]
+    z_coords = nodes_df[!, "Z Coord"]
+
+    # Extract columns from Segments sheet
+    node_id_1 = segments_df[!, "Node ID #1"] .+ 1  # Adjust for 1-based indexing
+    node_id_2 = segments_df[!, "Node ID #2"] .+ 1  # Adjust for 1-based indexing
+
+    return (
+        node_ids,
+        x_coords,
+        y_coords,
+        z_coords,
+        node_id_1,
+        node_id_2
+    )
+end
+
+
+"""
+Convert the list of node ids, coordinates and coordination numbers as well as 
+the list of segments into a spatial network in the original units as imported
+"""
+function get_unscaled_spatial_network(node_ids,
+    x_coords,
+    y_coords,
+    z_coords,
+    node_id_1,
+    node_id_2)
+
+    nr_vertices = length(node_ids)
+    nr_dimensions = 3
+    supercell_edge_length = ((maximum(vcat(x_coords, y_coords, z_coords)) 
+        - minimum(vcat(x_coords, y_coords, z_coords))) * 2)
+
+    # create an empty network graph where vertex positions and edge vectors
+    # will be stored
+    spatial_network_unscaled = MetaGraphsNext.MetaGraph(
+        Graphs.Graph(); 
+        label_type = Int64,
+        vertex_data_type = Dict{String, Any},
+        edge_data_type = Dict{String, 
+            Union{Float64, Vector{Union{Float64}}}},
+        graph_data = Dict{String, Any}(
+            "nr_vertices" => nr_vertices,
+            "nr_dimensions" => nr_dimensions,
+            "supercell_edge_length" => supercell_edge_length
+        )
+    )
+
+    # label each vertex by its code integer and assign it its position vector
+    for vertex in node_ids
+
+        position_vector = [
+                x_coords[vertex],
+                y_coords[vertex],
+                z_coords[vertex]
+            ] .+ supercell_edge_length / 2
+
+        spatial_network_unscaled[vertex] = Dict{String, Any}(
+            "position" => position_vector
+        )
+    end
+
+    # add edges to the graph
+    for (n1, n2) in zip(node_id_1, node_id_2)
+        if n1 == n2
+            println("Warning: Self-loop detected at node $n1. Skipping this edge.")
+            continue
+        end
+        if n1 < n2
+            edge_vector = (spatial_network_unscaled[n2]["position"] 
+            .- spatial_network_unscaled[n1]["position"])
+        else
+            edge_vector = (spatial_network_unscaled[n1]["position"] 
+            .- spatial_network_unscaled[n2]["position"])
+        end
+
+        distance_squared = LinearAlgebra.dot(edge_vector, edge_vector)
+
+        spatial_network_unscaled[n1, n2] =  Dict(
+            "vector" => edge_vector, 
+            "distance_squared" => distance_squared
+        )
+    end
+
+    # loop through vertices again to assign coordination numbers
+    for vertex in node_ids
+        spatial_network_unscaled[vertex]["coordination_nr"] = (
+            length(MetaGraphsNext.neighbor_labels(
+                spatial_network_unscaled, vertex)))
+    end
+
+    return spatial_network_unscaled
+end 
+
+
+"""
+Convert a spatial network in original units into a spatial network in units of
+the equilibrium bond length
+"""
+function get_scaled_spatial_network(
+    spatial_network_unscaled::MetaGraphsNext.MetaGraph)
+
+    # calculate the mean bond length to scale everything in units of the
+    # equilibrium bond length
+    bond_length_vec = sqrt.([spatial_network_unscaled[edge...][
+        "distance_squared"] for edge in MetaGraphsNext.edge_labels(
+            spatial_network_unscaled)])
+    mean_bond_length = Statistics.mean(bond_length_vec)
+
+    # create a new spatial network where vertex positions and edge vectors
     # will be stored
     spatial_network = MetaGraphsNext.MetaGraph(
         Graphs.Graph(); 
         label_type = Int64,
         vertex_data_type = Dict{String, Any},
-        edge_data_type = Dict{String, Any},
-        graph_data = Dict{String, Any}() )
+        edge_data_type = Dict{String, Union{Float64, Vector{Float64}}},
+        graph_data = Dict{String, Any}(
+            "nr_vertices" => spatial_network_unscaled[]["nr_vertices"],
+            "nr_dimensions" => spatial_network_unscaled[]["nr_dimensions"],
+            "supercell_edge_length" => (
+                spatial_network_unscaled[]["supercell_edge_length"] 
+                / mean_bond_length),
+            "mean_bond_length_nm" => mean_bond_length
+        )
+    )
 
-    # load gml file to string
-    gml_string = read(spatial_network_path, String)
+    # label each vertex by its code integer and assign it its position vector
+    for vertex in MetaGraphsNext.labels(spatial_network_unscaled)
 
-    # extract network data, node and edge strings
-    network_data_string = gml_string[1:findfirst("node", gml_string)[end]]
-    nodes_string = gml_string[findfirst("node [", gml_string)[end]+1:findfirst(
-        "edge [", gml_string)[1]-1]
-    edges_string = gml_string[findfirst("edge [", gml_string)[end]+1:findlast(
-        "]", gml_string)[end]-1]
+        position_vector = (spatial_network_unscaled[vertex]["position"] 
+            ./ mean_bond_length)
 
-    # Regular expression to match network data keys and values
-    pattern = r"(\w+)\s+([\w\.e\-\+]+)"
-
-    # Function to parse values as Int, Float64, or leave as string
-    function parse_value(value_str)
-        if value_str == "0" 
-            return false
-        elseif value_str == "1"  
-            return true
-        elseif !isnothing(tryparse(Int, value_str))  
-            return parse(Int, value_str)
-        elseif !isnothing(tryparse(Float64, value_str))  
-            return parse(Float64, value_str)
-        else 
-            return value_str
-        end
+        spatial_network[vertex] = Dict{String, Any}(
+            "position" => position_vector,
+            "coordination_nr" => spatial_network_unscaled[vertex][
+                "coordination_nr"]
+        )
     end
 
-    # Extract the matches using the regex and save them to the network data
-    # dictionary
-    for m in eachmatch(pattern, network_data_string)
-        key = m.captures[1]
-        value = parse_value(m.captures[2])
-        spatial_network[][key] = value
+    # add edges to the graph
+    for edge in MetaGraphsNext.edge_labels(spatial_network_unscaled)
+
+        edge_vector = (spatial_network_unscaled[edge...]["vector"] 
+            ./ mean_bond_length)
+
+        distance_squared = (spatial_network_unscaled[edge...]["distance_squared"] 
+            / mean_bond_length^2)
+
+        spatial_network[edge...] =  Dict(
+            "vector" => edge_vector,
+            "distance_squared" => distance_squared
+        )
     end
 
-    # split strings into individual nodes and edges
-    nodes_string_list = split(nodes_string, "node")
-    edges_string_list = split(edges_string, "edge")
-
-    for node_string in nodes_string_list
-
-        # get vertex and position
-        # Regular expressions to extract integer and float values
-        id_regex = r"id (\d+)"
-        position_regex = r"x ([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?) y ([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?) z ([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)"
-
-        # Extracting id
-        id_match = match(id_regex, node_string)
-        vertex = parse(Int, id_match.captures[1])
-
-        # Extracting position
-        position_match = match(position_regex, node_string)
-        x_value = parse(Float64, position_match.captures[1])
-        y_value = parse(Float64, position_match.captures[2])
-        z_value = parse(Float64, position_match.captures[3])
-
-        # add vertex to spatial network
-        spatial_network[vertex] = Dict(
-            "position" =>  [x_value, y_value, z_value],
-            )
-
-    end
-
-    for edge_string in edges_string_list
-
-        # get source, target, vector and distance squared
-        # Regular expressions to extract integer and float values
-        source_regex = r"source (\d+)"
-        target_regex = r"target (\d+)"
-        vector_regex = r"x ([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?) y ([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?) z ([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)"
-        distance_squared_regex = r"distance_squared (\d+\.\d+)"
-
-        # Extracting source
-        source_match = match(source_regex, edge_string)
-        source_value = parse(Int, source_match.captures[1])
-
-        # Extracting target
-        target_match = match(target_regex, edge_string)
-        target_value = parse(Int, target_match.captures[1])
-
-        # Extracting vector
-        vector_match = match(vector_regex, edge_string)
-        x_value = parse(Float64, vector_match.captures[1])
-        y_value = parse(Float64, vector_match.captures[2])
-        z_value = parse(Float64, vector_match.captures[3])
-
-        # Extracting distance squared
-        distance_squared_match = match(distance_squared_regex, edge_string)
-        distance_squared_value = parse(
-            Float64, distance_squared_match.captures[1])
-
-        # add edge to spatial network
-        spatial_network[source_value, target_value] = Dict(
-            "vector" => [x_value, y_value, z_value],
-            "distance_squared" => distance_squared_value)
-
-    end
-    
     return spatial_network
 end
 
 
 """
-Load graph and its properties from a GML file and a h5 dictionary
+Load an excel file containing node and segment data and extract the relevant
+information to create a spatial network and save it to a gml file. The
+equilibrium bond length can be specified if the coordinates in the excel file
+are not given in units of the equilibrium bond length.
 """
-function load_spatial_network_from_h5_and_gml(dict_path_without_format::String)
+function load_spatial_network_from_excel(
+    load_path::String,
+    load_filename::String;
+    save_network = true,
+    save_path::String = load_path,
+    save_filename::String = "sample_name")
 
-    # load spatial network without metadata
-    spatial_network = load_spatial_network_from_gml(
-            dict_path_without_format*".gml")
+    node_ids, x_coords, y_coords, z_coords, node_id_1, node_id_2 = (
+        import_excel_data(load_path*load_filename*".xlsx"))
 
-    # load metadata from h5 file
-    metadata_dict = GU.load_h5_dict(dict_path_without_format*".h5")
+    spatial_network_unscaled = get_unscaled_spatial_network(
+        node_ids,
+        x_coords,
+        y_coords,
+        z_coords,
+        node_id_1,
+        node_id_2
+    )
 
-    # go through all keys in the metadata dict and add them to the spatial
-    # network
-    for (key, value) in metadata_dict
-        spatial_network[][key] = value
+    spatial_network = get_scaled_spatial_network(spatial_network_unscaled)
+
+    if save_network
+        # save spatial network to gml file
+        save_spatial_network_to_gml(
+            spatial_network,
+            save_filename;
+            save_path = save_path)
     end
 
     return spatial_network

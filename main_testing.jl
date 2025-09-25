@@ -7,27 +7,15 @@ import .NetworkGeneration as NG
 import .NetworkAnalysis as NA
 import .GeneralUtilities as GU
 
-import GeometryBasics
-import Polylabel
-import Random
-import Distributions
+import Plots
+import Format
+import StatsBase
 
+network_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\targeted\shell_nr_4\run_1\\"
 
-network_type_vec = ["pcu_cn_4_5_6"]
-nr_vertices_vec = [216] 
-bond_bending_const_vec = [0.0, 0.25, 0.5, 0.75, 1.0]
-theta_ground_state_vec = [180.0]
-acceptance_probability_vec = [0.001]
-relax_globally_after_threshold_cycle_vec = [true]
-shell_nr_vec = [4]
+filename = "lcs_nr_vertices_192_beta_0.2500_t_max_0.2138_t_gradient_0.1140.gml"
 
-NA.print_melting_temperatures(
-    ;
-    network_type_vec,
-    nr_vertices_vec,
-    bond_bending_const_vec,
-    theta_ground_state_vec,
-    acceptance_probability_vec,
-    relax_globally_after_threshold_cycle_vec,
-    shell_nr_vec
-    )
+spatial_network = NG.load_spatial_network_from_gml(
+    network_path*filename)
+
+NG.plot_spatial_network(spatial_network)

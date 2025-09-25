@@ -93,6 +93,8 @@ import Optim    # for optimization such as relaxation of individual vertices
 #import GLMakie  # Makie backend for plotting
 #import GraphMakie   # additions to GLMakie for graph plotting
 import FileIO   # for file loading and saving
+import XLSX  # to read and write excel files
+import DataFrames  # to handle tabular data
 import Random   # to access more features for random number generation like seeds
 import Statistics   # for statistical operations like mean()
 import GeometryBasics   # to create meshes out of networks
@@ -141,6 +143,7 @@ import MetaGraphsNext   # to deal with graphs with labelled vertices and edges
 import Optim    # for optimization such as relaxation of individual vertices
 import LinearAlgebra    # to perform linear algebra calculations like the dot product
 import Statistics   # for statistical operations like mean()
+import PaddedViews  # to create padded views of arrays
 import Measurements    # for handling data with uncertainty and error propagation
 import Polynomials  # to curve fit polynomials
 import Peaks    # to locate peaks of a function

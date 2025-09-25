@@ -31,5 +31,7 @@ Pkg.add([
     "LsqFit",
     "CSV",
     "DataFrames",
-    "Distributions"
+    "Distributions",
+    "XLSX",
+    "PaddedViews"
 ])
