@@ -3,251 +3,6 @@ these functions can be used to characterize networks by means of order metrics
 measuring correlations
 """
 
-"""
-Measure structure factor for a given wavenumber, averaged over angles according
-to Barlett's isotropic estimator as described in equation 40 of 
-10.1007/s11222-023-10219-1
-"""
-function get_structure_factor_bartlett_isotrope(
-    spatial_network::MetaGraphsNext.MetaGraph, 
-    wavenumber)
-
-    # check if structure is 3d
-    if spatial_network[]["nr_dimensions"] !== 3
-        @error "Structure factor calculation is, so far, only implemented for 
-            3d."
-    end
-
-    # initialize double sum
-    double_sum = 0.0
-
-    # perform sum over all combinations of vertices
-    for vertex_1 in MetaGraphsNext.labels(spatial_network)
-
-        # get first vertex position
-        vertex_1_pos = spatial_network[vertex_1]["position"]
-
-        for vertex_2 in vertex_1+1:spatial_network[]["nr_vertices"]
-
-            # get second vertex position
-            vertex_2_pos = spatial_network[vertex_2]["position"]
-
-            # distance between vertices
-            vertex_distance = LinearAlgebra.norm(vertex_2_pos .- vertex_1_pos)
-
-            # calculate structure factor contribution of current vertex
-            # combination
-            double_sum += sin(wavenumber*vertex_distance) / (
-                wavenumber*vertex_distance)
-
-        end
-    end
-
-    # calculate structure factor
-    structure_factor = 1 + 2/spatial_network[]["nr_vertices"] * double_sum
-
-    return structure_factor
-end
-
-
-"""
-Get vector of wavenumbers, for which the structure factor is calculated
-"""
-function get_wavenumber_vec(
-    spatial_network::MetaGraphsNext.MetaGraph;
-    sampling_distance_step_length = 0.05,
-    maximal_sampling_distance 
-        = spatial_network[]["supercell_edge_length"]/sqrt(3))
-
-    # determine virtual nr of sampling distances (in reality I don't sample in
-    # direct space anywhere)
-    nr_sampling_distances = floor(maximal_sampling_distance
-        /(sampling_distance_step_length))
-
-    # get nr of wavenumbers which is half the nr of sampling distances
-    nr_wavenumbers = Int(floor(nr_sampling_distances/2))
-
-    # get fundamental wavenumber
-    fundamental_wavenumber = 2*pi/maximal_sampling_distance
-
-    # get vector of wavenumbers
-    wavenumber_vec = collect(1:nr_wavenumbers) * fundamental_wavenumber
-
-    return wavenumber_vec
-end
-
-
-"""
-Measure structure factor as a function of wavenumber averaged over angles
-according to Barlett's isotropic estimator as described in equation 26 of 
-10.1007/s11222-023-10219-1
-"""
-function get_structure_factor_bartlett_isotrope_by_wavenumber_vec(
-    spatial_network::MetaGraphsNext.MetaGraph;
-    sampling_distance_step_length = 0.1,
-    maximal_sampling_distance = spatial_network[]["supercell_edge_length"]/2,
-    save_result::Bool = false,
-    save_path::String = raw"..\analysis_data\random_networks\sample_name",
-    print_progress::Bool = false,
-    label = nothing)
-
-    # get vector of wavenumbers
-    wavenumber_vec = get_wavenumber_vec(spatial_network; 
-        sampling_distance_step_length = sampling_distance_step_length,
-        maximal_sampling_distance = maximal_sampling_distance)
-
-    # initialize structure factor vector
-    structure_factor_bartlett_vec = Vector{Float64}(undef, 
-        length(wavenumber_vec))
-
-    # get vector of structure factor as a function of wavenumber
-    for i in eachindex(wavenumber_vec)
-        structure_factor_bartlett_vec[i] = (
-            get_structure_factor_bartlett_isotrope(
-                spatial_network, wavenumber_vec[i]))
-
-        # print progress
-        if print_progress
-            println("Progress: ", i/length(wavenumber_vec)*100, "%")
-        end
-
-    end
-
-    structure_factor_bartlett_dict = Dict("wavenumber_vec" => wavenumber_vec,
-        "unfiltered_structure_factor_vec" => structure_factor_bartlett_vec,
-        "sampling_distance_step_length" => sampling_distance_step_length,
-        "maximal_sampling_distance" => maximal_sampling_distance )
-
-    # add label to dictionary if label is not nothing
-    if label !== nothing
-        structure_factor_bartlett_dict["label"] = label
-    end
-
-    if save_result
-        GU.save_dict_to_h5(copy(structure_factor_bartlett_dict),
-            save_path*"_structure_factor_bartlett_isotrope.h5")
-
-    end
-
-    return structure_factor_bartlett_dict
-end
-
-
-"""
-Measure structure factor as a function of wavenumber averaged over angles
-according to scattering intensity estimator as described in equation 40 of
-10.1007/s11222-023-10219-1
-"""
-function get_structure_factor_isotrope(
-    spatial_network::MetaGraphsNext.MetaGraph, 
-    wavenumber;
-    nr_wavevector_samples::Int = 10000)
-
-    # check if structure is 3d
-    if spatial_network[]["nr_dimensions"] !== 3
-        @error "Structure factor calculation is, so far, only implemented for 
-            3d."
-    end
-
-    # get desired number of wavevector samples
-    theta_vec = 2*pi*rand(nr_wavevector_samples)
-    phi_vec = acos.(2*rand(nr_wavevector_samples) .- 1)
-    wavevector_mat =  wavenumber .* stack( [sin.(phi_vec).*cos.(theta_vec), 
-                                            sin.(phi_vec).*sin.(theta_vec), 
-                                            cos.(phi_vec)] , 
-                                            dims=1)
-
-    # initialize structure factor sum
-    structure_factor = 0.0
-    
-    # perform sum over all wavevector samples
-    for wavevector in eachcol(wavevector_mat)
-
-        # initialize the sum of the scattering field
-        scattering_field_sum = 0.0 + 0.0*im
-
-        # perform sum over all vertices
-        for vertex in MetaGraphsNext.labels(spatial_network)
-
-            # get vertex position
-            vertex_pos = spatial_network[vertex]["position"]
-        
-            # calculate structure factor contribution of current vertex and wavevector
-            scattering_field_sum += exp(-im*LinearAlgebra.dot(wavevector, 
-                vertex_pos))
-
-        end
-
-        # calculate structure factor
-        structure_factor = 1/spatial_network[]["nr_vertices"] * abs2(
-            scattering_field_sum)
-
-        # add structure factor to sum
-        structure_factor += structure_factor/nr_wavevector_samples
-
-    end
-
-    return structure_factor
-end
-
-
-"""
-Measure structure factor for a given wavenumber, averaged over angles according
-to the scattering intensity estimator as described in equation 26 of
-10.1007/s11222-023-10219-1
-"""
-function get_structure_factor_isotrope_by_wavenumber_vec(
-    spatial_network::MetaGraphsNext.MetaGraph;
-    sampling_distance_step_length = 0.1,
-    maximal_sampling_distance = spatial_network[]["supercell_edge_length"]/2,
-    save_result::Bool = false,
-    save_path::String = raw"..\analysis_data\random_networks\sample_name",
-    print_progress::Bool = false,
-    label = nothing)
-
-    # get vector of wavenumbers
-    wavenumber_vec = get_wavenumber_vec(spatial_network; 
-        sampling_distance_step_length = sampling_distance_step_length,
-        maximal_sampling_distance = maximal_sampling_distance)
-
-    # initialize structure factor vector
-    unfiltered_structure_factor_vec = Vector{Float64}(undef, 
-        length(wavenumber_vec))
-
-    # get vector of structure factor as a function of wavenumber
-    for i in eachindex(wavenumber_vec)
-        unfiltered_structure_factor_vec[i] = get_structure_factor_isotrope(
-            spatial_network, wavenumber_vec[i])
-
-        # print progress
-        if print_progress
-            println("Progress: ", i/length(wavenumber_vec)*100, "%")
-        end
-
-    end
-
-    # create dictionary for current plot
-    structure_factor_dict = Dict("wavenumber_vec" => wavenumber_vec,
-        "unfiltered_structure_factor_vec" => unfiltered_structure_factor_vec,
-        "sampling_distance_step_length" => sampling_distance_step_length,
-        "maximal_sampling_distance" => maximal_sampling_distance,
-        "label" => label )
-
-    # add label to dictionary if label is not nothing
-    if label !== nothing
-        structure_factor_dict["label"] = label
-    end
-
-    # save results if desired
-    if save_result
-        GU.save_dict_to_h5(copy(structure_factor_dict),
-            save_path*"_structure_factor_isotrope.h5")
-
-    end
-
-    return structure_factor_dict
-end
-
 
 """
 Get array of wavevectors along positive z direction for which the structure
@@ -259,11 +14,20 @@ is spanned by k_j = 2*pi*n_j/L_j where n_j is an integer within
 """
 function get_wavevector_array_positive_z(
     spatial_network::MetaGraphsNext.MetaGraph;
-    maximal_wavevector_int::Int64 = 5)
+    maximal_wavevector_int::Int64 = 5,
+    periodic_boundary_conditions::Bool = true)
+
+    if periodic_boundary_conditions
+        network_edge_length = spatial_network[]["supercell_edge_length"]
+    else
+        min_vertex_coords, max_vertex_coords = get_min_max_vertex_coords(
+            spatial_network)
+        network_edge_length = minimum(max_vertex_coords .- min_vertex_coords)
+    end
 
     # get nr of wavevectors per positive direction
     nr_wavevectors_per_pos_direction = Int(ceil(maximal_wavevector_int
-        *spatial_network[]["supercell_edge_length"]))
+        *network_edge_length))
 
     # generate empty array for wavevectors positions
     wavevector_array_positive_z = Array{Float64}(undef, 
@@ -277,7 +41,7 @@ function get_wavevector_array_positive_z(
 
         # fill wavevector array depending on dimension of current index
         wavevector_array_positive_z[i] =  (
-            2*pi/spatial_network[]["supercell_edge_length"]*(
+            2*pi/network_edge_length*(
                 (i[1] - nr_wavevectors_per_pos_direction - 1)* ==(i[4], 1) 
                 + (i[2] - nr_wavevectors_per_pos_direction - 1)* ==(i[4], 2)
                 + (i[3] - 1)* ==(i[4], 3)))
@@ -289,13 +53,142 @@ end
 
 
 """
+Evaluate a separable N-D Hann window at a point. For each dimension `d`, uses a
+1D Hann window supported on `[min_coords[d], max_coords[d]]`:
+w_d(x) = 0.5 * (1 - cospi(2 * t)), where t = (x - xmin) / (xmax - xmin), 
+for x ∈ [xmin, xmax], and w_d(x) = 0 otherwise.
+Returns the product ∏_d w_d(position_vec[d]).
+"""
+function hann_apodization_fct(position_vec::Vector{Float64},
+    min_coords::Vector{Float64},
+    max_coords::Vector{Float64})::Float64
+
+    length(position_vec) == length(min_coords) == length(max_coords) ||
+        throw(ArgumentError("All vectors must have the same length."))
+
+    window_fct_value = 1.0
+    n = length(position_vec)
+
+    @inbounds @simd for d in 1:n
+        xmin = min_coords[d]
+        xmax = max_coords[d]
+        xmin < xmax || throw(ArgumentError(
+            "min_coords[$d] must be < max_coords[$d]."))
+
+        x = position_vec[d]
+        if x < xmin || x > xmax
+            return 0.0
+        end
+
+        # Normalized position in [0,1]
+        t = (x - xmin) / (xmax - xmin)
+
+        # 1D Hann in this dimension
+        wd = 0.5 * (1.0 - cospi(2.0 * t))
+
+        # Early exit if we hit an exact zero (e.g., exactly at a boundary)
+        if wd == 0.0
+            return 0.0
+        end
+
+        window_fct_value *= wd
+    end
+
+    # for each dimension, a normalization factor of 2 needs to be multiplied
+    normalization_factor = 2.0^n
+    window_fct_value *= normalization_factor
+
+    return window_fct_value
+end
+
+
+"""
+Hamming window: w_d(x) = 0.54 - 0.46 * cospi(2t), where 
+t = (x - xmin) / (xmax - xmin), for x ∈ [xmin, xmax], and w_d(x) = 0 otherwise.
+Less broadening than Hann, but more sidelobes.
+"""
+function hamming_apodization_fct(position_vec::Vector{Float64},
+    min_coords::Vector{Float64},
+    max_coords::Vector{Float64})::Float64
+
+    length(position_vec) == length(min_coords) == length(max_coords) ||
+        throw(ArgumentError("All vectors must have the same length."))
+
+    window_fct_value = 1.0
+    n = length(position_vec)
+
+    for d in 1:n
+        xmin, xmax = min_coords[d], max_coords[d]
+        x = position_vec[d]
+        if x < xmin || x > xmax
+            return 0.0
+        end
+        t = (x - xmin) / (xmax - xmin)
+        wd = 0.54 - 0.46 * cospi(2.0 * t)
+        window_fct_value *= wd
+    end
+
+    # for each dimension, a normalization factor of 1/0.54 needs to be 
+    # multiplied
+    normalization_factor = (1/0.54)^n
+    window_fct_value *= normalization_factor
+
+    return window_fct_value
+end
+
+
+"""
+Gaussian window: w_d(x) = exp(-0.5 * ((t - 0.5) / sigma)^2),
+with sigma controlling trade-off (smaller sigma → stronger tapering).
+"""
+function gaussian_apodization_fct(position_vec::Vector{Float64},
+    min_coords::Vector{Float64},
+    max_coords::Vector{Float64};
+    sigma::Float64=0.5
+    )::Float64  # default: fairly broad
+
+    length(position_vec) == length(min_coords) == length(max_coords) ||
+        throw(ArgumentError("All vectors must have the same length."))
+
+    window_fct_value = 1.0
+    n = length(position_vec)
+
+    for d in 1:n
+        xmin, xmax = min_coords[d], max_coords[d]
+        x = position_vec[d]
+        if x < xmin || x > xmax
+            return 0.0
+        end
+        t = (x - xmin) / (xmax - xmin)
+        wd = exp(-0.5 * ((t - 0.5)/sigma)^2)
+        window_fct_value *= wd
+    end
+
+    # for each dimension, a normalization factor needs to be multiplied which
+    # is the 1/(integral of the 1D Gaussian window over [-1/2, 1/2] for the
+    # given sigma). 1/0.855624 is the normalization factor for sigma=0.5
+    normalization_factor = (1/0.855624)^n
+    window_fct_value *= normalization_factor
+
+    return window_fct_value
+end
+
+
+"""
 Measure structure factor as a function of wavevector using the scattering
 intensity estimator as described in equation 24 of 10.1007/s11222-023-10219-1.
 Here, only the vertices of the network are considered.
 """
 function get_structure_factor(
     wavevector::Vector{Float64},
-    spatial_network::MetaGraphsNext.MetaGraph)
+    spatial_network::MetaGraphsNext.MetaGraph;
+    periodic_boundary_conditions::Bool=true,
+    min_coords=[spatial_network[]["supercell_edge_length"]/4,
+        spatial_network[]["supercell_edge_length"]/4,
+        spatial_network[]["supercell_edge_length"]/4],
+    max_coords=[3/4*spatial_network[]["supercell_edge_length"],
+        3/4*spatial_network[]["supercell_edge_length"],
+        3/4*spatial_network[]["supercell_edge_length"]])
 
     # initialize the sum of the scattering field
     scattering_field_sum = 0.0 + 0.0*im
@@ -305,12 +198,21 @@ function get_structure_factor(
 
         # get vertex position
         vertex_pos = spatial_network[vertex]["position"]
-    
+
         # calculate structure factor contribution of current vertex and
         # wavevector
-        scattering_field_sum += exp(-im*LinearAlgebra.dot(wavevector, 
-            vertex_pos))
+        scattering_field = exp(-im*LinearAlgebra.dot(wavevector, 
+                vertex_pos))
+        
+        if !periodic_boundary_conditions
+            # apply apodization window to reduce effects of sharp edges
+            apodization_window_value = gaussian_apodization_fct(
+                vertex_pos, min_coords, max_coords)
 
+            scattering_field *= apodization_window_value
+        end
+
+        scattering_field_sum += scattering_field
     end
 
     # calculate structure factor
@@ -329,6 +231,13 @@ and considering the bonds of the network.
 function get_structure_factor_bonds(
     wavevector::Vector{Float64},
     spatial_network::MetaGraphsNext.MetaGraph;
+    periodic_boundary_conditions::Bool=true,
+    min_coords=[spatial_network[]["supercell_edge_length"]/4,
+        spatial_network[]["supercell_edge_length"]/4,
+        spatial_network[]["supercell_edge_length"]/4],
+    max_coords=[3/4*spatial_network[]["supercell_edge_length"],
+        3/4*spatial_network[]["supercell_edge_length"],
+        3/4*spatial_network[]["supercell_edge_length"]],
     no_div_by_zero_value = 1e-10)
 
     # initialize the sum of the scattering field
@@ -355,6 +264,15 @@ function get_structure_factor_bonds(
             2/(scalar_prod_vector + no_div_by_zero_value)
             * exp(-im*scalar_prod_mid_point)
             * sin(scalar_prod_vector/2))
+
+        if !periodic_boundary_conditions
+            # apply apodization window to reduce effects of sharp edges
+            apodization_window_value = gaussian_apodization_fct(
+                bond_mid_point, min_coords, max_coords)
+
+            scattering_field *= apodization_window_value
+        end
+
         scattering_field_sum += scattering_field
     end
 
@@ -376,9 +294,11 @@ function get_structure_factor_by_wavevector_array(
     spatial_network::MetaGraphsNext.MetaGraph;
     consider_bonds::Bool = false,
     maximal_wavevector_int::Int64 = 5,
+    periodic_boundary_conditions::Bool = true,
     wavevector_array_positive_z::Array{Float64} 
         = get_wavevector_array_positive_z(spatial_network; 
-            maximal_wavevector_int=maximal_wavevector_int),
+            maximal_wavevector_int=maximal_wavevector_int,
+            periodic_boundary_conditions=periodic_boundary_conditions),
     save_result = false,
     save_path = raw"..\analysis_data\sample_name",
     label = nothing,
@@ -389,6 +309,15 @@ function get_structure_factor_by_wavevector_array(
     # initialize structure factor array
     structure_factor_array = Array{Float64}(undef, 
         size(wavevector_array_positive_z)[1:3]...)
+
+    # get min and max coordinates of the network to apply apodization in the 
+    # case of non-periodic boundary conditions
+    min_vertex_coords, max_vertex_coords = get_min_max_vertex_coords(
+        spatial_network)
+    # modify the min and max coords to create the largest possible cubic window
+    # that fully contains network
+    min_vertex_coords = fill(maximum(min_vertex_coords), 3)
+    max_vertex_coords = fill(minimum(max_vertex_coords), 3)
 
     if print_progress
         # get number of wavevectors to sample
@@ -415,12 +344,18 @@ function get_structure_factor_by_wavevector_array(
         if consider_bonds
             # get structure factor for current wavevector and bond network
             structure_factor_array[i,j,k] = get_structure_factor_bonds(
-                wavevector_array_positive_z[i,j,k,:], spatial_network)
+                wavevector_array_positive_z[i,j,k,:], spatial_network;
+                periodic_boundary_conditions=periodic_boundary_conditions,
+                min_coords=min_vertex_coords,
+                max_coords=max_vertex_coords)
 
         else
             # get structure factor for current wavevector and spatial network
             structure_factor_array[i,j,k] = get_structure_factor(
-                wavevector_array_positive_z[i,j,k,:], spatial_network)
+                wavevector_array_positive_z[i,j,k,:], spatial_network;
+                periodic_boundary_conditions=periodic_boundary_conditions,
+                min_coords=min_vertex_coords,
+                max_coords=max_vertex_coords)
         end
 
         # print progress
@@ -853,9 +788,8 @@ end
 
 
 """
-Measure local nr variance as a function of window radius according from
-structure factor according to equations 47 and d58 in 
-10.1016/j.physrep.2018.03.001
+Measure local nr variance as a function of window radius from structure factor 
+according to equations 47 and 58 in 10.1016/j.physrep.2018.03.001
 """
 function get_local_nr_variance_by_window_radius_vec(
     spatial_network,

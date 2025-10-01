@@ -67,6 +67,27 @@ end
 
 
 """
+Get the minimal and maximal vertex coordinates along all three directions
+"""
+function get_min_max_vertex_coords(spatial_network)
+    # get the minimal and maximal vertex positions along the three axes
+    min_vertex_coords = [Inf, Inf, Inf]
+    max_vertex_coords = [-Inf, -Inf, -Inf]
+    for vertex in MetaGraphsNext.labels(spatial_network)
+        for i in 1:3
+            if spatial_network[vertex]["position"][i] < min_vertex_coords[i]
+                min_vertex_coords[i] = spatial_network[vertex]["position"][i]
+            end
+            if spatial_network[vertex]["position"][i] > max_vertex_coords[i]
+                max_vertex_coords[i] = spatial_network[vertex]["position"][i]
+            end
+        end
+    end
+    return min_vertex_coords, max_vertex_coords
+end
+
+
+"""
 Convert a dictionary of Steinhardt local bond order parameters q_l with
 0 <= l <= l_max into a vector of length l_max+1
 """
@@ -157,6 +178,8 @@ function get_all_dicts_from_network_single_file(
     digital_sphere_mask_path 
         = raw"..\analysis_data\random_networks\digital_sphere_masks\\",
     pore_size_sampling_grid_size = 0.2,
+    max_pore_radius = 3.0,
+    periodic_boundary_conditions::Bool = true,
     print_progress::Bool = false,
     print_lock = Threads.ReentrantLock())
 
@@ -235,6 +258,8 @@ function get_all_dicts_from_network_single_file(
     pore_size_distribution_dict = get_pore_size_distribution(
         spatial_network;
         sampling_grid_size = pore_size_sampling_grid_size,
+        max_pore_radius = max_pore_radius,
+        periodic_boundary_conditions = periodic_boundary_conditions,
         save_result = true,
         save_path = analysis_data_path*filename,
         label = nothing,
@@ -266,7 +291,9 @@ function get_all_dicts_from_networks_single_thread(run_and_filename_chunk,
     analysis_data_path::String;
     digital_sphere_mask_path 
         = raw"..\analysis_data\random_networks\digital_sphere_masks\\",
-    pore_size_sampling_grid_size::Float64 = 0.2,
+    pore_size_sampling_grid_size = 0.2,
+    max_pore_radius = 3.0,
+    periodic_boundary_conditions::Bool = true,
     print_progress::Bool = false,
     print_lock = Threads.ReentrantLock())
 
@@ -287,6 +314,8 @@ function get_all_dicts_from_networks_single_thread(run_and_filename_chunk,
             analysis_data_path*run_and_filename[1:6];
             digital_sphere_mask_path = digital_sphere_mask_path,
             pore_size_sampling_grid_size = pore_size_sampling_grid_size,
+            max_pore_radius = max_pore_radius,
+            periodic_boundary_conditions = periodic_boundary_conditions,
             print_progress = print_progress,
             print_lock = print_lock)
         
@@ -305,7 +334,9 @@ function get_all_dicts_from_networks_multithreading(
     analysis_data_path::String;
     digital_sphere_mask_path 
         = raw"..\analysis_data\random_networks\digital_sphere_masks\\",
-    pore_size_sampling_grid_size::Float64 = 0.2,
+    pore_size_sampling_grid_size = 0.2,
+    max_pore_radius = 3.0,
+    periodic_boundary_conditions::Bool = true,
     print_progress::Bool = false,
     runs_vec = collect(1:5),
     print_lock = Threads.ReentrantLock())
@@ -367,6 +398,8 @@ function get_all_dicts_from_networks_multithreading(
             analysis_data_path;
             digital_sphere_mask_path = digital_sphere_mask_path,
             pore_size_sampling_grid_size = pore_size_sampling_grid_size,
+            max_pore_radius = max_pore_radius,
+            periodic_boundary_conditions = periodic_boundary_conditions,
             print_progress = print_progress,
             print_lock = print_lock)
     end
@@ -882,11 +915,11 @@ function convert_periodic_to_non_periodic(spatial_network)
         vector_out_of_supercell_length = 1)
 
     # get the minimal
-    min_vertex_coord, max_vertex_coord = get_min_max_vertex_coords(
+    min_vertex_coords, max_vertex_coords = get_min_max_vertex_coords(
                 spatial_network_no_pbc)
 
     new_supercell_edge_length = (
-        maximum(max_vertex_coord .- min_vertex_coord) * 2)
+        maximum(max_vertex_coords .- min_vertex_coords) * 2)
 
     spatial_network_no_pbc[]["supercell_edge_length"] = (
         new_supercell_edge_length)
@@ -894,7 +927,7 @@ function convert_periodic_to_non_periodic(spatial_network)
     # shift all vertices by half the new supercell edge length
     for vertex in MetaGraphsNext.labels(spatial_network_no_pbc)
         spatial_network_no_pbc[vertex]["position"] .+= (
-            new_supercell_edge_length/4 .- min_vertex_coord)
+            new_supercell_edge_length/4 .- min_vertex_coords)
     end
 
     return spatial_network_no_pbc

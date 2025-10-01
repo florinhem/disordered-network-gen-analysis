@@ -278,8 +278,15 @@ function get_unscaled_spatial_network(node_ids,
 
     nr_vertices = length(node_ids)
     nr_dimensions = 3
-    supercell_edge_length = ((maximum(vcat(x_coords, y_coords, z_coords)) 
-        - minimum(vcat(x_coords, y_coords, z_coords))) * 2)
+    min_coords = [minimum(x_coords), minimum(y_coords), minimum(z_coords)]
+    max_coords = [maximum(x_coords), maximum(y_coords), maximum(z_coords)]
+    edge_lengths = max_coords .- min_coords
+    supercell_edge_length = maximum(edge_lengths) * 2
+
+    # get the vector to translate all coordinates such that the network is
+    # centered in the supercell
+    translation_vec = ((supercell_edge_length .- edge_lengths) ./ 2 
+        .- min_coords)
 
     # create an empty network graph where vertex positions and edge vectors
     # will be stored
@@ -303,7 +310,7 @@ function get_unscaled_spatial_network(node_ids,
                 x_coords[vertex],
                 y_coords[vertex],
                 z_coords[vertex]
-            ] .+ supercell_edge_length / 2
+            ] .+ translation_vec
 
         spatial_network_unscaled[vertex] = Dict{String, Any}(
             "position" => position_vector
@@ -417,7 +424,7 @@ function load_spatial_network_from_excel(
     load_filename::String;
     save_network = true,
     save_path::String = load_path,
-    save_filename::String = "sample_name")
+    save_filename::String = load_filename)
 
     node_ids, x_coords, y_coords, z_coords, node_id_1, node_id_2 = (
         import_excel_data(load_path*load_filename*".xlsx"))

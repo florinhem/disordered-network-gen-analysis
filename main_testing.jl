@@ -11,11 +11,18 @@ import Plots
 import Format
 import StatsBase
 
-network_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\targeted\shell_nr_4\run_1\\"
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\crystals\\"
 
-filename = "lcs_nr_vertices_192_beta_0.2500_t_max_0.2138_t_gradient_0.1140.gml"
+filename = "dia_216_vertices"
 
-spatial_network = NG.load_spatial_network_from_gml(
-    network_path*filename)
+evolution_dict = NA.get_evolution_dict(;
+            nr_vertices = 216, 
+            network_type="dia",
+            )
 
-NG.plot_spatial_network(spatial_network)
+spatial_network = NG.get_periodic_network(evolution_dict)
+
+NG.save_spatial_network_to_gml(
+            spatial_network,
+            filename;
+            save_path = save_path)

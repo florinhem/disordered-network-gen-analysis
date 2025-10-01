@@ -5765,3 +5765,176 @@ Plots.plot!(dict_2["pore_size_vec"], dict_2["pore_size_distribution"], label="co
 Plots.xlabel!("Pore radius / d")
 Plots.ylabel!("Pore size distribution")
 Plots.savefig(plot_path*save_filename*"_with_and_without_error.png")
+
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\networks\pachy\\"
+filename_1 = "pachy_blue_pore_size_distribution.h5"
+filename_2 = "pachy_red_pore_size_distribution.h5"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\biological\networks\\"
+
+dict_1 = GU.load_h5_dict(analysis_data_path*filename_1)
+dict_2 = GU.load_h5_dict(analysis_data_path*filename_2)
+
+Plots.plot(dict_1["pore_size_vec"], dict_1["pore_size_distribution"], label="Blue")
+Plots.plot!(dict_2["pore_size_vec"], dict_2["pore_size_distribution"], label="Red")
+Plots.xlabel!("Pore radius / d")
+Plots.ylabel!("Pore size distribution")
+Plots.savefig(plot_path*"pachy_blue_red_pore_size_distribution.png")
+
+
+save_filename = "dia_64_vertices"
+network_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\crystals\\"
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\crystals\\"
+digital_sphere_mask_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\crystals\digital_sphere_masks\\"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\crystals\structure_factor_comparison\\"
+
+maximal_wavevector_int = 5
+
+spatial_network = NG.load_spatial_network_from_gml(
+    network_path*save_filename*".gml")
+
+println(spatial_network[]["supercell_edge_length"]/2)
+
+structure_factor_dict = NA.get_structure_factor_by_wavevector_array(
+    spatial_network;
+    consider_bonds = false,
+    maximal_wavevector_int = maximal_wavevector_int,
+    periodic_boundary_conditions = true,
+    wavevector_array_positive_z = NA.get_wavevector_array_positive_z(spatial_network; 
+        maximal_wavevector_int=maximal_wavevector_int,
+            periodic_boundary_conditions=periodic_boundary_conditions),
+    save_result = false,
+    save_path = analysis_data_path*save_filename,
+    label = nothing,
+    print_progress = true,
+    thread_nr = 0,
+    print_lock = Threads.ReentrantLock())
+
+structure_factor_angle_averaged_dict = NA.get_structure_factor_angle_averaged(
+        structure_factor_dict;
+        consider_bonds = false,
+        gaussian_filter = true,
+        gaussian_filter_sigma_x = 2*pi/25, 
+        gaussian_filter_filtered_data_x_step_length = 2*pi/25,
+        save_result = false,
+        save_path = analysis_data_path*save_filename,
+        label = nothing)
+
+# convert to a spatial_network_without periodic boundaries
+spatial_network_no_pbc = NA.convert_periodic_to_non_periodic(spatial_network)
+
+structure_factor_no_pbc_dict = NA.get_structure_factor_by_wavevector_array(
+    spatial_network_no_pbc;
+    consider_bonds = false,
+    maximal_wavevector_int = maximal_wavevector_int,
+    periodic_boundary_conditions = false,
+    wavevector_array_positive_z = NA.get_wavevector_array_positive_z(spatial_network_no_pbc; 
+        maximal_wavevector_int=maximal_wavevector_int,
+            periodic_boundary_conditions=periodic_boundary_conditions),
+    save_result = false,
+    save_path = analysis_data_path*save_filename,
+    label = nothing,
+    print_progress = true,
+    thread_nr = 0,
+    print_lock = Threads.ReentrantLock())
+
+structure_factor_no_pbc_angle_averaged_dict = NA.get_structure_factor_angle_averaged(
+        structure_factor_no_pbc_dict;
+        consider_bonds = false,
+        gaussian_filter = true,
+        gaussian_filter_sigma_x = 2*pi/25, 
+        gaussian_filter_filtered_data_x_step_length = 2*pi/25,
+        save_result = false,
+        save_path = analysis_data_path*save_filename,
+        label = nothing)
+
+Plots.plot(structure_factor_angle_averaged_dict["wavenumber_vec"], Measurements.value.(structure_factor_angle_averaged_dict["structure_factor_vec"]), ribbon =  Measurements.uncertainty.(structure_factor_angle_averaged_dict["structure_factor_vec"]), label="with PBC")
+Plots.plot!(structure_factor_no_pbc_angle_averaged_dict["wavenumber_vec"], Measurements.value.(structure_factor_no_pbc_angle_averaged_dict["structure_factor_vec"]), ribbon =  Measurements.uncertainty.(structure_factor_no_pbc_angle_averaged_dict["structure_factor_vec"]), label="without PBC")
+Plots.xlabel!("Wavenumber / (1/d)")
+Plots.ylabel!("Structure factor")
+Plots.savefig(plot_path*save_filename*"_structure_factor_comparison.png")
+
+NA.plot_structure_factor_heatmap(
+    structure_factor_no_pbc_dict,
+    plot_path*save_filename;
+    title="No PBC",
+    save_plot = false,
+    clims = (0, upper_clim_bonds ),
+    x_y_lims = nothing)
+
+
+
+save_filename = "dia_nr_vertices_216_beta_0.2500_t_max_0.1787_t_gradient_0.0477"
+network_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\targeted\shell_nr_4\run_1\\"
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\crystals\\"
+digital_sphere_mask_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\crystals\digital_sphere_masks\\"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\crystals\structure_factor_comparison\\"
+
+maximal_wavevector_int = 5
+
+spatial_network = NG.load_spatial_network_from_gml(
+    network_path*save_filename*".gml")
+
+structure_factor_dict = NA.get_structure_factor_by_wavevector_array(
+    spatial_network;
+    consider_bonds = true,
+    maximal_wavevector_int = maximal_wavevector_int,
+    periodic_boundary_conditions = true,
+    wavevector_array_positive_z = NA.get_wavevector_array_positive_z(spatial_network; 
+        maximal_wavevector_int=maximal_wavevector_int,
+            periodic_boundary_conditions=periodic_boundary_conditions),
+    save_result = false,
+    save_path = analysis_data_path*save_filename,
+    label = nothing,
+    print_progress = true,
+    thread_nr = 0,
+    print_lock = Threads.ReentrantLock())
+
+structure_factor_angle_averaged_dict = NA.get_structure_factor_angle_averaged(
+        structure_factor_dict;
+        consider_bonds = true,
+        gaussian_filter = true,
+        gaussian_filter_sigma_x = 2*pi/25, 
+        gaussian_filter_filtered_data_x_step_length = 2*pi/25,
+        save_result = false,
+        save_path = analysis_data_path*save_filename,
+        label = nothing)
+
+# convert to a spatial_network_without periodic boundaries
+spatial_network_no_pbc = NA.convert_periodic_to_non_periodic(spatial_network)
+
+structure_factor_no_pbc_dict = NA.get_structure_factor_by_wavevector_array(
+    spatial_network_no_pbc;
+    consider_bonds = true,
+    maximal_wavevector_int = maximal_wavevector_int,
+    periodic_boundary_conditions = false,
+    wavevector_array_positive_z = NA.get_wavevector_array_positive_z(spatial_network_no_pbc; 
+        maximal_wavevector_int=maximal_wavevector_int,
+            periodic_boundary_conditions=periodic_boundary_conditions),
+    save_result = false,
+    save_path = analysis_data_path*save_filename,
+    label = nothing,
+    print_progress = true,
+    thread_nr = 0,
+    print_lock = Threads.ReentrantLock())
+
+structure_factor_no_pbc_angle_averaged_dict = NA.get_structure_factor_angle_averaged(
+        structure_factor_no_pbc_dict;
+        consider_bonds = true,
+        gaussian_filter = true,
+        gaussian_filter_sigma_x = 2*pi/25, 
+        gaussian_filter_filtered_data_x_step_length = 2*pi/25,
+        save_result = false,
+        save_path = analysis_data_path*save_filename,
+        label = nothing)
+
+Plots.plot(structure_factor_angle_averaged_dict["wavenumber_vec"], Measurements.value.(structure_factor_angle_averaged_dict["structure_factor_vec"]), ribbon =  Measurements.uncertainty.(structure_factor_angle_averaged_dict["structure_factor_vec"]), label="with PBC")
+Plots.plot!(structure_factor_no_pbc_angle_averaged_dict["wavenumber_vec"], Measurements.value.(structure_factor_no_pbc_angle_averaged_dict["structure_factor_vec"]), ribbon =  Measurements.uncertainty.(structure_factor_no_pbc_angle_averaged_dict["structure_factor_vec"]), label="without PBC")
+Plots.xlabel!("Wavenumber / (1/d)")
+Plots.ylabel!("Structure factor")
+Plots.savefig(plot_path*save_filename*"_structure_factor_comparison.png")

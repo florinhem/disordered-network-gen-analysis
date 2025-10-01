@@ -34,12 +34,12 @@ function local_bond_bending_energy_keating(
 
     bond_bending_sum::Float64 = 0.0
 
-    for j in 1:(vertex_coordination_nr-1)
+    @inbounds @simd for j in 1:(vertex_coordination_nr-1)
         sign1::Int64=sign(neighbor_label_vec[j] - vertex_label)
         vector_j::Vector{Float64}=
             spatial_network[vertex_label, neighbor_label_vec[j]]["vector"]
         
-        for k in j+1:vertex_coordination_nr
+        @inbounds @simd for k in j+1:vertex_coordination_nr
             sign2::Int64=sign1*sign(neighbor_label_vec[k] - vertex_label)
             vector_k::Vector{Float64}=
                 spatial_network[vertex_label, neighbor_label_vec[k]]["vector"]

@@ -6624,3 +6624,252 @@ function load_spatial_network_from_h5_and_gml(dict_path_without_format::String)
 
     return spatial_network
 end
+
+
+
+
+"""
+Get vector of wavenumbers, for which the structure factor is calculated
+"""
+function get_wavenumber_vec(
+    spatial_network::MetaGraphsNext.MetaGraph;
+    sampling_distance_step_length = 0.05,
+    maximal_sampling_distance 
+        = spatial_network[]["supercell_edge_length"]/sqrt(3))
+
+    # determine virtual nr of sampling distances (in reality I don't sample in
+    # direct space anywhere)
+    nr_sampling_distances = floor(maximal_sampling_distance
+        /(sampling_distance_step_length))
+
+    # get nr of wavenumbers which is half the nr of sampling distances
+    nr_wavenumbers = Int(floor(nr_sampling_distances/2))
+
+    # get fundamental wavenumber
+    fundamental_wavenumber = 2*pi/maximal_sampling_distance
+
+    # get vector of wavenumbers
+    wavenumber_vec = collect(1:nr_wavenumbers) * fundamental_wavenumber
+
+    return wavenumber_vec
+end
+
+
+"""
+Measure structure factor for a given wavenumber, averaged over angles according
+to Barlett's isotropic estimator as described in equation 40 of 
+10.1007/s11222-023-10219-1
+"""
+function get_structure_factor_bartlett_isotrope(
+    spatial_network::MetaGraphsNext.MetaGraph, 
+    wavenumber)
+
+    # check if structure is 3d
+    if spatial_network[]["nr_dimensions"] !== 3
+        @error "Structure factor calculation is, so far, only implemented for 
+            3d."
+    end
+
+    # initialize double sum
+    double_sum = 0.0
+
+    # perform sum over all combinations of vertices
+    for vertex_1 in MetaGraphsNext.labels(spatial_network)
+
+        # get first vertex position
+        vertex_1_pos = spatial_network[vertex_1]["position"]
+
+        for vertex_2 in vertex_1+1:spatial_network[]["nr_vertices"]
+
+            # get second vertex position
+            vertex_2_pos = spatial_network[vertex_2]["position"]
+
+            # distance between vertices
+            vertex_distance = LinearAlgebra.norm(vertex_2_pos .- vertex_1_pos)
+
+            # calculate structure factor contribution of current vertex
+            # combination
+            double_sum += sin(wavenumber*vertex_distance) / (
+                wavenumber*vertex_distance)
+
+        end
+    end
+
+    # calculate structure factor
+    structure_factor = 1 + 2/spatial_network[]["nr_vertices"] * double_sum
+
+    return structure_factor
+end
+
+
+
+"""
+Measure structure factor as a function of wavenumber averaged over angles
+according to Barlett's isotropic estimator as described in equation 26 of 
+10.1007/s11222-023-10219-1
+"""
+function get_structure_factor_bartlett_isotrope_by_wavenumber_vec(
+    spatial_network::MetaGraphsNext.MetaGraph;
+    sampling_distance_step_length = 0.1,
+    maximal_sampling_distance = spatial_network[]["supercell_edge_length"]/2,
+    save_result::Bool = false,
+    save_path::String = raw"..\analysis_data\random_networks\sample_name",
+    print_progress::Bool = false,
+    label = nothing)
+
+    # get vector of wavenumbers
+    wavenumber_vec = get_wavenumber_vec(spatial_network; 
+        sampling_distance_step_length = sampling_distance_step_length,
+        maximal_sampling_distance = maximal_sampling_distance)
+
+    # initialize structure factor vector
+    structure_factor_bartlett_vec = Vector{Float64}(undef, 
+        length(wavenumber_vec))
+
+    # get vector of structure factor as a function of wavenumber
+    for i in eachindex(wavenumber_vec)
+        structure_factor_bartlett_vec[i] = (
+            get_structure_factor_bartlett_isotrope(
+                spatial_network, wavenumber_vec[i]))
+
+        # print progress
+        if print_progress
+            println("Progress: ", i/length(wavenumber_vec)*100, "%")
+        end
+
+    end
+
+    structure_factor_bartlett_dict = Dict("wavenumber_vec" => wavenumber_vec,
+        "unfiltered_structure_factor_vec" => structure_factor_bartlett_vec,
+        "sampling_distance_step_length" => sampling_distance_step_length,
+        "maximal_sampling_distance" => maximal_sampling_distance )
+
+    # add label to dictionary if label is not nothing
+    if label !== nothing
+        structure_factor_bartlett_dict["label"] = label
+    end
+
+    if save_result
+        GU.save_dict_to_h5(copy(structure_factor_bartlett_dict),
+            save_path*"_structure_factor_bartlett_isotrope.h5")
+
+    end
+
+    return structure_factor_bartlett_dict
+end
+
+
+"""
+Measure structure factor as a function of wavenumber averaged over angles
+according to scattering intensity estimator as described in equation 40 of
+10.1007/s11222-023-10219-1
+"""
+function get_structure_factor_isotrope(
+    spatial_network::MetaGraphsNext.MetaGraph, 
+    wavenumber;
+    nr_wavevector_samples::Int = 10000)
+
+    # check if structure is 3d
+    if spatial_network[]["nr_dimensions"] !== 3
+        @error "Structure factor calculation is, so far, only implemented for 
+            3d."
+    end
+
+    # get desired number of wavevector samples
+    theta_vec = 2*pi*rand(nr_wavevector_samples)
+    phi_vec = acos.(2*rand(nr_wavevector_samples) .- 1)
+    wavevector_mat =  wavenumber .* stack( [sin.(phi_vec).*cos.(theta_vec), 
+                                            sin.(phi_vec).*sin.(theta_vec), 
+                                            cos.(phi_vec)] , 
+                                            dims=1)
+
+    # initialize structure factor sum
+    structure_factor = 0.0
+    
+    # perform sum over all wavevector samples
+    for wavevector in eachcol(wavevector_mat)
+
+        # initialize the sum of the scattering field
+        scattering_field_sum = 0.0 + 0.0*im
+
+        # perform sum over all vertices
+        for vertex in MetaGraphsNext.labels(spatial_network)
+
+            # get vertex position
+            vertex_pos = spatial_network[vertex]["position"]
+        
+            # calculate structure factor contribution of current vertex and wavevector
+            scattering_field_sum += exp(-im*LinearAlgebra.dot(wavevector, 
+                vertex_pos))
+
+        end
+
+        # calculate structure factor
+        structure_factor = 1/spatial_network[]["nr_vertices"] * abs2(
+            scattering_field_sum)
+
+        # add structure factor to sum
+        structure_factor += structure_factor/nr_wavevector_samples
+
+    end
+
+    return structure_factor
+end
+
+
+"""
+Measure structure factor for a given wavenumber, averaged over angles according
+to the scattering intensity estimator as described in equation 26 of
+10.1007/s11222-023-10219-1
+"""
+function get_structure_factor_isotrope_by_wavenumber_vec(
+    spatial_network::MetaGraphsNext.MetaGraph;
+    sampling_distance_step_length = 0.1,
+    maximal_sampling_distance = spatial_network[]["supercell_edge_length"]/2,
+    save_result::Bool = false,
+    save_path::String = raw"..\analysis_data\random_networks\sample_name",
+    print_progress::Bool = false,
+    label = nothing)
+
+    # get vector of wavenumbers
+    wavenumber_vec = get_wavenumber_vec(spatial_network; 
+        sampling_distance_step_length = sampling_distance_step_length,
+        maximal_sampling_distance = maximal_sampling_distance)
+
+    # initialize structure factor vector
+    unfiltered_structure_factor_vec = Vector{Float64}(undef, 
+        length(wavenumber_vec))
+
+    # get vector of structure factor as a function of wavenumber
+    for i in eachindex(wavenumber_vec)
+        unfiltered_structure_factor_vec[i] = get_structure_factor_isotrope(
+            spatial_network, wavenumber_vec[i])
+
+        # print progress
+        if print_progress
+            println("Progress: ", i/length(wavenumber_vec)*100, "%")
+        end
+
+    end
+
+    # create dictionary for current plot
+    structure_factor_dict = Dict("wavenumber_vec" => wavenumber_vec,
+        "unfiltered_structure_factor_vec" => unfiltered_structure_factor_vec,
+        "sampling_distance_step_length" => sampling_distance_step_length,
+        "maximal_sampling_distance" => maximal_sampling_distance,
+        "label" => label )
+
+    # add label to dictionary if label is not nothing
+    if label !== nothing
+        structure_factor_dict["label"] = label
+    end
+
+    # save results if desired
+    if save_result
+        GU.save_dict_to_h5(copy(structure_factor_dict),
+            save_path*"_structure_factor_isotrope.h5")
+
+    end
+
+    return structure_factor_dict
+end

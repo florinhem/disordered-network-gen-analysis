@@ -9,7 +9,7 @@ import .GeneralUtilities as GU
 
 network_path = "../structures/biological/networks/pachy/"
 analysis_data_path = "../analysis_data/biological/networks/pachy/"
-save_filename = "pachy_red"
+save_filename = "pachy_blue"
 
 spatial_network = NG.load_spatial_network_from_gml(
     network_path*save_filename*".gml")

@@ -33149,17 +33149,15 @@ digital_sphere_mask_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribo
 
 pore_size_distribution_dict = NA.get_pore_size_distribution(
     spatial_network;
-    sampling_grid_size = 1.0,
-    max_pore_radius = 3.001,
+    sampling_grid_size = 0.2,
+    max_pore_radius = 3.0,
     periodic_boundary_conditions = false,
     save_result = true,
-    save_path = analysis_data_path,
+    save_path = analysis_data_path*save_filename,
     label = nothing,
     digital_sphere_mask_path 
         = digital_sphere_mask_path,
-    print_progress = true,
-    thread_nr = 0,
-    print_lock = Threads.ReentrantLock())
+    print_progress = true)
 
 
 
@@ -33397,3 +33395,137 @@ radius_histogram = LinearAlgebra.normalize(
 pore_size_distribution = radius_histogram.weights
 
 Plots.plot(pore_size_vec, pore_size_distribution)
+
+
+load_filename = "Blue.attributegraph"
+network_path = raw"..\structures\biological\networks\pachy\\"
+analysis_data_path = raw"..\analysis_data\biological\networks\pachy\\"
+digital_sphere_mask_path = raw"..\analysis_data\biological\networks\digital_sphere_masks\\"
+save_filename = "pachy_blue"
+
+spatial_network = NG.load_spatial_network_from_excel(
+    network_path,
+    load_filename;
+    save_network = true,
+    save_path = network_path,
+    save_filename = save_filename)
+
+
+network_path = "../structures/biological/networks/pachy/"
+analysis_data_path = "../analysis_data/biological/networks/pachy/"
+digital_sphere_mask_path = "../analysis_data/biological/networks/digital_sphere_masks/"
+save_filename = "pachy_red"
+
+spatial_network = NG.load_spatial_network_from_gml(
+    network_path*save_filename*".gml")
+
+sampling_grid_size = 0.2
+max_pore_radius = 3.0
+periodic_boundary_conditions = false
+save_result = true
+save_path = analysis_data_path*save_filename
+label = nothing
+digital_sphere_mask_path = digital_sphere_mask_path
+print_progress = true
+
+pore_size_distribution_dict = NA.get_pore_size_distribution(
+    spatial_network;
+    sampling_grid_size = sampling_grid_size,
+    max_pore_radius = max_pore_radius,
+    periodic_boundary_conditions = periodic_boundary_conditions,
+    save_result = save_result,
+    save_path = save_path,
+    label = label,
+    digital_sphere_mask_path = digital_sphere_mask_path,
+    print_progress = print_progress,
+    thread_nr = 0,
+    print_lock = Threads.ReentrantLock())
+
+
+save_filename = "pachy_blue"
+
+save_path = analysis_data_path*save_filename
+
+spatial_network = NG.load_spatial_network_from_gml(
+    network_path*save_filename*".gml")
+
+
+pore_size_distribution_dict = NA.get_pore_size_distribution(
+    spatial_network;
+    sampling_grid_size = sampling_grid_size,
+    max_pore_radius = max_pore_radius,
+    periodic_boundary_conditions = periodic_boundary_conditions,
+    save_result = save_result,
+    save_path = save_path,
+    label = label,
+    digital_sphere_mask_path = digital_sphere_mask_path,
+    print_progress = print_progress,
+    thread_nr = 0,
+    print_lock = Threads.ReentrantLock())
+
+
+
+network_path = "../structures/biological/networks/pachy/"
+analysis_data_path = "../analysis_data/biological/networks/pachy/"
+save_filename = "pachy_red"
+
+spatial_network = NG.load_spatial_network_from_gml(
+    network_path*save_filename*".gml")
+
+consider_bonds = false
+maximal_wavevector_int = 5
+periodic_boundary_conditions = false
+save_result = true
+save_path = analysis_data_path*save_filename
+print_progress = true
+gaussian_filter = true
+gaussian_filter_sigma_x = 2*pi/25
+gaussian_filter_filtered_data_x_step_length = 2*pi/25
+
+structure_factor_dict = NA.get_structure_factor_by_wavevector_array(
+    spatial_network;
+    consider_bonds = consider_bonds,
+    maximal_wavevector_int = maximal_wavevector_int,
+    periodic_boundary_conditions = periodic_boundary_conditions,
+    wavevector_array_positive_z = NA.get_wavevector_array_positive_z(spatial_network; 
+        maximal_wavevector_int=maximal_wavevector_int,
+            periodic_boundary_conditions=periodic_boundary_conditions),
+    save_result = save_result,
+    save_path = save_path,
+    print_progress = print_progress,
+    thread_nr = 0,
+    print_lock = Threads.ReentrantLock())
+
+structure_factor_angle_averaged_dict = NA.get_structure_factor_angle_averaged(
+        structure_factor_dict;
+        consider_bonds = consider_bonds,
+        gaussian_filter = gaussian_filter,
+        gaussian_filter_sigma_x = gaussian_filter_sigma_x,
+        gaussian_filter_filtered_data_x_step_length = gaussian_filter_filtered_data_x_step_length,
+        save_result = save_result,
+        save_path = save_path)
+
+consider_bonds = true
+
+structure_factor_dict = NA.get_structure_factor_by_wavevector_array(
+    spatial_network;
+    consider_bonds = consider_bonds,
+    maximal_wavevector_int = maximal_wavevector_int,
+    periodic_boundary_conditions = periodic_boundary_conditions,
+    wavevector_array_positive_z = NA.get_wavevector_array_positive_z(spatial_network; 
+        maximal_wavevector_int=maximal_wavevector_int,
+            periodic_boundary_conditions=periodic_boundary_conditions),
+    save_result = save_result,
+    save_path = save_path,
+    print_progress = print_progress,
+    thread_nr = 0,
+    print_lock = Threads.ReentrantLock())
+
+structure_factor_angle_averaged_dict = NA.get_structure_factor_angle_averaged(
+        structure_factor_dict;
+        consider_bonds = consider_bonds,
+        gaussian_filter = gaussian_filter,
+        gaussian_filter_sigma_x = gaussian_filter_sigma_x,
+        gaussian_filter_filtered_data_x_step_length = gaussian_filter_filtered_data_x_step_length,
+        save_result = save_result,
+        save_path = save_path)

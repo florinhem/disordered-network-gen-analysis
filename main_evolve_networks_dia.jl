@@ -7,9 +7,6 @@ import .NetworkGeneration as NG
 import .NetworkAnalysis as NA
 import .GeneralUtilities as GU
 
-println("Beginning to sleep")
-sleep(10000)
-println("Finished sleeping")
 
 evolution_dicts_directory_path = "../structures/local_relaxation/random/dia/evolution_dicts/"
 

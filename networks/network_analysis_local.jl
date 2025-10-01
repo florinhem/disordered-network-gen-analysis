@@ -682,27 +682,6 @@ end
 
 
 """
-Get the minimal and maximal vertex coordinates along all three directions
-"""
-function get_min_max_vertex_coords(spatial_network)
-    # get the minimal and maximal vertex positions along the three axes
-    min_vertex_coord = [Inf, Inf, Inf]
-    max_vertex_coord = [-Inf, -Inf, -Inf]
-    for vertex in MetaGraphsNext.labels(spatial_network)
-        for i in 1:3
-            if spatial_network[vertex]["position"][i] < min_vertex_coord[i]
-                min_vertex_coord[i] = spatial_network[vertex]["position"][i]
-            end
-            if spatial_network[vertex]["position"][i] > max_vertex_coord[i]
-                max_vertex_coord[i] = spatial_network[vertex]["position"][i]
-            end
-        end
-    end
-    return min_vertex_coord, max_vertex_coord
-end
-
-
-"""
 Calculate the pore size distribution of the mathematical network with
 infinitely thin bonds following the method described in
 10.1103/PhysRevE.100.053314, to work with periodic boundary conditions
