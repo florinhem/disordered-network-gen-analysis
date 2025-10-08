@@ -785,7 +785,7 @@ function cut_bonds_out_of_supercell!(
                     Dict(
                         "position" => (spatial_network[bond[i]]["position"] 
                         .+ (-1)^(i+1) .* new_vector ),
-                        "coordination_nr" => spatial_network[bond[i]]["coordination_nr"]
+                        "coordination_nr" => 1
                         ) )
 
                 spatial_network[bond[i], vertex_count + i] = (

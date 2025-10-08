@@ -33529,3 +33529,382 @@ structure_factor_angle_averaged_dict = NA.get_structure_factor_angle_averaged(
         gaussian_filter_filtered_data_x_step_length = gaussian_filter_filtered_data_x_step_length,
         save_result = save_result,
         save_path = save_path)
+
+
+save_filename = "dia_nr_vertices_216_beta_0.2500_t_max_0.1787_t_gradient_0.0477"
+network_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\targeted\shell_nr_4\run_1\\"
+
+non_pbc_network_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\targeted\test_non_pbc\\"
+
+spatial_network = NG.load_spatial_network_from_gml(
+    network_path*save_filename*".gml")
+
+# convert to a spatial_network_without periodic boundaries
+spatial_network_no_pbc = NA.convert_periodic_to_non_periodic(spatial_network)
+
+NG.save_spatial_network_to_gml(
+            spatial_network_no_pbc,
+            save_filename;
+            save_path = non_pbc_network_path)
+
+
+
+save_filename = "dia_nr_vertices_216_beta_0.2500_t_max_0.1787_t_gradient_0.0477"
+network_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\targeted\test_non_pbc\\"
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\targeted\test_non_pbc\\"
+digital_sphere_mask_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\digital_sphere_masks\\"
+
+spatial_network = NG.load_spatial_network_from_gml(
+    network_path*save_filename*".gml")
+
+NA.get_all_dicts_from_network_single_file(
+    save_filename,
+    network_path,
+    analysis_data_path;
+    digital_sphere_mask_path = digital_sphere_mask_path,
+    pore_size_sampling_grid_size = 0.2,
+    max_pore_radius = 3.0,
+    periodic_boundary_conditions = false,
+    print_progress = true,
+    print_lock = Threads.ReentrantLock())
+
+
+save_filename = "dia_nr_vertices_216_beta_0.2500_t_max_0.1787_t_gradient_0.0477"
+network_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\targeted\test_non_pbc\\"
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\targeted\test_non_pbc\\"
+digital_sphere_mask_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\digital_sphere_masks\\"
+
+spatial_network = NG.load_spatial_network_from_gml(
+    network_path*save_filename*".gml")
+
+l_max=12
+
+# get the vertices with coordination nr > 1
+considered_vertex_vec = []
+for vertex in MetaGraphsNext.labels(spatial_network)
+    if spatial_network[vertex]["coordination_nr"] > 1
+        push!(considered_vertex_vec, vertex)
+    end
+end
+# initialize dictionary of q_l averaged over entire network with all values
+# set to 0. Here only vertices with coordination_nr > 1 are considered
+q_l_total_network_mean_arr = Array{Float64}(undef, 
+    length(considered_vertex_vec), l_max+1)
+# loop through vertices
+vertex_count = 1
+central_vertex = 217
+
+# initialize vector for spherical harmonics of all neighbors
+y_spherical_harmonic_arr_vec = Vector{SphericalHarmonics.SHVector{
+        ComplexF64, 
+        Vector{ComplexF64}, 
+        Tuple{SphericalHarmonics.ML{SphericalHarmonics.ZeroTo{false}, 
+            SphericalHarmonics.FullRange{true}}}
+    }}(undef, spatial_network[central_vertex]["coordination_nr"])
+# neighbor counter
+neighbor_count = 1
+# loop through bonds to neighbors
+for neighbor in MetaGraphsNext.neighbor_labels(
+                    spatial_network, central_vertex)
+    # get vector from vertex to neighbor
+    vertex_to_neighbor_vec = (sign(neighbor - central_vertex) 
+            * spatial_network[central_vertex, neighbor]["vector"] )
+    # get vector's spherical coordinates
+    r_length, theta, phi = NA.convert_cartesian_to_spherical(
+        vertex_to_neighbor_vec)
+    # get array of spherical harmonics
+    y_spherical_harmonic_arr_vec[neighbor_count] = (
+        SphericalHarmonics.computeYlm(theta, phi; lmax = l_max))
+    global neighbor_count += 1
+end
+# average over bonds to neighbors
+# initialize dict of Steinhardt order parameters
+q_lm_averaged_bonds_to_neighbors_dict = Dict{Tuple{Int64, Int64}, 
+    Complex{Float64}}()
+# loop through values of l
+for l in 0:l_max
+    println("l = $l")
+
+    # loop through values of m
+    for m in -l:l
+        println("m = $m")
+        # initialize current average steinhardt order parameter
+        q_lm = 0.0
+        # average over neighbors
+        for neighbor_count in 1:spatial_network[central_vertex]["coordination_nr"]
+            println("neighbor_count = $neighbor_count")
+            q_lm += (1/spatial_network[central_vertex]["coordination_nr"]
+                * 
+                y_spherical_harmonic_arr_vec[neighbor_count][(l,m)]
+            )
+        end
+        # save current average steinhardt order parameter
+        q_lm_averaged_bonds_to_neighbors_dict[(l,m)] = q_lm
+    end
+end
+
+
+
+save_filename = "dia_nr_vertices_216_beta_0.2500_t_max_0.1787_t_gradient_0.0477"
+network_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\targeted\test_non_pbc\\"
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\targeted\test_non_pbc\\"
+digital_sphere_mask_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\digital_sphere_masks\\"
+
+analysis_data_path_with_pbc = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\targeted\shell_nr_4\run_1\\"
+
+order_metrics_with_pbc = GU.load_h5_dict(analysis_data_path_with_pbc*save_filename*"_order_metrics.h5")
+order_metrics_no_pbc = GU.load_h5_dict(analysis_data_path*save_filename*"_order_metrics.h5")
+
+for (key, value) in order_metrics_with_pbc
+    println("With PBC - ", key, ": ", value)
+    println("Without PBC - ", key, ": ", order_metrics_no_pbc[key])
+    println()
+end
+
+
+filename = "dia_nr_vertices_216_beta_0.2500_t_max_0.1787_t_gradient_0.0477"
+spatial_network_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\targeted\test_non_pbc\\"
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\targeted\test_non_pbc\\"
+digital_sphere_mask_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\digital_sphere_masks\\"
+
+analysis_data_path_with_pbc = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\targeted\shell_nr_4\run_1\\"
+
+# get network
+spatial_network = NG.load_spatial_network_from_gml(
+    spatial_network_path*filename*".gml")
+
+# get ring size distribution
+ring_size_distribution_dict = NA.get_ring_size_distribution(
+    spatial_network;
+    periodic_boundary_conditions = false,
+    save_result = true,
+    save_path = analysis_data_path*filename)
+# get ring radius distribution
+ring_radius_distribution_dict = NA.get_ring_radius_distribution(
+    spatial_network,
+    ring_size_distribution_dict;
+    save_result = true,
+    save_path = analysis_data_path*filename)
+
+# get all order metrics for the network
+order_metrics_dict = NA.get_order_metrics(
+        filename,
+        spatial_network_path,
+        analysis_data_path;
+        l_max_steinhardt_q_l = 12,
+        save_result = true,
+        )
+
+order_metrics_with_pbc = GU.load_h5_dict(analysis_data_path_with_pbc*filename*"_order_metrics.h5")
+order_metrics_no_pbc = GU.load_h5_dict(analysis_data_path*filename*"_order_metrics.h5")
+
+ring_size_with_pbc = GU.load_h5_dict(analysis_data_path_with_pbc*filename*"_ring_size_distribution.h5")
+ring_size_no_pbc = GU.load_h5_dict(analysis_data_path*filename*"_ring_size_distribution.h5")
+
+ring_radius_with_pbc = GU.load_h5_dict(analysis_data_path_with_pbc*filename*"_ring_radius_distribution.h5")
+ring_radius_no_pbc = GU.load_h5_dict(analysis_data_path*filename*"_ring_radius_distribution.h5")
+
+#Plots.plot(ring_size_with_pbc["ring_size_vec"], ring_size_with_pbc["ring_size_distribution"], label="With PBC")
+#Plots.plot!(ring_size_no_pbc["ring_size_vec"], ring_size_no_pbc["ring_size_distribution"], label="No PBC")
+
+for (key, value) in order_metrics_with_pbc
+    println("With PBC - ", key, ": ", value)
+    println("Without PBC - ", key, ": ", order_metrics_no_pbc[key])
+    println()
+end
+
+
+#network_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\neural_network_networks\ctn\run_2\\"
+
+network_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\random\ctn\run_1\\"
+
+#filename = "ctn_beta_0.0283_t_max_0.0953_t_gradient_0.9299"
+#ilename = "ctn_beta_0.2129_t_max_0.8445_t_gradient_0.5088"
+#filename = "ctn_beta_0.8746_t_max_1.9915_t_gradient_0.9983"
+#filename = "ctn_beta_0.8607_t_max_2.1519_t_gradient_1.0450"
+#filename = "ctn_beta_0.4633_t_max_1.5509_t_gradient_0.9028"
+#filename = "ctn_beta_0.7397_t_max_0.5167_t_gradient_0.2556"
+filename = "ctn_beta_0.9903_t_max_1.5481_t_gradient_0.3004"
+
+spatial_network = NG.load_spatial_network_from_gml(
+    network_path*filename*".gml")
+
+spatial_network_1 = NG.randomly_displace_all_vertices!(
+    deepcopy(spatial_network);
+    sigma = 0.1,
+    update_total_energy = true)
+
+spatial_network_2 = NG.randomly_displace_all_vertices!(
+    deepcopy(spatial_network);
+    sigma = 0.2,
+    update_total_energy = true)
+
+spatial_network_3 = NG.randomly_displace_all_vertices!(
+    deepcopy(spatial_network);
+    sigma = 0.3,
+    update_total_energy = true)
+
+spatial_network_4 = NG.randomly_displace_all_vertices!(
+    deepcopy(spatial_network);
+    sigma = 0.4,
+    update_total_energy = true)
+
+bond_length_std, bond_length_vec = NA.get_bond_length_std(
+    spatial_network)
+bond_length_std_1, bond_length_vec_1 = NA.get_bond_length_std(
+    spatial_network_1)
+bond_length_std_2, bond_length_vec_2 = NA.get_bond_length_std(
+    spatial_network_2)
+bond_length_std_3, bond_length_vec_3 = NA.get_bond_length_std(
+    spatial_network_3)
+bond_length_std_4, bond_length_vec_4 = NA.get_bond_length_std(
+    spatial_network_4)
+
+bond_angle_std, bond_angle_vec = NA.get_bond_angle_std(
+    spatial_network)
+bond_angle_std_1, bond_angle_vec_1 = NA.get_bond_angle_std(
+    spatial_network_1)
+bond_angle_std_2, bond_angle_vec_2 = NA.get_bond_angle_std(
+    spatial_network_2)
+bond_angle_std_3, bond_angle_vec_3 = NA.get_bond_angle_std(
+    spatial_network_3)
+bond_angle_std_4, bond_angle_vec_4 = NA.get_bond_angle_std(
+    spatial_network_4)
+
+# print all standard deviations
+println("bond length std: "*string(bond_length_std))
+println("bond length std 1: "*string(bond_length_std_1))
+println("bond length std 2: "*string(bond_length_std_2))
+println("bond length std 3: "*string(bond_length_std_3))
+println("bond length std 4: "*string(bond_length_std_4))
+println("--------------------------------------------------")
+println("bond angle std: "*string(bond_angle_std))
+println("bond angle std 1: "*string(bond_angle_std_1))
+println("bond angle std 2: "*string(bond_angle_std_2))
+println("bond angle std 3: "*string(bond_angle_std_3))
+println("bond angle std 4: "*string(bond_angle_std_4))
+
+NG.plot_spatial_network(spatial_network_3)
+
+
+
+nr_samples = 1000
+
+nr_vertices_vec = [216, 224, 216, 192, 216]
+network_type_vec = ["pcu_cn_4_5_6", "ctn", "dia", "lcs", "srs"]
+
+
+theta_ground_state = 180.0
+shell_nr = 4
+relax_globally_after_threshold_cycle = false
+
+for (nr_vertices, network_type) in zip(nr_vertices_vec, network_type_vec)
+
+    println("Generating $nr_vertices vertices of type $network_type")
+
+    # choose random beta values for the samples between 0 and 1
+    beta_vec = rand(nr_samples)
+
+    # get the melting temperature for the beta values
+    t_melt_vec = [NA.get_melting_temperature(network_type, beta; relax_globally_after_threshold_cycle=relax_globally_after_threshold_cycle, shell_nr=shell_nr) for beta in beta_vec]
+
+    # get random values of t_max between t_melt/3 and 3*t_melt 
+    t_max_vec = t_melt_vec .* (1/3 .+ 8/3 .* rand(nr_samples))
+
+    # get random values of the heating/cooling gradient between t_melt/10 and 
+    # t_melt
+    t_gradient_vec = t_melt_vec .* (1/10 .+ 9/10 .* rand(nr_samples))
+
+    save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\random\\"*network_type*raw"\evolution_dicts\\"
+
+    for i in 1:nr_samples
+        temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(t_max_vec[i],
+            temperature_gradient = t_gradient_vec[i], 
+            nr_monte_carlo_steps_per_temperature = 0.01,
+            quench = true )
+
+        evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,
+            temperature_vec = temperature_vec,
+            nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
+            bond_bending_const = beta_vec[i], network_type = network_type,
+            theta_ground_state = theta_ground_state,
+            relax_globally_after_threshold_cycle = relax_globally_after_threshold_cycle,
+            shell_nr = shell_nr,)
+
+        filename = Format.format(network_type*"_beta_{1:.4f}_t_max_{2:.4f}_t_gradient_{3:.4f}", beta_vec[i], t_max_vec[i], t_gradient_vec[i])
+        GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
+    end
+end
+
+
+network_type_vec = ["ctn",  "dia",  "lcs", "srs", ]
+nr_vertices_vec = [224, 216,  192,  216,] 
+bond_bending_const_vec = [0.0, 0.25, 0.5, 0.75, 1.0]
+theta_ground_state_vec = [180.0]
+acceptance_probability_vec = [0.001]
+relax_globally_after_threshold_cycle_vec = [false]
+shell_nr_vec = [3]
+
+NA.print_melting_temperatures(
+    ;
+    network_type_vec,
+    nr_vertices_vec,
+    bond_bending_const_vec,
+    theta_ground_state_vec,
+    acceptance_probability_vec,
+    relax_globally_after_threshold_cycle_vec,
+    shell_nr_vec
+    )
+
+
+
+load_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\ctn\\"
+
+filename = "all_order_metrics.h5"
+
+Plots.scatter(order_metrics_dict["bond_bending_const_vec"], order_metrics_dict["bond_angle_std_vec"])
+Plots.scatter!(order_metrics_dict["bond_bending_const_vec"], order_metrics_dict["bond_length_std_vec"])
+
+
+network_type_vec = ["ctn",  "dia",  "lcs", "srs", "pcu_cn_4_5_6", "bcu_cn_5_6_7_8"]
+nr_vertices_vec = [224, 216,  192,  216, 216, 432] 
+bond_bending_const_vec = [1.25, 1.5, 1.75, 2.0]
+theta_ground_state_vec = [180.0]
+acceptance_probability_vec = [0.001]
+relax_globally_after_threshold_cycle_vec = [true]
+shell_nr_vec = [4]
+
+NA.print_melting_temperatures(
+    ;
+    network_type_vec,
+    nr_vertices_vec,
+    bond_bending_const_vec,
+    theta_ground_state_vec,
+    acceptance_probability_vec,
+    relax_globally_after_threshold_cycle_vec,
+    shell_nr_vec
+    )
+
+
+save_filename = "pachy_red"
+network_path = "../structures/biological/networks/pachy/"
+analysis_data_path = raw"../analysis_data/biological/networks/pachy/"
+
+spatial_network = NG.load_spatial_network_from_gml(
+    network_path*save_filename*".gml")
+
+structure_factor_dict = NA.get_structure_factor_by_wavevector_array(
+    spatial_network;
+    consider_bonds = false,
+    maximal_wavevector_int = 5,
+    periodic_boundary_conditions = false,
+    apodization_fct = NA.gaussian_apodization_fct,
+    apodization_fct_parameter = 0.2,
+    save_result = true,
+    save_path = analysis_data_path*save_filename*"_gauss_0.2",
+    label = nothing,
+    print_progress = true)

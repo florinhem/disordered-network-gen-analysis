@@ -1033,6 +1033,12 @@ function each_bond_in_at_least_one_cycle(
     simple_cycles::Vector{Vector{Int64}})
 
     for bond in MetaGraphsNext.edge_labels(spatial_network)
+        # skip bonds, where one of the vertices has coordination nr 1
+        if spatial_network[bond[1]]["coordination_nr"] == 1 ||
+            spatial_network[bond[2]]["coordination_nr"] == 1
+            continue
+        end
+
         bond_found = false
         for cycle in simple_cycles
             if cycle_contains_bond(cycle, bond)
@@ -1055,7 +1061,9 @@ Get a list of all very strong rings in a spatial network as defined in
 10.1016/0022-3093(91)90145-V and explained in 10.1016/S0927-0256(01)00256-7.
 """
 function get_very_strong_rings_vec(spatial_network::MetaGraphsNext.MetaGraph;
-    max_ring_size_to_check::Int64 = 12)
+    max_ring_size_to_check::Int64 = 12,
+    periodic_boundary_conditions::Bool = true,
+    non_pbc_padding::Float64 = 2.0)
 
     # get the number of simple cycles up to the max_ring_size_to_check
     simple_cycles = MetaGraphsNext.simplecycles_limited_length(spatial_network,
@@ -1085,10 +1093,37 @@ function get_very_strong_rings_vec(spatial_network::MetaGraphsNext.MetaGraph;
             increasing the max_ring_size_to_check parameter."
     end
 
+    # in the case of non-periodic boundary conditions, get the minimal and 
+    # maximal vertex positions, to properly determine the padding later
+    if !periodic_boundary_conditions
+        min_vertex_coord, max_vertex_coord = get_min_max_vertex_coords(
+            spatial_network)
+    end
+
     # loop through all bonds and for each bond, find all very strong rings, 
     # that are all cycles with minimal length containing the bond
     very_strong_rings_vec = Vector{Vector{Int64}}()
     for bond in MetaGraphsNext.edge_labels(spatial_network)
+
+        # skip bonds where one of the vertices has coordination nr 1
+        if spatial_network[bond[1]]["coordination_nr"] == 1 ||
+            spatial_network[bond[2]]["coordination_nr"] == 1
+            continue
+        end
+
+        # in case of non-periodic boundary conditions, skip bonds that are
+        # closer to the boundary than the non_pbc_padding
+        if !periodic_boundary_conditions
+            vertex_1 = spatial_network[bond[1]]["position"]
+            vertex_2 = spatial_network[bond[2]]["position"]
+
+            if any(vertex_1 .< (min_vertex_coord .+ non_pbc_padding)) ||
+                any(vertex_1 .> (max_vertex_coord .- non_pbc_padding)) ||
+                any(vertex_2 .< (min_vertex_coord .+ non_pbc_padding)) ||
+                any(vertex_2 .> (max_vertex_coord .- non_pbc_padding))
+                continue
+            end
+        end
 
         # get the cycles that contain the bond
         cycles_containing_bond = filter(cycle -> cycle_contains_bond(
@@ -1130,13 +1165,17 @@ Get ring size distribution of the very strong rings as defined in
 """
 function get_ring_size_distribution(spatial_network::MetaGraphsNext.MetaGraph;
     max_ring_size_to_check::Int64 = 10,
+    periodic_boundary_conditions::Bool = true,
+    non_pbc_padding::Float64 = 2.0,
     save_result::Bool = false,
     save_path = raw"..\analysis_data\sample_name",
     label = nothing)
 
     # get the very strong rings of the network
     very_strong_rings_vec = get_very_strong_rings_vec(spatial_network, 
-        max_ring_size_to_check = max_ring_size_to_check)    
+        max_ring_size_to_check = max_ring_size_to_check,
+        periodic_boundary_conditions = periodic_boundary_conditions,
+        non_pbc_padding = non_pbc_padding)
 
     # create histogram of ring lengths
     ring_length_vec = Vector{Int64}()

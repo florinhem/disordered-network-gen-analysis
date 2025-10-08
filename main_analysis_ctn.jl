@@ -9,12 +9,12 @@ import .GeneralUtilities as GU
 
 print_lock = Threads.ReentrantLock()
 
-spatial_networks_path = "../structures/local_relaxation/targeted/shell_nr_4/"
-analysis_data_path = "../analysis_data/local_relaxation/targeted/shell_nr_4/"
+spatial_networks_path = "../structures/local_relaxation/random/ctn/"
+analysis_data_path = "../analysis_data/local_relaxation/random/ctn/"
 
 NA.get_all_dicts_from_networks_multithreading(
 spatial_networks_path,
 analysis_data_path;
 print_progress = true,
-runs_vec = collect(1:10),
+runs_vec = collect(1:4),
 print_lock = print_lock)

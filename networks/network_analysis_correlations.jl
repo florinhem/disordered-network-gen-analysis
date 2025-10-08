@@ -61,7 +61,9 @@ Returns the product ∏_d w_d(position_vec[d]).
 """
 function hann_apodization_fct(position_vec::Vector{Float64},
     min_coords::Vector{Float64},
-    max_coords::Vector{Float64})::Float64
+    max_coords::Vector{Float64},
+    unused_parameter::Float64
+    )::Float64
 
     length(position_vec) == length(min_coords) == length(max_coords) ||
         throw(ArgumentError("All vectors must have the same length."))
@@ -109,7 +111,9 @@ Less broadening than Hann, but more sidelobes.
 """
 function hamming_apodization_fct(position_vec::Vector{Float64},
     min_coords::Vector{Float64},
-    max_coords::Vector{Float64})::Float64
+    max_coords::Vector{Float64},
+    unused_parameter::Float64
+    )::Float64
 
     length(position_vec) == length(min_coords) == length(max_coords) ||
         throw(ArgumentError("All vectors must have the same length."))
@@ -117,7 +121,7 @@ function hamming_apodization_fct(position_vec::Vector{Float64},
     window_fct_value = 1.0
     n = length(position_vec)
 
-    for d in 1:n
+    @inbounds @simd for d in 1:n
         xmin, xmax = min_coords[d], max_coords[d]
         x = position_vec[d]
         if x < xmin || x > xmax
@@ -143,9 +147,9 @@ with sigma controlling trade-off (smaller sigma → stronger tapering).
 """
 function gaussian_apodization_fct(position_vec::Vector{Float64},
     min_coords::Vector{Float64},
-    max_coords::Vector{Float64};
+    max_coords::Vector{Float64},
     sigma::Float64=0.5
-    )::Float64  # default: fairly broad
+    )  # default: fairly broad
 
     length(position_vec) == length(min_coords) == length(max_coords) ||
         throw(ArgumentError("All vectors must have the same length."))
@@ -153,7 +157,7 @@ function gaussian_apodization_fct(position_vec::Vector{Float64},
     window_fct_value = 1.0
     n = length(position_vec)
 
-    for d in 1:n
+    @inbounds @simd for d in 1:n
         xmin, xmax = min_coords[d], max_coords[d]
         x = position_vec[d]
         if x < xmin || x > xmax
@@ -175,6 +179,66 @@ end
 
 
 """
+Tukey apodization window in nD (product of 1D Tukey windows per dimension).
+
+Args:
+  position_vec, min_coords, max_coords : vectors of same length (n dims)
+Kwargs:
+  alpha::Float64 = 0.5   # fraction in cosine tapers 
+  (0 -> rectangular, 1 -> Hann)
+
+Returns:
+  window value at the given position (Float64)
+"""
+function tukey_apodization_fct(position_vec::Vector{Float64},
+    min_coords::Vector{Float64},
+    max_coords::Vector{Float64},
+    alpha::Float64 = 0.5
+    )
+
+    length(position_vec) == length(min_coords) == length(max_coords) ||
+        throw(ArgumentError("All vectors must have the same length."))
+
+    # Clamp alpha gently to a sensible range to avoid surprises
+    alpha = max(0.0, min(alpha, 1.0))
+
+    window_fct_value = 1.0
+    n = length(position_vec)
+
+    @inbounds @simd for d in 1:n
+        xmin, xmax = min_coords[d], max_coords[d]
+        x = position_vec[d]
+        if x < xmin || x > xmax
+            return 0.0
+        end
+        t = (x - xmin) / (xmax - xmin)  # t ∈ [0,1]
+
+        wd = if alpha <= 0.0
+            1.0                            # rectangular
+        elseif alpha >= 1.0
+            0.5 * (1.0 - cos(2π * t))      # Hann
+        else
+            if t < alpha/2
+                0.5 * (1.0 + cospi(2t/alpha - 1))
+            elseif t <= 1 - alpha/2
+                1.0
+            else
+                0.5 * (1.0 + cospi(2t/alpha - 2/alpha + 1))
+            end
+        end
+
+        window_fct_value *= wd
+    end
+
+    # normalize using the 1D area = 1 - alpha/2  (analytical)
+    normalization_factor = (1.0 / (1.0 - alpha/2))^n
+    window_fct_value *= normalization_factor
+
+    return window_fct_value
+end
+
+
+"""
 Measure structure factor as a function of wavevector using the scattering
 intensity estimator as described in equation 24 of 10.1007/s11222-023-10219-1.
 Here, only the vertices of the network are considered.
@@ -183,6 +247,8 @@ function get_structure_factor(
     wavevector::Vector{Float64},
     spatial_network::MetaGraphsNext.MetaGraph;
     periodic_boundary_conditions::Bool=true,
+    apodization_fct = hann_apodization_fct,
+    apodization_fct_parameter::Float64 = 0.5,
     min_coords=[spatial_network[]["supercell_edge_length"]/4,
         spatial_network[]["supercell_edge_length"]/4,
         spatial_network[]["supercell_edge_length"]/4],
@@ -206,8 +272,8 @@ function get_structure_factor(
         
         if !periodic_boundary_conditions
             # apply apodization window to reduce effects of sharp edges
-            apodization_window_value = gaussian_apodization_fct(
-                vertex_pos, min_coords, max_coords)
+            apodization_window_value = apodization_fct(
+                vertex_pos, min_coords, max_coords, apodization_fct_parameter)
 
             scattering_field *= apodization_window_value
         end
@@ -232,6 +298,8 @@ function get_structure_factor_bonds(
     wavevector::Vector{Float64},
     spatial_network::MetaGraphsNext.MetaGraph;
     periodic_boundary_conditions::Bool=true,
+    apodization_fct = hann_apodization_fct,
+    apodization_fct_parameter::Float64 = 0.5,
     min_coords=[spatial_network[]["supercell_edge_length"]/4,
         spatial_network[]["supercell_edge_length"]/4,
         spatial_network[]["supercell_edge_length"]/4],
@@ -267,8 +335,9 @@ function get_structure_factor_bonds(
 
         if !periodic_boundary_conditions
             # apply apodization window to reduce effects of sharp edges
-            apodization_window_value = gaussian_apodization_fct(
-                bond_mid_point, min_coords, max_coords)
+            apodization_window_value = apodization_fct(
+                bond_mid_point, min_coords, max_coords, 
+                apodization_fct_parameter)
 
             scattering_field *= apodization_window_value
         end
@@ -295,6 +364,8 @@ function get_structure_factor_by_wavevector_array(
     consider_bonds::Bool = false,
     maximal_wavevector_int::Int64 = 5,
     periodic_boundary_conditions::Bool = true,
+    apodization_fct = hann_apodization_fct,
+    apodization_fct_parameter::Float64 = 0.5,
     wavevector_array_positive_z::Array{Float64} 
         = get_wavevector_array_positive_z(spatial_network; 
             maximal_wavevector_int=maximal_wavevector_int,
@@ -346,6 +417,8 @@ function get_structure_factor_by_wavevector_array(
             structure_factor_array[i,j,k] = get_structure_factor_bonds(
                 wavevector_array_positive_z[i,j,k,:], spatial_network;
                 periodic_boundary_conditions=periodic_boundary_conditions,
+                apodization_fct=apodization_fct,
+                apodization_fct_parameter=apodization_fct_parameter,
                 min_coords=min_vertex_coords,
                 max_coords=max_vertex_coords)
 
@@ -354,6 +427,8 @@ function get_structure_factor_by_wavevector_array(
             structure_factor_array[i,j,k] = get_structure_factor(
                 wavevector_array_positive_z[i,j,k,:], spatial_network;
                 periodic_boundary_conditions=periodic_boundary_conditions,
+                apodization_fct=apodization_fct,
+                apodization_fct_parameter=apodization_fct_parameter,
                 min_coords=min_vertex_coords,
                 max_coords=max_vertex_coords)
         end
@@ -582,6 +657,7 @@ cumulative coordination number as defined in equations 3-5 of
 function get_correlation_functions(
     spatial_network::MetaGraphsNext.MetaGraph;
     distance_histogram_bin_width::Float64 = 0.02,
+    periodic_boundary_conditions::Bool = true,
     save_result::Bool = false,
     save_path = raw"..\analysis_data\sample_name",
     label = nothing)
@@ -603,20 +679,34 @@ function get_correlation_functions(
 
     for i in 1:spatial_network[]["nr_vertices"]-1
         for j in i+1:spatial_network[]["nr_vertices"]
-            distance_vec[current_index] = LinearAlgebra.norm(
-                NG.get_distance_vector_pbc(
-                    vertex_position_mat[:, i], vertex_position_mat[:, j], 
-                    spatial_network[]["supercell_edge_length"]))
+            if periodic_boundary_conditions
+                distance_vec[current_index] = LinearAlgebra.norm(
+                    NG.get_distance_vector_pbc(
+                        vertex_position_mat[:, i], vertex_position_mat[:, j], 
+                        spatial_network[]["supercell_edge_length"]))
+            else
+                distance_vec[current_index] = LinearAlgebra.norm(
+                    vertex_position_mat[:, i] 
+                    - vertex_position_mat[:, j])
+            end
 
             current_index += 1
         end
     end
 
+    if periodic_boundary_conditions
+        maximal_vertex_distance = spatial_network[]["supercell_edge_length"]/2
+    else
+        min_vertex_coords, max_vertex_coords = get_min_max_vertex_coords(
+            spatial_network)
+        maximal_vertex_distance = minimum(max_vertex_coords 
+            .- min_vertex_coords)/2
+    end
+
     # get histogram of distance vector
     distance_histogram = StatsBase.fit(
         StatsBase.Histogram, distance_vec, 
-        0.0:distance_histogram_bin_width:spatial_network[][
-            "supercell_edge_length"]/2, 
+        0.0:distance_histogram_bin_width:maximal_vertex_distance, 
         closed=:left)
 
     vertex_distance_vec = collect(distance_histogram.edges[1][2:end] 
@@ -624,8 +714,15 @@ function get_correlation_functions(
     vertex_nr_vec = distance_histogram.weights
 
     # get_vertex density
-    vertex_density = spatial_network[]["nr_vertices"] / spatial_network[][
-        "supercell_edge_length"]^3
+    if periodic_boundary_conditions
+        vertex_density = (spatial_network[]["nr_vertices"] 
+            / spatial_network[]["supercell_edge_length"]^3)
+    else
+        vertex_density = spatial_network[]["nr_vertices"] / (
+            (max_vertex_coords[1] - min_vertex_coords[1])
+            *(max_vertex_coords[2] - min_vertex_coords[2])
+            *(max_vertex_coords[3] - min_vertex_coords[3]))
+    end
 
     # calculate pair correlaion function
     # (eq. 3 in 10.1016/j.physrep.2018.03.001)
@@ -646,10 +743,6 @@ function get_correlation_functions(
     # (eq. 5 in 10.1016/j.physrep.2018.03.001)
     cumulative_coord_nr_vec = (4*pi*vertex_density*distance_histogram_bin_width
         * cumsum(vertex_distance_vec.^2 .* pair_correlation_fct_vec ))
-
-    # calculate the vertex density
-    vertex_density = (spatial_network[]["nr_vertices"] 
-        / spatial_network[]["supercell_edge_length"]^3)
 
     # create dict to save
     correlation_functions_dict = Dict{String, Any}(
@@ -756,7 +849,8 @@ structure factor according to eq 58 and 60 in 10.1016/j.physrep.2018.03.001
 function get_local_nr_variance(
     spatial_network::MetaGraphsNext.MetaGraph,
     structure_factor_dict::Dict,
-    window_radius)
+    window_radius;
+    periodic_boundary_conditions::Bool = true)
 
     # check if system is 3d
     if spatial_network[]["nr_dimensions"] != 3
@@ -764,10 +858,19 @@ function get_local_nr_variance(
             systems"
     end
 
-    # calculate vertex density
-    vertex_density = (spatial_network[]["nr_vertices"] 
-        / spatial_network[]["supercell_edge_length"]^spatial_network[][
-            "nr_dimensions"])
+    # get_vertex density
+    if periodic_boundary_conditions
+        vertex_density = (spatial_network[]["nr_vertices"] 
+            / spatial_network[]["supercell_edge_length"]^spatial_network[][
+                "nr_dimensions"])
+    else
+        min_vertex_coords, max_vertex_coords = get_min_max_vertex_coords(
+            spatial_network)
+        vertex_density = (spatial_network[]["nr_vertices"] / (
+            (max_vertex_coords[1] - min_vertex_coords[1])
+            *(max_vertex_coords[2] - min_vertex_coords[2])
+            *(max_vertex_coords[3] - min_vertex_coords[3])))
+    end
 
     # calculate wavenumber sampling step length
     wavenumber_step_length = (structure_factor_dict["wavenumber_vec"][2] 
@@ -800,10 +903,17 @@ function get_local_nr_variance_by_window_radius_vec(
     label = nothing)
 
     # get vector of sphere radii
+    if periodic_boundary_conditions
+        max_window_radius = spatial_network[]["supercell_edge_length"]/4
+    else
+        min_vertex_coords, max_vertex_coords = get_min_max_vertex_coords(
+            spatial_network)
+        max_window_radius = minimum(max_vertex_coords 
+            .- min_vertex_coords)/4
+    end
+
     sphere_radius_vec = collect(window_radius_step_length:
-    window_radius_step_length
-    :spatial_network[]["supercell_edge_length"]/4
-        )
+        window_radius_step_length:max_window_radius)
 
     # initialize local nr variance vector
     local_nr_variance_vec = Vector{Measurements.Measurement{Float64}}(undef, 

@@ -16,7 +16,8 @@ function plot_structure_factor_heatmap(
     clims = (0, 0.1 ),
     x_y_lims = nothing,
     wavevector_component_to_fix::Int64 = 3,
-    wavevector_value_fixed = 0)
+    wavevector_value_fixed = 0,
+    clims_from_mean::Bool = false)
 
     #discriminate between different wavevector components that are fixed
     if wavevector_component_to_fix == 1
@@ -93,6 +94,12 @@ function plot_structure_factor_heatmap(
     #permute dimensions of spectral density array, such that they match the
     # axes
     structure_factor_2d_permuted_array = permutedims(structure_factor_2d_array)
+
+    if clims_from_mean
+        mean_structure_factor = Statistics.mean(
+            structure_factor_2d_permuted_array )
+        clims = clims .* mean_structure_factor
+    end
 
     #create plot
     structure_factor_plot = Plots.heatmap(wavenumber_vec_x,

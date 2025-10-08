@@ -7,9 +7,9 @@ import .NetworkGeneration as NG
 import .NetworkAnalysis as NA
 import .GeneralUtilities as GU
 
-evolution_dicts_directory_path = "../structures/local_relaxation/random/lcs/evolution_dicts_2/"
+evolution_dicts_directory_path = "../structures/local_relaxation/random/bcu_cn_6_7_8/evolution_dicts_2/"
 
-save_path = "../structures/local_relaxation/random/lcs/" 
+save_path = "../structures/local_relaxation/random/bcu_cn_6_7_8/" 
 
 print_every_nr_attempted_bond_switches = 200
 print_progress = true

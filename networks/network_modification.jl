@@ -1060,3 +1060,45 @@ function excite_entire_network!(
 
     return spatial_network
 end
+
+
+"""
+Randomly displace all vertices in a network by choosing a random direction and
+sampling a displacement length from a Gaussian distribution with given sigma
+"""
+function randomly_displace_all_vertices!(
+    spatial_network::MetaGraphsNext.MetaGraph;
+    sigma::Float64 = 0.1,
+    update_total_energy::Bool = true)
+
+    # loop through all vertices
+    for vertex in 1:spatial_network[]["nr_vertices"]
+
+        # get random direction using sphere point picking
+        theta = 2 * π * rand()
+        phi = acos(2 * rand() - 1)
+        random_direction = [
+            sin(phi) * cos(theta), sin(phi) * sin(theta), cos(phi)]
+
+        # get random displacement length
+        displacement_length = sigma * randn()
+
+        # get translation vector
+        translation_vector = displacement_length .* random_direction
+
+        # move vertex
+        spatial_network = move_vertex!(spatial_network, vertex, 
+            translation_vector; update_total_energy = false)
+    end
+
+    # update total energy if desired
+    if update_total_energy
+        spatial_network[]["total_energy"] = get_total_energy_keating(
+            spatial_network)
+        spatial_network[]["total_energy_up_to_date"] = true
+    else
+        spatial_network[]["total_energy_up_to_date"] = false
+    end
+
+    return spatial_network
+end

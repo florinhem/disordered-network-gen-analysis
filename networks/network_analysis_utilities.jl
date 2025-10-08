@@ -190,6 +190,7 @@ function get_all_dicts_from_network_single_file(
     # get ring size distribution
     ring_size_distribution_dict = get_ring_size_distribution(
         spatial_network;
+        periodic_boundary_conditions = periodic_boundary_conditions,
         save_result = true,
         save_path = analysis_data_path*filename)
 
@@ -205,6 +206,7 @@ function get_all_dicts_from_network_single_file(
     structure_factor_dict = get_structure_factor_by_wavevector_array(
         spatial_network;
         consider_bonds = false,
+        periodic_boundary_conditions = periodic_boundary_conditions,
         save_result = true,
         save_path = analysis_data_path*filename,
         label = nothing,
@@ -216,6 +218,7 @@ function get_all_dicts_from_network_single_file(
     structure_factor_bonds_dict = get_structure_factor_by_wavevector_array(
         spatial_network;
         consider_bonds = true,
+        periodic_boundary_conditions = periodic_boundary_conditions,
         save_result = true,
         save_path = analysis_data_path*filename,
         label = nothing,
@@ -250,6 +253,7 @@ function get_all_dicts_from_network_single_file(
     correlation_functions_dict = get_correlation_functions(
         spatial_network;
         distance_histogram_bin_width = 0.02,
+        periodic_boundary_conditions = periodic_boundary_conditions,
         save_result = true,
         save_path = analysis_data_path*filename,
         label = nothing)
@@ -269,14 +273,13 @@ function get_all_dicts_from_network_single_file(
         print_lock = print_lock)
     
     # get all order metrics for the network
-
     order_metrics_dict = get_order_metrics(
         filename,
-    spatial_network_path,
-    analysis_data_path;
-    l_max_steinhardt_q_l = 12,
-    save_result = true,
-    )
+        spatial_network_path,
+        analysis_data_path;
+        l_max_steinhardt_q_l = 12,
+        save_result = true,
+        )
 
     return
 end

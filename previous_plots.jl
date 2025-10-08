@@ -5938,3 +5938,87 @@ Plots.plot!(structure_factor_no_pbc_angle_averaged_dict["wavenumber_vec"], Measu
 Plots.xlabel!("Wavenumber / (1/d)")
 Plots.ylabel!("Structure factor")
 Plots.savefig(plot_path*save_filename*"_structure_factor_comparison.png")
+
+
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\networks\pachy\\"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\biological\networks\\"
+
+filename = "pachy_blue"
+
+structure_factor_blue = GU.load_h5_dict(
+    analysis_data_path*filename*"_structure_factor_array.h5")
+
+upper_clim_bonds = 3.0
+
+NA.plot_structure_factor_heatmap(
+    structure_factor_blue,
+    plot_path*filename;
+    title="Pachy blue",
+    save_plot = true,
+    clims = (0, upper_clim_bonds ),
+    x_y_lims = nothing)
+
+filename = "pachy_red"
+
+structure_factor_blue = GU.load_h5_dict(
+    analysis_data_path*filename*"_structure_factor_array.h5")
+
+upper_clim_bonds = 3.0
+
+NA.plot_structure_factor_heatmap(
+    structure_factor_blue,
+    plot_path*filename;
+    title="Pachy blue",
+    save_plot = true,
+    clims = (0, upper_clim_bonds ),
+    x_y_lims = nothing)
+
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\networks\pachy\\"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\biological\networks\\"
+
+filename_blue = "pachy_blue"
+
+structure_factor_blue = GU.load_h5_dict(
+    analysis_data_path*filename_blue*"_structure_factor_angle_averaged.h5")
+
+
+filename_red = "pachy_red"
+
+structure_factor_red = GU.load_h5_dict(
+    analysis_data_path*filename_red*"_structure_factor_angle_averaged.h5")
+
+Plots.plot(structure_factor_blue["wavenumber_vec"], Measurements.value.(structure_factor_blue["structure_factor_vec"]),
+ribbon =  Measurements.uncertainty.(structure_factor_blue["structure_factor_vec"]),
+    label = "Blue"
+)
+Plots.plot!(structure_factor_red["wavenumber_vec"], Measurements.value.(structure_factor_red["structure_factor_vec"]),
+    ribbon =  Measurements.uncertainty.(structure_factor_red["structure_factor_vec"]),
+    label = "Red"
+)
+
+Plots.xlabel!("Wavenumber / (1/d)")
+Plots.ylabel!("Structure factor")
+Plots.savefig(plot_path*"pachy_structure_factor_comparison.png")
+
+structure_factor_red = GU.load_h5_dict(
+    analysis_data_path*filename_red*"_structure_factor_angle_averaged.h5")
+
+Plots.plot(structure_factor_blue["wavenumber_vec"], Measurements.value.(structure_factor_blue["structure_factor_vec"]),
+ribbon =  Measurements.uncertainty.(structure_factor_blue["structure_factor_vec"]),
+    label = "Blue"
+)
+Plots.plot!(structure_factor_red["wavenumber_vec"], Measurements.value.(structure_factor_red["structure_factor_vec"]),
+    ribbon =  Measurements.uncertainty.(structure_factor_red["structure_factor_vec"]),
+    label = "Red"
+)
+
+Plots.plot!(right_margin = 3Plots.mm)
+Plots.xlims!(0, 20)
+Plots.ylims!(0, 3)
+Plots.xlabel!("Wavenumber / (1/d)")
+Plots.ylabel!("Structure factor")
+Plots.savefig(plot_path*"pachy_structure_factor_comparison_zoom.png")
