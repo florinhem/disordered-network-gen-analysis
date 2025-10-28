@@ -6022,3 +6022,446 @@ Plots.ylims!(0, 3)
 Plots.xlabel!("Wavenumber / (1/d)")
 Plots.ylabel!("Structure factor")
 Plots.savefig(plot_path*"pachy_structure_factor_comparison_zoom.png")
+
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\networks\pachy\apodization_test\\"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\biological\networks\pachy\apodization_test\\"
+
+filename = "pachy_red"
+
+apodizations = ["gauss_0.2", "gauss_0.3", "gauss_0.5", "hamming", "hann", "tukey_0.25", "tukey_0.5", "tukey_0.75"]
+
+for apodization in apodizations
+    structure_factor = GU.load_h5_dict(
+        analysis_data_path*filename*"_"*apodization*"_structure_factor_array.h5")
+
+    upper_clim = 6.0
+
+    NA.plot_structure_factor_heatmap(
+        structure_factor,
+        plot_path*filename*"_large_upper_clim_"*apodization;
+        title="Pachy red, "*apodization,
+        save_plot = true,
+        clims = (0, upper_clim ),
+        x_y_lims = nothing,
+        clims_from_mean = true,)
+end
+
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\networks\pachy\\"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\biological\networks\pachy\\"
+
+dict_names = ["pachy_red_structure_factor_array", "pachy_red_structure_factor_bonds_array",
+"pachy_blue_structure_factor_array",
+"pachy_blue_structure_factor_bonds_array"]
+
+
+for dict_name in dict_names
+    structure_factor = GU.load_h5_dict(
+        analysis_data_path*dict_name*".h5")
+
+    upper_clim = 6.0
+
+    NA.plot_structure_factor_heatmap(
+        structure_factor,
+        plot_path*dict_name*"_large_upper_clim";
+        title=dict_name,
+        save_plot = true,
+        clims = (0, upper_clim ),
+        x_y_lims = nothing,
+        clims_from_mean = false,)
+end
+
+
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\dia\run_1\\"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\local_relaxation\structure_factor_comparison\\"
+
+dict_names = ["dia_beta_0.0852_t_max_0.1036_t_gradient_0.0142_structure_factor_angle_averaged", "dia_beta_0.0852_t_max_0.1036_t_gradient_0.0142_structure_factor_bonds_angle_averaged"]
+
+labels = ["vertices", "bonds"]
+
+Plots.plot(legend = true)
+
+for (dict_name, label) in zip(dict_names, labels)
+    structure_factor_angle_averaged_dict = GU.load_h5_dict(
+        analysis_data_path*dict_name*".h5")
+
+    Plots.plot!(structure_factor_angle_averaged_dict["wavenumber_vec"], 
+                    Measurements.value.(structure_factor_angle_averaged_dict["structure_factor_vec"]) , 
+                    ribbon =  Measurements.uncertainty.(structure_factor_angle_averaged_dict["structure_factor_vec"]),
+                    label=label)
+end
+
+Plots.xlabel!("Wavenumber / (1/d)")
+Plots.ylabel!("Structure factor")
+
+Plots.xlims!(0, 20)
+Plots.ylims!(0, 10)
+
+# add a verticle line at x=pi/2
+Plots.vline!([pi/2], linestyle=:dash, color=:black)
+
+Plots.savefig(plot_path*"dia_beta_0.0852_t_max_0.1036_t_gradient_0.0142_structure_factor_angle_averaged.png")
+
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\networks\pachy\\"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\biological\networks\pachy\\"
+
+dict_names = ["pachy_red_structure_factor_angle_averaged", "pachy_red_structure_factor_bonds_angle_averaged",
+"pachy_blue_structure_factor_angle_averaged",
+"pachy_blue_structure_factor_bonds_angle_averaged"]
+
+labels = ["pachy red no bonds", "pachy red with bonds", "pachy blue no bonds", "pachy blue with bonds"]
+
+Plots.plot(legend = true)
+
+
+for (dict_name, label) in zip(dict_names, labels)
+    structure_factor_angle_averaged_dict = GU.load_h5_dict(
+        analysis_data_path*dict_name*".h5")
+
+    Plots.plot!(structure_factor_angle_averaged_dict["wavenumber_vec"], 
+                    Measurements.value.(structure_factor_angle_averaged_dict["structure_factor_vec"]), 
+                    ribbon =  Measurements.uncertainty.(structure_factor_angle_averaged_dict["structure_factor_vec"]),
+                    label=label)
+end
+
+Plots.xlabel!("Wavenumber / (1/d)")
+Plots.ylabel!("Structure factor")
+
+Plots.xlims!(0, 20)
+Plots.ylims!(0, 5)
+
+# add a verticle line at x=pi/2
+Plots.vline!([pi/2], linestyle=:dash, color=:black, label=Latex.L"\pi/2")
+
+# add a horizontal line at y=1
+Plots.hline!([1], linestyle=:dash, color=:black, label="1")
+
+Plots.savefig(plot_path*"pachy_structure_factor_angle_averaged.png")
+
+
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\neural_networks\predictions\local_relaxation\\"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\biological\networks\pachy\\"
+
+filename = "ctn_predictions_nr_layers_3_nr_neurons_57_full_pca_5.h5"
+
+data_dict = GU.load_h5_dict(analysis_data_path*filename)
+
+
+predictions_array = data_dict["predictions_array"]
+loss_array = data_dict["loss_array"]
+
+# permute dims of the arrays to have the shape (bond_bending_const, t_max, t_gradient )
+predictions_array = permutedims(predictions_array, (4, 3, 2, 1))
+loss_array = permutedims(loss_array, (3, 2, 1))
+
+bond_bending_const_vec = data_dict["bond_bending_const_vec"]
+t_max_vec = data_dict["t_max_vec"]
+t_gradient_vec = data_dict["t_gradient_vec"]
+
+# get the index, where the predictions array has the minimal value 
+min_positive_value = minimum(loss_array)
+min_positive_index = findfirst(x -> x == min_positive_value, loss_array)
+
+# print the values of the parameters at this index
+println("Minimum positive loss: $min_positive_value")
+println("At bond_bending_const = $(bond_bending_const_vec[min_positive_index[1]])")
+println("At t_max = $(t_max_vec[min_positive_index[2]])")
+println("At t_gradient = $(t_gradient_vec[min_positive_index[3]])")
+
+max_positive_value = maximum(loss_array[loss_array .< 999.0])
+max_positive_index = findfirst(x -> x == max_positive_value, loss_array)
+
+# print the values of the parameters at this index
+println("Maximum loss: $max_positive_value")
+println("At bond_bending_const = $(bond_bending_const_vec[max_positive_index[3]])")
+println("At t_max = $(t_max_vec[max_positive_index[2]])")
+println("At t_gradient = $(t_gradient_vec[max_positive_index[1]])")
+
+# plot a heatmap of the predictions for fixed bond_bending_const = 5.0 with a
+# logarithmic color scale
+fixed_bond_bending_const = bond_bending_const_vec[min_positive_index[1]]
+bond_bending_const_index = min_positive_index[1]
+
+# First fixed part
+part1 = [
+    "bond_length_std",
+    "bond_angle_std",
+    "dihedral_angle_entropy",
+    "bond_orientation_entropy",
+    "coordination_nr_mean",
+    "coordination_nr_std"
+]
+
+# q_l_value_0 ... q_l_value_12
+part2 = ["q_l_value_$(i)" for i in 0:12]
+
+# q_l_uncertainty_0 ... q_l_uncertainty_12
+part3 = ["q_l_uncertainty_$(i)" for i in 0:12]
+
+# Last fixed part
+part4 = [
+    "vertex_homogeneity_metric",
+    "ring_size_mean",
+    "ring_size_std",
+    "ring_radius_mean",
+    "ring_radius_std",
+    "critical_pore_radius",
+    "anisotropy_metric_from_structure_factor",
+    "anisotropy_metric_from_structure_factor_bonds",
+    "hyperuniformity_alpha_value",
+    "hyperuniformity_alpha_uncertainty"
+]
+
+# Combine all parts
+order_metrics = vcat(part1, part2, part3, part4)
+
+for (index, metric) in enumerate(order_metrics)
+    println("Order metric: $metric ", predictions_array[min_positive_index[1], min_positive_index[2], min_positive_index[3], index])
+end
+
+
+Z  = loss_array[bond_bending_const_index, :, :]'
+Zlog = log10.(Z)                               
+exps = -4:1                                     
+ticks_vals = collect(exps)                       
+ticks_lbls = ["1e$(p)" for p in exps]
+
+Plots.heatmap(t_max_vec, t_gradient_vec, Zlog;
+    xlabel=Latex.L"T_\mathrm{max}",
+    ylabel=Latex.L"\Delta T",
+    title=Latex.L"Loss at $\beta = $"*string(fixed_bond_bending_const),
+    colorbar_title=Latex.L"L",
+    c=:viridis,
+    clim=(minimum(exps), maximum(exps)),        
+    colorbar_ticks=(ticks_vals, ticks_lbls),   
+    aspect_ratio=:equal,
+)
+
+# set xlims and ylims
+Plots.heatmap!(; xlims=(minimum(t_max_vec), maximum(t_max_vec)),
+                      ylims=(minimum(t_gradient_vec), maximum(t_gradient_vec)))
+Plots.savefig(plot_path*"ctn_loss_heatmap_fixed_bond_bending_const_$(fixed_bond_bending_const).png")
+
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\biological\networks\pachy\\"
+
+key_list = [
+    "ring_radius_std",
+    "ring_radius_mean",
+    "dihedral_angle_entropy",
+    "bond_angle_std",
+"bond_length_std",
+"anisotropy_metric_from_structure_factor_bonds",
+"bond_orientation_entropy",
+"hyperuniformity_alpha",
+"critical_pore_radius",
+"vertex_homogeneity_metric",
+]
+
+labels = [
+    Latex.L"Ring radii $\sigma$",
+    "Mean ring radius",
+    "Dihedral angle entropy",
+    Latex.L"Bond angles $\sigma$",
+    Latex.L"Bond lengths $\sigma$",
+    "Anisotropy in str. fact.",
+    "Isotropy in bonds",
+    Latex.L"Hyperuniformity $\alpha / 10$",
+    "Critical pore radius",
+    "Vertex homogeneity",
+]
+
+# Map keys to numeric y positions
+yvals = 1:length(key_list)
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\networks\pachy\\"
+
+filenames = ["pachy_blue_order_metrics.h5", "pachy_red_order_metrics.h5"]
+
+dicts = []
+
+for (i, filename) in enumerate(filenames)
+
+    order_metrics_dict = GU.load_h5_dict(analysis_data_path * filename)
+    push!(dicts, order_metrics_dict)
+end
+
+# Example split indices
+n1 = 5
+
+
+# Split the labels and corresponding yvals into three groups
+labels1 = labels[1:n1]
+key_lists1 = key_list[1:n1]
+yvals1 = 1:n1
+labels2 = labels[n1+1:end]
+key_lists2 = key_list[n1+1:end]
+yvals2 = 1:length(labels2)
+
+
+# Calculate relative heights based on number of labels
+total_labels = length(labels)
+heights = [length(labels1)/total_labels, length(labels2)/total_labels]
+
+
+# Create the layout for the three subplots
+l = @Plots.layout([a b; c d])
+
+xlims = (-0.1, 1.1)
+xticks = [0, 0.5, 1.0]
+
+# Initialize the three subplots
+p1 = Plots.plot(
+    legend = false,
+    yticks = (yvals1, labels1),
+    xticks = (xticks, ["", "", ""]),
+    grid = true
+)
+
+p2 = Plots.plot(
+    legend = false,
+    yticks = (yvals2, labels2),
+    xticks = xticks,
+    xlabel = "Order metric value",
+    grid = true
+)
+
+# divide the value of hyperuniformity_alpha by 10
+for dict in dicts
+    dict["hyperuniformity_alpha"] = dict["hyperuniformity_alpha"] / 10
+end
+
+# Plot the scatter series for each subplot
+for dict in dicts
+    Plots.scatter!(p1, [Measurements.value.(dict[k]) for k in key_lists1], yvals1; label=labels1, markersize=10, ylims=(0.5, n1+0.5), xlims=xlims)
+
+    Plots.scatter!(p2, [Measurements.value.(dict[k]) for k in key_lists2], yvals2; label=labels2, markersize=10, ylims=(0.5, length(labels2)+0.5), xlims=xlims)
+end
+
+
+# Combine the subplots into a single plot
+Plots.plot(p1, p2, layout = (2, 1), size = (600, 600), link = :x,
+bottom_margin = 3Plots.mm,
+    top_margin = 3Plots.mm,
+    left_margin = 1Plots.mm,
+    right_margin = 1Plots.mm)
+
+Plots.savefig(plot_path * "pachy_order_metrics_red_blue_grouped.png")
+
+
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\biological\networks\pachy\\"
+
+key_list = [
+    "ring_radius_std",
+    "ring_radius_mean",
+    "dihedral_angle_entropy",
+    "bond_angle_std",
+"bond_length_std",
+"anisotropy_metric_from_structure_factor_bonds",
+"bond_orientation_entropy",
+"hyperuniformity_alpha",
+"critical_pore_radius",
+"vertex_homogeneity_metric",
+]
+
+labels = [
+    Latex.L"Ring radii $\sigma$",
+    "Mean ring radius",
+    "Dihedral angle entropy",
+    Latex.L"Bond angles $\sigma$",
+    Latex.L"Bond lengths $\sigma$",
+    "Anisotropy in str. fact.",
+    "Isotropy in bonds",
+    Latex.L"Hyperuniformity $\alpha / 10$",
+    "Critical pore radius",
+    "Vertex homogeneity",
+]
+
+# Map keys to numeric y positions
+yvals = 1:length(key_list)
+
+analysis_data_paths = [raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\networks\pachy\\",
+raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\neural_networks\predictions\local_relaxation\\"]
+
+filenames = ["pachy_blue_order_metrics.h5", "ctn_predictions_nr_layers_3_nr_neurons_57_full_pca_5_minimal_loss_order_metrics.h5"]
+
+dicts = []
+
+for (i, filename) in enumerate(filenames)
+
+    order_metrics_dict = GU.load_h5_dict(analysis_data_paths[i] * filename)
+    push!(dicts, order_metrics_dict)
+end
+
+# Example split indices
+n1 = 5
+
+
+# Split the labels and corresponding yvals into three groups
+labels1 = labels[1:n1]
+key_lists1 = key_list[1:n1]
+yvals1 = 1:n1
+labels2 = labels[n1+1:end]
+key_lists2 = key_list[n1+1:end]
+yvals2 = 1:length(labels2)
+
+
+# Calculate relative heights based on number of labels
+total_labels = length(labels)
+heights = [length(labels1)/total_labels, length(labels2)/total_labels]
+
+
+# Create the layout for the three subplots
+l = @Plots.layout([a b; c d])
+
+xlims = (-0.1, 1.1)
+xticks = [0, 0.5, 1.0]
+
+# Initialize the three subplots
+p1 = Plots.plot(
+    legend = false,
+    yticks = (yvals1, labels1),
+    xticks = (xticks, ["", "", ""]),
+    grid = true
+)
+
+p2 = Plots.plot(
+    legend = false,
+    yticks = (yvals2, labels2),
+    xticks = xticks,
+    xlabel = "Order metric value",
+    grid = true
+)
+
+# divide the value of hyperuniformity_alpha by 10
+for dict in dicts
+    dict["hyperuniformity_alpha"] = dict["hyperuniformity_alpha"] / 10
+end
+
+# Plot the scatter series for each subplot
+markersizes = [10, 8]
+for (i, dict) in enumerate(dicts)
+    Plots.scatter!(p1, [Measurements.value.(dict[k]) for k in key_lists1], yvals1; label=labels1, markersize=markersizes[i], ylims=(0.5, n1+0.5), xlims=xlims)
+
+    Plots.scatter!(p2, [Measurements.value.(dict[k]) for k in key_lists2], yvals2; label=labels2, markersize=markersizes[i], ylims=(0.5, length(labels2)+0.5), xlims=xlims)
+end
+
+
+# Combine the subplots into a single plot
+Plots.plot(p1, p2, layout = (2, 1), size = (600, 600), link = :x,
+bottom_margin = 3Plots.mm,
+    top_margin = 3Plots.mm,
+    left_margin = 1Plots.mm,
+    right_margin = 1Plots.mm)
+
+Plots.savefig(plot_path * "pachy_order_metrics_blue_predicted_grouped.png")

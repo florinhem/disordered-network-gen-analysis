@@ -96,8 +96,9 @@ function hann_apodization_fct(position_vec::Vector{Float64},
         window_fct_value *= wd
     end
 
-    # for each dimension, a normalization factor of 2 needs to be multiplied
-    normalization_factor = 2.0^n
+    # for each dimension, a normalization factor of ?? needs to be multiplied
+    # TODO: find correct normalization factor
+    normalization_factor = (8/3)^n
     window_fct_value *= normalization_factor
 
     return window_fct_value
@@ -956,6 +957,7 @@ Get the excess spreadability for a given t value according to eq 25 of
 function get_excess_spreadability(
     structure_factor_angle_averaged_dict::Dict,
     time::Float64;
+    min_wavenumber_to_consider::Float64 = 0.0,
     consider_spectral_density::Bool = false)
 
     if consider_spectral_density
@@ -965,13 +967,19 @@ function get_excess_spreadability(
     end
 
     wavenumber_vec = structure_factor_angle_averaged_dict["wavenumber_vec"]
+
+    # only consider wavenumbers above a certain threshold to avoid artifacts,
+    # e. g. from the apodization
+    mask = wavenumber_vec .>= min_wavenumber_to_consider
+    wavenumber_vec = wavenumber_vec[mask]
+
     wavenumber_step_length = (wavenumber_vec[2] - wavenumber_vec[1])
 
     # calculate excess spreadability according to eq 25 of 
     # 10.1103/PhysRevE.109.064108
     excess_spreadability = 1/wavenumber_step_length * sum(
         wavenumber_vec.^2 .* structure_factor_angle_averaged_dict[
-            data_type_string*"_vec"] .*  exp.(-wavenumber_vec.^2 .* time))
+            data_type_string*"_vec"][mask] .*  exp.(-wavenumber_vec.^2 .* time))
 
     return excess_spreadability
 end
@@ -987,7 +995,8 @@ below eq 21 of 10.1103/PhysRevE.109.064108.
 """
 function get_hyperuniformity_alpha(structure_factor_angle_averaged_dict::Dict;
     consider_spectral_density::Bool = false,
-    t_range = (1e-1, 4e-1))
+    t_range = (1e-1, 4e-1),
+    min_wavenumber_to_consider::Float64 = 0.0)
 
     # get the vector of times to sample the excess spreadability such that the
     # t values are equally spaced on a logarithmic scale
@@ -996,6 +1005,7 @@ function get_hyperuniformity_alpha(structure_factor_angle_averaged_dict::Dict;
     # calculate the excess spreadability for each t value
     excess_spreadability_vec = [get_excess_spreadability(
         structure_factor_angle_averaged_dict, time_vec[i]; 
+        min_wavenumber_to_consider=min_wavenumber_to_consider,
         consider_spectral_density = consider_spectral_density) for i in 
         eachindex(time_vec)]
 

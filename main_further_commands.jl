@@ -33908,3 +33908,588 @@ structure_factor_dict = NA.get_structure_factor_by_wavevector_array(
     save_path = analysis_data_path*save_filename*"_gauss_0.2",
     label = nothing,
     print_progress = true)
+
+
+
+nr_samples = 500
+
+network_type_vec = ["pcu_cn_4_5_6"]
+nr_vertices_vec = [ 216]
+
+
+theta_ground_state = 180.0
+shell_nr = 4
+relax_globally_after_threshold_cycle = false
+
+for (nr_vertices, network_type) in zip(nr_vertices_vec, network_type_vec)
+
+    println("Generating $nr_vertices vertices of type $network_type")
+
+    # choose random beta values for the samples between 0 and 1
+    beta_vec = rand(nr_samples)
+
+    # get the melting temperature for the beta values
+    t_melt_vec = [NA.get_melting_temperature(network_type, beta; relax_globally_after_threshold_cycle=relax_globally_after_threshold_cycle, shell_nr=shell_nr) for beta in beta_vec]
+
+    # get random values of t_max between t_melt/2 and 2*t_melt 
+    t_max_vec = t_melt_vec .* (1/2 .+ 3/2 .* rand(nr_samples))
+
+    # get random values of the heating/cooling gradient between t_melt/4 and 
+    # 2*t_melt
+    t_gradient_vec = t_melt_vec .* (1/4 .+ 7/4 .* rand(nr_samples))
+
+    save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\random\\"*network_type*raw"\evolution_dicts_3\\"
+
+    for i in 1:nr_samples
+        temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(t_max_vec[i],
+            temperature_gradient = t_gradient_vec[i], 
+            nr_monte_carlo_steps_per_temperature = 0.01,
+            quench = true )
+
+        evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,
+            temperature_vec = temperature_vec,
+            nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
+            bond_bending_const = beta_vec[i], network_type = network_type,
+            theta_ground_state = theta_ground_state,
+            relax_globally_after_threshold_cycle = relax_globally_after_threshold_cycle,
+            shell_nr = shell_nr,)
+
+        filename = Format.format(network_type*"_beta_{1:.4f}_t_max_{2:.4f}_t_gradient_{3:.4f}", beta_vec[i], t_max_vec[i], t_gradient_vec[i])
+        GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
+    end
+end
+
+
+network_path = "../structures/biological/networks/pachy/"
+analysis_data_path = "../analysis_data/biological/networks/pachy/"
+save_filename = "pachy_blue"
+
+spatial_network = NG.load_spatial_network_from_gml(
+    network_path*save_filename*".gml")
+
+consider_bonds = false
+maximal_wavevector_int = 5
+periodic_boundary_conditions = false
+save_result = true
+save_path = analysis_data_path*save_filename
+print_progress = true
+gaussian_filter = true
+gaussian_filter_sigma_x = 2*pi/25
+gaussian_filter_filtered_data_x_step_length = 2*pi/25
+
+structure_factor_dict = NA.get_structure_factor_by_wavevector_array(
+    spatial_network;
+    consider_bonds = consider_bonds,
+    maximal_wavevector_int = maximal_wavevector_int,
+    periodic_boundary_conditions = periodic_boundary_conditions,
+    wavevector_array_positive_z = NA.get_wavevector_array_positive_z(spatial_network; 
+        maximal_wavevector_int=maximal_wavevector_int,
+            periodic_boundary_conditions=periodic_boundary_conditions),
+    save_result = save_result,
+    save_path = save_path,
+    print_progress = print_progress,
+    thread_nr = 0,
+    print_lock = Threads.ReentrantLock())
+
+structure_factor_angle_averaged_dict = NA.get_structure_factor_angle_averaged(
+        structure_factor_dict;
+        consider_bonds = consider_bonds,
+        gaussian_filter = gaussian_filter,
+        gaussian_filter_sigma_x = gaussian_filter_sigma_x,
+        gaussian_filter_filtered_data_x_step_length = gaussian_filter_filtered_data_x_step_length,
+        save_result = save_result,
+        save_path = save_path)
+
+
+network_path = raw"..\structures\biological\networks\pachy\\"
+analysis_data_path = raw"..\analysis_data\biological\networks\pachy\\"
+filename = "pachy_blue"
+    
+NA.get_order_metrics(filename,
+    network_path,
+    analysis_data_path;
+    save_result = true)
+
+
+    
+network_path = raw"..\structures\biological\networks\pachy\\"
+analysis_data_path = raw"..\analysis_data\biological\networks\pachy\\"
+filename = "pachy_blue"
+    
+order_metrics = NA.get_order_metrics(filename,
+    network_path,
+    analysis_data_path;
+    hyperuniformity_min_wavenumber_to_consider = pi/2,
+    save_result = true)
+
+# print all order metrics 
+for (key, value) in order_metrics
+    println(key, ": ", value)
+end
+
+filename = "pachy_red"
+    
+order_metrics = NA.get_order_metrics(filename,
+    network_path,
+    analysis_data_path;
+    hyperuniformity_min_wavenumber_to_consider = pi/2,
+    save_result = true)
+
+# print all order metrics 
+for (key, value) in order_metrics
+    println(key, ": ", value)
+end
+
+
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\neural_networks\predictions\local_relaxation\\"
+
+filename = "ctn_predictions_nr_layers_3_nr_neurons_57_full_pca_5.h5"
+
+save_filename = "ctn_predictions_nr_layers_3_nr_neurons_57_full_pca_5_minimal_loss_order_metrics.h5"
+
+data_dict = GU.load_h5_dict(analysis_data_path*filename)
+
+predictions_array = data_dict["predictions_array"]
+loss_array = data_dict["loss_array"]
+
+# permute dims of the arrays to have the shape (bond_bending_const, t_max, t_gradient )
+predictions_array = permutedims(predictions_array, (4, 3, 2, 1))
+loss_array = permutedims(loss_array, (3, 2, 1))
+
+bond_bending_const_vec = data_dict["bond_bending_const_vec"]
+t_max_vec = data_dict["t_max_vec"]
+t_gradient_vec = data_dict["t_gradient_vec"]
+
+# get the index, where the predictions array has the minimal value 
+min_positive_value = minimum(loss_array)
+min_positive_index = findfirst(x -> x == min_positive_value, loss_array)
+
+# print the values of the parameters at this index
+println("Minimum positive loss: $min_positive_value")
+println("At bond_bending_const = $(bond_bending_const_vec[min_positive_index[1]])")
+println("At t_max = $(t_max_vec[min_positive_index[2]])")
+println("At t_gradient = $(t_gradient_vec[min_positive_index[3]])")
+
+max_positive_value = maximum(loss_array[loss_array .< 999.0])
+max_positive_index = findfirst(x -> x == max_positive_value, loss_array)
+
+# print the values of the parameters at this index
+println("Maximum loss: $max_positive_value")
+println("At bond_bending_const = $(bond_bending_const_vec[max_positive_index[3]])")
+println("At t_max = $(t_max_vec[max_positive_index[2]])")
+println("At t_gradient = $(t_gradient_vec[max_positive_index[1]])")
+
+# plot a heatmap of the predictions for fixed bond_bending_const = 5.0 with a
+# logarithmic color scale
+fixed_bond_bending_const = bond_bending_const_vec[min_positive_index[1]]
+bond_bending_const_index = min_positive_index[1]
+
+# First fixed part
+part1 = [
+    "bond_length_std",
+    "bond_angle_std",
+    "dihedral_angle_entropy",
+    "bond_orientation_entropy",
+    "coordination_nr_mean",
+    "coordination_nr_std"
+]
+
+# q_l_value_0 ... q_l_value_12
+part2 = ["q_l_value_$(i)" for i in 0:12]
+
+# q_l_uncertainty_0 ... q_l_uncertainty_12
+part3 = ["q_l_uncertainty_$(i)" for i in 0:12]
+
+# Last fixed part
+part4 = [
+    "vertex_homogeneity_metric",
+    "ring_size_mean",
+    "ring_size_std",
+    "ring_radius_mean",
+    "ring_radius_std",
+    "critical_pore_radius",
+    "anisotropy_metric_from_structure_factor",
+    "anisotropy_metric_from_structure_factor_bonds",
+    "hyperuniformity_alpha_value",
+    "hyperuniformity_alpha_uncertainty"
+]
+
+order_metric_vec_at_minimal_loss = predictions_array[min_positive_index[1], min_positive_index[2], min_positive_index[3], :]
+
+# save the order metric vec as a dictionary to a .h5 file with the q_l_lavues 
+# and the q_l_uncertainties as vectors 
+order_metric_dict = Dict{String, Any}()
+for i in 1:length(part1)
+    order_metric_dict[part1[i]] = order_metric_vec_at_minimal_loss[i]
+end
+
+order_metric_dict["q_l_vec_values"] = order_metric_vec_at_minimal_loss[length(part1)+1 : length(part1)+length(part2)]
+order_metric_dict["q_l_vec_uncertainties"] = order_metric_vec_at_minimal_loss[length(part1)+length(part2)+1 : length(part1)+length(part2)+length(part3)]
+
+for i in 1:length(part4)
+    order_metric_dict[part4[i]] = order_metric_vec_at_minimal_loss[length(part1)+length(part2)+length(part3)+i]
+end
+
+GU.save_dict_to_h5(order_metric_dict, 
+            analysis_data_path*save_filename)
+
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\targeted\shell_nr_4\\"
+
+all_order_metrics_dict = GU.load_h5_dict(analysis_data_path*"all_order_metrics.h5")
+
+# extract the network type, that is srs from a string like "C:\\Users\\HemmannF\\OneDrive - Université de Fribourg\\structure_analysis\\analysis_data\\neural_network_targeted\\test_networks\\run_1\\srs_beta_0.2500_t_max_0.1709_t_gradient_0.1367_order_metrics.h5"
+
+filenames_vec = all_order_metrics_dict["filenames_vec"]
+network_type_vec = [match(r"/([^/]+)_nr_vertices", path).captures[1] for path in filenames_vec]
+nr_vertices_vec = [parse(Int, match(r"nr_vertices_(\d+)", path).captures[1]) for path in filenames_vec]
+bond_bending_vec = all_order_metrics_dict["bond_bending_const_vec"]
+t_max_vec = all_order_metrics_dict["t_max_vec"]
+t_gradient_vec = all_order_metrics_dict["t_gradient_vec"]
+
+core_filenames_vec = [replace(split(path, '/') |> last, "_order_metrics.h5" => "") for path in filenames_vec] 
+unique_core_filenames_vec = unique(core_filenames_vec)
+#println(unique_core_filenames_vec)
+
+# remove all unique core filenames that contain the string "lcs"
+#unique_core_filenames_vec = filter(name -> !occursin("lcs", name), unique_core_filenames_vec)
+
+order_metrics_vec = [
+        "network_type",
+        "nr_vertices_vec",
+        "bond_bending_const_vec",
+        "t_max_vec",
+        "t_gradient_vec",
+        "bond_length_std_vec",
+        "bond_angle_std_vec",
+        "dihedral_angle_entropy_vec",
+        "bond_orientation_entropy_vec",
+        "coordination_nr_mean_vec",
+        "coordination_nr_std_vec",
+        "vertex_homogeneity_metric_vec",
+        "ring_size_mean_vec",
+        "ring_size_std_vec",
+        "ring_radius_mean_vec",
+        "ring_radius_std_vec",
+        "critical_pore_radius_vec",
+        "anisotropy_metric_from_structure_factor_vec",
+        "anisotropy_metric_from_structure_factor_bonds_vec",
+        "hyperuniformity_alpha_vec_values",
+        "hyperuniformity_alpha_vec_uncertainties",]
+
+all_order_metrics_dict["network_type"] = network_type_vec   
+all_order_metrics_dict["nr_vertices_vec"] = nr_vertices_vec
+all_order_metrics_dict["hyperuniformity_alpha_vec_values"] = Measurements.value.(all_order_metrics_dict["hyperuniformity_alpha_vec"])
+all_order_metrics_dict["hyperuniformity_alpha_vec_uncertainties"] = Measurements.uncertainty.(all_order_metrics_dict["hyperuniformity_alpha_vec"])
+
+means_filename = "measured_order_metric_means.txt"
+stds_filename = "measured_order_metric_stds.txt"
+
+open(analysis_data_path*means_filename, "w") do io
+    println(io, join(order_metrics_vec, '\t'))
+end
+
+open(analysis_data_path*stds_filename, "w") do io
+    println(io, join(order_metrics_vec, '\t'))
+end
+
+# each core filename appears 20 times and has different values for the order
+# metrics. Create a table that, for each filename contains the mean values of 
+# all order metrics
+for unique_core_filename in unique_core_filenames_vec
+    println("Processing core filename: ", unique_core_filename)
+    # get the mask of the current core filename
+    mask = core_filenames_vec .== unique_core_filename
+    means = [all_order_metrics_dict["network_type"][mask][1]]
+    append!(means, [string(all_order_metrics_dict["nr_vertices_vec"][mask][1])])
+    append!(means, [string(Statistics.mean(all_order_metrics_dict[metric][mask])) for metric in order_metrics_vec[3:end]])
+
+    open(analysis_data_path*means_filename, "a") do io
+        println(io, join(means, '\t'))
+    end
+
+    stds = [all_order_metrics_dict["network_type"][mask][1],
+    string(all_order_metrics_dict["nr_vertices_vec"][mask][1]),
+    all_order_metrics_dict["bond_bending_const_vec"][mask][1],
+    all_order_metrics_dict["t_max_vec"][mask][1],
+    all_order_metrics_dict["t_gradient_vec"][mask][1]]
+    append!(stds, [string(Statistics.std(all_order_metrics_dict[metric][mask])) for metric in order_metrics_vec[6:end]])
+    
+    open(analysis_data_path*stds_filename, "a") do io
+        println(io, join(stds, '\t'))
+    end
+end
+
+
+network_type_vec = ["ctn", "dia",  "lcs", "srs", "pcu_cn_4_5_6", "bcu_cn_5_6_7_8"]
+nr_vertices_vec = [224, 216,  192,  216, 216, 432] 
+bond_bending_const_vec = [5.25, 5.5, 5.75, 6.0, 6.25, 6.5, 6.75, 7.0, 7.25, 7.5, 7.75, 8.0, 8.25, 8.5, 8.75, 9.0, 9.25, 9.5, 9.75, 10.0]
+theta_ground_state_vec = [180.0]
+acceptance_probability_vec = [0.001]
+relax_globally_after_threshold_cycle_vec = [false]
+shell_nr_vec = [3]
+
+NA.print_melting_temperatures(
+    ;
+    network_type_vec,
+    nr_vertices_vec,
+    bond_bending_const_vec,
+    theta_ground_state_vec,
+    acceptance_probability_vec,
+    relax_globally_after_threshold_cycle_vec,
+    shell_nr_vec
+    )
+
+
+predictions_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\neural_networks\predictions\local_relaxation\ctn\\"
+
+theta_ground_state = 180.0
+shell_nr = 4
+relax_globally_after_threshold_cycle = false
+    
+nr_vertices = 224
+network_type = "ctn"
+
+# choose random beta values for the samples between 0 and 1
+beta_vec = collect(0.0:0.2:10.0)
+# get the melting temperature for the beta values
+t_melt_vec = [NA.get_melting_temperature(network_type, beta; relax_globally_after_threshold_cycle=relax_globally_after_threshold_cycle, shell_nr=shell_nr) for beta in beta_vec]
+
+
+data_dict = Dict(
+    "bond_bending_const_vec" => beta_vec,
+    "t_melt_vec" => t_melt_vec,
+)
+GU.save_dict_to_h5(data_dict, predictions_path * "ctn_t_melt_vec.h5")
+
+Plots.plot(beta_vec, t_melt_vec, xlabel="Bond bending constant", ylabel="Melting temperature")
+
+
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\neural_networks\predictions\local_relaxation\ctn\\"
+
+nr_layers = 5
+nr_neurons = 77
+nr_pca_components = 12
+
+filename = "ctn_predictions_nr_layers_$(nr_layers)_nr_neurons_$(nr_neurons)_full_pca_$(nr_pca_components).h5"
+
+save_filename = "ctn_predictions_nr_layers_$(nr_layers)_nr_neurons_$(nr_neurons)_full_pca_$(nr_pca_components)_minimal_loss_order_metrics.h5"
+
+data_dict = GU.load_h5_dict(analysis_data_path*filename)
+
+predictions_array = data_dict["predictions_array"]
+loss_array = data_dict["loss_array"]
+
+# permute dims of the arrays to have the shape (bond_bending_const, t_max, t_gradient )
+predictions_array = permutedims(predictions_array, (4, 3, 2, 1))
+loss_array = permutedims(loss_array, (3, 2, 1))
+
+bond_bending_const_vec = data_dict["bond_bending_const_vec"]
+t_max_vec = data_dict["t_max_vec"]
+t_gradient_vec = data_dict["t_gradient_vec"]
+
+target_bond_bonding_const = 6.0
+target_t_max = 7.5
+target_t_gradient = 10.5
+
+# find the index of the closest values in the vectors
+bond_bending_index = argmin(abs.(bond_bending_const_vec .- target_bond_bonding_const))
+t_max_index = argmin(abs.(t_max_vec .- target_t_max))
+t_gradient_index = argmin(abs.(t_gradient_vec .- target_t_gradient))
+
+# print the target values and the closest values found
+println("Target bond bending constant: $target_bond_bonding_const, closest value found: $(bond_bending_const_vec[bond_bending_index])")
+println("Target t_max: $target_t_max, closest value found: $(t_max_vec[t_max_index])")
+println("Target t_gradient: $target_t_gradient, closest value found: $(t_gradient_vec[t_gradient_index])")
+
+# find the prediction at these indices 
+order_metric_vec_predicted = predictions_array[bond_bending_index, t_max_index, t_gradient_index, :]
+
+# First fixed part
+part1 = [
+    "bond_length_std",
+    "bond_angle_std",
+    "dihedral_angle_entropy",
+    "bond_orientation_entropy",
+    "coordination_nr_mean",
+    "coordination_nr_std"
+]
+
+# q_l_value_0 ... q_l_value_12
+part2 = ["q_l_value_$(i)" for i in 0:12]
+
+# q_l_uncertainty_0 ... q_l_uncertainty_12
+part3 = ["q_l_uncertainty_$(i)" for i in 0:12]
+
+# Last fixed part
+part4 = [
+    "vertex_homogeneity_metric",
+    "ring_size_mean",
+    "ring_size_std",
+    "ring_radius_mean",
+    "ring_radius_std",
+    "critical_pore_radius",
+    "anisotropy_metric_from_structure_factor",
+    "anisotropy_metric_from_structure_factor_bonds",
+    "hyperuniformity_alpha_value",
+    "hyperuniformity_alpha_uncertainty"
+]
+
+
+# save the order metric vec as a dictionary to a .h5 file with the q_l_lavues 
+# and the q_l_uncertainties as vectors 
+order_metric_dict = Dict{String, Any}()
+for i in 1:length(part1)
+    order_metric_dict[part1[i]] = order_metric_vec_predicted[i]
+end
+
+order_metric_dict["q_l_vec_values"] = order_metric_vec_predicted[length(part1)+1 : length(part1)+length(part2)]
+order_metric_dict["q_l_vec_uncertainties"] = order_metric_vec_predicted[length(part1)+length(part2)+1 : length(part1)+length(part2)+length(part3)]
+
+for i in 1:length(part4)
+    order_metric_dict[part4[i]] = order_metric_vec_predicted[length(part1)+length(part2)+length(part3)+i]
+end
+
+# print all keys and values of the order_metric_dict
+for (key, value) in order_metric_dict
+    println("$key => $value")
+end 
+
+
+#GU.save_dict_to_h5(order_metric_dict, 
+#            analysis_data_path*save_filename)
+
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\neural_networks\predictions\local_relaxation\ctn\\"
+
+nr_layers = 5
+nr_neurons = 77
+nr_pca_components = 12
+
+filename = "ctn_predictions_nr_layers_$(nr_layers)_nr_neurons_$(nr_neurons)_full_pca_$(nr_pca_components).h5"
+
+save_filename = "ctn_predictions_nr_layers_$(nr_layers)_nr_neurons_$(nr_neurons)_full_pca_$(nr_pca_components)_minimal_loss_order_metrics.h5"
+
+data_dict = GU.load_h5_dict(analysis_data_path*filename)
+
+predictions_array = data_dict["predictions_array"]
+loss_array = data_dict["loss_array"]
+
+# permute dims of the arrays to have the shape (bond_bending_const, t_max, t_gradient )
+predictions_array = permutedims(predictions_array, (4, 3, 2, 1))
+loss_array = permutedims(loss_array, (3, 2, 1))
+
+bond_bending_const_vec = data_dict["bond_bending_const_vec"]
+t_max_vec = data_dict["t_max_vec"]
+t_gradient_vec = data_dict["t_gradient_vec"]
+
+# find the 3d window of size (3,3,3) in the loss array where the average loss
+# is the smallest
+function get_window_smallest_average(loss_array; window_size=3)
+    min_loss_value = Inf
+    min_i = 0
+    min_j = 0
+    min_k = 0
+
+    half_window = div(window_size, 2)
+
+    for i in 1+half_window:(size(loss_array, 1)-half_window)
+        for j in 1+half_window:(size(loss_array, 2)-half_window)
+            for k in 1+half_window:(size(loss_array, 3)-half_window)
+                window = loss_array[(i-half_window):(i+half_window), (j-half_window):(j+half_window), (k-half_window):(k+half_window)]
+                window_mean = Statistics.mean(window)
+                if window_mean < min_loss_value
+                    min_loss_value = window_mean
+                    min_i = i
+                    min_j = j
+                    min_k = k
+                end
+            end
+        end
+    end
+    return (min_i, min_j, min_k), min_loss_value
+end
+
+min_loss_index, min_loss_value = get_window_smallest_average(loss_array, window_size=5)
+
+
+# get the index, where the predictions array has the minimal value 
+#min_loss_value = minimum(loss_array)
+#min_loss_index = findfirst(x -> x == min_loss_value, loss_array)
+
+# print the values of the parameters at this index
+println("Minimum positive loss: $min_loss_value")
+println("At bond_bending_const = $(bond_bending_const_vec[min_loss_index[1]])")
+println("At t_max = $(t_max_vec[min_loss_index[2]])")
+println("At t_gradient = $(t_gradient_vec[min_loss_index[3]])")
+
+max_loss_value = maximum(loss_array[loss_array .< 999.0])
+max_loss_index = findfirst(x -> x == max_loss_value, loss_array)
+
+# print the values of the parameters at this index
+println("Maximum loss: $max_loss_value")
+println("At bond_bending_const = $(bond_bending_const_vec[max_loss_index[1]])")
+println("At t_max = $(t_max_vec[max_loss_index[2]])")
+println("At t_gradient = $(t_gradient_vec[max_loss_index[3]])")
+
+# plot a heatmap of the predictions for fixed bond_bending_const = 5.0 with a
+# logarithmic color scale
+fixed_bond_bending_const = bond_bending_const_vec[min_loss_index[1]]
+bond_bending_const_index = min_loss_index[1]
+
+# First fixed part
+part1 = [
+    "bond_length_std",
+    "bond_angle_std",
+    "dihedral_angle_entropy",
+    "bond_orientation_entropy",
+    "coordination_nr_mean",
+    "coordination_nr_std"
+]
+
+# q_l_value_0 ... q_l_value_12
+part2 = ["q_l_value_$(i)" for i in 0:12]
+
+# q_l_uncertainty_0 ... q_l_uncertainty_12
+part3 = ["q_l_uncertainty_$(i)" for i in 0:12]
+
+# Last fixed part
+part4 = [
+    "vertex_homogeneity_metric",
+    "ring_size_mean",
+    "ring_size_std",
+    "ring_radius_mean",
+    "ring_radius_std",
+    "critical_pore_radius",
+    "anisotropy_metric_from_structure_factor",
+    "anisotropy_metric_from_structure_factor_bonds",
+    "hyperuniformity_alpha_value",
+    "hyperuniformity_alpha_uncertainty"
+]
+
+order_metric_vec_at_minimal_loss = predictions_array[min_loss_index[1], min_loss_index[2], min_loss_index[3], :]
+
+# save the order metric vec as a dictionary to a .h5 file with the q_l_lavues 
+# and the q_l_uncertainties as vectors 
+order_metric_dict = Dict{String, Any}()
+for i in 1:length(part1)
+    order_metric_dict[part1[i]] = order_metric_vec_at_minimal_loss[i]
+end
+
+order_metric_dict["q_l_vec_values"] = order_metric_vec_at_minimal_loss[length(part1)+1 : length(part1)+length(part2)]
+order_metric_dict["q_l_vec_uncertainties"] = order_metric_vec_at_minimal_loss[length(part1)+length(part2)+1 : length(part1)+length(part2)+length(part3)]
+
+for i in 1:length(part4)
+    order_metric_dict[part4[i]] = order_metric_vec_at_minimal_loss[length(part1)+length(part2)+length(part3)+i]
+end
+
+# print all keys and values of the order_metric_dict
+for (key, value) in order_metric_dict
+    println("$key => $value")
+end 
+
+
+#GU.save_dict_to_h5(order_metric_dict, 
+#            analysis_data_path*save_filename)

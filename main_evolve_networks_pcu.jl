@@ -7,7 +7,8 @@ import .NetworkGeneration as NG
 import .NetworkAnalysis as NA
 import .GeneralUtilities as GU
 
-evolution_dicts_directory_path = "../structures/local_relaxation/random/pcu_cn_4_5_6/evolution_dicts_2/"
+
+evolution_dicts_directory_path = "../structures/local_relaxation/random/pcu_cn_4_5_6/evolution_dicts_4/"
 
 save_path = "../structures/local_relaxation/random/pcu_cn_4_5_6/" 
 
@@ -15,7 +16,7 @@ print_every_nr_attempted_bond_switches = 200
 print_progress = true
 save_network_after_each_temperature = false
 further_evolve_previous_networks = false
-runs_vec = [2] #collect(1:2)
+runs_vec = [4] #collect(1:2)
 random_evolution_seed = -1
 print_lock = Threads.ReentrantLock()
 

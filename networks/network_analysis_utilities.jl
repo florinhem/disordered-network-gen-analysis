@@ -179,6 +179,7 @@ function get_all_dicts_from_network_single_file(
         = raw"..\analysis_data\random_networks\digital_sphere_masks\\",
     pore_size_sampling_grid_size = 0.2,
     max_pore_radius = 3.0,
+    hyperuniformity_min_wavenumber_to_consider::Float64 = 0.0,
     periodic_boundary_conditions::Bool = true,
     print_progress::Bool = false,
     print_lock = Threads.ReentrantLock())
@@ -278,6 +279,8 @@ function get_all_dicts_from_network_single_file(
         spatial_network_path,
         analysis_data_path;
         l_max_steinhardt_q_l = 12,
+        hyperuniformity_min_wavenumber_to_consider
+            = hyperuniformity_min_wavenumber_to_consider,
         save_result = true,
         )
 
@@ -436,6 +439,7 @@ function get_order_metrics(filename::String,
     network_path::String,
     analysis_data_path::String;
     l_max_steinhardt_q_l::Int64 = 12,
+    hyperuniformity_min_wavenumber_to_consider::Float64 = 0.0,
     save_result = false)
 
     # load network
@@ -471,6 +475,9 @@ function get_order_metrics(filename::String,
 
     q_l_vec = convert_q_l_dict_to_vec(q_l_total_network_mean_dict, 
         l_max_steinhardt_q_l)
+
+    # TODO: check if q_l_uncertainties are properly saved, because neural 
+    # networks predicts them to be the same as q_l_values
 
     # load ring size distribution
     ring_size_distribution_dict = GU.load_h5_dict(
@@ -525,7 +532,9 @@ function get_order_metrics(filename::String,
 
     # get the alpha value that captures whether the network is hyperuniform 
     slope_measurement_time, hyperuniformity_alpha = (
-        get_hyperuniformity_alpha(structure_factor_bonds_angle_averaged_dict))
+        get_hyperuniformity_alpha(structure_factor_bonds_angle_averaged_dict;
+            min_wavenumber_to_consider =
+                hyperuniformity_min_wavenumber_to_consider))
 
     # create dict to save
     order_metrics_dict = Dict(
