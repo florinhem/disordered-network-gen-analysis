@@ -650,6 +650,47 @@ function get_structure_factor_angle_averaged(
 end
 
 
+function get_correlation_functions_from_vertex_distances(
+    distance_vec::Vector{Float64},
+    nr_vertices,
+    maximal_vertex_distance::Float64,
+    vertex_density::Float64;
+    distance_histogram_bin_width::Float64 = 0.02)
+
+    # get histogram of distance vector
+    distance_histogram = StatsBase.fit(
+        StatsBase.Histogram, distance_vec, 
+        0.0:distance_histogram_bin_width:maximal_vertex_distance, 
+        closed=:left)
+
+    vertex_distance_vec = collect(distance_histogram.edges[1][2:end] 
+        .- distance_histogram_bin_width/2)
+    vertex_nr_vec = distance_histogram.weights
+
+    # calculate pair correlaion function
+    # (eq. 3 in 10.1016/j.physrep.2018.03.001)
+    pair_correlation_fct_vec = ((1/(4*pi*vertex_density * nr_vertices) ) 
+        .* vertex_nr_vec ./ vertex_distance_vec.^2) .* (
+            2/distance_histogram_bin_width)
+
+    # set the first entry of the pair correlation function to zero, to correct
+    # for weird behavior of the histogram for crystalline networks
+    pair_correlation_fct_vec[1] = 0.0
+
+    # calculate total correlation function
+    # (eq. 4 in 10.1016/j.physrep.2018.03.001)
+    total_correlation_fct_vec = pair_correlation_fct_vec .- 1
+
+    # calculate cumulative coordination number 
+    # (eq. 5 in 10.1016/j.physrep.2018.03.001)
+    cumulative_coord_nr_vec = (4*pi*vertex_density*distance_histogram_bin_width
+        * cumsum(vertex_distance_vec.^2 .* pair_correlation_fct_vec ))
+
+    return [vertex_distance_vec, cumulative_coord_nr_vec, 
+        pair_correlation_fct_vec, total_correlation_fct_vec]
+end
+
+
 """
 Calculate pair correlation function, total correlation function and
 cumulative coordination number as defined in equations 3-5 of
@@ -676,19 +717,34 @@ function get_correlation_functions(
     distance_vec = Vector{Float64}(undef, Int(spatial_network[]["nr_vertices"]
         *(spatial_network[]["nr_vertices"]-1)/2))
 
+    # also get vector of distances between all uncoordinated pairs of vertices
+    distance_uncoordinated_vec = Vector{Float64}(undef, 0)
+
     current_index = 1
 
     for i in 1:spatial_network[]["nr_vertices"]-1
+        neighbors = collect(MetaGraphsNext.neighbor_labels(spatial_network, i))
+
         for j in i+1:spatial_network[]["nr_vertices"]
             if periodic_boundary_conditions
                 distance_vec[current_index] = LinearAlgebra.norm(
                     NG.get_distance_vector_pbc(
                         vertex_position_mat[:, i], vertex_position_mat[:, j], 
                         spatial_network[]["supercell_edge_length"]))
+                
+                if j ∉ neighbors
+                    push!(distance_uncoordinated_vec, 
+                        distance_vec[current_index])
+                end
             else
                 distance_vec[current_index] = LinearAlgebra.norm(
                     vertex_position_mat[:, i] 
                     - vertex_position_mat[:, j])
+
+                if j ∉ neighbors
+                    push!(distance_uncoordinated_vec, 
+                        distance_vec[current_index])
+                end
             end
 
             current_index += 1
@@ -704,16 +760,6 @@ function get_correlation_functions(
             .- min_vertex_coords)/2
     end
 
-    # get histogram of distance vector
-    distance_histogram = StatsBase.fit(
-        StatsBase.Histogram, distance_vec, 
-        0.0:distance_histogram_bin_width:maximal_vertex_distance, 
-        closed=:left)
-
-    vertex_distance_vec = collect(distance_histogram.edges[1][2:end] 
-        .- distance_histogram_bin_width/2)
-    vertex_nr_vec = distance_histogram.weights
-
     # get_vertex density
     if periodic_boundary_conditions
         vertex_density = (spatial_network[]["nr_vertices"] 
@@ -725,25 +771,28 @@ function get_correlation_functions(
             *(max_vertex_coords[3] - min_vertex_coords[3]))
     end
 
-    # calculate pair correlaion function
-    # (eq. 3 in 10.1016/j.physrep.2018.03.001)
-    pair_correlation_fct_vec = ((1/(4*pi*vertex_density 
-            * spatial_network[]["nr_vertices"]) ) 
-        .* vertex_nr_vec ./ vertex_distance_vec.^2) .* (
-            2/distance_histogram_bin_width)
+    # get correlation functions for all vertex distances
+    (vertex_distance_vec, cumulative_coord_nr_vec, pair_correlation_fct_vec, 
+        total_correlation_fct_vec) = (
+        get_correlation_functions_from_vertex_distances(
+            distance_vec, spatial_network[]["nr_vertices"], 
+            maximal_vertex_distance, vertex_density; 
+            distance_histogram_bin_width=distance_histogram_bin_width))
 
-    # set the first entry of the pair correlation function to zero, to correct
-    # for weird behavior of the histogram for crystalline networks
-    pair_correlation_fct_vec[1] = 0.0
-
-    # calculate total correlation function
-    # (eq. 4 in 10.1016/j.physrep.2018.03.001)
-    total_correlation_fct_vec = pair_correlation_fct_vec .- 1
-
-    # calculate cumulative coordination number 
-    # (eq. 5 in 10.1016/j.physrep.2018.03.001)
-    cumulative_coord_nr_vec = (4*pi*vertex_density*distance_histogram_bin_width
-        * cumsum(vertex_distance_vec.^2 .* pair_correlation_fct_vec ))
+    # get correlation functions for uncoordinated vertex distances
+    coordination_nr_mean, coordination_nr_std = get_coordination_nr_statistics(
+        spatial_network)
+    nr_vertices_uncoordinated = (
+        spatial_network[]["nr_vertices"] - coordination_nr_mean)
+    uncoordinated_vertex_density = (vertex_density 
+        * nr_vertices_uncoordinated / spatial_network[]["nr_vertices"])
+    (uncoordinated_vertex_distance_vec, cumulative_coord_nr_uncoordinated_vec, 
+        pair_correlation_fct_uncoordinated_vec, 
+        total_correlation_fct_uncoordinated_vec) = (
+        get_correlation_functions_from_vertex_distances(
+            distance_uncoordinated_vec, nr_vertices_uncoordinated, 
+            maximal_vertex_distance, uncoordinated_vertex_density; 
+            distance_histogram_bin_width=distance_histogram_bin_width))
 
     # create dict to save
     correlation_functions_dict = Dict{String, Any}(
@@ -751,7 +800,15 @@ function get_correlation_functions(
         "cumulative_coord_nr_vec" => cumulative_coord_nr_vec,
         "pair_correlation_fct_vec" => pair_correlation_fct_vec,
         "total_correlation_fct_vec" => total_correlation_fct_vec,
-        "vertex_density" => vertex_density,)
+        "vertex_density" => vertex_density,
+        "cumulative_coord_nr_uncoordinated_vec" 
+            => cumulative_coord_nr_uncoordinated_vec,
+        "pair_correlation_fct_uncoordinated_vec" 
+            => pair_correlation_fct_uncoordinated_vec,
+        "total_correlation_fct_uncoordinated_vec" 
+            => total_correlation_fct_uncoordinated_vec,
+        "uncoordinated_vertex_density" => uncoordinated_vertex_density
+        )
 
     # add label to dictionary if label is not nothing
     if label !== nothing
@@ -773,12 +830,20 @@ Define a vertex_homogeneity metric as the average distance to the nearest
 distance to the next vertex independently whether it is a neighbor or not. This
 distance is smaller than 1 if the network is clustered
 """
-function get_vertex_homogeneity_metric(correlation_functions_dict::Dict)
+function get_vertex_homogeneity_metric(correlation_functions_dict::Dict;
+    consider_uncoordinated_vertices::Bool = false)
 
     # get the smallest vertex distance where the cumulative coordination number
     # is above 1
-    argmin_index = findfirst(
-        correlation_functions_dict["cumulative_coord_nr_vec"] .> 1)
+    if consider_uncoordinated_vertices
+        cumulative_coord_nr = (
+            correlation_functions_dict[
+                "cumulative_coord_nr_uncoordinated_vec"])
+    else
+        cumulative_coord_nr = (
+            correlation_functions_dict["cumulative_coord_nr_vec"])
+    end
+    argmin_index = findfirst(cumulative_coord_nr .> 1)
     vertex_homogeneity_metric = (
         correlation_functions_dict["vertex_distance_vec"][argmin_index])
 
@@ -951,11 +1016,11 @@ end
 
 
 """
-Get the excess spreadability for a given t value according to eq 25 of
-10.1103/PhysRevE.109.064108.
+Get the excess spreadability for a given t value according to eq 23 of
+10.1103/PhysRevE.104.054102.
 """
 function get_excess_spreadability(
-    structure_factor_angle_averaged_dict::Dict,
+    structure_factor_array_bonds_dict::Dict,
     time::Float64;
     min_wavenumber_to_consider::Float64 = 0.0,
     consider_spectral_density::Bool = false)
@@ -966,23 +1031,27 @@ function get_excess_spreadability(
         data_type_string = "structure_factor"
     end
 
-    wavenumber_vec = structure_factor_angle_averaged_dict["wavenumber_vec"]
+    wavevector_array = structure_factor_array_bonds_dict["wavevector_array"]
 
-    # only consider wavenumbers above a certain threshold to avoid artifacts,
-    # e. g. from the apodization
-    mask = wavenumber_vec .>= min_wavenumber_to_consider
-    wavenumber_vec = wavenumber_vec[mask]
+    # only consider wavevectors above a certain threshold length to avoid 
+    # artifacts, e. g. from the apodization
+    wavenumber_array = norms = mapslices(x -> LinearAlgebra.norm(x),
+        structure_factor_array_bonds_dict["wavevector_array"]; dims=4)
+    mask = wavenumber_array .> min_wavenumber_to_consider
 
-    wavenumber_step_length = (wavenumber_vec[2] - wavenumber_vec[1])
+    wavevector_volume_element = prod(
+        wavevector_array[2,2,2,:] .- wavevector_array[1,1,1,:])
 
-    # calculate excess spreadability according to eq 25 of 
-    # 10.1103/PhysRevE.109.064108
-    excess_spreadability = 1/wavenumber_step_length * sum(
-        wavenumber_vec.^2 .* structure_factor_angle_averaged_dict[
-            data_type_string*"_vec"][mask] .*  exp.(-wavenumber_vec.^2 .* time))
+    # calculate excess spreadability according to eq 17 of 
+    # 10.1103/PhysRevE.104.054102
+    excess_spreadability = 1/wavevector_volume_element * sum(
+        (structure_factor_array_bonds_dict[
+            data_type_string*"_array"] .*  exp.(-wavenumber_array.^2 .* time)
+            )[mask])
 
     return excess_spreadability
 end
+
 
 
 """
@@ -993,42 +1062,32 @@ nonhyperuniform, if it is >0, the system is hyperuniform. Three classes of
 hyperuniformity are defined: 0 < alpha < 1, alpha = 1 and alpha > 1 as written
 below eq 21 of 10.1103/PhysRevE.109.064108.
 """
-function get_hyperuniformity_alpha(structure_factor_angle_averaged_dict::Dict;
+function get_hyperuniformity_alpha(structure_factor_array_bonds_dict::Dict;
     consider_spectral_density::Bool = false,
-    t_range = (1e-1, 4e-1),
+    t_range = (1e-1, 1),
     min_wavenumber_to_consider::Float64 = 0.0)
 
-    # get the vector of times to sample the excess spreadability such that the
-    # t values are equally spaced on a logarithmic scale
-    time_vec = exp.(LinRange(log(t_range[1]), log(t_range[2]), 1000))
-
     # calculate the excess spreadability for each t value
-    excess_spreadability_vec = [get_excess_spreadability(
-        structure_factor_angle_averaged_dict, time_vec[i]; 
+    excess_spreadability_values = [get_excess_spreadability(
+        structure_factor_array_bonds_dict, time; 
         min_wavenumber_to_consider=min_wavenumber_to_consider,
-        consider_spectral_density = consider_spectral_density) for i in 
-        eachindex(time_vec)]
+        consider_spectral_density = consider_spectral_density) 
+        for time in t_range]
 
     # get logarithm of time and excess spreadability
-    log_time_vec = log10.(time_vec)
-    log_excess_spreadability_vec = log10.(excess_spreadability_vec)
+    log_time_values = log10.(t_range)
+    log_excess_spreadability_values = log10.(excess_spreadability_values)
 
-    # get the steepest (maximally negative) slope of the excess spreadability 
-    # as a function of time by calculating the tangent slope 
-    local_tangent_slope_vec = Vector{Measurements.Measurement{Float64}}(undef, 
-        length(log_time_vec)-1)
-    for i in 1:length(log_time_vec)-1
-        local_tangent_slope_vec[i] = (log_excess_spreadability_vec[i+1] 
-            - log_excess_spreadability_vec[i]) / (
-                log_time_vec[i+1] - log_time_vec[i])
-    end
-    minimal_slope_index = argmin(local_tangent_slope_vec)
-    minimal_slope = minimum(local_tangent_slope_vec)
-    slope_measurement_time = time_vec[minimal_slope_index]
+    # get the slope of the log-log curve from the two data points
+    # (log(time), log(excess_spreadability))
+    slope = (
+        (log_excess_spreadability_values[2] 
+            - log_excess_spreadability_values[1]) 
+        / (log_time_values[2] - log_time_values[1]))
 
     # get alpha from the minimal slope according to section IIIB of 
     # 10.1103/PhysRevE.109.064108
-    hyperuniformity_alpha = -2*minimal_slope - 3
+    hyperuniformity_alpha = -2*slope - 3
     
-    return [slope_measurement_time, hyperuniformity_alpha]
+    return hyperuniformity_alpha
 end

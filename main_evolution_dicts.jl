@@ -11,8 +11,8 @@ import Format
 
 nr_samples = 500
 
-network_type_vec = ["pcu_cn_4_5_6"]
-nr_vertices_vec = [ 216]
+network_type_vec = ["bcu_cn_5_6_7_8"]
+nr_vertices_vec = [ 432]
 
 
 theta_ground_state = 180.0
@@ -36,7 +36,7 @@ for (nr_vertices, network_type) in zip(nr_vertices_vec, network_type_vec)
     # 2*t_melt
     t_gradient_vec = t_melt_vec .* (1/4 .+ 7/4 .* rand(nr_samples))
 
-    save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\random\\"*network_type*raw"\evolution_dicts_4\\"
+    save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\random\\"*network_type*raw"\evolution_dicts_3\\"
 
     for i in 1:nr_samples
         temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(t_max_vec[i],

@@ -468,7 +468,7 @@ function relax_network_keating!(
                 *string(threshold_cycle_global_relaxation))
         end
 
-        # get cluster of entire network by setting shell nr toa high value
+        # get cluster of entire network by setting shell nr to a high value
         cluster_dict = get_cluster_in_shells_dict(spatial_network, 
             switched_chain,
             shell_nr = Int(ceil(log(spatial_network[]["nr_vertices"])))+4,

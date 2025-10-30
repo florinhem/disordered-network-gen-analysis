@@ -34491,5 +34491,28 @@ for (key, value) in order_metric_dict
 end 
 
 
-#GU.save_dict_to_h5(order_metric_dict, 
-#            analysis_data_path*save_filename)
+load_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\targeted\ctn_pachy\target_6\run_2\\"
+
+load_path_2 = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\biological\networks\pachy\\"
+
+filename = "ctn_beta_9.4000_t_max_15.0000_t_gradient_14.0000_nr_vertices_1792.gml"
+
+filename_2 = "pachy_blue.gml"
+
+
+spatial_network = NG.load_spatial_network_from_gml(
+    load_path*filename
+) 
+
+spatial_network_2 = NG.load_spatial_network_from_gml(
+    load_path_2*filename_2
+)
+
+min_vertex_coords, max_vertex_coords = NA.get_min_max_vertex_coords(spatial_network_2)
+    
+println(spatial_network[]["supercell_edge_length"])
+println(max_vertex_coords .- min_vertex_coords)
+
+NG.plot_spatial_network(
+    spatial_network
+)

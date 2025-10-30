@@ -6873,3 +6873,87 @@ function get_structure_factor_isotrope_by_wavenumber_vec(
 
     return structure_factor_dict
 end
+
+
+"""
+Get the excess spreadability for a given t value according to eq 25 of
+10.1103/PhysRevE.109.064108.
+"""
+function get_excess_spreadability(
+    structure_factor_angle_averaged_dict::Dict,
+    time::Float64;
+    min_wavenumber_to_consider::Float64 = 0.0,
+    consider_spectral_density::Bool = false)
+
+    if consider_spectral_density
+        data_type_string = "spectral_density"
+    else
+        data_type_string = "structure_factor"
+    end
+
+    wavenumber_vec = structure_factor_angle_averaged_dict["wavenumber_vec"]
+
+    # only consider wavenumbers above a certain threshold to avoid artifacts,
+    # e. g. from the apodization
+    mask = wavenumber_vec .>= min_wavenumber_to_consider
+    wavenumber_vec = wavenumber_vec[mask]
+
+    wavenumber_step_length = (wavenumber_vec[2] - wavenumber_vec[1])
+
+    # calculate excess spreadability according to eq 25 of 
+    # 10.1103/PhysRevE.109.064108
+    excess_spreadability = 1/wavenumber_step_length * sum(
+        wavenumber_vec.^2 .* structure_factor_angle_averaged_dict[
+            data_type_string*"_vec"][mask] .*  exp.(-wavenumber_vec.^2 .* time))
+
+    return excess_spreadability
+end
+
+
+"""
+Get the exponent alpha, that determines the scaling of the structure factor
+or the spectral density with the wavenumber k for k -> 0 as in eq 25 of
+10.1103/PhysRevE.109.064108. If this exponent is 0, the system is
+nonhyperuniform, if it is >0, the system is hyperuniform. Three classes of
+hyperuniformity are defined: 0 < alpha < 1, alpha = 1 and alpha > 1 as written
+below eq 21 of 10.1103/PhysRevE.109.064108.
+"""
+function get_hyperuniformity_alpha(structure_factor_angle_averaged_dict::Dict;
+    consider_spectral_density::Bool = false,
+    t_range = (1e-1, 4e-1),
+    min_wavenumber_to_consider::Float64 = 0.0)
+
+    # get the vector of times to sample the excess spreadability such that the
+    # t values are equally spaced on a logarithmic scale
+    time_vec = exp.(LinRange(log(t_range[1]), log(t_range[2]), 1000))
+
+    # calculate the excess spreadability for each t value
+    excess_spreadability_vec = [get_excess_spreadability(
+        structure_factor_angle_averaged_dict, time_vec[i]; 
+        min_wavenumber_to_consider=min_wavenumber_to_consider,
+        consider_spectral_density = consider_spectral_density) for i in 
+        eachindex(time_vec)]
+
+    # get logarithm of time and excess spreadability
+    log_time_vec = log10.(time_vec)
+    log_excess_spreadability_vec = log10.(excess_spreadability_vec)
+
+    # get the steepest (maximally negative) slope of the excess spreadability 
+    # as a function of time by calculating the tangent slope 
+    local_tangent_slope_vec = Vector{Measurements.Measurement{Float64}}(undef, 
+        length(log_time_vec)-1)
+    for i in 1:length(log_time_vec)-1
+        local_tangent_slope_vec[i] = (log_excess_spreadability_vec[i+1] 
+            - log_excess_spreadability_vec[i]) / (
+                log_time_vec[i+1] - log_time_vec[i])
+    end
+    minimal_slope_index = argmin(local_tangent_slope_vec)
+    minimal_slope = minimum(local_tangent_slope_vec)
+    slope_measurement_time = time_vec[minimal_slope_index]
+
+    # get alpha from the minimal slope according to section IIIB of 
+    # 10.1103/PhysRevE.109.064108
+    hyperuniformity_alpha = -2*minimal_slope - 3
+    
+    return [slope_measurement_time, hyperuniformity_alpha]
+end

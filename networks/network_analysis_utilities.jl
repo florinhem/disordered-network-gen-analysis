@@ -499,9 +499,13 @@ function get_order_metrics(filename::String,
     correlation_functions_dict = GU.load_h5_dict(
         analysis_data_path*filename*"_correlation_functions.h5")
 
-    # get cluster metric
+    # get vertex homogeneity metric
     vertex_homogeneity_metric = get_vertex_homogeneity_metric(
-        correlation_functions_dict)
+        correlation_functions_dict, consider_uncoordinated_vertices=false)
+
+    # get uncoordinated neighbor distance
+    uncoordinated_neighbor_distance = get_vertex_homogeneity_metric(
+        correlation_functions_dict, consider_uncoordinated_vertices=true)
 
     # load pore size distribution
     pore_size_distribution_dict = GU.load_h5_dict(
@@ -531,7 +535,7 @@ function get_order_metrics(filename::String,
             structure_factor_bonds_angle_averaged_dict))
 
     # get the alpha value that captures whether the network is hyperuniform 
-    slope_measurement_time, hyperuniformity_alpha = (
+    hyperuniformity_alpha = (
         get_hyperuniformity_alpha(structure_factor_bonds_angle_averaged_dict;
             min_wavenumber_to_consider =
                 hyperuniformity_min_wavenumber_to_consider))
@@ -550,6 +554,7 @@ function get_order_metrics(filename::String,
         "ring_radius_mean" => ring_radius_mean,
         "ring_radius_std" => ring_radius_std,
         "vertex_homogeneity_metric" => vertex_homogeneity_metric,
+        "uncoordinated_neighbor_distance" => uncoordinated_neighbor_distance,
         "critical_pore_radius" => critical_pore_radius,
         "anisotropy_metric_from_structure_factor" 
             => anisotropy_metric_from_structure_factor,
@@ -624,6 +629,8 @@ function get_order_metrics_all_files(
         l_max_steinhardt_q_l+1, length(order_metrics_filenames))
     vertex_homogeneity_metric_vec = Vector{Float64}(undef,
         length(order_metrics_filenames))
+    uncoordinated_neighbor_distance_vec = Vector{Float64}(undef,
+        length(order_metrics_filenames))
     ring_size_mean_vec = Vector{Float64}(undef,
         length(order_metrics_filenames))
     ring_size_std_vec = Vector{Float64}(undef,
@@ -668,6 +675,8 @@ function get_order_metrics_all_files(
         q_l_mat[:,i] = order_metrics_dict["q_l_vec"]
         vertex_homogeneity_metric_vec[i] = (
             order_metrics_dict["vertex_homogeneity_metric"])
+        uncoordinated_neighbor_distance_vec[i] = (
+            order_metrics_dict["uncoordinated_neighbor_distance"])
         ring_size_mean_vec[i] = order_metrics_dict["ring_size_mean"]
         ring_size_std_vec[i] = order_metrics_dict["ring_size_std"]
         ring_radius_mean_vec[i] = order_metrics_dict["ring_radius_mean"]
@@ -702,6 +711,9 @@ function get_order_metrics_all_files(
     q_l_mat = q_l_mat[:, sortperm(total_keating_energy_vec)]
     vertex_homogeneity_metric_vec = (
         vertex_homogeneity_metric_vec[sortperm(total_keating_energy_vec)])
+    uncoordinated_neighbor_distance_vec = (
+        uncoordinated_neighbor_distance_vec[sortperm(total_keating_energy_vec)]
+    )
     ring_size_mean_vec = ring_size_mean_vec[
         sortperm(total_keating_energy_vec)]
     ring_size_std_vec = ring_size_std_vec[
@@ -740,6 +752,8 @@ function get_order_metrics_all_files(
         "coordination_nr_std_vec" => coordination_nr_std_vec,
         "q_l_mat" => q_l_mat,
         "vertex_homogeneity_metric_vec" => vertex_homogeneity_metric_vec,
+        "uncoordinated_neighbor_distance_vec" 
+            => uncoordinated_neighbor_distance_vec,
         "ring_size_mean_vec" => ring_size_mean_vec,
         "ring_size_std_vec" => ring_size_std_vec,
         "ring_radius_mean_vec" => ring_radius_mean_vec,

@@ -6465,3 +6465,468 @@ bottom_margin = 3Plots.mm,
     right_margin = 1Plots.mm)
 
 Plots.savefig(plot_path * "pachy_order_metrics_blue_predicted_grouped.png")
+
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\neural_networks\predictions\local_relaxation\ctn\\"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\biological\networks\pachy\loss_prediction_ctn_nr_layers_4_nr_neurons_67_full_pca_10\\"
+
+filename = "ctn_predictions_nr_layers_4_nr_neurons_67_full_pca_10.h5"
+
+data_dict = GU.load_h5_dict(analysis_data_path*filename)
+
+
+predictions_array = data_dict["predictions_array"]
+loss_array = data_dict["loss_array"]
+
+# permute dims of the arrays to have the shape (bond_bending_const, t_max, t_gradient )
+predictions_array = permutedims(predictions_array, (4, 3, 2, 1))
+loss_array = permutedims(loss_array, (3, 2, 1))
+
+bond_bending_const_vec = data_dict["bond_bending_const_vec"]
+t_max_vec = data_dict["t_max_vec"]
+t_gradient_vec = data_dict["t_gradient_vec"]
+
+# find the 3d window of size (3,3,3) in the loss array where the average loss
+# is the smallest
+function get_window_smallest_average(loss_array; window_size=3)
+    min_loss_value = Inf
+    min_i = 0
+    min_j = 0
+    min_k = 0
+
+    half_window = div(window_size, 2)
+
+    for i in 1+half_window:(size(loss_array, 1)-half_window)
+        for j in 1+half_window:(size(loss_array, 2)-half_window)
+            for k in 1+half_window:(size(loss_array, 3)-half_window)
+                window = loss_array[(i-half_window):(i+half_window), (j-half_window):(j+half_window), (k-half_window):(k+half_window)]
+                window_mean = Statistics.mean(window)
+                if window_mean < min_loss_value
+                    min_loss_value = window_mean
+                    min_i = i
+                    min_j = j
+                    min_k = k
+                end
+            end
+        end
+    end
+    return (min_i, min_j, min_k), min_loss_value
+end
+
+min_loss_index, min_loss_value = get_window_smallest_average(loss_array, window_size=7)
+
+# print the values of the parameters at this index
+println("Minimum positive loss: $min_loss_value")
+println("At bond_bending_const = $(bond_bending_const_vec[min_loss_index[1]])")
+println("At t_max = $(t_max_vec[min_loss_index[2]])")
+println("At t_gradient = $(t_gradient_vec[min_loss_index[3]])")
+
+max_loss_value = maximum(loss_array[loss_array .< 999.0])
+max_loss_index = findfirst(x -> x == max_loss_value, loss_array)
+
+# print the values of the parameters at this index
+println("Maximum loss: $max_loss_value")
+println("At bond_bending_const = $(bond_bending_const_vec[max_loss_index[1]])")
+println("At t_max = $(t_max_vec[max_loss_index[2]])")
+println("At t_gradient = $(t_gradient_vec[max_loss_index[3]])")
+
+# plot a heatmap of the predictions for fixed bond_bending_const = 5.0 with a
+# logarithmic color scale
+fixed_bond_bending_const = bond_bending_const_vec[min_loss_index[1]]
+bond_bending_const_index = min_loss_index[1]
+
+# First fixed part
+part1 = [
+    "bond_length_std",
+    "bond_angle_std",
+    "dihedral_angle_entropy",
+    "bond_orientation_entropy",
+    "coordination_nr_mean",
+    "coordination_nr_std"
+]
+
+# q_l_value_0 ... q_l_value_12
+part2 = ["q_l_value_$(i)" for i in 0:12]
+
+# q_l_uncertainty_0 ... q_l_uncertainty_12
+part3 = ["q_l_uncertainty_$(i)" for i in 0:12]
+
+# Last fixed part
+part4 = [
+    "vertex_homogeneity_metric",
+    "ring_size_mean",
+    "ring_size_std",
+    "ring_radius_mean",
+    "ring_radius_std",
+    "critical_pore_radius",
+    "anisotropy_metric_from_structure_factor",
+    "anisotropy_metric_from_structure_factor_bonds",
+    "hyperuniformity_alpha_value",
+    "hyperuniformity_alpha_uncertainty"
+]
+
+# Combine all parts
+order_metrics = vcat(part1, part2, part3, part4)
+
+for (index, metric) in enumerate(order_metrics)
+    println("Order metric: $metric ", predictions_array[min_loss_index[1], min_loss_index[2], min_loss_index[3], index])
+end
+
+
+Z  = loss_array[bond_bending_const_index, :, :]'
+
+
+Zlog = log10.(Z)
+
+exps       = -4:-1
+ticks_vals = collect(exps)
+ticks_lbls = ["1e$(p)" for p in exps]
+
+# --- key trick for GR: NBSP + newline to create horizontal offset from ticks
+# use more "\n" if you need a larger offset
+cb_title = "\u00A0\n" * Latex.L"\log(L)"  # NBSP (U+00A0) + newline + LaTeX title
+
+p = Plots.heatmap(
+    t_max_vec, t_gradient_vec, Zlog;
+    xlabel = Latex.L"T_\mathrm{max}",
+    ylabel = Latex.L"\Delta T",
+    title  = Latex.L"Loss at $\beta = $" * string(fixed_bond_bending_const),
+
+    # colorbar controls
+    colorbar_title       = cb_title,
+    colorbar_titlefontsize = 16,            # ↑ label font size
+    colorbar_tickfontsize  = 9,             # (optional) shrink tick labels to reduce crowding
+
+    c = :viridis,
+    clim = (minimum(exps), maximum(exps)),
+    colorbar_ticks = (ticks_vals, ticks_lbls),
+    aspect_ratio = :equal,
+
+    # this only affects outer spacing—keep if your figure needs extra room
+    right_margin = 1Plots.mm
+)
+
+
+
+# set xlims and ylims
+Plots.heatmap!(; xlims=(minimum(t_max_vec), maximum(t_max_vec)),
+                      ylims=(minimum(t_gradient_vec), maximum(t_gradient_vec)))
+Plots.savefig(plot_path*"ctn_loss_heatmap_fixed_bond_bending_const_$(fixed_bond_bending_const).png")
+
+
+# do the same plot again but now for t_gradient fixed at the value of minimal
+# loss
+fixed_t_gradient = t_gradient_vec[min_loss_index[3]]
+t_gradient_index = min_loss_index[3]
+
+Z  = loss_array[:, :, t_gradient_index]'
+Zlog = log10.(Z)
+
+Plots.heatmap( t_max_vec, bond_bending_const_vec, Zlog';
+    ylabel=Latex.L"\beta",
+    xlabel=Latex.L"T_\mathrm{max}",
+    title=Latex.L"Loss at $\Delta T = $"*string(fixed_t_gradient),
+    # colorbar controls
+    colorbar_title       = cb_title,
+    colorbar_titlefontsize = 16,            # ↑ label font size
+    colorbar_tickfontsize  = 9,             # (optional) shrink tick labels to reduce crowding
+
+    c = :viridis,
+    clim = (minimum(exps), maximum(exps)),
+    colorbar_ticks = (ticks_vals, ticks_lbls),
+    #aspect_ratio = :equal,
+
+    # this only affects outer spacing—keep if your figure needs extra room
+    right_margin = 10Plots.mm
+)
+
+# set xlims and ylims
+Plots.heatmap!(; ylims=(5, maximum(bond_bending_const_vec)),
+                      xlims=(minimum(t_max_vec), maximum(t_max_vec)))
+Plots.savefig(plot_path*"ctn_loss_heatmap_fixed_t_gradient_$(fixed_t_gradient).png")
+
+
+
+load_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\networks\pachy\\"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\biological\networks\pachy\\"
+
+filename_red = "pachy_red_structure_factor_bonds_array.h5"
+filename_blue = "pachy_blue_structure_factor_bonds_array.h5"
+
+structure_factor_blue_dict = GU.load_h5_dict(load_path*filename_red)
+structure_factor_red_dict = GU.load_h5_dict(load_path*filename_blue)
+
+t_range = (1e-2, 5)
+min_wavenumber_to_consider = pi/4
+consider_spectral_density = false
+
+time_vec = exp.(LinRange(log(t_range[1]), log(t_range[2]), 40))
+
+function comparison_func(x, a) 
+    return a * x ^(-3/2)
+end
+
+# calculate the excess spreadability for each t value
+excess_spreadability_vec_red = [NA.get_excess_spreadability(
+        structure_factor_red_dict, time_vec[i]; 
+        min_wavenumber_to_consider=min_wavenumber_to_consider,
+        consider_spectral_density = consider_spectral_density) for i in 
+        eachindex(time_vec)]
+
+excess_spreadability_vec_blue = [NA.get_excess_spreadability(
+        structure_factor_blue_dict, time_vec[i]; 
+        min_wavenumber_to_consider=min_wavenumber_to_consider,
+        consider_spectral_density = consider_spectral_density) for i in 
+        eachindex(time_vec)]
+
+Plots.plot(
+    time_vec,
+    excess_spreadability_vec_blue;
+    xscale = :log10,
+    yscale = :log10,
+    xlabel = Latex.L"Time $t$",
+    ylabel = "Excess spreadability",
+    label = "Pachy blue",
+    bottom_margin = 2Plots.mm
+)
+Plots.plot!(
+    time_vec,
+    excess_spreadability_vec_red;
+    label = "Pachy red"
+)
+
+Plots.plot!(time_vec, comparison_func.(time_vec, 1000), label = Latex.L"t^{-3/2}", color = :black, linestyle = :dash)
+
+
+Plots.savefig(plot_path*"pachy_excess_spreadability_comparison.png")
+
+
+
+filename_red = "pachy_red_structure_factor_angle_averaged.h5"
+filename_blue = "pachy_blue_structure_factor_angle_averaged.h5"
+
+structure_factor_blue_dict = GU.load_h5_dict(load_path*filename_red)
+structure_factor_red_dict = GU.load_h5_dict(load_path*filename_blue)
+
+t_range = (1e-2, 5)
+min_wavenumber_to_consider = pi/2
+consider_spectral_density = false
+
+time_vec = exp.(LinRange(log(t_range[1]), log(t_range[2]), 40))
+
+function comparison_func(x, a) 
+    return a * x ^(-3/2)
+end
+
+# calculate the excess spreadability for each t value
+excess_spreadability_vec_red = [NA.get_excess_spreadability_old(
+        structure_factor_red_dict, time_vec[i]; 
+        min_wavenumber_to_consider=min_wavenumber_to_consider,
+        consider_spectral_density = consider_spectral_density) for i in 
+        eachindex(time_vec)]
+
+excess_spreadability_vec_blue = [NA.get_excess_spreadability_old(
+        structure_factor_blue_dict, time_vec[i]; 
+        min_wavenumber_to_consider=min_wavenumber_to_consider,
+        consider_spectral_density = consider_spectral_density) for i in 
+        eachindex(time_vec)]
+
+Plots.plot(
+    time_vec,
+    Measurements.value.(excess_spreadability_vec_blue);
+    xscale = :log10,
+    yscale = :log10,
+    xlabel = Latex.L"Time $t$",
+    ylabel = "Excess spreadability",
+    label = "Pachy blue",
+    bottom_margin = 2Plots.mm
+)
+Plots.plot!(
+    time_vec,
+    Measurements.value.(excess_spreadability_vec_red);
+    label = "Pachy red"
+)
+
+Plots.plot!(time_vec, comparison_func.(time_vec, 1), label = Latex.L"t^{-3/2}", color = :black, linestyle = :dash)
+
+
+Plots.savefig(plot_path*"pachy_excess_spreadability_comparison_old_pi_over_2_excluded.png")
+
+
+load_path_crystal = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\crystals\ctn\\"
+load_path_disorder = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\targeted\ctn_pachy\target_6\run_2\\"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\crystals\ctn\\"
+
+filename_crystal = "ctn_1728_vertices_structure_factor_bonds_array.h5"
+filename_disorder = "ctn_beta_9.4000_t_max_15.0000_t_gradient_14.0000_nr_vertices_1792_structure_factor_bonds_array.h5"
+
+structure_factor_disorder_dict = GU.load_h5_dict(load_path_disorder*filename_disorder)
+structure_factor_crystal_dict = GU.load_h5_dict(load_path_crystal*filename_crystal)
+
+t_range = (1e-2, 5)
+min_wavenumber_to_consider = pi/4
+consider_spectral_density = false
+
+time_vec = exp.(LinRange(log(t_range[1]), log(t_range[2]), 40))
+
+function comparison_func(x, a) 
+    return a * x ^(-3/2)
+end
+
+# calculate the excess spreadability for each t value
+excess_spreadability_vec_crystal = [NA.get_excess_spreadability(
+        structure_factor_crystal_dict, time_vec[i]; 
+        min_wavenumber_to_consider=min_wavenumber_to_consider,
+        consider_spectral_density = consider_spectral_density) for i in 
+        eachindex(time_vec)]
+
+excess_spreadability_vec_disorder = [NA.get_excess_spreadability(
+        structure_factor_disorder_dict, time_vec[i]; 
+        min_wavenumber_to_consider=min_wavenumber_to_consider,
+        consider_spectral_density = consider_spectral_density) for i in 
+        eachindex(time_vec)]
+
+Plots.plot(
+    time_vec,
+    excess_spreadability_vec_disorder;
+    xscale = :log10,
+    yscale = :log10,
+    xlabel = Latex.L"Time $t$",
+    ylabel = "Excess spreadability",
+    label = "Disorder",
+    bottom_margin = 2Plots.mm
+)
+Plots.plot!(
+    time_vec,
+    excess_spreadability_vec_crystal;
+    label = "Crystal"
+)
+
+Plots.plot!(time_vec, comparison_func.(time_vec, 100), label = Latex.L"t^{-3/2}", color = :black, linestyle = :dash)
+
+# place legend in the bottom left
+Plots.plot!(legend = :bottomleft)
+Plots.savefig(plot_path*"ctn_1728_vertices_crystal_disorder_excess_spreadability_comparison.png")
+
+
+load_path_crystal = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\crystals\ctn\\"
+load_path_disorder = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\targeted\ctn_pachy\target_6\run_2\\"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\crystals\ctn\\"
+
+
+filename_crystal = "ctn_1728_vertices_structure_factor_bonds_array.h5"
+filename_disorder = "ctn_beta_9.4000_t_max_15.0000_t_gradient_14.0000_nr_vertices_1792_structure_factor_bonds_array.h5"
+
+structure_factor_disorder_dict = GU.load_h5_dict(load_path_disorder*filename_disorder)
+structure_factor_crystal_dict = GU.load_h5_dict(load_path_crystal*filename_crystal)
+
+NA.plot_structure_factor_heatmap(
+        structure_factor_disorder_dict,
+        plot_path*"ctn_disorder_1728_vertices";
+        title="disorder",
+        save_plot = true,
+        clims = (0, 2 ),
+        x_y_lims = nothing,
+        clims_from_mean = false,)
+
+NA.plot_structure_factor_heatmap(
+        structure_factor_crystal_dict,
+        plot_path*"ctn_crystal_1728_vertices";
+        title="crystal",
+        save_plot = true,
+        clims = (0, 0.1 ),
+        x_y_lims = nothing,
+        clims_from_mean = false,)
+
+
+# place legend in the bottom left
+Plots.plot!(legend = :bottomleft)
+Plots.savefig(plot_path*"ctn_1728_vertices_crystal_disorder_excess_spreadability_comparison.png")
+
+
+filename_crystal = "ctn_beta_0.0005_t_max_0.0005_t_gradient_0.0005_structure_factor_bonds_array.h5"
+filename_disorder = "ctn_beta_9.4000_t_max_15.0000_t_gradient_14.0000_nr_vertices_224_structure_factor_bonds_array.h5"
+
+structure_factor_disorder_dict = GU.load_h5_dict(load_path_disorder*filename_disorder)
+structure_factor_crystal_dict = GU.load_h5_dict(load_path_crystal*filename_crystal)
+
+t_range = (1e-2, 5)
+min_wavenumber_to_consider = 0.0 # pi/4
+consider_spectral_density = false
+
+time_vec = exp.(LinRange(log(t_range[1]), log(t_range[2]), 40))
+
+function comparison_func(x, a) 
+    return a * x ^(-3/2)
+end
+
+# calculate the excess spreadability for each t value
+excess_spreadability_vec_crystal = [NA.get_excess_spreadability(
+        structure_factor_crystal_dict, time_vec[i]; 
+        min_wavenumber_to_consider=min_wavenumber_to_consider,
+        consider_spectral_density = consider_spectral_density) for i in 
+        eachindex(time_vec)]
+
+excess_spreadability_vec_disorder = [NA.get_excess_spreadability(
+        structure_factor_disorder_dict, time_vec[i]; 
+        min_wavenumber_to_consider=min_wavenumber_to_consider,
+        consider_spectral_density = consider_spectral_density) for i in 
+        eachindex(time_vec)]
+
+Plots.plot(
+    time_vec,
+    excess_spreadability_vec_disorder;
+    xscale = :log10,
+    yscale = :log10,
+    xlabel = Latex.L"Time $t$",
+    ylabel = "Excess spreadability",
+    label = "Disorder",
+    ylim = (1e-4, 1e5),
+    bottom_margin = 2Plots.mm
+)
+Plots.plot!(
+    time_vec,
+    excess_spreadability_vec_crystal;
+    label = "Crystal"
+)
+
+Plots.plot!(time_vec, comparison_func.(time_vec, 1), label = Latex.L"t^{-3/2}", color = :black, linestyle = :dash)
+
+# place legend in the bottom left
+Plots.plot!(legend = :bottomleft)
+Plots.savefig(plot_path*"ctn_224_vertices_crystal_disorder_excess_spreadability_comparison.png")
+
+
+load_path_crystal = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\crystals\ctn\\"
+load_path_disorder = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\targeted\ctn_pachy\target_6\run_2\\"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\crystals\ctn\\"
+
+
+filename_crystal = "ctn_beta_0.0005_t_max_0.0005_t_gradient_0.0005_structure_factor_bonds_array.h5"
+filename_disorder = "ctn_beta_9.4000_t_max_15.0000_t_gradient_14.0000_nr_vertices_224_structure_factor_bonds_array.h5"
+
+structure_factor_disorder_dict = GU.load_h5_dict(load_path_disorder*filename_disorder)
+structure_factor_crystal_dict = GU.load_h5_dict(load_path_crystal*filename_crystal)
+
+NA.plot_structure_factor_heatmap(
+        structure_factor_disorder_dict,
+        plot_path*"ctn_disorder_224_vertices";
+        title="disorder",
+        save_plot = true,
+        clims = (0, 2 ),
+        x_y_lims = nothing,
+        clims_from_mean = false,)
+
+NA.plot_structure_factor_heatmap(
+        structure_factor_crystal_dict,
+        plot_path*"ctn_crystal_224_vertices";
+        title="crystal",
+        save_plot = true,
+        clims = (0, 0.1 ),
+        x_y_lims = nothing,
+        clims_from_mean = false,)
