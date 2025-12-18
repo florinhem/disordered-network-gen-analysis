@@ -244,50 +244,58 @@ Measure structure factor as a function of wavevector using the scattering
 intensity estimator as described in equation 24 of 10.1007/s11222-023-10219-1.
 Here, only the vertices of the network are considered.
 """
+
 function get_structure_factor(
     wavevector::Vector{Float64},
     spatial_network::MetaGraphsNext.MetaGraph;
     periodic_boundary_conditions::Bool=true,
     apodization_fct = hann_apodization_fct,
     apodization_fct_parameter::Float64 = 0.5,
-    min_coords=[spatial_network[]["supercell_edge_length"]/4,
-        spatial_network[]["supercell_edge_length"]/4,
-        spatial_network[]["supercell_edge_length"]/4],
-    max_coords=[3/4*spatial_network[]["supercell_edge_length"],
-        3/4*spatial_network[]["supercell_edge_length"],
-        3/4*spatial_network[]["supercell_edge_length"]])
+    min_coords=nothing,
+    max_coords=nothing)
+
+    # Cache values to avoid repeated lookups
+    supercell_edge_length = spatial_network[]["supercell_edge_length"]
+    nr_vertices = spatial_network[]["nr_vertices"]
+    min_coords = isnothing(min_coords) ? [supercell_edge_length/4,
+        supercell_edge_length/4,
+        supercell_edge_length/4] : min_coords
+    max_coords = isnothing(max_coords) ? [3supercell_edge_length/4,
+        3supercell_edge_length/4,
+        3supercell_edge_length/4] : max_coords
+
+    # Pre-fetch vertex labels
+    vertices = MetaGraphsNext.labels(spatial_network)
 
     # initialize the sum of the scattering field
-    scattering_field_sum = 0.0 + 0.0*im
-    
-    # perform sum over all vertices
-    for vertex in MetaGraphsNext.labels(spatial_network)
+    scattering_field_sum = 0.0 + 0.0im
 
-        # get vertex position
+    # Use @inbounds to speed up loop
+    @inbounds for vertex in vertices
         vertex_pos = spatial_network[vertex]["position"]
 
-        # calculate structure factor contribution of current vertex and
-        # wavevector
-        scattering_field = exp(-im*LinearAlgebra.dot(wavevector, 
-                vertex_pos))
-        
+        # Inline dot product for speed
+        scalar_prod = (wavevector[1]*vertex_pos[1] 
+            + wavevector[2]*vertex_pos[2] + wavevector[3]*vertex_pos[3])
+
+        # cis(x) is the same as exp(im*x)
+        scattering_field = cis(-scalar_prod)
+
         if !periodic_boundary_conditions
             # apply apodization window to reduce effects of sharp edges
-            apodization_window_value = apodization_fct(
-                vertex_pos, min_coords, max_coords, apodization_fct_parameter)
-
-            scattering_field *= apodization_window_value
+            scattering_field *= apodization_fct(vertex_pos, min_coords, 
+                max_coords, apodization_fct_parameter)
         end
 
         scattering_field_sum += scattering_field
     end
 
     # calculate structure factor
-    structure_factor = 1/spatial_network[]["nr_vertices"] * abs2(
-        scattering_field_sum)
+    structure_factor = abs2(scattering_field_sum) / nr_vertices
 
     return structure_factor
 end
+
 
 
 """
@@ -295,61 +303,66 @@ Measure structure factor as a function of wavevector using the scattering
 intensity estimator as described in equation 24 of 10.1007/s11222-023-10219-1
 and considering the bonds of the network.
 """
+
 function get_structure_factor_bonds(
     wavevector::Vector{Float64},
     spatial_network::MetaGraphsNext.MetaGraph;
     periodic_boundary_conditions::Bool=true,
     apodization_fct = hann_apodization_fct,
     apodization_fct_parameter::Float64 = 0.5,
-    min_coords=[spatial_network[]["supercell_edge_length"]/4,
-        spatial_network[]["supercell_edge_length"]/4,
-        spatial_network[]["supercell_edge_length"]/4],
-    max_coords=[3/4*spatial_network[]["supercell_edge_length"],
-        3/4*spatial_network[]["supercell_edge_length"],
-        3/4*spatial_network[]["supercell_edge_length"]],
-    no_div_by_zero_value = 1e-10)
+    min_coords=nothing,
+    max_coords=nothing,
+    no_div_by_zero_value::Float64 = 1e-10)
+
+    # Cache values
+    supercell_edge_length = spatial_network[]["supercell_edge_length"]
+    min_coords = isnothing(min_coords) ? [supercell_edge_length/4,
+        supercell_edge_length/4,
+        supercell_edge_length/4] : min_coords
+    max_coords = isnothing(max_coords) ? [3supercell_edge_length/4,
+        3supercell_edge_length/4,
+        3supercell_edge_length/4] : max_coords
+
+    bonds = MetaGraphsNext.edge_labels(spatial_network)
+    nr_bonds = length(bonds)
 
     # initialize the sum of the scattering field
-    scattering_field_sum = 0.0 + 0.0*im
-    
-    # perform sum over all bonds
-    for bond in MetaGraphsNext.edge_labels(spatial_network)
+    scattering_field_sum = 0.0 + 0.0im
 
-        # get the mid-point of the bond considering periodic boundary
-        # conditions
-        bond_vector = spatial_network[bond...]["vector"] 
-        bond_mid_point = (((spatial_network[bond[1]]["position"] 
-                .+ bond_vector ./ 2) 
-            .% spatial_network[]["supercell_edge_length"]))
+    # Use @inbounds to speed up loop
+    @inbounds for bond in bonds
+        bond_vector = spatial_network[bond...]["vector"]
+        vertex_pos_1 = spatial_network[bond[1]]["position"]
 
-        # get scalar product of the wavevector with the bond mid-point and the 
-        # bond vector
-        scalar_prod_mid_point = LinearAlgebra.dot(wavevector, bond_mid_point)
-        scalar_prod_vector = LinearAlgebra.dot(wavevector, bond_vector)
-    
-        # calculate structure factor contribution of current bond and 
-        # wavevector
-        scattering_field = (
-            2/(scalar_prod_vector + no_div_by_zero_value)
-            * exp(-im*scalar_prod_mid_point)
-            * sin(scalar_prod_vector/2))
+        # Compute mid-point with periodic wrapping
+        bond_mid_point = ((vertex_pos_1 .+ bond_vector ./ 2) 
+            .% supercell_edge_length)
+
+        # Inline dot products
+        scalar_prod_mid_point = (wavevector[1]*bond_mid_point[1] +
+                                wavevector[2]*bond_mid_point[2] +
+                                wavevector[3]*bond_mid_point[3])
+
+        scalar_prod_vector = (wavevector[1]*bond_vector[1] +
+                              wavevector[2]*bond_vector[2] +
+                              wavevector[3]*bond_vector[3])
+
+        # Use cis instead of exp(-im*x)
+        scattering_field = (2 / (scalar_prod_vector + no_div_by_zero_value)) *
+                           cis(-scalar_prod_mid_point) *
+                           sin(scalar_prod_vector / 2)
 
         if !periodic_boundary_conditions
             # apply apodization window to reduce effects of sharp edges
-            apodization_window_value = apodization_fct(
-                bond_mid_point, min_coords, max_coords, 
-                apodization_fct_parameter)
-
-            scattering_field *= apodization_window_value
+            scattering_field *= apodization_fct(bond_mid_point, 
+                min_coords, max_coords, apodization_fct_parameter)
         end
 
         scattering_field_sum += scattering_field
     end
 
-    nr_bonds = length(MetaGraphsNext.edge_labels(spatial_network))
-
     # calculate structure factor
-    structure_factor = 1/nr_bonds * abs2(scattering_field_sum)
+    structure_factor = abs2(scattering_field_sum) / nr_bonds
 
     return structure_factor
 end
@@ -860,13 +873,11 @@ anisotropy and values around 0.55 represent high anisotropy.
 """
 function get_anisotropy_metric_from_structure_factor(
     structure_factor_angle_averaged_dict::Dict;
-    maximal_length_to_check = 3.0,
     nr_closest_wavenumbers = 3,
     normalization_parameter = 1.0)
 
     # set the wavenumbers where structure factor will be checked
-    wavenumbers_to_check_vec = (2*pi) ./ collect(
-        0.5:0.5:maximal_length_to_check+0.01)
+    wavenumbers_to_check_vec = (2*pi) .* [4/8, 5/8, 6/8, 7/8, 1.0]
 
     # for each wavenumber to check, calculate a normalized coefficient of
     # variation (std over mean)
@@ -874,15 +885,16 @@ function get_anisotropy_metric_from_structure_factor(
         length(wavenumbers_to_check_vec))
 
     for i in eachindex(wavenumbers_to_check_vec)
-        # get the three indices of the closest wavenumbers to the current
-        # wavenumber to check
+        # get the given number of indices of the closest wavenumbers to the 
+        # current wavenumber to check
         structure_factor_indices_vec = sortperm(abs.(
             structure_factor_angle_averaged_dict["unfiltered_wavenumber_vec"]
             .- wavenumbers_to_check_vec[i]))[1:nr_closest_wavenumbers]
 
         # get the structure factor for the three wavenumbers
         structure_factor_vec = structure_factor_angle_averaged_dict[
-                "unfiltered_structure_factor_vec"][structure_factor_indices_vec[1]]
+                "unfiltered_structure_factor_vec"][
+                    structure_factor_indices_vec[1]]
         for j in 2:nr_closest_wavenumbers
             structure_factor_vec = vcat(structure_factor_vec, 
                 structure_factor_angle_averaged_dict[
@@ -890,11 +902,24 @@ function get_anisotropy_metric_from_structure_factor(
                         structure_factor_indices_vec[j]])
         end
 
-        # calculate the coefficient of variation
-        mean_structure_factor = Statistics.mean(structure_factor_vec)
-        coefficient_of_variation = (
-            Measurements.uncertainty(mean_structure_factor)
-            /Measurements.value(mean_structure_factor))
+        # calculate the coefficient of variation from the total mean and
+        # standard deviation of the structure factor vec
+        total_mean = (sum(Measurements.value.(structure_factor_vec)) / 
+            nr_closest_wavenumbers)
+        # for the total standard deviation, assume the same sample size of
+        # nr_samples_per_wavenumber for each unfiltered wavenumber
+        nr_samples_per_wavenumber = 24
+        total_nr_samples = nr_closest_wavenumbers * nr_samples_per_wavenumber
+        total_std = sqrt(
+            (1/(total_nr_samples - 1)) 
+            *(sum(
+                (nr_samples_per_wavenumber .- 1) 
+                    .* Measurements.uncertainty.(structure_factor_vec).^2
+                .+ nr_samples_per_wavenumber 
+                    .* Measurements.value.(structure_factor_vec).^2  )
+            .- total_nr_samples .* total_mean^2))
+
+        coefficient_of_variation = (total_std / total_mean)
 
         # calculate the anisotropy metric that ranges between 0 and 1
         anisotropy_metric_vec[i] = coefficient_of_variation/(
@@ -1021,7 +1046,7 @@ Get the excess spreadability for a given t value according to eq 23 of
 """
 function get_excess_spreadability(
     structure_factor_array_bonds_dict::Dict,
-    time::Float64;
+    time;
     min_wavenumber_to_consider::Float64 = 0.0,
     consider_spectral_density::Bool = false)
 
@@ -1064,7 +1089,7 @@ below eq 21 of 10.1103/PhysRevE.109.064108.
 """
 function get_hyperuniformity_alpha(structure_factor_array_bonds_dict::Dict;
     consider_spectral_density::Bool = false,
-    t_range = (1e-1, 1),
+    t_range = (1e-1, 1.0),
     min_wavenumber_to_consider::Float64 = 0.0)
 
     # calculate the excess spreadability for each t value

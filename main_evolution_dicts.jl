@@ -9,7 +9,7 @@ import .GeneralUtilities as GU
 
 import Format
 
-nr_samples = 500
+nr_samples = 50
 
 network_type_vec = ["bcu_cn_5_6_7_8"]
 nr_vertices_vec = [ 432]
@@ -21,22 +21,22 @@ relax_globally_after_threshold_cycle = false
 
 for (nr_vertices, network_type) in zip(nr_vertices_vec, network_type_vec)
 
-    println("Generating $nr_vertices vertices of type $network_type")
+    println("Generating evolution dicts of type $network_type")
 
-    # choose random beta values for the samples between 5 and 10
-    beta_vec = 5 .+ 5 .* rand(nr_samples)
+    # choose random beta values for the samples between 1 and 5
+    beta_vec = 0.0 .+ 0.002 .* rand(nr_samples)
 
     # get the melting temperature for the beta values
     t_melt_vec = [NA.get_melting_temperature(network_type, beta; relax_globally_after_threshold_cycle=relax_globally_after_threshold_cycle, shell_nr=shell_nr) for beta in beta_vec]
 
-    # get random values of t_max between t_melt/2 and 2*t_melt 
+    # get random values of t_max between 1.5*t_melt and 2*t_melt 
     t_max_vec = t_melt_vec .* (1/2 .+ 3/2 .* rand(nr_samples))
 
     # get random values of the heating/cooling gradient between t_melt/4 and 
     # 2*t_melt
     t_gradient_vec = t_melt_vec .* (1/4 .+ 7/4 .* rand(nr_samples))
 
-    save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\random\\"*network_type*raw"\evolution_dicts_3\\"
+    save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\random\\"*network_type*raw"\evolution_dicts_4\\"
 
     for i in 1:nr_samples
         temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(t_max_vec[i],

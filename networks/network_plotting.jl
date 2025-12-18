@@ -12,12 +12,14 @@ function get_vertex_position_vec(spatial_network::MetaGraphsNext.MetaGraph)
     vertex_position_vec = Vector{Tuple}(undef, 
         spatial_network[]["nr_vertices"])
 
+    vertex_labels = collect(MetaGraphsNext.labels(spatial_network))
+
     # loop through all vertices
-    for vertex in MetaGraphsNext.labels(spatial_network)
+    for i in eachindex(vertex_labels)
 
         # save vertex position as a tuple
-        vertex_position_vec[vertex] = Tuple(
-                    spatial_network[vertex]["position"])
+        vertex_position_vec[i] = Tuple(
+                    spatial_network[vertex_labels[i]]["position"])
 
     end
 

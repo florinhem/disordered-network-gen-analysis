@@ -687,3 +687,22 @@ function get_energy_relaxation_coefficients(x_vec::Vector, y_vec::Vector)
 end
 
 
+"""
+Get the minimal and maximal vertex coordinates along all three directions
+"""
+function get_min_max_vertex_coords(spatial_network)
+    # get the minimal and maximal vertex positions along the three axes
+    min_vertex_coords = [Inf, Inf, Inf]
+    max_vertex_coords = [-Inf, -Inf, -Inf]
+    for vertex in MetaGraphsNext.labels(spatial_network)
+        for i in 1:3
+            if spatial_network[vertex]["position"][i] < min_vertex_coords[i]
+                min_vertex_coords[i] = spatial_network[vertex]["position"][i]
+            end
+            if spatial_network[vertex]["position"][i] > max_vertex_coords[i]
+                max_vertex_coords[i] = spatial_network[vertex]["position"][i]
+            end
+        end
+    end
+    return min_vertex_coords, max_vertex_coords
+end

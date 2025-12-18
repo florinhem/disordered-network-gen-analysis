@@ -10,10 +10,15 @@ import Plots
 import LaTeXStrings as Latex
 import Measurements
 import GLMakie
+import Printf
+import HDF5
 
 import CSV
 import DataFrames
 import Statistics
+import MetaGraphsNext
+import StatsBase
+import LinearAlgebra
 
 fontsize=16
 
@@ -33,7 +38,8 @@ bottom_margin = 1Plots.mm,
 linewidth=3, 
 thickness_scaling = 1,
 framestyle = :box,
-fontfamily="DejaVu Sans")
+fontfamily="DejaVu Sans",
+size = (500, 350))
 
 # functions to have pi ticks
 function pitick(start, stop, denom; mode=:text)

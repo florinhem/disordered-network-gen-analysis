@@ -180,6 +180,7 @@ function get_all_dicts_from_network_single_file(
     pore_size_sampling_grid_size = 0.2,
     max_pore_radius = 3.0,
     hyperuniformity_min_wavenumber_to_consider::Float64 = 0.0,
+    exclude_layer_thickness::Float64 = 0.0,
     periodic_boundary_conditions::Bool = true,
     print_progress::Bool = false,
     print_lock = Threads.ReentrantLock())
@@ -193,7 +194,10 @@ function get_all_dicts_from_network_single_file(
         spatial_network;
         periodic_boundary_conditions = periodic_boundary_conditions,
         save_result = true,
-        save_path = analysis_data_path*filename)
+        save_path = analysis_data_path*filename,
+        print_progress = print_progress,
+        thread_nr = Threads.threadid(),
+        print_lock = print_lock)
 
     # get ring radius distribution
 
@@ -281,6 +285,8 @@ function get_all_dicts_from_network_single_file(
         l_max_steinhardt_q_l = 12,
         hyperuniformity_min_wavenumber_to_consider
             = hyperuniformity_min_wavenumber_to_consider,
+        exclude_layer_thickness = exclude_layer_thickness,
+        periodic_boundary_conditions = periodic_boundary_conditions,
         save_result = true,
         )
 
@@ -299,6 +305,7 @@ function get_all_dicts_from_networks_single_thread(run_and_filename_chunk,
         = raw"..\analysis_data\random_networks\digital_sphere_masks\\",
     pore_size_sampling_grid_size = 0.2,
     max_pore_radius = 3.0,
+    exclude_layer_thickness::Float64 = 0.0,
     periodic_boundary_conditions::Bool = true,
     print_progress::Bool = false,
     print_lock = Threads.ReentrantLock())
@@ -321,6 +328,7 @@ function get_all_dicts_from_networks_single_thread(run_and_filename_chunk,
             digital_sphere_mask_path = digital_sphere_mask_path,
             pore_size_sampling_grid_size = pore_size_sampling_grid_size,
             max_pore_radius = max_pore_radius,
+            exclude_layer_thickness = exclude_layer_thickness,
             periodic_boundary_conditions = periodic_boundary_conditions,
             print_progress = print_progress,
             print_lock = print_lock)
@@ -342,6 +350,7 @@ function get_all_dicts_from_networks_multithreading(
         = raw"..\analysis_data\random_networks\digital_sphere_masks\\",
     pore_size_sampling_grid_size = 0.2,
     max_pore_radius = 3.0,
+    exclude_layer_thickness::Float64 = 0.0,
     periodic_boundary_conditions::Bool = true,
     print_progress::Bool = false,
     runs_vec = collect(1:5),
@@ -405,6 +414,7 @@ function get_all_dicts_from_networks_multithreading(
             digital_sphere_mask_path = digital_sphere_mask_path,
             pore_size_sampling_grid_size = pore_size_sampling_grid_size,
             max_pore_radius = max_pore_radius,
+            exclude_layer_thickness = exclude_layer_thickness,
             periodic_boundary_conditions = periodic_boundary_conditions,
             print_progress = print_progress,
             print_lock = print_lock)
@@ -440,6 +450,8 @@ function get_order_metrics(filename::String,
     analysis_data_path::String;
     l_max_steinhardt_q_l::Int64 = 12,
     hyperuniformity_min_wavenumber_to_consider::Float64 = 0.0,
+    exclude_layer_thickness::Float64 = 0.0,
+    periodic_boundary_conditions::Bool = true,
     save_result = false)
 
     # load network
@@ -453,25 +465,37 @@ function get_order_metrics(filename::String,
     end
 
     # Measure the standard deviation of bond lengths
-    bond_length_std, bond_length_vec = get_bond_length_std(spatial_network)
+    bond_length_std, bond_length_vec = get_bond_length_std(spatial_network;
+        exclude_layer_thickness = exclude_layer_thickness,
+        periodic_boundary_conditions = periodic_boundary_conditions)
 
     # Measure the standard deviation of bond angles
-    bond_angle_std, bond_angle_vec = get_bond_angle_std(spatial_network)
+    bond_angle_std, bond_angle_vec = get_bond_angle_std(spatial_network;
+        exclude_layer_thickness = exclude_layer_thickness,
+        periodic_boundary_conditions = periodic_boundary_conditions)
 
     # Measure the entropy of dihedral angles
     dihedral_angle_entropy = get_dihedral_angle_entropy(
-        spatial_network)
+        spatial_network;
+        exclude_layer_thickness = exclude_layer_thickness,
+        periodic_boundary_conditions = periodic_boundary_conditions)
 
     # Mesure the entropy of bond orientations
-    bond_orientation_entropy = get_bond_orientation_entropy(spatial_network)
+    bond_orientation_entropy = get_bond_orientation_entropy(spatial_network;
+        exclude_layer_thickness = exclude_layer_thickness,
+        periodic_boundary_conditions = periodic_boundary_conditions)
 
     # Get the coordination number statistics
     coordination_nr_mean, coordination_nr_std = get_coordination_nr_statistics(
-        spatial_network)
+        spatial_network;
+        exclude_layer_thickness = exclude_layer_thickness,
+        periodic_boundary_conditions = periodic_boundary_conditions)
 
     # get Steinhardt local bond order parameters and store them in a vector
     q_l_total_network_mean_dict = get_q_l_total_network_mean_dict(
-        spatial_network, l_max_steinhardt_q_l)
+        spatial_network, l_max_steinhardt_q_l;
+        exclude_layer_thickness = exclude_layer_thickness,
+        periodic_boundary_conditions = periodic_boundary_conditions)
 
     q_l_vec = convert_q_l_dict_to_vec(q_l_total_network_mean_dict, 
         l_max_steinhardt_q_l)
@@ -534,9 +558,13 @@ function get_order_metrics(filename::String,
         get_anisotropy_metric_from_structure_factor(
             structure_factor_bonds_angle_averaged_dict))
 
+    # load structure factor by wavevector array for bonds
+    structure_factor_bonds_dict = GU.load_h5_dict(
+        analysis_data_path*filename*"_structure_factor_bonds_array.h5")
+
     # get the alpha value that captures whether the network is hyperuniform 
     hyperuniformity_alpha = (
-        get_hyperuniformity_alpha(structure_factor_bonds_angle_averaged_dict;
+        get_hyperuniformity_alpha(structure_factor_bonds_dict;
             min_wavenumber_to_consider =
                 hyperuniformity_min_wavenumber_to_consider))
 
@@ -645,11 +673,14 @@ function get_order_metrics_all_files(
         length(order_metrics_filenames))
     anisotropy_metric_from_structure_factor_bonds_vec = Vector{Float64}(undef,
         length(order_metrics_filenames))
-    hyperuniformity_alpha_vec = Vector{Measurements.Measurement{Float64}}(
-        undef, length(order_metrics_filenames))
+    hyperuniformity_alpha_vec = Vector{Float64}(undef,
+        length(order_metrics_filenames))
 
     # loop through order metric filenames
     for i in eachindex(order_metrics_filenames)
+
+        println("Processing file ", order_metrics_filenames[i], " (",
+            i, "/", length(order_metrics_filenames), ")")
 
         # load order metrics
         order_metrics_dict = GU.load_h5_dict(
@@ -957,4 +988,127 @@ function convert_periodic_to_non_periodic(spatial_network)
     end
 
     return spatial_network_no_pbc
+end
+
+
+"""
+Check if a bond is at a given distance to the supercell faces of a network
+"""
+function bond_is_at_distance_to_supercell_faces(
+    bond::Tuple{Int64, Int64},
+    spatial_network::MetaGraphsNext.MetaGraph,
+    distance_to_supercell_faces::Float64,
+    min_vertex_coords::Vector{Float64}, 
+    max_vertex_coords::Vector{Float64})
+
+    # get the positions of the two vertices
+    vertex_1_pos = spatial_network[bond[1]]["position"]
+    vertex_2_pos = spatial_network[bond[2]]["position"]
+    
+    is_at_distance = (all(vertex_1_pos 
+            .> (min_vertex_coords .+ distance_to_supercell_faces))
+        && all(vertex_1_pos 
+            .< (max_vertex_coords .- distance_to_supercell_faces))
+        && all(vertex_2_pos 
+            .> (min_vertex_coords .+ distance_to_supercell_faces))
+        && all(vertex_2_pos 
+            .< (max_vertex_coords .- distance_to_supercell_faces)))
+
+    return is_at_distance
+end
+
+
+"""
+Get the networks in a search dictionary that are the closest to the network
+at the target index in the target dictionary
+"""
+function find_closest_network_to_target(
+    order_metrics_target_dict,
+    order_metrics_search_dict;
+    keys::Vector{String}=[
+        "bond_length_std_vec", # 0.15
+        "bond_angle_std_vec", # 0.15
+        "dihedral_angle_entropy_vec", # 0.05
+        "bond_orientation_entropy_vec", # 0.10
+        "coordination_nr_mean_vec", # 0.01
+        "coordination_nr_std_vec", # 0.01
+        "vertex_homogeneity_metric_vec", # 0.05
+        "uncoordinated_neighbor_distance_vec", # 0.05
+        "ring_size_mean_vec", # 0.005
+        "ring_size_std_vec", # 0.005
+        "ring_radius_mean_vec", # 0.05
+        "ring_radius_std_vec", # 0.05
+        "critical_pore_radius_vec", # 0.10
+        "anisotropy_metric_from_structure_factor_vec", # 0.05
+        "anisotropy_metric_from_structure_factor_bonds_vec", # 0.05
+        "hyperuniformity_alpha_vec", # 0.02
+        ],
+    weights::AbstractVector=[0.15, 0.15, 0.05, 0.10, 0.005, 0.005, 0.05, 0.05, 
+        0.005, 0.005, 0.05, 0.05, 0.10, 0.05, 0.05, 0.02],
+    target_index::Int = 1,
+    nr_closest_results::Int = 1
+)
+    # Assume keys exist and vectors align per your guarantee
+
+    # Optionally compute per-metric scales across both dicts
+    per_metric_scales = nothing
+
+    # Weighted L2 distance between bio[i] and gen[j]
+    weighted_l2 = function (i::Int, j::Int)
+        acc = 0.0
+        @inbounds for (k, w) in zip(keys, weights)
+            db = order_metrics_target_dict[k][i]
+            dg = order_metrics_search_dict[k][j]
+            acc += (w * (dg - db))^2
+        end
+        return sqrt(acc)
+    end
+
+    # We only need lengths for loop bounds (assume consistent)
+    nr_searched_networks = length(order_metrics_search_dict[keys[1]])
+
+    # Compute distances to all generated networks
+    dists = Vector{Float64}(undef, nr_searched_networks)
+    @inbounds for j in 1:nr_searched_networks
+        dists[j] = weighted_l2(target_index, j)
+    end
+
+    order = sortperm(dists)                       # ascending by distance
+    topk  = order[1:min(nr_closest_results, nr_searched_networks)]
+
+    return (
+        target_index        = target_index,
+        best_indices     = topk,
+        dists            = dists[topk],
+        normalization    = normalization,
+        per_metric_scales = per_metric_scales
+    )
+end
+
+
+function get_nr_accepted_moves_order_metrics_dict(order_metrics_dict::Dict,
+    spatial_network_path::String,
+    analysis_data_path::String;
+    order_metrics_dict_filename::String = "all_order_metrics.h5"
+    )
+
+    order_metrics_dict = GU.load_h5_dict(
+        analysis_data_path*order_metrics_dict_filename)
+
+    filenames_vec = order_metrics_dict["filenames_vec"]
+    nr_accepted_moves_vec = Vector{Int64}()
+    for current_filename in filenames_vec
+        evolution_dict = GU.load_h5_dict(
+            spatial_network_path*current_filename*"_evolution.h5")
+        push!(nr_accepted_moves_vec, sum(evolution_dict["move_accepted_vec"]))
+    end
+
+    order_metrics_dict["nr_accepted_moves_vec"] = nr_accepted_moves_vec
+
+    # save a copy of the dict 
+    GU.save_dict_to_h5(deepcopy(order_metrics_dict), 
+        analysis_data_path*order_metrics_dict_filename[1:end-3]
+        *"_with_nr_accepted_moves.h5")
+
+    return order_metrics_dict
 end

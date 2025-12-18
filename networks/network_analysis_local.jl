@@ -3,20 +3,61 @@ these functions can be used to characterize networks by means of local order
 metrics
 """
 
+
+"""
+Get considered bonds based on periodic boundary conditions and excluded layer 
+thickness
+"""
+function get_excluded_bonds(
+    spatial_network::MetaGraphsNext.MetaGraph;
+    exclude_layer_thickness::Float64 = 0.0,
+    periodic_boundary_conditions::Bool = true)
+
+    # get minimal and maximal vertex coordinates along all three axes in case
+    # of non-periodic boundary conditions
+    if !periodic_boundary_conditions
+        min_vertex_coords, max_vertex_coords = get_min_max_vertex_coords(
+        spatial_network)
+    end
+
+    # get all considered bonds
+    considered_bonds = Vector{Tuple{Int64, Int64}}()
+    for bond in MetaGraphsNext.edge_labels(spatial_network)
+        if periodic_boundary_conditions
+            push!(considered_bonds, bond)
+        else
+            if bond_is_at_distance_to_supercell_faces(
+                bond,
+                spatial_network,
+                exclude_layer_thickness,
+                min_vertex_coords, 
+                max_vertex_coords)
+                
+                push!(considered_bonds, bond)
+            end
+        end
+    end
+
+    return considered_bonds
+end
+
 """
 Measure the standard deviation of bond lengths
 """
-function get_bond_length_std(spatial_network::MetaGraphsNext.MetaGraph)
-    
-    nr_bonds=0
-    for bond in MetaGraphsNext.edge_labels(spatial_network)
-        nr_bonds+=1
-    end
+function get_bond_length_std(spatial_network::MetaGraphsNext.MetaGraph;
+    exclude_layer_thickness::Float64 = 0.0,
+    periodic_boundary_conditions::Bool = true)
 
-    bond_length_vec = Vector{Float64}(undef, nr_bonds)
+    # get all considered bonds
+    considered_bonds = get_excluded_bonds(
+        spatial_network;
+        periodic_boundary_conditions=periodic_boundary_conditions,
+        exclude_layer_thickness=exclude_layer_thickness)
+
+    bond_length_vec = Vector{Float64}(undef, length(considered_bonds))
     bond_count = 1
 
-    for bond in MetaGraphsNext.edge_labels(spatial_network)
+    for bond in considered_bonds
 
         bond_length_vec[bond_count] = sqrt(
             spatial_network[bond...]["distance_squared"]
@@ -34,16 +75,51 @@ end
 """
 Measure the standard deviation of bond angles
 """
-function get_bond_angle_std(spatial_network::MetaGraphsNext.MetaGraph)
+function get_bond_angle_std(spatial_network::MetaGraphsNext.MetaGraph;
+    exclude_layer_thickness::Float64 = 0.0,
+    periodic_boundary_conditions::Bool = true)
+
+    # get minimal and maximal vertex coordinates along all three axes in case
+    # of non-periodic boundary conditions
+    if !periodic_boundary_conditions
+        min_vertex_coords, max_vertex_coords = get_min_max_vertex_coords(
+        spatial_network)
+    end
     
     nr_angles=0
+    
+    # get all considered vertices and count the number of angles
+    considered_vertices = Vector{Int64}()
     for vertex in MetaGraphsNext.labels(spatial_network)
         if spatial_network[vertex]["coordination_nr"] > 1
-            # get iterator of bond combinations
-            bond_combinations_iter = Combinatorics.combinations(collect(
-                MetaGraphsNext.neighbor_labels(spatial_network, vertex)), 2)
+            if periodic_boundary_conditions
+                # get iterator of bond combinations
+                bond_combinations_iter = Combinatorics.combinations(collect(
+                    MetaGraphsNext.neighbor_labels(spatial_network, vertex)), 
+                    2)
 
-            nr_angles+=length(bond_combinations_iter)
+                nr_angles+=length(bond_combinations_iter)
+                push!(considered_vertices, vertex)
+
+            else
+                # get the positions of the vertex
+                vertex_pos = spatial_network[vertex]["position"]
+
+                # check if the vertex is within the excluded layer thickness
+                if (all(vertex_pos 
+                        .> (min_vertex_coords .+ exclude_layer_thickness))
+                    && all(vertex_pos 
+                        .< (max_vertex_coords .- exclude_layer_thickness)))
+
+                    # get iterator of bond combinations
+                    bond_combinations_iter = Combinatorics.combinations(
+                        collect(MetaGraphsNext.neighbor_labels(
+                            spatial_network, vertex)), 2)
+
+                    nr_angles+=length(bond_combinations_iter)
+                    push!(considered_vertices, vertex)
+                end
+            end
         end
     end
     
@@ -52,7 +128,7 @@ function get_bond_angle_std(spatial_network::MetaGraphsNext.MetaGraph)
     angle_count = 1
 
     # loop through all vertices
-    for vertex in MetaGraphsNext.labels(spatial_network)
+    for vertex in considered_vertices
         if spatial_network[vertex]["coordination_nr"] > 1
 
             # get iterator of bond combinations
@@ -102,13 +178,21 @@ end
 Measure the Shannon entropy of dihedral angles that are binned in bins of 10
 degrees
 """
-function get_dihedral_angle_entropy(spatial_network::MetaGraphsNext.MetaGraph)
+function get_dihedral_angle_entropy(spatial_network::MetaGraphsNext.MetaGraph;
+    exclude_layer_thickness::Float64 = 0.0,
+    periodic_boundary_conditions::Bool = true)
+
+    # get all considered bonds
+    considered_bonds = get_excluded_bonds(
+        spatial_network;
+        periodic_boundary_conditions=periodic_boundary_conditions,
+        exclude_layer_thickness=exclude_layer_thickness)
 
     # initialize vector of diehedral angles
     dihedral_angle_vec = Vector{Float64}()
 
     # loop through all bonds
-    for bond in MetaGraphsNext.edge_labels(spatial_network)
+    for bond in considered_bonds
 
         # store the two vertices
         vertex1=bond[1]
@@ -274,7 +358,9 @@ and the angles are binned in bins that correspond to the faces of an
 icosahedron. The entropy is then calculated from the histogram of the angles.
 """
 function get_bond_orientation_entropy(
-    spatial_network::MetaGraphsNext.MetaGraph)
+    spatial_network::MetaGraphsNext.MetaGraph;
+    exclude_layer_thickness::Float64 = 0.0,
+    periodic_boundary_conditions::Bool = true)
 
     # get the centers of the subdivided icosahedron faces to use as bins for
     # the bonds of the network
@@ -289,9 +375,15 @@ function get_bond_orientation_entropy(
             Please check the implementation of the function."
     end
 
+    # get all considered bonds
+    considered_bonds = get_excluded_bonds(
+        spatial_network;
+        periodic_boundary_conditions=periodic_boundary_conditions,
+        exclude_layer_thickness=exclude_layer_thickness)
+
     # get the bond vectors of the network
     bond_vectors = Vector{Vector{Float64}}()
-    for bond in MetaGraphsNext.edge_labels(spatial_network)
+    for bond in considered_bonds
 
         bond_vector = spatial_network[bond...]["vector"]
 
@@ -328,20 +420,41 @@ end
 Get the mean and standard deviation of the coordination number of a network.
 """
 function get_coordination_nr_statistics(
-    spatial_network::MetaGraphsNext.MetaGraph)
+    spatial_network::MetaGraphsNext.MetaGraph;
+    exclude_layer_thickness::Float64 = 0.0,
+    periodic_boundary_conditions::Bool = true)
 
-    # check if the network has the key "coordination_nr_vec"
-    if haskey(spatial_network[], "coordination_nr_vec")
-        coordination_nr_vec = spatial_network[]["coordination_nr_vec"]
+    # get minimal and maximal vertex coordinates along all three axes in case
+    # of non-periodic boundary conditions
+    if !periodic_boundary_conditions
+        min_vertex_coords, max_vertex_coords = get_min_max_vertex_coords(
+        spatial_network)
+    end
 
-    # if not, create a vector of the coordination number for each vertex
-    else
-        coordination_nr_vec = Vector{Int64}(
-            undef, spatial_network[]["nr_vertices"])
-        for vertex in MetaGraphsNext.labels(spatial_network)
-            coordination_nr_vec[vertex] = length(
-                MetaGraphsNext.neighbor_labels(spatial_network, vertex))
+    # get all considered vertices
+    considered_vertices = Vector{Int64}()
+    for vertex in MetaGraphsNext.labels(spatial_network)
+        if periodic_boundary_conditions
+            push!(considered_vertices, vertex)
+        else
+            # get the positions of the vertex
+            vertex_pos = spatial_network[vertex]["position"]
+
+            if (all(vertex_pos 
+                    .> (min_vertex_coords .+ exclude_layer_thickness))
+                && all(vertex_pos 
+                    .< (max_vertex_coords .- exclude_layer_thickness)))
+
+                push!(considered_vertices, vertex)
+            end
         end
+    end
+
+    coordination_nr_vec = Vector{Int64}(
+        undef, length(considered_vertices))
+    for (i, vertex) in enumerate(considered_vertices)
+        coordination_nr_vec[i] = length(
+            MetaGraphsNext.neighbor_labels(spatial_network, vertex))
     end
 
     # remove all elements of the coordination_nr_vec that are 1
@@ -481,24 +594,46 @@ where l is the index of the spherical harmonic Y_{lm}.
 """
 function get_q_l_total_network_mean_dict(
     spatial_network::MetaGraphsNext.MetaGraph,
-    l_max::Int64)
+    l_max::Int64;
+    exclude_layer_thickness::Float64 = 0.0,
+    periodic_boundary_conditions::Bool = true)
+
+    # get minimal and maximal vertex coordinates along all three axes in case
+    # of non-periodic boundary conditions
+    if !periodic_boundary_conditions
+        min_vertex_coords, max_vertex_coords = get_min_max_vertex_coords(
+        spatial_network)
+    end
 
     # get the vertices with coordination nr > 1
-    considered_vertex_vec = []
+    considered_vertices = []
     for vertex in MetaGraphsNext.labels(spatial_network)
         if spatial_network[vertex]["coordination_nr"] > 1
-            push!(considered_vertex_vec, vertex)
+            if periodic_boundary_conditions
+                push!(considered_vertices, vertex)
+            else
+                # get the positions of the vertex
+                vertex_pos = spatial_network[vertex]["position"]
+
+                if (all(vertex_pos 
+                        .> (min_vertex_coords .+ exclude_layer_thickness))
+                    && all(vertex_pos 
+                        .< (max_vertex_coords .- exclude_layer_thickness)))
+
+                    push!(considered_vertices, vertex)
+                end
+            end
         end
     end
 
     # initialize dictionary of q_l averaged over entire network with all values
     # set to 0. Here only vertices with coordination_nr > 1 are considered
     q_l_total_network_mean_arr = Array{Float64}(undef, 
-        length(considered_vertex_vec), l_max+1)
+        length(considered_vertices), l_max+1)
 
     # loop through vertices
     vertex_count = 1
-    for vertex in considered_vertex_vec
+    for vertex in considered_vertices
 
         # get vector of steinhardt order parameters for current vertex
         q_l_averaged_single_vertex_dict = (
@@ -718,12 +853,12 @@ function get_pore_size_distribution(
         nr_grid_points_per_direction = length(grid_points)
     else
         # get the minimal and maximal vertex coords along the three axes
-        min_vertex_coord, max_vertex_coord = get_min_max_vertex_coords(
+        min_vertex_coords, max_vertex_coords = get_min_max_vertex_coords(
             spatial_network)
 
         # get the smallest extension of the network along all three axes
         sampling_grid_with_padding_edge_length = minimum(
-            max_vertex_coord .- min_vertex_coord)
+            max_vertex_coords .- min_vertex_coords)
 
         # get the number of grid points along one direction including padding
         nr_grid_points_per_direction_with_padding = Int(round(
@@ -838,7 +973,6 @@ function get_pore_size_distribution(
         sphere_radii = PaddedViews.PaddedView(
             0.0, sphere_radii, padded_axes, core_axes)
 
-        display(sphere_radii[:,:,12])
     end
 
     # if digital sphere mask file for given data size exists, load it
@@ -1061,25 +1195,25 @@ Get a list of all very strong rings in a spatial network as defined in
 10.1016/0022-3093(91)90145-V and explained in 10.1016/S0927-0256(01)00256-7.
 """
 function get_very_strong_rings_vec(spatial_network::MetaGraphsNext.MetaGraph;
-    max_ring_size_to_check::Int64 = 12,
+    max_ring_size_to_check::Int64 = 10,
     periodic_boundary_conditions::Bool = true,
-    non_pbc_padding::Float64 = 2.0)
+    non_pbc_padding::Float64 = 2.0,
+    print_progress::Bool = false,
+    thread_nr::Int64 = 0,
+    print_lock = Threads.ReentrantLock())
 
-    # get the number of simple cycles up to the max_ring_size_to_check
+    # Get the number of simple cycles up to the max_ring_size_to_check
     simple_cycles = MetaGraphsNext.simplecycles_limited_length(spatial_network,
         max_ring_size_to_check, 10^6)
 
-    # filter out cycles that contain only two vertices
-    filter!(cycle -> length(cycle) > 2, simple_cycles)
+    # Filter out cycles that contain only two vertices
+    filter!(c -> length(c) > 2, simple_cycles)
 
-    # avoid double counting of cycles that are the same but have inverse vertex
-    # orderings
-    for cycle in simple_cycles
-        cycle_inverse = vcat(cycle[1], reverse(cycle[2:end]))
-        if cycle_inverse in simple_cycles
-            filter!(!=(cycle_inverse), simple_cycles)
-        end
-    end
+    sort!(simple_cycles, by = x -> length(x))
+
+    # only keep every other element of the list, to remove cycles with inverse
+    # ordering
+    simple_cycles = simple_cycles[1:2:end]
 
     # to each cycle attach the first vertex at the end of the cycle such that
     # contained bonds are dicrecly represented
@@ -1096,7 +1230,7 @@ function get_very_strong_rings_vec(spatial_network::MetaGraphsNext.MetaGraph;
     # in the case of non-periodic boundary conditions, get the minimal and 
     # maximal vertex positions, to properly determine the padding later
     if !periodic_boundary_conditions
-        min_vertex_coord, max_vertex_coord = get_min_max_vertex_coords(
+        min_vertex_coords, max_vertex_coords = get_min_max_vertex_coords(
             spatial_network)
     end
 
@@ -1117,10 +1251,10 @@ function get_very_strong_rings_vec(spatial_network::MetaGraphsNext.MetaGraph;
             vertex_1 = spatial_network[bond[1]]["position"]
             vertex_2 = spatial_network[bond[2]]["position"]
 
-            if any(vertex_1 .< (min_vertex_coord .+ non_pbc_padding)) ||
-                any(vertex_1 .> (max_vertex_coord .- non_pbc_padding)) ||
-                any(vertex_2 .< (min_vertex_coord .+ non_pbc_padding)) ||
-                any(vertex_2 .> (max_vertex_coord .- non_pbc_padding))
+            if any(vertex_1 .< (min_vertex_coords .+ non_pbc_padding)) ||
+                any(vertex_1 .> (max_vertex_coords .- non_pbc_padding)) ||
+                any(vertex_2 .< (min_vertex_coords .+ non_pbc_padding)) ||
+                any(vertex_2 .> (max_vertex_coords .- non_pbc_padding))
                 continue
             end
         end
@@ -1169,13 +1303,19 @@ function get_ring_size_distribution(spatial_network::MetaGraphsNext.MetaGraph;
     non_pbc_padding::Float64 = 2.0,
     save_result::Bool = false,
     save_path = raw"..\analysis_data\sample_name",
-    label = nothing)
+    label = nothing,
+    print_progress::Bool = false,
+    thread_nr::Int64 = 0,
+    print_lock = Threads.ReentrantLock())
 
     # get the very strong rings of the network
     very_strong_rings_vec = get_very_strong_rings_vec(spatial_network, 
         max_ring_size_to_check = max_ring_size_to_check,
         periodic_boundary_conditions = periodic_boundary_conditions,
-        non_pbc_padding = non_pbc_padding)
+        non_pbc_padding = non_pbc_padding,
+        print_progress = print_progress,
+        thread_nr = thread_nr,
+        print_lock = print_lock)
 
     # create histogram of ring lengths
     ring_length_vec = Vector{Int64}()
@@ -1293,6 +1433,105 @@ function point_to_segment_distance(point::Tuple{Float64, Float64},
 end
 
 
+# Signed area (positive for counterclockwise)
+function signed_area(pts::AbstractVector{<:GeometryBasics.Point{2,Float64}})
+    s = 0.0
+    for i in 1:length(pts)-1
+        x1, y1 = pts[i][1], pts[i][2]
+        x2, y2 = pts[i+1][1], pts[i+1][2]
+        s += (x1*y2 - x2*y1)
+    end
+    return 0.5 * s
+end
+
+# Remove consecutive duplicate vertices
+function dedup_consecutive(
+        pts::AbstractVector{<:GeometryBasics.Point{2,Float64}})
+    out = GeometryBasics.Point{2,Float64}[]
+    push!(out, pts[1])
+    for i in 2:length(pts)
+        if pts[i] != pts[i-1]
+            push!(out, pts[i])
+        end
+    end
+    return out
+end
+
+# Optionally remove strictly collinear middle points
+function drop_collinear(
+        pts::AbstractVector{<:GeometryBasics.Point{2,Float64}}; eps=1e-12)
+    n = length(pts)
+    if n ≤ 2
+        return copy(pts)
+    end
+    out = GeometryBasics.Point{2,Float64}[]
+    push!(out, pts[1])
+    for i in 2:n-1
+        x1, y1 = out[end][1], out[end][2]
+        x2, y2 = pts[i][1],   pts[i][2]
+        x3, y3 = pts[i+1][1], pts[i+1][2]
+        # Twice the signed area of triangle (1-2-3); ~0 means collinear
+        area2 = (x2 - x1) * (y3 - y2) - (y2 - y1) * (x3 - x2)
+        if abs(area2) > eps
+            push!(out, pts[i])
+        end
+    end
+    push!(out, pts[end])
+    return out
+end
+
+
+"""
+Clean and validate a raw ring of coordinates and build a `GeometryBasics.Polygon`
+(outer ring only). Steps:
+- cast to `Point{2,Float64}` and drop non-finite points
+- ensure ring is closed
+- remove consecutive duplicates
+- optionally drop collinear middle points
+- ensure counterclockwise orientation
+- ensure non-zero area
+
+Returns: `GeometryBasics.Polygon`
+"""
+function make_polygon_from_ring(raw_ring)
+    # 1) Cast to finite Float64 points
+    pts = GeometryBasics.Point{2,Float64}[
+        GeometryBasics.Point{2,Float64}(float(p[1]), float(p[2]))
+        for p in raw_ring if isfinite(p[1]) && isfinite(p[2])
+    ]
+    @assert length(pts) ≥ 3 "Ring needs at least 3 vertices"
+
+    # 2) Ensure closed
+    if pts[1] != pts[end]
+        push!(pts, pts[1])
+    end
+
+    # 3) Deduplicate consecutive
+    pts = dedup_consecutive(pts)
+
+    # 4) Drop collinear (optional but helps robustness)
+    if length(pts) > 3
+        pts = drop_collinear(pts)
+        if pts[1] != pts[end]
+            push!(pts, pts[1])
+        end
+    end
+    @assert length(pts) ≥ 4 "Closed ring needs at least 3 distinct vertices"
+
+    # 5) Ensure counterclockwise orientation
+    if signed_area(pts) < 0
+        pts = reverse(pts)
+    end
+
+    # 6) Non-zero area
+    @assert abs(signed_area(pts)) > 0 "Polygon area is zero (degenerate)."
+
+    # Build Polygon (outer ring only)
+    outer = GeometryBasics.LineString(pts)
+    return GeometryBasics.Polygon(outer)
+end
+
+
 """
 Get the minimum distance from a point to the edges of a polygon defined by its
 vertices. The polygon is represented as a vector of tuples, where each tuple
@@ -1379,21 +1618,21 @@ function get_ring_radius_distribution(
             for p in projected_ring]
 
         # create a polygon from the projected ring
-        polygon = GeometryBasics.Polygon(
-            GeometryBasics.Point{2, Float64}[projected_ring_noisy...])
+        polygon = make_polygon_from_ring(projected_ring_noisy)
 
         # determine the pole of inaccessibility of the polygon
         # (the point in the polygon that is farthest away from the edges of the
         # polygon)
         pole_of_inaccessibility = Polylabel.polylabel(polygon, atol=0.01)
-
         # get the distance from the pole of inaccessibility to the edges of
         # the polygon
         min_distance = min_distance_to_bonds(pole_of_inaccessibility, 
             projected_ring)
-        # save the distance as the ring radius of the ring
-        push!(ring_radius_vec, min_distance)
 
+        # if the distance is not NaN, save it as the ring radius of the ring
+        if !isnan(min_distance)
+            push!(ring_radius_vec, min_distance)
+        end
     end
 
     # create histogram of ring radii

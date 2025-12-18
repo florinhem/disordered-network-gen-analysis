@@ -1072,7 +1072,7 @@ function randomly_displace_all_vertices!(
     update_total_energy::Bool = true)
 
     # loop through all vertices
-    for vertex in 1:spatial_network[]["nr_vertices"]
+    for vertex in MetaGraphsNext.labels(spatial_network)
 
         # get random direction using sphere point picking
         theta = 2 * π * rand()

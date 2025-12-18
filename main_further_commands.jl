@@ -34516,3 +34516,1807 @@ println(max_vertex_coords .- min_vertex_coords)
 NG.plot_spatial_network(
     spatial_network
 )
+
+
+spatial_network_path = "../structures/local_relaxation/targeted/ctn_pachy/test/"
+analysis_data_path = "../analysis_data/local_relaxation/targeted/ctn_pachy/test/"
+digital_sphere_mask_path = "../analysis_data/local_relaxation/digital_sphere_masks/"
+
+filename = "ctn_beta_9.4000_t_max_15.0000_t_gradient_14.0000_nr_vertices_224"
+spatial_network = NG.load_spatial_network_from_gml(
+    spatial_network_path*filename*".gml"
+) 
+
+NA.get_all_dicts_from_network_single_file(
+    filename,
+    spatial_network_path,
+    analysis_data_path;
+    digital_sphere_mask_path 
+        = digital_sphere_mask_path,
+    pore_size_sampling_grid_size = 0.2,
+    max_pore_radius = 3.0,
+    hyperuniformity_min_wavenumber_to_consider = 0.0,
+    periodic_boundary_conditions = true,
+    print_progress = true,
+    print_lock = Threads.ReentrantLock())
+
+
+spatial_network_path = raw"..\structures\local_relaxation\targeted\ctn_pachy\test\\"
+analysis_data_path = raw"..\analysis_data\local_relaxation\targeted\ctn_pachy\test\\"
+
+analysis_data_path_old = raw"..\analysis_data\local_relaxation\targeted\ctn_pachy\target_6\run_1\\"
+
+filename = "ctn_beta_9.4000_t_max_15.0000_t_gradient_14.0000_nr_vertices_224"
+
+order_metrics = GU.load_h5_dict(
+    analysis_data_path*filename*"_order_metrics.h5"
+)
+
+order_metrics_old = GU.load_h5_dict(
+    analysis_data_path_old*filename*"_order_metrics.h5"
+)
+
+for (key, value) in order_metrics
+    println("Key: ", key)
+    println("New value: ", value)
+    if haskey(order_metrics_old, key)
+        println("Old value: ", order_metrics_old[key])
+    else
+        println("Key not found in old metrics.")
+    end
+end
+
+
+load_filename = "Svir_blue_decomp11_scale11_BoneJ100nm_ENDPOINTS.attributegraph"
+network_path = raw"..\structures\biological\networks\stern_vir\\"
+analysis_data_path = raw"..\analysis_data\biological\networks\stern_vir\\"
+digital_sphere_mask_path = raw"..\analysis_data\biological\networks\digital_sphere_masks\\"
+save_filename = "stern_vir_blue"
+
+spatial_network = NG.load_spatial_network_from_excel(
+    network_path,
+    load_filename;
+    save_network = true,
+    save_path = network_path,
+    save_filename = save_filename)
+    
+
+load_filename = "Svir_green_decomp11_scale11_BoneJ100nm_ENDPOINTS.attributegraph"
+network_path = raw"..\structures\biological\networks\stern_vir\\"
+analysis_data_path = raw"..\analysis_data\biological\networks\stern_vir\\"
+digital_sphere_mask_path = raw"..\analysis_data\biological\networks\digital_sphere_masks\\"
+save_filename = "stern_vir_green"
+
+spatial_network = NG.load_spatial_network_from_excel(
+    network_path,
+    load_filename;
+    save_network = true,
+    save_path = network_path,
+    save_filename = save_filename)
+
+    
+load_filename = "SaG-1-thresholdinv.Smt.attributegraph"
+network_path = raw"..\structures\biological\networks\stern_ama\\"
+analysis_data_path = raw"..\analysis_data\biological\networks\stern_ama\\"
+digital_sphere_mask_path = raw"..\analysis_data\biological\networks\digital_sphere_masks\\"
+save_filename = "stern_ama_unknown_color"
+
+spatial_network = NG.load_spatial_network_from_excel(
+    network_path,
+    load_filename;
+    save_network = true,
+    save_path = network_path,
+    save_filename = save_filename)
+
+NG.plot_spatial_network(spatial_network)
+
+
+
+function get_some_dicts(spatial_network_path::String, analysis_data_path::String,
+    filename::String; periodic_boundary_conditions::Bool = true,
+    hyperuniformity_min_wavenumber_to_consider::Float64 = 0.0)
+    spatial_network = NG.load_spatial_network_from_gml(spatial_network_path*filename*".gml")
+
+    # get correlation functions
+    correlation_functions_dict = NA.get_correlation_functions(
+        spatial_network;
+        distance_histogram_bin_width = 0.02,
+        periodic_boundary_conditions = periodic_boundary_conditions,
+        save_result = true,
+        save_path = analysis_data_path*filename,
+        label = nothing)
+
+    required_dicts = ["_correlation_functions.h5",
+        "_pore_size_distribution.h5",
+        "_ring_radius_distribution.h5",
+        "_ring_size_distribution.h5",
+        "_structure_factor_angle_averaged.h5",
+        "_structure_factor_bonds_angle_averaged.h5",
+        "_structure_factor_array.h5",
+        "_structure_factor_bonds_array.h5",
+        "_order_metrics.h5"]
+
+    # if all required dicts are already present, get the order metrics 
+    if all(
+        isfile(analysis_data_path*filename*dict_name) for dict_name in
+        required_dicts)
+        # get all order metrics for the network
+        order_metrics_dict = NA.get_order_metrics(
+            filename,
+            spatial_network_path,
+            analysis_data_path;
+            l_max_steinhardt_q_l = 12,
+            hyperuniformity_min_wavenumber_to_consider
+                = hyperuniformity_min_wavenumber_to_consider,
+            save_result = true,
+            )
+    end
+
+    return
+end
+
+
+function single_chunk(paths_filename_chunk, print_lock)
+    nr_files = length(collect(paths_filename_chunk))
+    count = 0
+    for (current_network_path, analysis_data_path, filename) in
+        paths_filename_chunk
+
+        get_some_dicts(current_network_path, analysis_data_path, filename;
+            periodic_boundary_conditions = true,
+            hyperuniformity_min_wavenumber_to_consider = 0.0)
+
+        if count % 10 == 0
+            lock(print_lock) do
+                # print percentage done 
+                percentage_done = count / nr_files * 100
+                println(string(Threads.threadid())*" progress: $(round(percentage_done, digits=4))%")
+            end
+        end
+        count += 1
+    end
+end
+
+function run_things()
+
+    print_lock = Threads.ReentrantLock()
+
+    network_path = "../structures/local_relaxation/targeted/shell_nr_4/"
+
+    # recursively get all gml files in the network path
+    network_paths = String[]
+    analysis_paths = String[]
+    filenames = String[]
+    for (root, dirs, files) in walkdir(network_path)
+        for file in files
+            if endswith(file, ".gml")
+                push!(network_paths, root*"/")
+                push!(filenames, file[1:end-4])
+                push!(analysis_paths, replace(root, "structures" => "analysis_data")*"/")
+            end
+
+        end
+    end
+
+    paths_filename_vec = zip(network_paths, analysis_paths, filenames)
+
+    paths_filename_chunks = Iterators.partition(paths_filename_vec, 
+            length(paths_filename_vec) ÷ Threads.nthreads())
+
+    # run all filename chunk in parallel in different threads
+    map(paths_filename_chunks) do path_filename_chunk
+        Threads.@spawn single_chunk(path_filename_chunk, print_lock)
+    end
+    #single_chunk(collect(paths_filename_chunks)[1], print_lock)
+end 
+
+run_things()
+
+
+
+spatial_network_path = "../structures/biological/networks/stern_vir/"
+analysis_data_path = "../analysis_data/biological/networks/stern_vir/"
+digital_sphere_mask_path = "../analysis_data/biological/networks/digital_sphere_masks/"
+filename = "stern_vir_blue"
+
+NA.get_all_dicts_from_network_single_file(
+    filename,
+    spatial_network_path,
+    analysis_data_path;
+    digital_sphere_mask_path = digital_sphere_mask_path,
+    pore_size_sampling_grid_size = 0.2,
+    max_pore_radius = 3.0,
+    hyperuniformity_min_wavenumber_to_consider = pi/4,
+    periodic_boundary_conditions = false,
+    print_progress = true,
+    print_lock = Threads.ReentrantLock())
+
+
+function get_some_dicts(spatial_network_path::String, analysis_data_path::String,
+    filename::String; periodic_boundary_conditions::Bool = true,
+    hyperuniformity_min_wavenumber_to_consider::Float64 = 0.0)
+    spatial_network = NG.load_spatial_network_from_gml(spatial_network_path*filename*".gml")
+
+    # get correlation functions
+    correlation_functions_dict = NA.get_correlation_functions(
+        spatial_network;
+        distance_histogram_bin_width = 0.02,
+        periodic_boundary_conditions = periodic_boundary_conditions,
+        save_result = true,
+        save_path = analysis_data_path*filename,
+        label = nothing)
+
+    # if the pore size distribution dict is already present, get the order metrics
+    if isfile(analysis_data_path*filename*"_pore_size_distribution.h5") 
+        # get all order metrics for the network
+        order_metrics_dict = NA.get_order_metrics(
+            filename,
+            spatial_network_path,
+            analysis_data_path;
+            l_max_steinhardt_q_l = 12,
+            hyperuniformity_min_wavenumber_to_consider
+                = hyperuniformity_min_wavenumber_to_consider,
+            save_result = true,
+            )
+    end
+
+    return
+end
+
+
+function single_chunk(paths_filename_chunk, print_lock)
+    nr_files = length(collect(paths_filename_chunk))
+    count = 0
+    for (current_network_path, analysis_data_path, filename) in
+        paths_filename_chunk
+
+        get_some_dicts(current_network_path, analysis_data_path, filename;
+            periodic_boundary_conditions = true,
+            hyperuniformity_min_wavenumber_to_consider = 0.0)
+
+        if count % 5 == 0
+            lock(print_lock) do
+                # print percentage done 
+                percentage_done = count / nr_files * 100
+                println(string(Threads.threadid())*" progress: $(round(percentage_done, digits=4))%")
+            end
+        end
+        count += 1
+    end
+end
+
+function run_things()
+
+    print_lock = Threads.ReentrantLock()
+
+    analysis_path = "../analysis_data/local_relaxation/random/dia/run_2/"
+
+    # recursively get all gml files in the network path
+    network_paths = String[]
+    analysis_paths = String[]
+    filenames = String[]
+    for (root, dirs, files) in walkdir(analysis_path)
+        for file in files
+            if endswith(file, "_correlation_functions.h5")
+                push!(analysis_paths, root*"/")
+                push!(filenames, file[1:end-25])
+                push!(network_paths, replace(root, "analysis_data" => "structures")*"/")
+            end
+
+        end
+    end
+
+    threshold = 0.592
+    # Build the Boolean mask
+    mask = map(filenames) do f
+        m = match(r"beta_(\d+\.\d+)", f)
+        m !== nothing && parse(Float64, m.captures[1]) > threshold
+    end
+
+    # apply mask to network_paths, analysis_paths, filenames
+    network_paths = network_paths[mask]
+    analysis_paths = analysis_paths[mask]
+    filenames = filenames[mask]
+
+    paths_filename_vec = zip(network_paths, analysis_paths, filenames)
+
+    paths_filename_chunks = Iterators.partition(paths_filename_vec, 
+            length(paths_filename_vec) ÷ Threads.nthreads())
+
+    # run all filename chunk in parallel in different threads
+    map(paths_filename_chunks) do path_filename_chunk
+        Threads.@spawn single_chunk(path_filename_chunk, print_lock)
+    end
+    #single_chunk(collect(paths_filename_chunks)[1], print_lock)
+end 
+
+run_things()
+println("It's done.")
+
+
+"""
+Remove outer layer of vertices and bonds in a network to avoid edge artifacts
+in experimental data. This is only implemented for networks without periodic
+boundary conditions.
+"""
+function remove_outer_layer!(
+    spatial_network::MetaGraphsNext.MetaGraph;
+    removed_layer_thickness::Float64 = 1.0,)
+
+    current_nr_vertices = spatial_network[]["nr_vertices"]
+
+    original_vertices = collect(MetaGraphsNext.labels(spatial_network))
+
+    # get minimal and maximal vertex positions in each dimension
+    min_vertex_coords, max_vertex_coords = get_min_max_vertex_coords(
+        spatial_network)
+
+    # loop through all vertices and remove those that are in the outer layer
+    for vertex in original_vertices
+        vertex_coords = spatial_network[vertex]["position"]
+
+        # check if vertex is in outer layer
+        for dim in 1:spatial_network[]["nr_dimensions"]
+            if (MetaGraphsNext.has_vertex(spatial_network, vertex) 
+                && ( (vertex_coords[dim] <= min_vertex_coords[dim]
+                    + removed_layer_thickness
+                || vertex_coords[dim] >= max_vertex_coords[dim]
+                    - removed_layer_thickness)))
+
+                println("Removing vertex "*string(vertex)
+                    *" at position "*string(vertex_coords))
+                println(MetaGraphsNext.has_vertex(spatial_network, 2122))
+
+                # get all neighbors of current vertex
+                neighbors = collect(MetaGraphsNext.neighbor_labels(
+                    spatial_network, vertex))
+
+                # remove all bonds to neighbors
+                for neighbor in neighbors
+                    MetaGraphsNext.rem_edge!(spatial_network, vertex, neighbor)
+                end
+
+                # remove vertex
+                MetaGraphsNext.rem_vertex!(spatial_network, vertex)
+                current_nr_vertices -= 1
+                break
+            end
+        end
+    end
+
+    spatial_network[]["nr_vertices"] = current_nr_vertices
+    spatial_network[]["total_energy_up_to_date"] = false
+
+    return spatial_network
+end
+
+
+function correct_hyperuniformity(path, filename)
+
+    # load order metrics dict
+    order_metrics_dict = GU.load_h5_dict(path*filename*"_order_metrics.h5")
+
+    # load structure factor by wavevector array dict
+    structure_factor_bonds_dict = GU.load_h5_dict(path*filename*"_structure_factor_bonds_array.h5")
+
+    # calculate minimal wavenumber considered for hyperuniformity
+    min_wavenumber = LinearAlgebra.norm(structure_factor_bonds_dict["wavevector_array"][2,2,2,:] .- structure_factor_bonds_dict["wavevector_array"][1,1,1,:]) * 1.01
+
+    # get hyperuniformity alpha 
+    hyperuniformity_alpha = NA.get_hyperuniformity_alpha(structure_factor_bonds_dict;
+    consider_spectral_density = false,
+    t_range = (1e-1, 1.0),
+    min_wavenumber_to_consider = min_wavenumber)
+
+    # update order metrics dict
+    order_metrics_dict["hyperuniformity_alpha"] = hyperuniformity_alpha
+
+    println("Updated hyperuniformity alpha to $(hyperuniformity_alpha) for file $(filename)")
+
+    # save updated order metrics dict
+    GU.save_dict_to_h5(order_metrics_dict, path*filename*"_order_metrics.h5")
+end
+
+
+
+data_path_vec = [raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\networks\stern_vir\\",
+raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\networks\stern_vir\\",
+    raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\networks\stern_ama\\",
+    raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\networks\pachy\\",
+    raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\networks\pachy\\"]
+
+filename_vec = ["stern_vir_blue",
+    "stern_vir_green",
+    "stern_ama_orange",
+    "pachy_red",
+    "pachy_blue"]
+
+for (data_path, filename) in zip(data_path_vec, filename_vec)
+    correct_hyperuniformity(data_path, filename)
+end
+
+
+load_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\random\ctn\run_5\\"
+
+filename = "ctn_beta_6.3359_t_max_8.6070_t_gradient_11.7170"
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\geometrical_models\random\ctn\\"
+
+spatial_network = NG.load_spatial_network_from_gml(
+    load_path*filename*".gml")
+
+
+NG.save_mesh_from_spatial_network(
+        spatial_network, 
+        filename;
+        bond_radius = 0.15,
+        vector_out_of_supercell_length = 1,
+        save_path= save_path,
+        duplicate_bonds_close_to_supercell_edge = false)
+
+
+load_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\random\pcu_cn_4_5_6\run_3\\"
+
+filename = "pcu_cn_4_5_6_beta_0.2253_t_max_0.6836_t_gradient_0.7692"
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\geometrical_models\local_relaxation\random\pcu_cn_4_5_6\run_3\\"
+
+spatial_network = NG.load_spatial_network_from_gml(
+    load_path*filename*".gml")
+
+#NG.plot_spatial_network(spatial_network)
+
+NG.save_mesh_from_spatial_network(
+        spatial_network, 
+        filename;
+        bond_radius = 0.15,
+        vector_out_of_supercell_length = 1,
+        save_path= save_path,
+        duplicate_bonds_close_to_supercell_edge = false)
+
+
+load_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\biological\networks\pachy\\"
+
+filename = "pachy_blue"
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\geometrical_models\biological\pachy\\"
+
+spatial_network = NG.load_spatial_network_from_gml(
+    load_path*filename*".gml")
+
+#NG.plot_spatial_network(spatial_network)
+
+NG.save_mesh_from_spatial_network(
+        spatial_network, 
+        filename;
+        bond_radius = 0.15,
+        vector_out_of_supercell_length = 1,
+        save_path= save_path,
+        duplicate_bonds_close_to_supercell_edge = false)
+
+
+
+load_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\biological\networks\stern_vir\\"
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\geometrical_models\biological\stern_vir\\"
+
+filename = "stern_vir_blue"
+
+spatial_network = NG.load_spatial_network_from_gml(
+    load_path*filename*".gml")
+
+
+NG.save_mesh_from_spatial_network(
+        spatial_network, 
+        filename;
+        bond_radius = 0.15,
+        vector_out_of_supercell_length = 1,
+        save_path= save_path,
+        duplicate_bonds_close_to_supercell_edge = false)
+
+filename = "stern_vir_green"
+
+spatial_network = NG.load_spatial_network_from_gml(
+    load_path*filename*".gml")
+
+
+NG.save_mesh_from_spatial_network(
+        spatial_network, 
+        filename;
+        bond_radius = 0.15,
+        vector_out_of_supercell_length = 1,
+        save_path= save_path,
+        duplicate_bonds_close_to_supercell_edge = false)
+
+
+load_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\biological\networks\stern_ama\\"
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\geometrical_models\biological\stern_ama\\"
+
+filename = "stern_ama_orange"
+
+spatial_network = NG.load_spatial_network_from_gml(
+    load_path*filename*".gml")
+
+
+NG.save_mesh_from_spatial_network(
+        spatial_network, 
+        filename;
+        bond_radius = 0.15,
+        vector_out_of_supercell_length = 1,
+        save_path= save_path,
+        duplicate_bonds_close_to_supercell_edge = false)
+
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\neural_networks\predictions\local_relaxation\ctn\\"
+
+nr_layers = 4
+nr_neurons = 65
+nr_pca_components = 10
+
+filename = "ctn_predictions_nr_layers_$(nr_layers)_nr_neurons_$(nr_neurons)_full_pca_$(nr_pca_components)_weights_very_focussed.h5"
+
+save_filename = "ctn_predictions_nr_layers_$(nr_layers)_nr_neurons_$(nr_neurons)_full_pca_$(nr_pca_components)_minimal_loss_weights_very_focussed_order_metrics.h5"
+
+data_dict = GU.load_h5_dict(analysis_data_path*filename)
+
+predictions_array = data_dict["predictions_array"]
+loss_array = data_dict["loss_array"]
+
+# permute dims of the arrays to have the shape (bond_bending_const, t_max, t_gradient )
+predictions_array = permutedims(predictions_array, (4, 3, 2, 1))
+loss_array = permutedims(loss_array, (3, 2, 1))
+
+bond_bending_const_vec = data_dict["bond_bending_const_vec"]
+t_max_vec = data_dict["t_max_vec"]
+t_gradient_vec = data_dict["t_gradient_vec"]
+
+# find the 3d window of size (3,3,3) in the loss array where the average loss
+# is the smallest
+function get_window_smallest_average(loss_array; window_size=3)
+    min_loss_value = Inf
+    min_i = 0
+    min_j = 0
+    min_k = 0
+
+    half_window = div(window_size, 2)
+
+    for i in 1+half_window:(size(loss_array, 1)-half_window)
+        for j in 1+half_window:(size(loss_array, 2)-half_window)
+            for k in 1+half_window:(size(loss_array, 3)-half_window)
+                window = loss_array[(i-half_window):(i+half_window), (j-half_window):(j+half_window), (k-half_window):(k+half_window)]
+                window_mean = Statistics.mean(window)
+                if window_mean < min_loss_value
+                    min_loss_value = window_mean
+                    min_i = i
+                    min_j = j
+                    min_k = k
+                end
+            end
+        end
+    end
+    return (min_i, min_j, min_k), min_loss_value
+end
+
+min_loss_index, min_loss_value = get_window_smallest_average(loss_array, window_size=7)
+
+
+# print the values of the parameters at this index
+println("Minimum positive loss: $min_loss_value")
+println("At bond_bending_const = $(bond_bending_const_vec[min_loss_index[1]])")
+println("At t_max = $(t_max_vec[min_loss_index[2]])")
+println("At t_gradient = $(t_gradient_vec[min_loss_index[3]])")
+
+max_loss_value = maximum(loss_array[loss_array .< 999.0])
+max_loss_index = findfirst(x -> x == max_loss_value, loss_array)
+
+# print the values of the parameters at this index
+println("Maximum loss: $max_loss_value")
+println("At bond_bending_const = $(bond_bending_const_vec[max_loss_index[1]])")
+println("At t_max = $(t_max_vec[max_loss_index[2]])")
+println("At t_gradient = $(t_gradient_vec[max_loss_index[3]])")
+
+# plot a heatmap of the predictions for fixed bond_bending_const = 5.0 with a
+# logarithmic color scale
+fixed_bond_bending_const = bond_bending_const_vec[min_loss_index[1]]
+bond_bending_const_index = min_loss_index[1]
+
+# First fixed part
+part1 = [
+    "bond_length_std",
+    "bond_angle_std",
+    "dihedral_angle_entropy",
+    "bond_orientation_entropy",
+    "coordination_nr_mean",
+    "coordination_nr_std"
+]
+
+# q_l_value_0 ... q_l_value_12
+part2 = ["q_l_value_$(i)" for i in 0:12]
+
+# q_l_uncertainty_0 ... q_l_uncertainty_12
+part3 = ["q_l_uncertainty_$(i)" for i in 0:12]
+
+# Last fixed part
+part4 = [
+    "vertex_homogeneity_metric",
+    "uncoordinated_neighbor_distance",
+    "ring_size_mean",
+    "ring_size_std",
+    "ring_radius_mean",
+    "ring_radius_std",
+    "critical_pore_radius",
+    "anisotropy_metric_from_structure_factor",
+    "anisotropy_metric_from_structure_factor_bonds",
+    "hyperuniformity_alpha_value",
+]
+
+order_metric_vec_at_minimal_loss = predictions_array[min_loss_index[1], min_loss_index[2], min_loss_index[3], :]
+
+# save the order metric vec as a dictionary to a .h5 file with the q_l_lavues 
+# and the q_l_uncertainties as vectors 
+order_metric_dict = Dict{String, Any}()
+for i in 1:length(part1)
+    order_metric_dict[part1[i]] = order_metric_vec_at_minimal_loss[i]
+end
+
+order_metric_dict["q_l_vec_values"] = order_metric_vec_at_minimal_loss[length(part1)+1 : length(part1)+length(part2)]
+order_metric_dict["q_l_vec_uncertainties"] = order_metric_vec_at_minimal_loss[length(part1)+length(part2)+1 : length(part1)+length(part2)+length(part3)]
+
+for i in 1:length(part4)
+    order_metric_dict[part4[i]] = order_metric_vec_at_minimal_loss[length(part1)+length(part2)+length(part3)+i]
+end
+
+# print all keys and values of the order_metric_dict
+for (key, value) in order_metric_dict
+    println("$key => $value")
+end 
+
+
+GU.save_dict_to_h5(order_metric_dict, 
+            analysis_data_path*save_filename)
+
+
+theta_ground_state = 180.0
+shell_nr = 4
+relax_globally_after_threshold_cycle = false
+
+nr_vertices = 1792 #1792
+network_type = "ctn"
+
+
+# choose random beta values for the samples between 0 and 1
+beta = 5.0
+t_max = 8.5
+t_gradient = 8.5
+
+# get random values of the heating/cooling gradient between t_melt/4 and 
+# 2*t_melt
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\targeted\ctn_pachy\target_7\evolution_dicts\\"
+
+temperature_vec, nr_monte_carlo_steps_per_temperature_vec = NA.get_temperature_sequence_heating_cooling_gradient(t_max,
+        temperature_gradient = t_gradient, 
+        nr_monte_carlo_steps_per_temperature = 0.01,
+        quench = true )
+
+evolution_dict = NA.get_evolution_dict(;nr_vertices = nr_vertices ,
+    temperature_vec = temperature_vec,
+    nr_monte_carlo_steps_per_temperature_vec = nr_monte_carlo_steps_per_temperature_vec, min_ring_size = 3,
+    bond_bending_const = beta, network_type = network_type,
+    theta_ground_state = theta_ground_state,
+    relax_globally_after_threshold_cycle = relax_globally_after_threshold_cycle,
+    shell_nr = shell_nr,)
+filename = Format.format(network_type*"_beta_{1:.4f}_t_max_{2:.4f}_t_gradient_{3:.4f}_nr_vertices_{4}", beta, t_max, t_gradient, nr_vertices)
+
+GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
+
+
+spatial_networks_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\targeted\ctn_pachy\target_8\run_1\\"
+
+target_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\targeted\ctn_pachy\target_8\run_2\\"
+
+# get all filenames in the spatial networks path that end with gml and that have 9 underscores in their filenames 
+spatial_network_filenames = filter(f -> endswith(f, ".gml") && count(==('_'), f) == 9, readdir(spatial_networks_path))
+
+# get all filenames in spatial_network_filenames that end with _200.gml
+finished_network_filenames = filter(f -> endswith(f, "_200.gml"), spatial_network_filenames)
+
+for finished_network_filename in finished_network_filenames[2:end]
+    println("Processing file: ", finished_network_filename)
+    evolution_dict = GU.load_h5_dict(spatial_networks_path*finished_network_filename[1:end-4]*"_evolution.h5")
+    temperature_vec = evolution_dict["temperature_vec"]
+
+    # find the second entry of the temperature vec that is 0.0
+    idx_zero_temp = findall(t -> t == 0.0, temperature_vec)[2]
+
+    # create an index vector, that saves every 10th index from 1 to idx_zero_temp
+    # and every other index from idx_zero_temp to the end of the temperature vec
+    index_vec = vcat(collect(1:20:idx_zero_temp), collect(idx_zero_temp:2:idx_zero_temp+30))
+
+    # copy all files in spatial_networks_path with filenames in finished_network_filenames
+    # that end with _<index>.gml to target_path
+    for index in index_vec
+        filename = finished_network_filename[1:end-8]*"_"*string(index)*".gml"
+        println("Copying file: ", filename)
+        cp(spatial_networks_path*filename, target_path*filename; force=true)
+
+        # do the same with the corresponding evolution dict
+        evolution_dict_filename = filename[1:end-4]*"_evolution.h5"
+        println("Copying file: ", evolution_dict_filename)
+        cp(spatial_networks_path*evolution_dict_filename, target_path*evolution_dict_filename; force=true)
+    end
+end
+
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\crystals\\"
+
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 224 ,     
+    network_type = "ctn",
+    theta_ground_state = 180.0,
+    relax_globally_after_threshold_cycle = false,
+    shell_nr = 4)
+
+spatial_network = NG.get_periodic_network(evolution_dict)
+
+NG.save_spatial_network_to_gml(spatial_network, "ctn_224_vertices"; save_path=save_path)
+
+
+bcu_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\crystals\\"
+
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 432 ,     
+    network_type = "bcu_cn_5_6_7_8",
+    theta_ground_state = 180.0,
+    relax_globally_after_threshold_cycle = false,
+    shell_nr = 4)
+
+spatial_network = NG.get_periodic_network(evolution_dict)
+
+NG.save_spatial_network_to_gml(spatial_network, "bcu_cn_5_6_7_8_432_vertices"; save_path=bcu_path)
+
+
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\ctn\\"
+
+filename_2 = "all_order_metrics_with_nr_accepted_moves.h5"
+order_metrics_dict_2 = GU.load_h5_dict(path*filename_2)
+
+filenames_vec = order_metrics_dict_2["filenames_vec"]
+
+# find index of the first filename that contains "ctn_beta_6.3359_t_max_8.6070_t_gradient_11.7170"
+index = findfirst(contains("ctn_beta_6.3359_t_max_8.6070_t_gradient_11.7170"), filenames_vec)
+
+println(order_metrics_dict_2["nr_accepted_moves_vec"][index])
+
+t_melt = NA.get_melting_temperature("ctn", 6.3359; relax_globally_after_threshold_cycle=false, shell_nr=4)
+println("Melting temperature: ", t_melt)
+println("T_max / T_melt: ", 8.6070 / t_melt)
+println("T_gradient / T_melt: ", 11.7170 / t_melt)
+
+
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\bcu_cn_5_6_7_8\\"
+
+filename_2 = "all_order_metrics_with_nr_accepted_moves.h5"
+order_metrics_dict_2 = GU.load_h5_dict(path*filename_2)
+
+filenames_vec = order_metrics_dict_2["filenames_vec"]
+
+index = findfirst(contains("bcu_cn_5_6_7_8_beta_0.0010_t_max_0.1983_t_gradient_0.1559"), filenames_vec)
+
+println(order_metrics_dict_2["nr_accepted_moves_vec"][index])
+
+t_melt = NA.get_melting_temperature("bcu_cn_5_6_7_8", 0.0010; relax_globally_after_threshold_cycle=false, shell_nr=4)
+println("Melting temperature: ", t_melt)
+println("T_max / T_melt: ", 0.1983 / t_melt)
+println("T_gradient / T_melt: ", 0.1559 / t_melt)
+
+
+spatial_networks_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\targeted\ctn_pachy\target_8\run_2\\"
+
+target_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\targeted\ctn_pachy\target_8\run_3\\"
+
+# get all filenames in the spatial networks path that end with gml and that have 9 underscores in their filenames 
+spatial_network_filenames = filter(f -> endswith(f, ".gml") && count(==('_'), f) == 9, readdir(spatial_networks_path))
+
+
+# Helper: split at last underscore, return (core, index)
+function core_and_index(fname::AbstractString)
+    core, idxstr = rsplit(fname, '_'; limit=2)   # split once from the end
+    # strip extension if present and parse index
+    idxstr = replace(idxstr, r"\.gml$" => "")
+    return core, parse(Int, idxstr)
+end
+
+# Keep the filename with the highest index for each core
+function max_index_per_core(files)
+    best = Dict{String,Tuple{Int,String}}()  # core => (max_index, full_filename)
+    for f in files
+        core, idx = core_and_index(f)
+        if !haskey(best, core) || idx > best[core][1]
+            best[core] = (idx, f)
+        end
+    end
+    # return just the filenames
+    return [val[2] for val in values(best)]
+end
+
+result = max_index_per_core(spatial_network_filenames)
+println(result)
+
+# for each filename in result, copy the file from spatial_networks_path to target_path
+for filename in result
+    source_file = spatial_networks_path * filename
+    target_file = target_path * filename
+    cp(source_file, target_file; force=true)
+
+    source_evolution_file = replace(source_file, ".gml" => "_evolution.h5")
+    target_evolution_file = replace(target_file, ".gml" => "_evolution.h5")
+    cp(source_evolution_file, target_evolution_file; force=true)
+end
+
+
+predictions_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\neural_networks\predictions\local_relaxation\ctn\\"
+
+prediction_filename = "ctn_predictions_nr_layers_4_nr_neurons_60_full_pca_10.h5"
+
+predictions_dict = GU.load_h5_dict(predictions_path*prediction_filename)
+
+
+# reverse all dimensions of the arrays in predictions_dict to correct the
+# python row-major ordering
+for (k, v) in predictions_dict
+    predictions_dict[k] = permutedims(v, reverse(1:ndims(v)))
+end
+
+
+# print shape of all keys in the predictions_dict
+for (k, v) in predictions_dict
+    println("Key: $k, Shape: ", size(v))
+end
+
+GU.save_dict_to_h5(predictions_dict, predictions_path*"ctn_predictions_nr_layers_4_nr_neurons_60_full_pca_10_reordered.h5")
+
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\\"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\local_relaxation\structure_factor_comparison\\"
+
+network_type_vec = ["ctn", "dia",  "bcu_cn_5_6_7_8", "lcs", "pcu_cn_4_5_6", "srs",] #["ctn",  "bcu_cn_5_6_7_8"] #"dia",  "lcs", "srs", "pcu_cn_4_5_6",
+
+filename_ordered_vec = ["run_6/ctn_beta_1.7313_t_max_2.0550_t_gradient_2.1466", "run_3/dia_beta_6.3550_t_max_24.2721_t_gradient_8.6274", "run_2/bcu_cn_5_6_7_8_beta_1.9736_t_max_294.9035_t_gradient_702.9766", "run_2/lcs_beta_0.0127_t_max_0.0057_t_gradient_0.0139", "run_3/pcu_cn_4_5_6_beta_0.2258_t_max_0.2197_t_gradient_0.4606", "run_2/srs_beta_0.0394_t_max_0.0051_t_gradient_0.0020"]
+filename_disordered_vec = ["run_5/ctn_beta_6.5833_t_max_13.7932_t_gradient_13.5214", "run_1/dia_beta_0.7422_t_max_0.7826_t_gradient_0.1969", "run_1/bcu_cn_5_6_7_8_beta_0.5163_t_max_158.6786_t_gradient_20.1955", "run_3/lcs_beta_1.2760_t_max_1.8437_t_gradient_1.8422", "run_3/pcu_cn_4_5_6_beta_0.3229_t_max_5.2818_t_gradient_2.0898", "run_2/srs_beta_1.2625_t_max_0.6123_t_gradient_0.5012"]
+
+
+for (i, network_type) in enumerate(network_type_vec)
+    ordered_structure_factor = GU.load_h5_dict(analysis_data_path*network_type*raw"\\"*filename_ordered_vec[i]*"_structure_factor_bonds_angle_averaged.h5")
+    disordered_structure_factor = GU.load_h5_dict(analysis_data_path*network_type*raw"\\"*filename_disordered_vec[i]*"_structure_factor_bonds_angle_averaged.h5")
+
+    metric_ordered = NA.get_anisotropy_metric_from_structure_factor(
+    ordered_structure_factor;
+    nr_closest_wavenumbers = 3,
+    normalization_parameter = 1.0)
+    metric_disordered = NA.get_anisotropy_metric_from_structure_factor(
+    disordered_structure_factor;
+    nr_closest_wavenumbers = 3,
+    normalization_parameter = 1.0)
+    println("Network type: $network_type")
+    println(" Anisotropy metric ordered  : ", metric_ordered)
+    println(" Anisotropy metric disordered: ", metric_disordered)
+end
+
+
+
+
+function correct_anisotropy(path_and_filename)
+
+    # load order metrics dict
+    order_metrics_dict = GU.load_h5_dict(path_and_filename*"_order_metrics.h5")
+
+    # load structure factor by wavevector array dict
+    structure_factor_bonds_dict = GU.load_h5_dict(path_and_filename*"_structure_factor_bonds_angle_averaged.h5")
+
+    structure_factor_vertices_dict = GU.load_h5_dict(path_and_filename*"_structure_factor_angle_averaged.h5")
+
+    # get the anisotropies from the structure factors and update order metrics dict
+    order_metrics_dict["anisotropy_metric_from_structure_factor_bonds"] = NA.get_anisotropy_metric_from_structure_factor(
+    structure_factor_bonds_dict)
+
+    order_metrics_dict["anisotropy_metric_from_structure_factor"] = NA.get_anisotropy_metric_from_structure_factor(
+    structure_factor_vertices_dict)
+
+    println("Updated file $(path_and_filename[end-75:end]).")
+
+    # save updated order metrics dict
+    GU.save_dict_to_h5(order_metrics_dict, path_and_filename*"_order_metrics.h5")
+end
+
+
+analysis_data_path = "../analysis_data/local_relaxation/targeted/shell_nr_4/"
+files = [joinpath(dir, file) for (dir, _, files) in walkdir(analysis_data_path) for file in files if endswith(file, "bonds_angle_averaged.h5")]
+core_files = [replace(file, "_structure_factor_bonds_angle_averaged.h5" => "") for file in files]
+
+total_nr_files = length(core_files)
+i = 0
+
+for file in core_files
+    correct_anisotropy(file)
+    global i += 1
+    println("Progress: $i / $total_nr_files files corrected.")
+end
+
+order_metrics_dict = NA.get_order_metrics_all_files(
+    analysis_data_path;
+    save_result=true,
+    save_algorithm_parameters_from_filename=true)
+
+NA.save_order_metrics_dict_to_csv(order_metrics_dict, analysis_data_path)
+
+
+load_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\random\bcu_cn_5_6_7_8\run_4\\"
+
+filename = "bcu_cn_5_6_7_8_beta_0.0012_t_max_0.2314_t_gradient_0.4296"
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\geometrical_models\local_relaxation\random\bcu_cn_5_6_7_8\run_4\\"
+
+spatial_network = NG.load_spatial_network_from_gml(
+    load_path*filename*".gml")
+
+#NG.plot_spatial_network(spatial_network)
+
+NG.save_mesh_from_spatial_network(
+        spatial_network, 
+        filename;
+        bond_radius = 0.15,
+        vector_out_of_supercell_length = 1,
+        save_path= save_path,
+        duplicate_bonds_close_to_supercell_edge = false)
+
+
+filename = "bcu_cn_5_6_7_8_beta_0.0018_t_max_0.2401_t_gradient_0.3271"
+
+spatial_network = NG.load_spatial_network_from_gml(
+    load_path*filename*".gml")
+
+#NG.plot_spatial_network(spatial_network)
+
+NG.save_mesh_from_spatial_network(
+        spatial_network, 
+        filename;
+        bond_radius = 0.15,
+        vector_out_of_supercell_length = 1,
+        save_path= save_path,
+        duplicate_bonds_close_to_supercell_edge = false)
+
+
+
+        
+
+spatial_network_path = "../structures/biological/networks/pachy/"
+analysis_data_path = "../analysis_data/biological/networks/pachy/"
+digital_sphere_mask_path = "../analysis_data/biological/networks/digital_sphere_masks/"
+
+filename = "pachy_blue"
+
+pore_size_sampling_grid_size = 0.2
+max_pore_radius = 3.0
+hyperuniformity_min_wavenumber_to_consider = 0.4578267741033627
+exclude_layer_thickness = 1.5
+periodic_boundary_conditions = false
+print_progress = true
+print_lock = Threads.ReentrantLock()
+
+# get network
+spatial_network = NG.load_spatial_network_from_gml(
+        spatial_network_path*filename*".gml")
+
+
+# get all order metrics for the network
+order_metrics_dict = NA.get_order_metrics(
+    filename,
+    spatial_network_path,
+    analysis_data_path;
+    l_max_steinhardt_q_l = 12,
+    hyperuniformity_min_wavenumber_to_consider
+        = hyperuniformity_min_wavenumber_to_consider,
+    exclude_layer_thickness = exclude_layer_thickness,
+    periodic_boundary_conditions = periodic_boundary_conditions,
+    save_result = true,
+    )
+
+filename = "pachy_red"
+
+pore_size_sampling_grid_size = 0.2
+max_pore_radius = 3.0
+hyperuniformity_min_wavenumber_to_consider = 0.5466502938179802
+exclude_layer_thickness = 1.5
+periodic_boundary_conditions = false
+print_progress = true
+print_lock = Threads.ReentrantLock()
+
+# get network
+spatial_network = NG.load_spatial_network_from_gml(
+        spatial_network_path*filename*".gml")
+
+
+# get all order metrics for the network
+order_metrics_dict = NA.get_order_metrics(
+    filename,
+    spatial_network_path,
+    analysis_data_path;
+    l_max_steinhardt_q_l = 12,
+    hyperuniformity_min_wavenumber_to_consider
+        = hyperuniformity_min_wavenumber_to_consider,
+    exclude_layer_thickness = exclude_layer_thickness,
+    periodic_boundary_conditions = periodic_boundary_conditions,
+    save_result = true,
+    )
+
+
+spatial_network_path = "../structures/biological/networks/stern_vir/"
+analysis_data_path = "../analysis_data/biological/networks/stern_vir/"
+digital_sphere_mask_path = "../analysis_data/biological/networks/digital_sphere_masks/"
+
+filename = "stern_vir_blue"
+
+pore_size_sampling_grid_size = 0.2
+max_pore_radius = 3.0
+hyperuniformity_min_wavenumber_to_consider = 0.8569597198833633
+exclude_layer_thickness = 1.5
+periodic_boundary_conditions = false
+print_progress = true
+print_lock = Threads.ReentrantLock()
+
+# get network
+spatial_network = NG.load_spatial_network_from_gml(
+        spatial_network_path*filename*".gml")
+
+
+# get all order metrics for the network
+order_metrics_dict = NA.get_order_metrics(
+    filename,
+    spatial_network_path,
+    analysis_data_path;
+    l_max_steinhardt_q_l = 12,
+    hyperuniformity_min_wavenumber_to_consider
+        = hyperuniformity_min_wavenumber_to_consider,
+    exclude_layer_thickness = exclude_layer_thickness,
+    periodic_boundary_conditions = periodic_boundary_conditions,
+    save_result = true,
+    )
+
+filename = "stern_vir_green"
+
+pore_size_sampling_grid_size = 0.2
+max_pore_radius = 3.0
+hyperuniformity_min_wavenumber_to_consider = 0.7888796239694542
+exclude_layer_thickness = 1.5
+periodic_boundary_conditions = false
+print_progress = true
+print_lock = Threads.ReentrantLock()
+
+# get network
+spatial_network = NG.load_spatial_network_from_gml(
+        spatial_network_path*filename*".gml")
+
+
+# get all order metrics for the network
+order_metrics_dict = NA.get_order_metrics(
+    filename,
+    spatial_network_path,
+    analysis_data_path;
+    l_max_steinhardt_q_l = 12,
+    hyperuniformity_min_wavenumber_to_consider
+        = hyperuniformity_min_wavenumber_to_consider,
+    exclude_layer_thickness = exclude_layer_thickness,
+    periodic_boundary_conditions = periodic_boundary_conditions,
+    save_result = true,
+    )
+
+
+spatial_network_path = "../structures/biological/networks/stern_ama/"
+analysis_data_path = "../analysis_data/biological/networks/stern_ama/"
+digital_sphere_mask_path = "../analysis_data/biological/networks/digital_sphere_masks/"
+
+filename = "stern_ama_orange"
+
+pore_size_sampling_grid_size = 0.2
+max_pore_radius = 3.0
+hyperuniformity_min_wavenumber_to_consider = 0.7537394719674415
+exclude_layer_thickness = 1.5
+periodic_boundary_conditions = false
+print_progress = true
+print_lock = Threads.ReentrantLock()
+
+# get network
+spatial_network = NG.load_spatial_network_from_gml(
+        spatial_network_path*filename*".gml")
+
+
+# get all order metrics for the network
+order_metrics_dict = NA.get_order_metrics(
+    filename,
+    spatial_network_path,
+    analysis_data_path;
+    l_max_steinhardt_q_l = 12,
+    hyperuniformity_min_wavenumber_to_consider
+        = hyperuniformity_min_wavenumber_to_consider,
+    exclude_layer_thickness = exclude_layer_thickness,
+    periodic_boundary_conditions = periodic_boundary_conditions,
+    save_result = true,
+    )
+
+
+analysis_data_path = "../analysis_data/biological/networks/"
+
+
+order_metrics_dict = NA.get_order_metrics_all_files(
+    analysis_data_path;
+    save_result=true,
+    save_algorithm_parameters_from_filename=false)
+
+NA.save_order_metrics_dict_to_csv(order_metrics_dict, analysis_data_path)
+
+
+load_filename = "stern_ama_orange.attributegraph"
+network_path = raw"..\structures\biological\networks\stern_ama\\"
+analysis_data_path = raw"..\analysis_data\biological\networks\stern_ama\\"
+digital_sphere_mask_path = raw"..\analysis_data\biological\networks\digital_sphere_masks\\"
+save_filename = "stern_ama_orange"
+
+spatial_network = NG.load_spatial_network_from_excel(
+    network_path,
+    load_filename;
+    save_network = true,
+    save_path = network_path,
+    save_filename = save_filename)
+
+
+pcu_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\crystals\\"
+
+evolution_dict = NA.get_evolution_dict(;nr_vertices = 216 ,     
+    network_type = "pcu_cn_4_5_6",
+    theta_ground_state = 180.0,
+    relax_globally_after_threshold_cycle = false,
+    shell_nr = 4)
+
+spatial_network = NG.get_periodic_network(evolution_dict)
+
+NG.save_spatial_network_to_gml(spatial_network, "pcu_cn_4_5_6_216_vertices"; save_path=pcu_path)
+
+
+load_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\biological\networks\stern_ama\\"
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\geometrical_models\biological\stern_ama\\"
+
+filename = "stern_ama_orange"
+
+spatial_network = NG.load_spatial_network_from_gml(
+    load_path*filename*".gml")
+
+
+NG.save_mesh_from_spatial_network(
+        spatial_network, 
+        filename;
+        bond_radius = 0.15,
+        vector_out_of_supercell_length = 1,
+        save_path= save_path,
+        duplicate_bonds_close_to_supercell_edge = false)
+
+
+spatial_network_path = "../structures/biological/networks/stern_ama/"
+analysis_data_path = "../analysis_data/biological/networks/stern_ama/"
+digital_sphere_mask_path = "../analysis_data/biological/networks/digital_sphere_masks/"
+filename = "stern_ama_orange"
+
+# get network
+spatial_network = NG.load_spatial_network_from_gml(
+    spatial_network_path*filename*".gml")
+
+maximal_wavevector_int = 5
+periodic_boundary_conditions = false
+wavevector_array_positive_z = NA.get_wavevector_array_positive_z(spatial_network; 
+        maximal_wavevector_int=maximal_wavevector_int,
+        periodic_boundary_conditions=periodic_boundary_conditions)
+
+min_wavenumber = LinearAlgebra.norm(wavevector_array_positive_z[2,2,2,:] .- wavevector_array_positive_z[1,1,1,:]) * 1.01
+
+
+
+
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\pcu_cn_4_5_6\\"
+
+filename_2 = "all_order_metrics_with_nr_accepted_moves.h5"
+order_metrics_dict_2 = GU.load_h5_dict(path*filename_2)
+
+filenames_vec = order_metrics_dict_2["filenames_vec"]
+
+index = findfirst(contains("pcu_cn_4_5_6_beta_0.0978_t_max_0.1788_t_gradient_0.1858"), filenames_vec)
+
+println(order_metrics_dict_2["nr_accepted_moves_vec"][index])
+
+t_melt = NA.get_melting_temperature("pcu_cn_4_5_6", 0.0978; relax_globally_after_threshold_cycle=false, shell_nr=4)
+println("Melting temperature: ", t_melt)
+println("T_max / T_melt: ", 0.1788 / t_melt)
+println("T_gradient / T_melt: ", 0.1858 / t_melt)
+
+
+load_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\random\pcu_cn_4_5_6\run_3\\"
+
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\geometrical_models\local_relaxation\random\pcu_cn_4_5_6\run_3\\"
+
+filename = "pcu_cn_4_5_6_beta_0.0978_t_max_0.1788_t_gradient_0.1858"
+
+spatial_network = NG.load_spatial_network_from_gml(
+    load_path*filename*".gml")
+
+
+NG.save_mesh_from_spatial_network(
+        deepcopy(spatial_network), 
+        filename;
+        bond_radius = 0.15,
+        vector_out_of_supercell_length = 1,
+        save_path= save_path,
+        duplicate_bonds_close_to_supercell_edge = false)
+
+NG.plot_spatial_network(spatial_network)
+
+
+
+function find_closest_network_l2(
+    order_metrics_bio_dict,
+    order_metrics_generated_dict;
+    keys::Vector{String},
+    weights::AbstractVector,
+    bio_index::Int = 1,
+    top_k::Int = 1,
+    normalization::Symbol = :none
+)
+    # Assume keys exist and vectors align per your guarantee
+
+    # Optionally compute per-metric scales across both dicts
+    per_metric_scales = nothing
+    if normalization != :none
+        scales = Dict{String,NamedTuple{(:mu,:sigma,:lo,:hi),NTuple{4,Float64}}}()
+        for k in keys
+            v = vcat(order_metrics_bio_dict[k], order_metrics_generated_dict[k])
+            vv = collect(skipmissing(v))
+            mu  = Statistics.mean(vv)
+            sigma  = Statistics.std(vv)
+            lo = minimum(vv)
+            hi = maximum(vv)
+            scales[k] = (mu=mu, sigma=sigma, lo=lo, hi=hi)
+        end
+        per_metric_scales = scales
+    end
+
+    # Normalized accessor
+    value = function (d, k::String, i::Int)
+        x = d[k][i]
+        if normalization === :zscore
+            s = per_metric_scales[k]
+            return s.sigma > 0 ? (x - s.mu) / s.sigma : 0.0
+        elseif normalization === :minmax
+            s = per_metric_scales[k]
+            range = s.hi - s.lo
+            return range > 0 ? (x - s.lo) / range : 0.5
+        else
+            return x
+        end
+    end
+
+    # Weighted L2 distance between bio[i] and gen[j]
+    weighted_l2 = function (i::Int, j::Int)
+        acc = 0.0
+        @inbounds for (k, w) in zip(keys, weights)
+            db = value(order_metrics_bio_dict, k, i)
+            dg = value(order_metrics_generated_dict, k, j)
+            acc += (w * (dg - db))^2
+        end
+        return sqrt(acc)
+    end
+
+    # We only need lengths for loop bounds (assume consistent)
+    n_gen = length(order_metrics_generated_dict[keys[1]])
+
+    # Compute distances to all generated networks
+    dists = Vector{Float64}(undef, n_gen)
+    @inbounds for j in 1:n_gen
+        dists[j] = weighted_l2(bio_index, j)
+    end
+
+    order = sortperm(dists)                       # ascending by distance
+    topk  = order[1:min(top_k, n_gen)]
+
+    return (
+        bio_index        = bio_index,
+        best_indices     = topk,
+        dists            = dists[topk],
+        normalization    = normalization,
+        per_metric_scales = per_metric_scales
+    )
+end
+
+bio_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\networks\\"
+
+generated_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\ctn\\"
+#generated_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\targeted\ctn_pachy\target_8\\"
+
+bio_index = 1
+# "pachy/pachy_blue"
+# "pachy/pachy_red"
+# "stern_ama/stern_ama_orange"
+# "stern_vir/stern_vir_blue"
+# "stern_vir/stern_vir_green"
+
+filename = "all_order_metrics.h5"
+
+order_metrics_bio_dict = GU.load_h5_dict(bio_path*filename)
+
+order_metrics_generated_dict = GU.load_h5_dict(generated_path*filename)
+
+
+#keys    = ["bond_length_std_vec", "bond_angle_std_vec", "hyperuniformity_alpha_vec"]
+#weights = [0.45, 0.45, 0.1 ]  # set these as you like
+
+keys = [
+        "bond_length_std_vec", # 0.15
+        "bond_angle_std_vec", # 0.15
+        "dihedral_angle_entropy_vec", # 0.05
+        "bond_orientation_entropy_vec", # 0.10
+        "coordination_nr_mean_vec", # 0.01
+        "coordination_nr_std_vec", # 0.01
+        #"q_l_mat_values", # 0.05 * 1/13
+        #"q_l_mat_uncertainties", # 0.05 * 1/13
+        "vertex_homogeneity_metric_vec", # 0.05
+        "uncoordinated_neighbor_distance_vec", # 0.05
+        "ring_size_mean_vec", # 0.005
+        "ring_size_std_vec", # 0.005
+        "ring_radius_mean_vec", # 0.05
+        "ring_radius_std_vec", # 0.05
+        "critical_pore_radius_vec", # 0.10
+        "anisotropy_metric_from_structure_factor_vec", # 0.05
+        "anisotropy_metric_from_structure_factor_bonds_vec", # 0.05
+        "hyperuniformity_alpha_vec", # 0.02
+        ]
+
+weights = [0.15, 0.15, 0.05, 0.10, 0.005, 0.005, 0.05, 0.05, 0.005, 0.005, 0.05, 0.05, 0.10, 0.05, 0.05, 0.02]
+
+# No normalization (raw values)
+res = find_closest_network_l2(order_metrics_bio_dict, order_metrics_generated_dict;
+                              keys=keys, weights=weights, bio_index=bio_index,
+                              top_k=5, normalization=:none)
+
+println("Closest generated index: ", res.best_indices[1])
+println("L2 distance             : ", res.dists[1])
+
+
+# print all order metrics of the target biological network and the closest generated one
+closest_index = res.best_indices[1]
+println("\nOrder metrics of target biological network:")
+for (key, _) in order_metrics_bio_dict
+    val = order_metrics_bio_dict[key][bio_index]
+    println("Target  ", key, " : ", val)
+    val = order_metrics_generated_dict[key][closest_index]
+    println("Generated  ", key, " : ", val)
+end
+
+for index in res.best_indices
+    println("Filename: ", order_metrics_generated_dict["filenames_vec"][index])
+    println("Bond orientation entropy: ", order_metrics_generated_dict["bond_orientation_entropy_vec"][index])
+end
+
+
+bio_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\networks\\"
+
+generated_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\pcu_cn_4_5_6\\"
+
+bio_index = 3  # index of biological network to compare against
+# "pachy/pachy_blue"
+# "pachy/pachy_red"
+# "stern_ama/stern_ama_orange"
+# "stern_vir/stern_vir_blue"
+# "stern_vir/stern_vir_green"
+
+filename = "all_order_metrics.h5"
+
+order_metrics_bio_dict = GU.load_h5_dict(bio_path*filename)
+
+order_metrics_generated_dict = GU.load_h5_dict(generated_path*filename)
+
+
+# No normalization (raw values)
+res = find_closest_network_l2(order_metrics_bio_dict, order_metrics_generated_dict;
+                              keys=keys, weights=weights, bio_index=bio_index,
+                              top_k=5, normalization=:none)
+
+println("Closest generated index: ", res.best_indices[1])
+println("L2 distance             : ", res.dists[1])
+
+
+# print all order metrics of the target biological network and the closest generated one
+closest_index = res.best_indices[1]
+println("\nOrder metrics of target biological network:")
+for (key, _) in order_metrics_bio_dict
+    val = order_metrics_bio_dict[key][bio_index]
+    println("Target  ", key, " : ", val)
+    val = order_metrics_generated_dict[key][closest_index]
+    println("Generated  ", key, " : ", val)
+end
+
+for index in res.best_indices
+    println("Filename: ", order_metrics_generated_dict["filenames_vec"][index])
+    println("Bond orientation entropy: ", order_metrics_generated_dict["bond_orientation_entropy_vec"][index])
+end
+
+
+
+bio_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\networks\\"
+
+generated_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\bcu_cn_5_6_7_8\\"
+
+bio_index = 5  
+# index of biological network to compare against
+# "pachy/pachy_blue"
+# "pachy/pachy_red"
+# "stern_ama/stern_ama_orange"
+# "stern_vir/stern_vir_blue"
+# "stern_vir/stern_vir_green"
+
+filename = "all_order_metrics.h5"
+
+order_metrics_bio_dict = GU.load_h5_dict(bio_path*filename)
+
+order_metrics_generated_dict = GU.load_h5_dict(generated_path*filename)
+
+# No normalization (raw values)
+res = find_closest_network_l2(order_metrics_bio_dict, order_metrics_generated_dict;
+                              keys=keys, weights=weights, bio_index=bio_index,
+                              top_k=3, normalization=:none)
+
+println("Closest generated index: ", res.best_indices[1])
+println("L2 distance             : ", res.dists[1])
+
+
+# print all order metrics of the target biological network and the closest generated one
+closest_index = res.best_indices[1]
+println("\nOrder metrics of target biological network:")
+for (key, _) in order_metrics_bio_dict
+    val = order_metrics_bio_dict[key][bio_index]
+    println("Target  ", key, " : ", val)
+    val = order_metrics_generated_dict[key][closest_index]
+    println("Generated  ", key, " : ", val)
+end
+
+for index in res.best_indices
+    println("Filename: ", order_metrics_generated_dict["filenames_vec"][index])
+    println("Bond orientation entropy: ", order_metrics_generated_dict["bond_orientation_entropy_vec"][index])
+end
+
+bio_index = 4
+
+# No normalization (raw values)
+res = find_closest_network_l2(order_metrics_bio_dict, order_metrics_generated_dict;
+                              keys=keys, weights=weights, bio_index=bio_index,
+                              top_k=3, normalization=:none)
+
+println("Closest generated index: ", res.best_indices[1])
+println("L2 distance             : ", res.dists[1])
+
+
+# print all order metrics of the target biological network and the closest generated one
+closest_index = res.best_indices[1]
+println("\nOrder metrics of target biological network:")
+for (key, _) in order_metrics_bio_dict
+    val = order_metrics_bio_dict[key][bio_index]
+    println("Target  ", key, " : ", val)
+    val = order_metrics_generated_dict[key][closest_index]
+    println("Generated  ", key, " : ", val)
+end
+
+for index in res.best_indices
+    println("Filename: ", order_metrics_generated_dict["filenames_vec"][index])
+    println("Bond orientation entropy: ", order_metrics_generated_dict["bond_orientation_entropy_vec"][index])
+end
+
+
+analysis_data_path = raw"..\analysis_data\local_relaxation\random\bcu_cn_5_6_7_8\\"
+
+order_metrics_dict = NA.get_order_metrics_all_files(
+    analysis_data_path;
+    save_result=true,
+    save_algorithm_parameters_from_filename=true)
+
+NA.save_order_metrics_dict_to_csv(order_metrics_dict, analysis_data_path)
+
+
+print_lock = Threads.ReentrantLock()
+
+spatial_networks_path = "../structures/local_relaxation/random/bcu_cn_5_6_7_8/"
+analysis_data_path = "../analysis_data/local_relaxation/random/bcu_cn_5_6_7_8/"
+
+NA.get_all_dicts_from_networks_multithreading(
+spatial_networks_path,
+analysis_data_path;
+print_progress = true,
+runs_vec = [1,3],
+print_lock = print_lock)
+
+
+
+
+spatial_network_path = "../structures/biological/networks/pachy/"
+analysis_data_path = "../analysis_data/biological/networks/pachy/"
+digital_sphere_mask_path = "../analysis_data/biological/networks/digital_sphere_masks/"
+
+filename = "pachy_blue"
+
+pore_size_sampling_grid_size = 0.2
+max_pore_radius = 3.0
+hyperuniformity_min_wavenumber_to_consider = 0.4578267741033627
+exclude_layer_thickness = 1.5
+periodic_boundary_conditions = false
+print_progress = true
+print_lock = Threads.ReentrantLock()
+
+# get network
+spatial_network = NG.load_spatial_network_from_gml(
+        spatial_network_path*filename*".gml")
+
+
+# get all order metrics for the network
+order_metrics_dict = NA.get_order_metrics(
+    filename,
+    spatial_network_path,
+    analysis_data_path;
+    l_max_steinhardt_q_l = 12,
+    hyperuniformity_min_wavenumber_to_consider
+        = hyperuniformity_min_wavenumber_to_consider,
+    exclude_layer_thickness = exclude_layer_thickness,
+    periodic_boundary_conditions = periodic_boundary_conditions,
+    save_result = true,
+    )
+
+filename = "pachy_red"
+
+pore_size_sampling_grid_size = 0.2
+max_pore_radius = 3.0
+hyperuniformity_min_wavenumber_to_consider = 0.5466502938179802
+exclude_layer_thickness = 1.5
+periodic_boundary_conditions = false
+print_progress = true
+print_lock = Threads.ReentrantLock()
+
+# get network
+spatial_network = NG.load_spatial_network_from_gml(
+        spatial_network_path*filename*".gml")
+
+
+# get all order metrics for the network
+order_metrics_dict = NA.get_order_metrics(
+    filename,
+    spatial_network_path,
+    analysis_data_path;
+    l_max_steinhardt_q_l = 12,
+    hyperuniformity_min_wavenumber_to_consider
+        = hyperuniformity_min_wavenumber_to_consider,
+    exclude_layer_thickness = exclude_layer_thickness,
+    periodic_boundary_conditions = periodic_boundary_conditions,
+    save_result = true,
+    )
+
+
+spatial_network_path = "../structures/biological/networks/stern_vir/"
+analysis_data_path = "../analysis_data/biological/networks/stern_vir/"
+digital_sphere_mask_path = "../analysis_data/biological/networks/digital_sphere_masks/"
+
+filename = "stern_vir_blue"
+
+pore_size_sampling_grid_size = 0.2
+max_pore_radius = 3.0
+hyperuniformity_min_wavenumber_to_consider = 0.8569597198833633
+exclude_layer_thickness = 1.5
+periodic_boundary_conditions = false
+print_progress = true
+print_lock = Threads.ReentrantLock()
+
+# get network
+spatial_network = NG.load_spatial_network_from_gml(
+        spatial_network_path*filename*".gml")
+
+
+# get all order metrics for the network
+order_metrics_dict = NA.get_order_metrics(
+    filename,
+    spatial_network_path,
+    analysis_data_path;
+    l_max_steinhardt_q_l = 12,
+    hyperuniformity_min_wavenumber_to_consider
+        = hyperuniformity_min_wavenumber_to_consider,
+    exclude_layer_thickness = exclude_layer_thickness,
+    periodic_boundary_conditions = periodic_boundary_conditions,
+    save_result = true,
+    )
+
+filename = "stern_vir_green"
+
+pore_size_sampling_grid_size = 0.2
+max_pore_radius = 3.0
+hyperuniformity_min_wavenumber_to_consider = 0.7888796239694542
+exclude_layer_thickness = 1.5
+periodic_boundary_conditions = false
+print_progress = true
+print_lock = Threads.ReentrantLock()
+
+# get network
+spatial_network = NG.load_spatial_network_from_gml(
+        spatial_network_path*filename*".gml")
+
+
+# get all order metrics for the network
+order_metrics_dict = NA.get_order_metrics(
+    filename,
+    spatial_network_path,
+    analysis_data_path;
+    l_max_steinhardt_q_l = 12,
+    hyperuniformity_min_wavenumber_to_consider
+        = hyperuniformity_min_wavenumber_to_consider,
+    exclude_layer_thickness = exclude_layer_thickness,
+    periodic_boundary_conditions = periodic_boundary_conditions,
+    save_result = true,
+    )
+
+
+spatial_network_path = "../structures/biological/networks/stern_ama/"
+analysis_data_path = "../analysis_data/biological/networks/stern_ama/"
+digital_sphere_mask_path = "../analysis_data/biological/networks/digital_sphere_masks/"
+
+filename = "stern_ama_orange"
+
+pore_size_sampling_grid_size = 0.2
+max_pore_radius = 3.0
+hyperuniformity_min_wavenumber_to_consider = 0.7537394719674415
+exclude_layer_thickness = 1.5
+periodic_boundary_conditions = false
+print_progress = true
+print_lock = Threads.ReentrantLock()
+
+# get network
+spatial_network = NG.load_spatial_network_from_gml(
+        spatial_network_path*filename*".gml")
+
+
+# get all order metrics for the network
+order_metrics_dict = NA.get_order_metrics(
+    filename,
+    spatial_network_path,
+    analysis_data_path;
+    l_max_steinhardt_q_l = 12,
+    hyperuniformity_min_wavenumber_to_consider
+        = hyperuniformity_min_wavenumber_to_consider,
+    exclude_layer_thickness = exclude_layer_thickness,
+    periodic_boundary_conditions = periodic_boundary_conditions,
+    save_result = true,
+    )
+
+
+analysis_data_path = "../analysis_data/biological/networks/"
+
+
+order_metrics_dict = NA.get_order_metrics_all_files(
+    analysis_data_path;
+    save_result=true,
+    save_algorithm_parameters_from_filename=false)
+
+NA.save_order_metrics_dict_to_csv(order_metrics_dict, analysis_data_path)
+
+
+print_lock = Threads.ReentrantLock()
+
+spatial_networks_path = "../structures/local_relaxation/targeted/ctn_pachy/target_8/"
+analysis_data_path = "../analysis_data/local_relaxation/targeted/ctn_pachy/target_8/"
+
+NA.get_all_dicts_from_networks_multithreading(
+spatial_networks_path,
+analysis_data_path;
+print_progress = true,
+runs_vec = [5],
+print_lock = print_lock)
+
+
+analysis_data_path = "../analysis_data/local_relaxation/random/"
+
+network_path = replace(analysis_data_path, "analysis_data" => "structures")
+
+filename = "all_order_metrics.h5"
+
+network_types = ["bcu_cn_5_6_7_8", "ctn", "dia", "lcs", "srs", "pcu_cn_4_5_6"]
+
+for network_type in network_types
+    
+    order_metrics_generated_dict = GU.load_h5_dict(analysis_data_path*network_type*"/"*filename)
+
+    filenames_vec = order_metrics_generated_dict["filenames_vec"]
+    nr_accepted_moves_vec = Vector{Int64}()
+    for current_filename in filenames_vec
+        evolution_dict = GU.load_h5_dict(network_path*network_type*"/"*current_filename*"_evolution.h5")
+        push!(nr_accepted_moves_vec, sum(evolution_dict["move_accepted_vec"]))
+    end
+
+    order_metrics_generated_dict["nr_accepted_moves_vec"] = nr_accepted_moves_vec
+
+    println(typeof(nr_accepted_moves_vec))
+
+    # save a copy of the dict 
+    GU.save_dict_to_h5(deepcopy(order_metrics_generated_dict), analysis_data_path*network_type*"/"*filename[1:end-3]*"_with_nr_accepted_moves.h5")
+end
+
+
+bond_bending_const_vec = collect(0.0:0.2:10.0)
+
+t_melt_vec = [NA.get_melting_temperature("ctn", beta; relax_globally_after_threshold_cycle=false, shell_nr=4) for beta in bond_bending_const_vec]
+
+t_gradient_vec = 0.5 .* t_melt_vec
+
+t_max_over_t_melt_vec = collect(0.5:0.02:2.0)
+
+t_max_arr = t_max_over_t_melt_vec' .* t_melt_vec
+
+# save the arrays to a h5 file
+save_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\neural_networks\predictions\local_relaxation\ctn\\"
+
+GU.save_dict_to_h5(Dict(
+    "bond_bending_const_vec" => bond_bending_const_vec,
+    "t_melt_vec" => t_melt_vec,
+    "t_gradient_vec" => t_gradient_vec,
+    "t_max_over_t_melt_vec" => t_max_over_t_melt_vec,
+    "t_max_arr" => t_max_arr,
+), save_path*"ctn_t_melt_vec.h5")
+
+
+path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\pcu_cn_4_5_6\\"
+
+filename_2 = "all_order_metrics_with_nr_accepted_moves.h5"
+order_metrics_dict_2 = GU.load_h5_dict(path*filename_2)
+
+filenames_vec = order_metrics_dict_2["filenames_vec"]
+
+index = findfirst(contains("pcu_cn_4_5_6_beta_0.0978_t_max_0.1788_t_gradient_0.1858"), filenames_vec)
+
+println(order_metrics_dict_2["nr_accepted_moves_vec"][index])
+
+t_melt = NA.get_melting_temperature("pcu_cn_4_5_6", 0.0978; relax_globally_after_threshold_cycle=false, shell_nr=4)
+println("Melting temperature: ", t_melt)
+println("T_max / T_melt: ", 0.1788 / t_melt)
+println("T_gradient / T_melt: ", 0.1858 / t_melt)
+
+
+
+network_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\random\bcu_cn_5_6_7_8\run_4\\"
+#network_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\local_relaxation\targeted\ctn_pachy\target_8\run_3\\"
+
+
+filename = "bcu_cn_5_6_7_8_beta_0.0018_t_max_0.2401_t_gradient_0.3271.gml" # green
+#filename = "ctn_beta_5.7865_t_max_8.0669_t_gradient_11.5581_170.gml"
+
+#spatial_network = NG.load_spatial_network_from_gml(network_path*filename)
+
+t_melt = NA.get_melting_temperature("bcu_cn_5_6_7_8", 0.0018; relax_globally_after_threshold_cycle=false, shell_nr=4)
+println("Melting temperature: ", t_melt)
+println("T_max / T_melt: ", 0.2401 / t_melt)
+println("T_gradient / T_melt: ", 0.3271 / t_melt)
+
+evolution_dict = GU.load_h5_dict(network_path*filename[1:end-4]*"_evolution.h5")
+
+nr_accepted_moves = sum(evolution_dict["move_accepted_vec"])
+println("Number of accepted moves green: ", nr_accepted_moves)
+
+
+filename = "bcu_cn_5_6_7_8_beta_0.0012_t_max_0.2314_t_gradient_0.4296.gml" # blue
+
+t_melt = NA.get_melting_temperature("bcu_cn_5_6_7_8", 0.0012; relax_globally_after_threshold_cycle=false, shell_nr=4)
+println("Melting temperature: ", t_melt)
+println("T_max / T_melt: ", 0.2314 / t_melt)
+println("T_gradient / T_melt: ", 0.4296 / t_melt)
+
+evolution_dict = GU.load_h5_dict(network_path*filename[1:end-4]*"_evolution.h5")
+
+nr_accepted_moves = sum(evolution_dict["move_accepted_vec"])
+println("Number of accepted moves blue: ", nr_accepted_moves)

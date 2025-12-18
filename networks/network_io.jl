@@ -766,6 +766,9 @@ function cut_bonds_out_of_supercell!(
     # count current vertex
     vertex_count = copy(spatial_network[]["nr_vertices"])
 
+    # get highest vertex index
+    current_highest_index = maximum(MetaGraphsNext.labels(spatial_network))
+
     # loop through all bonds
     for bond in bond_vec
 
@@ -781,14 +784,14 @@ function cut_bonds_out_of_supercell!(
 
             # add two new vertices and bonds half way of original bond
             for i in 1:2
-                spatial_network[vertex_count + i] = (
+                spatial_network[current_highest_index + i] = (
                     Dict(
                         "position" => (spatial_network[bond[i]]["position"] 
                         .+ (-1)^(i+1) .* new_vector ),
                         "coordination_nr" => 1
                         ) )
 
-                spatial_network[bond[i], vertex_count + i] = (
+                spatial_network[bond[i], current_highest_index + i] = (
                     Dict("vector" => (-1)^(i+1) .* new_vector, 
                         "distance_squared" => (vector_out_of_supercell_length^2 
                             .* spatial_network[bond...]["distance_squared"] )))
@@ -796,6 +799,7 @@ function cut_bonds_out_of_supercell!(
             end
 
             vertex_count += 2
+            current_highest_index += 2
 
             # cut original bond
             MetaGraphsNext.rem_edge!(spatial_network,
@@ -820,6 +824,9 @@ function duplicate_bonds_close_to_supercell_edge!(
 
     # count current vertex
     vertex_count = copy(spatial_network[]["nr_vertices"])
+
+    # get highest vertex index
+    current_highest_index = maximum(MetaGraphsNext.labels(spatial_network))
 
     initial_bonds = collect(MetaGraphsNext.edge_labels(spatial_network))
 
@@ -887,19 +894,21 @@ function duplicate_bonds_close_to_supercell_edge!(
                 # if the new positions are not in the network, we can add them
                 # to the network
                 if not_in_network
-                    spatial_network[vertex_count + 1] = (
+                    spatial_network[current_highest_index + 1] = (
                         Dict("position" => new_start_pos, 
                             "coordination_nr" => 1 ))
-                    spatial_network[vertex_count + 2] = (
+                    spatial_network[current_highest_index + 2] = (
                         Dict("position" => new_target_pos, 
                         "coordination_nr" => 1))
 
-                    spatial_network[vertex_count + 1, vertex_count + 2] = (
+                    spatial_network[current_highest_index + 1, 
+                        current_highest_index + 2] = (
                         Dict("vector" => (new_target_pos .- new_start_pos), 
                             "distance_squared" => (LinearAlgebra.norm(
                                 new_target_pos .- new_start_pos)^2 )))
 
                     vertex_count += 2
+                    current_highest_index += 2
                 end
             end
         end

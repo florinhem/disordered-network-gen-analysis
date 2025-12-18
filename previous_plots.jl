@@ -6930,3 +6930,1773 @@ NA.plot_structure_factor_heatmap(
         clims = (0, 0.1 ),
         x_y_lims = nothing,
         clims_from_mean = false,)
+
+
+spatial_network_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\networks\stern_vir\\"
+
+filename = "stern_vir_blue_structure_factor_bonds_array.h5"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\biological\networks\stern_vir\\"
+
+dict = GU.load_h5_dict(spatial_network_path*filename)
+
+NA.plot_structure_factor_heatmap(
+        dict,
+        plot_path*"stern_vir_blue_y_z";
+        save_plot = true,
+        clims = (0, 10 ),
+        x_y_lims = nothing,
+        wavevector_component_to_fix = 1,
+        clims_from_mean = false,)
+
+filename = "stern_vir_green_structure_factor_bonds_array.h5"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\biological\networks\stern_vir\\"
+
+dict = GU.load_h5_dict(spatial_network_path*filename)
+
+NA.plot_structure_factor_heatmap(
+        dict,
+        plot_path*"stern_vir_green_y_z";
+        save_plot = true,
+        clims = (0, 10 ),
+        x_y_lims = nothing,
+        wavevector_component_to_fix = 1,
+        clims_from_mean = false,)
+
+        
+
+load_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\networks\pachy\\"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\biological\networks\pachy\\"
+
+filename_blue = "pachy_blue_structure_factor_bonds_angle_averaged.h5"
+
+load_path_generated = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\ctn\run_5\\"
+#raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\Documents\\"
+#
+
+filename_generated = "ctn_beta_6.3359_t_max_8.6070_t_gradient_11.7170_structure_factor_bonds_angle_averaged.h5"
+
+structure_factor_blue = GU.load_h5_dict(load_path*filename_blue)
+
+structure_factor_generated = GU.load_h5_dict(load_path_generated*filename_generated)
+
+first_index = 4
+
+Plots.plot(structure_factor_generated["wavenumber_vec"], Measurements.value.(structure_factor_generated["structure_factor_vec"]),
+    #ribbon =  Measurements.uncertainty.(structure_factor_generated["structure_factor_vec"]),
+    label = "Generated",
+    color = :gray
+)
+Plots.plot!(structure_factor_blue["wavenumber_vec"][first_index:end], Measurements.value.(structure_factor_blue["structure_factor_vec"][first_index:end]),
+#ribbon =  Measurements.uncertainty.(structure_factor_blue["structure_factor_vec"]),
+    label = "Biological",
+    color = :blue
+)
+
+Plots.plot!(ylims=(0, 2), xlims=(0, 15))
+
+
+# Custom ticks: multiples of π
+xticks_positions = [π, 2π, 3π, 4π]  # adjust range as needed
+xticks_labels = [Latex.L"\pi", Latex.L"2\pi", Latex.L"3\pi", Latex.L"4\pi"]
+
+Plots.xticks!(xticks_positions, xticks_labels)
+
+Plots.xlabel!("Wavenumber / (1/d)")
+Plots.ylabel!("Structure factor")
+Plots.savefig(plot_path*"pachy_generated_angle_averaged_structure_factor_comparison.png")
+
+
+
+load_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\networks\pachy\\"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\biological\networks\pachy\\"
+
+filename_blue = "pachy_blue_structure_factor_bonds_array.h5"
+
+load_path_generated = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\ctn\run_5\\"
+
+filename_generated = "ctn_beta_6.3359_t_max_8.6070_t_gradient_11.7170_structure_factor_bonds_array.h5"
+
+structure_factor_blue = GU.load_h5_dict(load_path*filename_blue)
+
+structure_factor_generated = GU.load_h5_dict(load_path_generated*filename_generated)
+
+t_range = (5e-2, 5)
+min_wavenumber_to_consider = 0.4578267741033627 # pi/4
+consider_spectral_density = false
+
+time_vec = exp.(LinRange(log(t_range[1]), log(t_range[2]), 20))
+
+function comparison_func(x, a) 
+    return a * x ^(-3/2)
+end
+
+# calculate the excess spreadability for each t value
+excess_spreadability_vec_blue = [NA.get_excess_spreadability(
+        structure_factor_blue, time_vec[i]; 
+        min_wavenumber_to_consider=min_wavenumber_to_consider,
+        consider_spectral_density = consider_spectral_density) for i in 
+        eachindex(time_vec)]
+
+excess_spreadability_vec_generated = [NA.get_excess_spreadability(
+        structure_factor_generated, time_vec[i]; 
+        min_wavenumber_to_consider=0.0,
+        consider_spectral_density = consider_spectral_density) for i in 
+        eachindex(time_vec)]
+
+Plots.plot(
+    time_vec,
+    excess_spreadability_vec_generated .* 3;
+    xscale = :log10,
+    yscale = :log10,
+    xlabel = Latex.L"Time $t$",
+    ylabel = "Excess spreadability",
+    label = "Generated",
+    ylim = (1, 1e4),
+    bottom_margin = 2Plots.mm,
+    color = :gray
+)
+Plots.plot!(
+    time_vec,
+    excess_spreadability_vec_blue .* 1e-3;
+    label = "Biological",
+    color = :blue
+)
+
+Plots.plot!(time_vec, comparison_func.(time_vec, 10), label = Latex.L"t^{-3/2}", color = :black, linestyle = :dash)
+
+# place legend in the bottom left
+#Plots.plot!(legend = :bottomleft)
+Plots.savefig(plot_path*"pachy_generated_excess_spreadability_comparison.png")
+
+
+
+"""
+    scatter_order_metrics(
+        order_metrics_bio_dict::Dict{String,<:AbstractVector},
+        order_metrics_generated_dict::Dict{String,<:AbstractVector};
+        metric_x::String,
+        metric_y::String,
+        bio_index::Int = 1,
+        generated_label::AbstractString = "Generated",
+        bio_label::AbstractString = "Biological (target)",
+        generated_color = :steelblue,
+        bio_color = :red,
+        generated_marker = :circle,
+        bio_marker = :star5,
+        generated_ms = 5,
+        bio_ms = 9,
+        alpha_gen = 0.8,
+        legend = :topright,
+        title::AbstractString = "",
+        savepath::Union{Nothing,String} = nothing
+    ) -> Plots.Plot
+
+Create a scatter plot for two order metrics:
+- All generated networks (from order_metrics_generated_dict) are plotted as points.
+- The target bio network (bio_index in order_metrics_bio_dict) is overlaid as a highlighted point.
+
+Assumes keys exist and vectors are aligned in length.
+"""
+function scatter_order_metrics(
+    order_metrics_bio_dict,
+    order_metrics_generated_dict;
+    metric_x::String,
+    metric_y::String,
+    x_label::AbstractString = "",
+    y_label::AbstractString = "",
+    xlim::Union{Nothing,Tuple{Float64,Float64}} = nothing,
+    ylim::Union{Nothing,Tuple{Float64,Float64}} = nothing,
+    bio_index::Int = 1,
+    highlight_generated_index::Union{Nothing,Int} = nothing,
+    generated_label::AbstractString = "Generated",
+    bio_label::AbstractString = "Biological",
+    generated_color = :gray,
+    bio_color = :blue,
+    generated_marker = :circle,
+    bio_marker = :star5,
+    generated_ms = 5,
+    bio_ms = 12,
+    alpha_gen = 0.8,
+    legend = :topright,
+    title::AbstractString = "",
+    savepath::Union{Nothing,String} = nothing
+)
+    # Extract data (we rely on your guarantee that keys exist and sizes align)
+    x_gen = order_metrics_generated_dict[metric_x]
+    y_gen = order_metrics_generated_dict[metric_y]
+
+    x_bio = order_metrics_bio_dict[metric_x][bio_index]
+    y_bio = order_metrics_bio_dict[metric_y][bio_index]
+
+    # Base scatter for generated networks
+    plt = Plots.scatter(
+        x_gen, y_gen;
+        label = generated_label,
+        color = generated_color,
+        marker = (generated_marker, generated_ms),
+        alpha = alpha_gen,
+        legend = legend,
+        title = title,
+        xlabel = x_label == "" ? metric_x : x_label,
+        ylabel = y_label == "" ? metric_y : y_label,
+        xlim = xlim,
+        ylim = ylim,
+        grid = :on
+    )
+
+    # Overlay the target bio point
+    Plots.scatter!(
+        plt,
+        [x_bio], [y_bio];
+        label = bio_label,
+        color = bio_color,
+        marker = (bio_marker, bio_ms),
+        alpha = 1.0
+    )
+
+    if highlight_generated_index !== nothing
+        x_highlight = order_metrics_generated_dict[metric_x][highlight_generated_index]
+        y_highlight = order_metrics_generated_dict[metric_y][highlight_generated_index]
+
+        # Overlay the highlighted generated point
+        Plots.scatter!(
+            plt,
+            [x_highlight], [y_highlight];
+            label = "Best match",
+            color = :black,
+            marker = (generated_marker, generated_ms),
+            alpha = 1.0
+        )
+    end
+
+    # Optionally annotate the bio point (uncomment if desired)
+    # Plots.annotate!(plt, x_bio, y_bio, text("bio i=$(bio_index)", :left, 10, bio_color))
+
+    # Save if a path is provided
+    if savepath !== nothing
+        Plots.savefig(plt, savepath)
+    end
+
+    return plt
+end
+
+
+bio_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\networks\\"
+
+generated_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\ctn\\"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\biological\networks\pachy\\"
+
+# "pachy/pachy_blue"
+# "pachy/pachy_red"
+# "stern_ama/stern_ama_orange"
+# "stern_vir/stern_vir_blue"
+# "stern_vir/stern_vir_green"
+
+filename = "all_order_metrics.h5"
+
+order_metrics_bio_dict = GU.load_h5_dict(bio_path*filename)
+
+order_metrics_generated_dict = GU.load_h5_dict(generated_path*filename)
+
+
+metric_x = "hyperuniformity_alpha_vec"
+metric_y = "bond_length_std_vec"
+
+plt = scatter_order_metrics(
+    order_metrics_bio_dict,
+    order_metrics_generated_dict;
+    metric_x = metric_x,
+    metric_y = metric_y,
+    x_label = "Hyperuniformity α",
+    y_label = "Bond length "*Latex.L"\sigma",
+    xlim = (-2.5, 4.0),
+    bio_index = 1,
+    highlight_generated_index = 2859,
+    savepath = plot_path * "pachy_generated_hyperuniformity_alpha_vs_bond_length_std.png"
+)
+
+# save the plot
+Plots.savefig(plt, plot_path * "pachy_generated_hyperuniformity_alpha_vs_bond_length_std.png")
+
+
+bcu_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\bcu_cn_5_6_7_8\\"
+
+ctn_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\ctn\\"
+
+dia_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\dia\\"
+
+lcs_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\lcs\\"
+
+pcu_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\pcu_cn_4_5_6\\"
+
+srs_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\srs\\"
+
+bio_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\networks\\"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\biological\networks\pachy\\"
+
+all_paths = [
+    bcu_order_metrics_path,
+    ctn_order_metrics_path,
+    dia_order_metrics_path,
+    lcs_order_metrics_path,
+    pcu_order_metrics_path,
+    srs_order_metrics_path,
+    bio_order_metrics_path
+]
+
+all_dicts = [GU.load_h5_dict(path * "all_order_metrics.h5") for path in all_paths]
+
+
+analysis_data_paths = [bio_order_metrics_path, ctn_order_metrics_path]
+
+filenames = ["pachy\\pachy_blue_order_metrics.h5", "run_5\\ctn_beta_6.3359_t_max_8.6070_t_gradient_11.7170_order_metrics.h5"]
+
+dicts = []
+
+for (i, filename) in enumerate(filenames)
+
+    order_metrics_dict = GU.load_h5_dict(analysis_data_paths[i] * filename)
+    push!(dicts, order_metrics_dict)
+end
+
+key_list = [
+    "dihedral_angle_entropy",
+    "bond_angle_std",
+    "bond_length_std",
+    "hyperuniformity_alpha",
+    "vertex_homogeneity_metric",
+    "critical_pore_radius",
+    "bond_orientation_entropy",
+    "coordination_nr_mean",
+    "ring_radius_std",
+    "ring_radius_mean",
+]
+
+all_order_metrics_dict = Dict{String, Vector{Float64}}()
+for (i, k) in enumerate(key_list)
+    current_key = k*"_vec"
+
+    for (j, dict) in enumerate(all_dicts)
+        if j == 1
+            all_order_metrics_dict[current_key] = dict[current_key]
+        else
+            append!(all_order_metrics_dict[current_key], dict[current_key])
+        end
+    end
+end
+
+labels = [
+    
+    "Dihedral angle entropy",
+    Latex.L"Bond angles $\sigma$",
+    Latex.L"Bond lengths $\sigma$",
+    Latex.L"Hyperuniformity $\alpha$",
+    "Vertex homogeneity",
+    "Critical pore radius",
+    "Isotropy in bonds",
+    "Mean coordination nr.",
+    Latex.L"Ring radii $\sigma$",
+    "Mean ring radius",
+]
+
+# Map keys to numeric y positions
+yvals = 1:length(key_list)
+
+# Example split indices
+n1 = 3
+n2 = 7
+
+
+# Split the labels and corresponding yvals into three groups
+labels1 = labels[1:n1]
+key_lists1 = key_list[1:n1]
+yvals1 = 1:n1
+
+labels2 = labels[n1+1:n2]
+key_lists2 = key_list[n1+1:n2]
+yvals2 = 1:length(labels2)
+
+labels3 = labels[n2+1:end]
+key_lists3 = key_list[n2+1:end]
+yvals3 = 1:length(labels3)
+
+# Calculate relative heights based on number of labels
+total_labels = length(labels)
+heights = [length(labels1)/total_labels, length(labels2)/total_labels]
+
+
+# Create the layout for the three subplots
+l = @Plots.layout([a b; c d])
+
+xlims = (-0.1, 1.1)
+xticks = [0, 0.5, 1.0]
+
+# Initialize the three subplots
+p1 = Plots.plot(
+    legend = false,
+    yticks = (yvals1, labels1),
+    xticks = (xticks, ["", "", ""]),
+    grid = true
+)
+
+p2 = Plots.plot(
+    legend = false,
+    yticks = (yvals2, labels2),
+    xticks = (xticks, ["", "", ""]),
+    grid = true
+)
+
+p3 = Plots.plot(
+    legend = false,
+    yticks = (yvals3, labels3),
+    xticks = xticks,
+    xlabel = "Order metric value",
+    grid = true
+)
+
+
+# Plot the scatter series for each subplot
+markersizes = [10, 8]
+colors = [:blue, :gray]
+for (i, dict) in enumerate(dicts)
+    Plots.scatter!(p1, [Measurements.value.(dict[k]) for k in key_lists1], yvals1; label=labels1, markersize=markersizes[i], ylims=(0.5, n1+0.5), xlims=xlims, color=colors[i])
+
+    Plots.scatter!(p2, [Measurements.value.(dict[k]) for k in key_lists2], yvals2; label=labels2, markersize=markersizes[i], ylims=(0.5, length(labels2)+0.5), xlims=xlims, color=colors[i])
+
+    Plots.scatter!(p3, [Measurements.value.(dict[k]) for k in key_lists3], yvals3; label=labels3, markersize=markersizes[i], ylims=(0.5, length(labels3)+0.5), xlims=xlims, color=colors[i])
+end
+
+
+# Combine the subplots into a single plot
+Plots.plot(p1, p2, p3, layout = (3, 1), size = (500, 600), link = :x,
+bottom_margin = 0Plots.mm,
+    top_margin = 3Plots.mm,
+    left_margin = 10Plots.mm,
+    right_margin = 0Plots.mm)
+
+Plots.savefig(plot_path * "pachy_generated_order_metrics_comparison.png")
+
+
+bcu_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\bcu_cn_5_6_7_8\\"
+
+ctn_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\ctn\\"
+
+dia_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\dia\\"
+
+lcs_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\lcs\\"
+
+pcu_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\pcu_cn_4_5_6\\"
+
+srs_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\srs\\"
+
+bio_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\networks\\"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\biological\networks\pachy\\"
+
+all_paths = [
+    bcu_order_metrics_path,
+    ctn_order_metrics_path,
+    dia_order_metrics_path,
+    lcs_order_metrics_path,
+    pcu_order_metrics_path,
+    srs_order_metrics_path,
+    bio_order_metrics_path
+]
+
+all_dicts = [GU.load_h5_dict(path * "all_order_metrics.h5") for path in all_paths]
+
+
+analysis_data_paths = [bio_order_metrics_path, ctn_order_metrics_path]
+
+filenames = ["pachy\\pachy_blue_order_metrics.h5", "run_5\\ctn_beta_6.3359_t_max_8.6070_t_gradient_11.7170_order_metrics.h5"]
+
+dicts = []
+
+for (i, filename) in enumerate(filenames)
+
+    order_metrics_dict = GU.load_h5_dict(analysis_data_paths[i] * filename)
+    push!(dicts, order_metrics_dict)
+end
+
+key_list = [
+    "dihedral_angle_entropy",
+    "bond_angle_std",
+    "bond_length_std",
+    "hyperuniformity_alpha",
+    "vertex_homogeneity_metric",
+    "critical_pore_radius",
+    "bond_orientation_entropy",
+    "coordination_nr_mean",
+    "ring_radius_std",
+    "ring_radius_mean",
+]
+
+all_order_metrics_dict = Dict{String, Vector{Float64}}()
+for (i, k) in enumerate(key_list)
+    current_key = k*"_vec"
+
+    for (j, dict) in enumerate(all_dicts)
+        if j == 1
+            all_order_metrics_dict[current_key] = dict[current_key]
+        else
+            append!(all_order_metrics_dict[current_key], dict[current_key])
+        end
+    end
+end
+
+labels = [
+    
+    "Dihedral angle entropy",
+    Latex.L"Bond angles $\sigma$",
+    Latex.L"Bond lengths $\sigma$",
+    Latex.L"Hyperuniformity $\alpha$",
+    "Vertex homogeneity",
+    "Critical pore radius",
+    "Isotropy in bonds",
+    "Mean coordination nr.",
+    Latex.L"Ring radii $\sigma$",
+    "Mean ring radius",
+]
+
+# Map keys to numeric y positions
+yvals = 1:length(key_list)
+
+# Example split indices
+n1 = 3
+n2 = 7
+
+
+# Split the labels and corresponding yvals into three groups
+labels1 = labels[1:n1]
+key_lists1 = key_list[1:n1]
+yvals1 = 1:n1
+
+labels2 = labels[n1+1:n2]
+key_lists2 = key_list[n1+1:n2]
+yvals2 = 1:length(labels2)
+
+labels3 = labels[n2+1:end]
+key_lists3 = key_list[n2+1:end]
+yvals3 = 1:length(labels3)
+
+# Calculate relative heights based on number of labels
+total_labels = length(labels)
+heights = [length(labels1)/total_labels, length(labels2)/total_labels]
+
+
+# Create the layout for the three subplots
+l = @Plots.layout([a b; c d])
+
+# --- Build (min, max) per metric from all_order_metrics_dict (uses *_vec keys) ---
+# key_list contains base names (e.g., "bond_length_std"), while all_order_metrics_dict uses "<key>_vec"
+mins_maxs = Dict{String,Tuple{Float64,Float64}}()
+for k in key_list
+    k_vec = k * "_vec"
+    vals_all = all_order_metrics_dict[k_vec]                 # Vector{Float64} from all networks
+    mn = minimum(vals_all)
+    mx = maximum(vals_all)
+    mins_maxs[k] = (mn, mx)
+end
+
+# Helper: return a vector of relative values for a given dict and a list of base metric keys
+rel_values = function (dict::Dict{String,Any}, keys::Vector{String})
+    [begin
+        x = Measurements.value.(dict[k])                     # scalar (possibly Measurement), take the value
+        mn, mx = mins_maxs[k]
+        range = mx - mn
+        range > 0 ? (x - mn)/range : 0.0                     # guard against zero range
+     end for k in keys]
+end
+
+# --- Axis cosmetics for relative scale ---
+xlims = (-0.05, 1.05)
+xticks = [0.0, 0.5, 1.0]
+
+# Initialize the three subplots (unchanged except xticks labels on the last one)
+p1 = Plots.plot(
+    legend = false,
+    yticks = (yvals1, labels1),
+    xticks = (xticks, ["", "", ""]),
+    grid = true
+)
+p2 = Plots.plot(
+    legend = false,
+    yticks = (yvals2, labels2),
+    xticks = (xticks, ["", "", ""]),
+    grid = true
+)
+p3 = Plots.plot(
+    legend = false,
+    yticks = (yvals3, labels3),
+    xticks = xticks,
+    xlabel = "Relative metric",
+    grid = true
+)
+
+# --- Plot the scatter series (now using relative values) ---
+markersizes = [10, 8]
+colors = [:blue, :gray]
+
+for (i, dict) in enumerate(dicts)
+    Plots.scatter!(
+        p1,
+        rel_values(dict, key_lists1), yvals1;
+        label = labels1,
+        markersize = markersizes[i],
+        ylims = (0.5, length(labels1) + 0.5),
+        xlims = xlims,
+        color = colors[i]
+    )
+    Plots.scatter!(
+        p2,
+        rel_values(dict, key_lists2), yvals2;
+        label = labels2,
+        markersize = markersizes[i],
+        ylims = (0.5, length(labels2) + 0.5),
+        xlims = xlims,
+        color = colors[i]
+    )
+    Plots.scatter!(
+        p3,
+        rel_values(dict, key_lists3), yvals3;
+        label = labels3,
+        markersize = markersizes[i],
+        ylims = (0.5, length(labels3) + 0.5),
+        xlims = xlims,
+        color = colors[i]
+    )
+end
+
+# Combine and save (unchanged)
+Plots.plot(p1, p2, p3,
+           layout = (3, 1),
+           size = (500, 600),
+           link = :x,
+           bottom_margin = 0Plots.mm,
+           top_margin = 3Plots.mm,
+           left_margin = 10Plots.mm,
+           right_margin = 0Plots.mm)
+Plots.savefig(plot_path * "pachy_generated_order_metrics_comparison_rel.png")
+
+
+bcu_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\bcu_cn_5_6_7_8\\"
+
+ctn_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\ctn\\"
+
+dia_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\dia\\"
+
+lcs_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\lcs\\"
+
+pcu_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\pcu_cn_4_5_6\\"
+
+srs_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\srs\\"
+
+bio_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\networks\\"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\biological\networks\stern_vir\\"
+
+all_paths = [
+    bcu_order_metrics_path,
+    ctn_order_metrics_path,
+    dia_order_metrics_path,
+    lcs_order_metrics_path,
+    pcu_order_metrics_path,
+    srs_order_metrics_path,
+    bio_order_metrics_path
+]
+
+all_dicts = [GU.load_h5_dict(path * "all_order_metrics.h5") for path in all_paths]
+
+
+analysis_data_paths = [bio_order_metrics_path, bio_order_metrics_path, bcu_order_metrics_path]
+
+filenames = ["stern_vir\\stern_vir_green_order_metrics.h5", "stern_vir\\stern_vir_blue_order_metrics.h5", "run_1\\bcu_cn_5_6_7_8_beta_0.0010_t_max_0.1983_t_gradient_0.1559_order_metrics.h5"]
+
+dicts = []
+
+for (i, filename) in enumerate(filenames)
+
+    order_metrics_dict = GU.load_h5_dict(analysis_data_paths[i] * filename)
+    push!(dicts, order_metrics_dict)
+end
+
+key_list = [
+    "dihedral_angle_entropy",
+    "bond_angle_std",
+    "bond_length_std",
+    "hyperuniformity_alpha",
+    "vertex_homogeneity_metric",
+    "critical_pore_radius",
+    "bond_orientation_entropy",
+    "coordination_nr_mean",
+    "ring_radius_std",
+    "ring_radius_mean",
+]
+
+all_order_metrics_dict = Dict{String, Vector{Float64}}()
+for (i, k) in enumerate(key_list)
+    current_key = k*"_vec"
+
+    for (j, dict) in enumerate(all_dicts)
+        if j == 1
+            all_order_metrics_dict[current_key] = dict[current_key]
+        else
+            append!(all_order_metrics_dict[current_key], dict[current_key])
+        end
+    end
+end
+
+labels = [
+    
+    "Dihedral angle entropy",
+    Latex.L"Bond angles $\sigma$",
+    Latex.L"Bond lengths $\sigma$",
+    Latex.L"Hyperuniformity $\alpha$",
+    "Vertex homogeneity",
+    "Critical pore radius",
+    "Isotropy in bonds",
+    "Mean coordination nr.",
+    Latex.L"Ring radii $\sigma$",
+    "Mean ring radius",
+]
+
+# Map keys to numeric y positions
+yvals = 1:length(key_list)
+
+# Example split indices
+n1 = 3
+n2 = 7
+
+
+# Split the labels and corresponding yvals into three groups
+labels1 = labels[1:n1]
+key_lists1 = key_list[1:n1]
+yvals1 = 1:n1
+
+labels2 = labels[n1+1:n2]
+key_lists2 = key_list[n1+1:n2]
+yvals2 = 1:length(labels2)
+
+labels3 = labels[n2+1:end]
+key_lists3 = key_list[n2+1:end]
+yvals3 = 1:length(labels3)
+
+# Calculate relative heights based on number of labels
+total_labels = length(labels)
+heights = [length(labels1)/total_labels, length(labels2)/total_labels]
+
+
+# Create the layout for the three subplots
+l = @Plots.layout([a b; c d])
+
+# --- Build (min, max) per metric from all_order_metrics_dict (uses *_vec keys) ---
+# key_list contains base names (e.g., "bond_length_std"), while all_order_metrics_dict uses "<key>_vec"
+mins_maxs = Dict{String,Tuple{Float64,Float64}}()
+for k in key_list
+    k_vec = k * "_vec"
+    vals_all = all_order_metrics_dict[k_vec]                 # Vector{Float64} from all networks
+    mn = minimum(vals_all)
+    mx = maximum(vals_all)
+    mins_maxs[k] = (mn, mx)
+end
+
+# Helper: return a vector of relative values for a given dict and a list of base metric keys
+rel_values = function (dict::Dict{String,Any}, keys::Vector{String})
+    [begin
+        x = Measurements.value.(dict[k])                     # scalar (possibly Measurement), take the value
+        mn, mx = mins_maxs[k]
+        range = mx - mn
+        range > 0 ? (x - mn)/range : 0.0                     # guard against zero range
+     end for k in keys]
+end
+
+# --- Axis cosmetics for relative scale ---
+xlims = (-0.05, 1.05)
+xticks = [0.0, 0.5, 1.0]
+
+# Initialize the three subplots (unchanged except xticks labels on the last one)
+p1 = Plots.plot(
+    legend = false,
+    yticks = (yvals1, labels1),
+    xticks = (xticks, ["", "", ""]),
+    grid = true
+)
+p2 = Plots.plot(
+    legend = false,
+    yticks = (yvals2, labels2),
+    xticks = (xticks, ["", "", ""]),
+    grid = true
+)
+p3 = Plots.plot(
+    legend = false,
+    yticks = (yvals3, labels3),
+    xticks = xticks,
+    xlabel = "Relative metric",
+    grid = true
+)
+
+# --- Plot the scatter series (now using relative values) ---
+markersizes = [10, 10, 8]
+colors = [:green, :blue, :gray]
+alphas = [0.5, 0.5, 1]
+
+for (i, dict) in enumerate(dicts)
+    Plots.scatter!(
+        p1,
+        rel_values(dict, key_lists1), yvals1;
+        label = labels1,
+        markersize = markersizes[i],
+        ylims = (0.5, length(labels1) + 0.5),
+        xlims = xlims,
+        color = colors[i],
+        alpha = alphas[i]
+    )
+    Plots.scatter!(
+        p2,
+        rel_values(dict, key_lists2), yvals2;
+        label = labels2,
+        markersize = markersizes[i],
+        ylims = (0.5, length(labels2) + 0.5),
+        xlims = xlims,
+        color = colors[i],
+        alpha = alphas[i]
+    )
+    Plots.scatter!(
+        p3,
+        rel_values(dict, key_lists3), yvals3;
+        label = labels3,
+        markersize = markersizes[i],
+        ylims = (0.5, length(labels3) + 0.5),
+        xlims = xlims,
+        color = colors[i],
+        alpha = alphas[i]
+    )
+end
+
+# Combine and save (unchanged)
+Plots.plot(p1, p2, p3,
+           layout = (3, 1),
+           size = (500, 600),
+           link = :x,
+           bottom_margin = 0Plots.mm,
+           top_margin = 3Plots.mm,
+           left_margin = 10Plots.mm,
+           right_margin = 0Plots.mm)
+Plots.savefig(plot_path * "stern_vir_generated_bcu_order_metrics_comparison_rel.png")
+
+
+bcu_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\bcu_cn_5_6_7_8\\"
+
+ctn_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\ctn\\"
+
+dia_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\dia\\"
+
+lcs_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\lcs\\"
+
+pcu_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\pcu_cn_4_5_6\\"
+
+srs_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\srs\\"
+
+bio_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\networks\\"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\biological\networks\stern_ama\\"
+
+all_paths = [
+    bcu_order_metrics_path,
+    ctn_order_metrics_path,
+    dia_order_metrics_path,
+    lcs_order_metrics_path,
+    pcu_order_metrics_path,
+    srs_order_metrics_path,
+    bio_order_metrics_path
+]
+
+all_dicts = [GU.load_h5_dict(path * "all_order_metrics.h5") for path in all_paths]
+
+
+analysis_data_paths = [bio_order_metrics_path, pcu_order_metrics_path, ctn_order_metrics_path]
+
+filenames = ["stern_ama\\stern_ama_orange_order_metrics.h5", "run_3\\pcu_cn_4_5_6_beta_0.2195_t_max_0.4752_t_gradient_0.1001_order_metrics.h5", "run_5\\ctn_beta_6.3359_t_max_8.6070_t_gradient_11.7170_order_metrics.h5"]
+
+dicts = []
+
+for (i, filename) in enumerate(filenames)
+
+    order_metrics_dict = GU.load_h5_dict(analysis_data_paths[i] * filename)
+    push!(dicts, order_metrics_dict)
+end
+
+key_list = [
+    "dihedral_angle_entropy",
+    "bond_angle_std",
+    "bond_length_std",
+    "hyperuniformity_alpha",
+    "vertex_homogeneity_metric",
+    "critical_pore_radius",
+    "bond_orientation_entropy",
+    "coordination_nr_mean",
+    "ring_radius_std",
+    "ring_radius_mean",
+]
+
+all_order_metrics_dict = Dict{String, Vector{Float64}}()
+for (i, k) in enumerate(key_list)
+    current_key = k*"_vec"
+
+    for (j, dict) in enumerate(all_dicts)
+        if j == 1
+            all_order_metrics_dict[current_key] = dict[current_key]
+        else
+            append!(all_order_metrics_dict[current_key], dict[current_key])
+        end
+    end
+end
+
+labels = [
+    
+    "Dihedral angle entropy",
+    Latex.L"Bond angles $\sigma$",
+    Latex.L"Bond lengths $\sigma$",
+    Latex.L"Hyperuniformity $\alpha$",
+    "Vertex homogeneity",
+    "Critical pore radius",
+    "Isotropy in bonds",
+    "Mean coordination nr.",
+    Latex.L"Ring radii $\sigma$",
+    "Mean ring radius",
+]
+
+# Map keys to numeric y positions
+yvals = 1:length(key_list)
+
+# Example split indices
+n1 = 3
+n2 = 7
+
+
+# Split the labels and corresponding yvals into three groups
+labels1 = labels[1:n1]
+key_lists1 = key_list[1:n1]
+yvals1 = 1:n1
+
+labels2 = labels[n1+1:n2]
+key_lists2 = key_list[n1+1:n2]
+yvals2 = 1:length(labels2)
+
+labels3 = labels[n2+1:end]
+key_lists3 = key_list[n2+1:end]
+yvals3 = 1:length(labels3)
+
+# Calculate relative heights based on number of labels
+total_labels = length(labels)
+heights = [length(labels1)/total_labels, length(labels2)/total_labels]
+
+
+# Create the layout for the three subplots
+l = @Plots.layout([a b; c d])
+
+# --- Build (min, max) per metric from all_order_metrics_dict (uses *_vec keys) ---
+# key_list contains base names (e.g., "bond_length_std"), while all_order_metrics_dict uses "<key>_vec"
+mins_maxs = Dict{String,Tuple{Float64,Float64}}()
+for k in key_list
+    k_vec = k * "_vec"
+    vals_all = all_order_metrics_dict[k_vec]                 # Vector{Float64} from all networks
+    mn = minimum(vals_all)
+    mx = maximum(vals_all)
+    mins_maxs[k] = (mn, mx)
+end
+
+# Helper: return a vector of relative values for a given dict and a list of base metric keys
+rel_values = function (dict::Dict{String,Any}, keys::Vector{String})
+    [begin
+        x = Measurements.value.(dict[k])                     # scalar (possibly Measurement), take the value
+        mn, mx = mins_maxs[k]
+        range = mx - mn
+        range > 0 ? (x - mn)/range : 0.0                     # guard against zero range
+     end for k in keys]
+end
+
+# --- Axis cosmetics for relative scale ---
+xlims = (-0.05, 1.05)
+xticks = [0.0, 0.5, 1.0]
+
+# Initialize the three subplots (unchanged except xticks labels on the last one)
+p1 = Plots.plot(
+    legend = false,
+    yticks = (yvals1, labels1),
+    xticks = (xticks, ["", "", ""]),
+    grid = true
+)
+p2 = Plots.plot(
+    legend = false,
+    yticks = (yvals2, labels2),
+    xticks = (xticks, ["", "", ""]),
+    grid = true
+)
+p3 = Plots.plot(
+    legend = false,
+    yticks = (yvals3, labels3),
+    xticks = xticks,
+    xlabel = "Relative metric",
+    grid = true
+)
+
+# --- Plot the scatter series (now using relative values) ---
+markersizes = [10, 8, 8]
+colors = [:orange, :gray, :black]
+
+for (i, dict) in enumerate(dicts)
+    Plots.scatter!(
+        p1,
+        rel_values(dict, key_lists1), yvals1;
+        label = labels1,
+        markersize = markersizes[i],
+        ylims = (0.5, length(labels1) + 0.5),
+        xlims = xlims,
+        color = colors[i]
+    )
+    Plots.scatter!(
+        p2,
+        rel_values(dict, key_lists2), yvals2;
+        label = labels2,
+        markersize = markersizes[i],
+        ylims = (0.5, length(labels2) + 0.5),
+        xlims = xlims,
+        color = colors[i]
+    )
+    Plots.scatter!(
+        p3,
+        rel_values(dict, key_lists3), yvals3;
+        label = labels3,
+        markersize = markersizes[i],
+        ylims = (0.5, length(labels3) + 0.5),
+        xlims = xlims,
+        color = colors[i]
+    )
+end
+
+# Combine and save (unchanged)
+Plots.plot(p1, p2, p3,
+           layout = (3, 1),
+           size = (500, 600),
+           link = :x,
+           bottom_margin = 0Plots.mm,
+           top_margin = 3Plots.mm,
+           left_margin = 10Plots.mm,
+           right_margin = 0Plots.mm)
+Plots.savefig(plot_path * "stern_ama_generated_ctn_order_metrics_comparison_rel.png")
+
+
+bcu_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\bcu_cn_5_6_7_8\\"
+
+ctn_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\ctn\\"
+
+dia_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\dia\\"
+
+lcs_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\lcs\\"
+
+pcu_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\pcu_cn_4_5_6\\"
+
+srs_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\srs\\"
+
+bio_order_metrics_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\biological\networks\\"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\biological\networks\pachy\\"
+
+all_paths = [
+    bcu_order_metrics_path,
+    ctn_order_metrics_path,
+    dia_order_metrics_path,
+    lcs_order_metrics_path,
+    pcu_order_metrics_path,
+    srs_order_metrics_path,
+    bio_order_metrics_path
+]
+
+all_dicts = [GU.load_h5_dict(path * "all_order_metrics.h5") for path in all_paths]
+
+
+analysis_data_paths = [bio_order_metrics_path, ctn_order_metrics_path]
+
+filenames = ["pachy\\pachy_blue_order_metrics.h5", "run_5\\ctn_beta_6.3359_t_max_8.6070_t_gradient_11.7170_order_metrics.h5"]
+
+dicts = []
+
+for (i, filename) in enumerate(filenames)
+
+    order_metrics_dict = GU.load_h5_dict(analysis_data_paths[i] * filename)
+    push!(dicts, order_metrics_dict)
+end
+
+key_list = [
+    "dihedral_angle_entropy",
+    "bond_angle_std",
+    "bond_length_std",
+    "hyperuniformity_alpha",
+    "vertex_homogeneity_metric",
+    "critical_pore_radius",
+    "bond_orientation_entropy",
+    "coordination_nr_mean",
+    "ring_radius_std",
+    "ring_radius_mean",
+]
+
+all_order_metrics_dict = Dict{String, Vector{Float64}}()
+for (i, k) in enumerate(key_list)
+    current_key = k*"_vec"
+
+    for (j, dict) in enumerate(all_dicts)
+        if j == 1
+            all_order_metrics_dict[current_key] = dict[current_key]
+        else
+            append!(all_order_metrics_dict[current_key], dict[current_key])
+        end
+    end
+end
+
+labels = [
+    
+    "Dihedral angle entropy",
+    Latex.L"Bond angles $\sigma$",
+    Latex.L"Bond lengths $\sigma$",
+    Latex.L"Hyperuniformity $\alpha$",
+    "Vertex homogeneity",
+    "Critical pore radius",
+    "Isotropy in bonds",
+    "Mean coordination nr.",
+    Latex.L"Ring radii $\sigma$",
+    "Mean ring radius",
+]
+
+# Map keys to numeric y positions
+yvals = 1:length(key_list)
+
+# Example split indices
+n1 = 3
+n2 = 7
+
+
+# Split the labels and corresponding yvals into three groups
+labels1 = labels[1:n1]
+key_lists1 = key_list[1:n1]
+yvals1 = 1:n1
+
+labels2 = labels[n1+1:n2]
+key_lists2 = key_list[n1+1:n2]
+yvals2 = 1:length(labels2)
+
+labels3 = labels[n2+1:end]
+key_lists3 = key_list[n2+1:end]
+yvals3 = 1:length(labels3)
+
+# Calculate relative heights based on number of labels
+total_labels = length(labels)
+heights = [length(labels1)/total_labels, length(labels2)/total_labels]
+
+
+# Create the layout for the three subplots
+l = @Plots.layout([a b; c d])
+
+# --- Build (min, max) per metric from all_order_metrics_dict (uses *_vec keys) ---
+# key_list contains base names (e.g., "bond_length_std"), while all_order_metrics_dict uses "<key>_vec"
+mins_maxs = Dict{String,Tuple{Float64,Float64}}()
+for k in key_list
+    k_vec = k * "_vec"
+    vals_all = all_order_metrics_dict[k_vec]                 # Vector{Float64} from all networks
+    mn = minimum(vals_all)
+    mx = maximum(vals_all)
+    mins_maxs[k] = (mn, mx)
+end
+
+# Helper: return a vector of relative values for a given dict and a list of base metric keys
+rel_values = function (dict::Dict{String,Any}, keys::Vector{String})
+    [begin
+        x = Measurements.value.(dict[k])                     # scalar (possibly Measurement), take the value
+        mn, mx = mins_maxs[k]
+        range = mx - mn
+        range > 0 ? (x - mn)/range : 0.0                     # guard against zero range
+     end for k in keys]
+end
+
+# --- Axis cosmetics for relative scale ---
+xlims = (-0.05, 1.05)
+xticks = [0.0, 0.5, 1.0]
+
+# Initialize the three subplots (unchanged except xticks labels on the last one)
+p1 = Plots.plot(
+    legend = false,
+    yticks = (yvals1, labels1),
+    xticks = (xticks, ["", "", ""]),
+    grid = true
+)
+p2 = Plots.plot(
+    legend = false,
+    yticks = (yvals2, labels2),
+    xticks = (xticks, ["", "", ""]),
+    grid = true
+)
+p3 = Plots.plot(
+    legend = false,
+    yticks = (yvals3, labels3),
+    xticks = xticks,
+    xlabel = "Relative metric",
+    grid = true
+)
+
+# --- Plot the scatter series (now using relative values) ---
+markersizes = [10, 8]
+colors = [:blue, :gray]
+
+for (i, dict) in enumerate(dicts)
+    Plots.scatter!(
+        p1,
+        rel_values(dict, key_lists1), yvals1;
+        label = labels1,
+        markersize = markersizes[i],
+        ylims = (0.5, length(labels1) + 0.5),
+        xlims = xlims,
+        color = colors[i]
+    )
+    Plots.scatter!(
+        p2,
+        rel_values(dict, key_lists2), yvals2;
+        label = labels2,
+        markersize = markersizes[i],
+        ylims = (0.5, length(labels2) + 0.5),
+        xlims = xlims,
+        color = colors[i]
+    )
+    Plots.scatter!(
+        p3,
+        rel_values(dict, key_lists3), yvals3;
+        label = labels3,
+        markersize = markersizes[i],
+        ylims = (0.5, length(labels3) + 0.5),
+        xlims = xlims,
+        color = colors[i]
+    )
+end
+
+# Combine and save (unchanged)
+Plots.plot(p1, p2, p3,
+           layout = (3, 1),
+           size = (500, 600),
+           link = :x,
+           bottom_margin = 0Plots.mm,
+           top_margin = 3Plots.mm,
+           left_margin = 10Plots.mm,
+           right_margin = 0Plots.mm)
+Plots.savefig(plot_path * "pachy_generated_order_metrics_comparison_rel.png")
+
+
+spatial_network_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\structures\biological\networks\stern_ama\\"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\biological\networks\stern_ama\\"
+
+filename = "stern_ama_orange"
+
+#spatial_network = NG.load_spatial_network_from_gml(
+#    spatial_network_path*filename*".gml")
+
+
+exclude_layer_thickness = 1.5
+periodic_boundary_conditions = false
+
+# get minimal and maximal vertex coordinates along all three axes in case
+# of non-periodic boundary conditions
+if !periodic_boundary_conditions
+    min_vertex_coords, max_vertex_coords = NA.get_min_max_vertex_coords(
+    spatial_network)
+end
+# get all considered vertices
+considered_vertices = Vector{Int64}()
+for vertex in MetaGraphsNext.labels(spatial_network)
+    if periodic_boundary_conditions
+        push!(considered_vertices, vertex)
+    else
+        # get the positions of the vertex
+        vertex_pos = spatial_network[vertex]["position"]
+        if (all(vertex_pos 
+                .> (min_vertex_coords .+ exclude_layer_thickness))
+            && all(vertex_pos 
+                .< (max_vertex_coords .- exclude_layer_thickness)))
+            push!(considered_vertices, vertex)
+        end
+    end
+end
+coordination_nr_vec = Vector{Int64}(
+    undef, length(considered_vertices))
+for (i, vertex) in enumerate(considered_vertices)
+    coordination_nr_vec[i] = length(
+        MetaGraphsNext.neighbor_labels(spatial_network, vertex))
+end
+# remove all elements of the coordination_nr_vec that are 1
+coordination_nr_vec = filter(x -> x != 1, coordination_nr_vec)
+
+# plot histogram of coordination numbers
+
+# plot histogram of coordination numbers as relative frequencies
+Plots.histogram(
+    coordination_nr_vec;
+    bins = minimum(coordination_nr_vec):maximum(coordination_nr_vec),
+    xlabel = "Coordination number",
+    ylabel = "Relative frequency",
+    legend = false,
+    xticks = minimum(coordination_nr_vec):maximum(coordination_nr_vec),
+    xlim = (minimum(coordination_nr_vec)-0.5,
+            maximum(coordination_nr_vec)+0.5),
+    size = (800, 600),
+    normalize = true,
+    )
+
+
+Plots.savefig(plot_path*filename*"_coord_nr_excluded_layer_"*string(exclude_layer_thickness)*".png")
+
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\local_relaxation\t_melt_network_types\\"
+
+network_types = ["ctn", "dia", "lcs", "srs", "bcu_cn_5_6_7_8", "pcu_cn_4_5_6"]
+
+beta_vec = collect(0.0:0.25:10.0)
+
+Plots.plot()
+
+for network_type in network_types
+    t_melt_vec = [NA.get_melting_temperature(network_type, beta) for beta in beta_vec]
+
+    Plots.plot!(beta_vec, t_melt_vec; label=network_type)
+end
+
+Plots.xlabel!("Bond bending constant β")
+Plots.ylabel!("Melting temperature")
+Plots.savefig(plot_path*"melting_temperatures_absolute.png")
+
+Plots.plot()
+
+for network_type in network_types
+    t_melt_vec = [NA.get_melting_temperature(network_type, beta) for beta in beta_vec]
+    # normalize by maximal melting temperature
+    t_melt_vec = t_melt_vec ./ maximum(t_melt_vec)
+
+    Plots.plot!(beta_vec, t_melt_vec; label=network_type)
+end
+
+Plots.xlabel!("Bond bending constant β")
+Plots.ylabel!("Melting temperature (normalized)")
+Plots.savefig(plot_path*"melting_temperatures_relative.png")
+
+
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\local_relaxation\t_melt_network_types\\"
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\\"
+
+filename = "all_order_metrics.h5"
+
+network_types = ["ctn", "dia", "lcs", "srs", "bcu_cn_5_6_7_8", "pcu_cn_4_5_6"]
+
+beta_vec = collect(0.0:0.25:10.0)
+
+for network_type in network_types
+    
+
+    order_metrics_generated_dict = GU.load_h5_dict(analysis_data_path*network_type*"\\"*filename)
+
+    beta_vec = order_metrics_generated_dict["bond_bending_const_vec"]
+    t_max_vec = order_metrics_generated_dict["t_max_vec"]
+    t_gradient_vec = order_metrics_generated_dict["t_gradient_vec"]
+
+    t_melt_vec = [NA.get_melting_temperature(network_type, beta) for beta in beta_vec]
+
+    bond_orientation_entropy_vec = order_metrics_generated_dict["bond_orientation_entropy_vec"]
+
+    #normalize temperatures with the melting temperature
+    t_max_normalized_vec = t_max_vec ./ t_melt_vec
+    t_gradient_normalized_vec = t_gradient_vec ./ t_melt_vec
+
+    # create a scatter plot t_gradient against t_max where the color is given by the bond orientation entropy
+    
+    # first, convert the bond orientation entropy to a color scale between 0 and 1
+    bond_orientation_entropy_min = minimum(bond_orientation_entropy_vec)
+    bond_orientation_entropy_max = maximum(bond_orientation_entropy_vec)
+    bond_orientation_entropy_normalized_vec = (bond_orientation_entropy_vec .- bond_orientation_entropy_min) ./ (bond_orientation_entropy_max - bond_orientation_entropy_min)
+    #colors = Plots.cgrad(:roma, 100)[round.(Int, bond_orientation_entropy_normalized_vec .* 99) .+ 1]
+    colors = Plots.cgrad(:bluesreds)[bond_orientation_entropy_normalized_vec]
+
+    #filter all vector to values of beta between 5 and 10
+    filter_indices = findall(x -> x >= 0.0 && x <= 10.0, beta_vec)
+    t_max_normalized_vec_filtered = t_max_normalized_vec[filter_indices]
+    t_gradient_normalized_vec_filtered = t_gradient_normalized_vec[filter_indices]
+    colors_filtered = colors[filter_indices]
+    bond_orientation_entropy_vec_filtered = bond_orientation_entropy_vec[filter_indices]
+
+    xlims=(0.5, 2.0)
+    ylims=(0.25, 2.0)
+
+    p = Plots.scatter(
+        t_max_normalized_vec_filtered,
+        t_gradient_normalized_vec_filtered,
+        zcolor = bond_orientation_entropy_vec_filtered,  # <-- use original (non-normalized) values
+        c = :bluesreds,                         # <-- same gradient you used
+        clims = (bond_orientation_entropy_min, 1.0),  # <-- map correctly
+        colorbar = true,                        # <-- shows on the right by default
+        colorbar_title = "\n Bond Orientation Entropy",
+        colorbar_title_location = :right,  
+        #colorbar_width = 0.01,
+        markersize = 5,
+        alpha = 0.6,
+        xlabel = Latex.L"T_\mathrm{max} / T_\mathrm{melt}",
+        ylabel = Latex.L"T_\mathrm{gradient} / T_\mathrm{melt}",
+        label = false,
+        xlims = xlims,
+        ylims = ylims,
+        rightmargin = 10Plots.mm,
+    )
+
+    Plots.savefig(p, plot_path*network_type*"_tmax_tgradient_bond_orientation_entropy_beta_greater_0_less_10.png")
+
+    #filter all vector to values of beta between 5 and 10
+    filter_indices = findall(x -> x >= 1.0 && x <= 10.0, beta_vec)
+    t_max_normalized_vec_filtered = t_max_normalized_vec[filter_indices]
+    t_gradient_normalized_vec_filtered = t_gradient_normalized_vec[filter_indices]
+    bond_orientation_entropy_vec_filtered = bond_orientation_entropy_vec[filter_indices]
+
+    p = Plots.scatter(
+        t_max_normalized_vec_filtered,
+        t_gradient_normalized_vec_filtered,
+        zcolor = bond_orientation_entropy_vec_filtered,  # <-- use original (non-normalized) values
+        c = :bluesreds,                         # <-- same gradient you used
+        clims = (bond_orientation_entropy_min, 1.0),  # <-- map correctly
+        colorbar = true,                        # <-- shows on the right by default
+        colorbar_title = "\n Bond Orientation Entropy",
+        colorbar_title_location = :right,  
+        #colorbar_width = 0.01,
+        markersize = 5,
+        alpha = 0.6,
+        xlabel = Latex.L"T_\mathrm{max} / T_\mathrm{melt}",
+        ylabel = Latex.L"T_\mathrm{gradient} / T_\mathrm{melt}",
+        label = false,
+        xlims = xlims,
+        ylims = ylims,
+        rightmargin = 10Plots.mm,
+    )
+
+    Plots.savefig(p, plot_path*network_type*"_tmax_tgradient_bond_orientation_entropy_beta_greater_1_less_10.png")
+
+    #filter all vector to values of beta between 5 and 10
+    filter_indices = findall(x -> x >= 0.0 && x <= 1.0, beta_vec)
+    t_max_normalized_vec_filtered = t_max_normalized_vec[filter_indices]
+    t_gradient_normalized_vec_filtered = t_gradient_normalized_vec[filter_indices]
+    bond_orientation_entropy_vec_filtered = bond_orientation_entropy_vec[filter_indices]
+
+    p = Plots.scatter(
+        t_max_normalized_vec_filtered,
+        t_gradient_normalized_vec_filtered,
+        zcolor = bond_orientation_entropy_vec_filtered,  # <-- use original (non-normalized) values
+        c = :bluesreds,                         # <-- same gradient you used
+        clims = (bond_orientation_entropy_min, 1.0),  # <-- map correctly
+        colorbar = true,                        # <-- shows on the right by default
+        colorbar_title = "\n Bond Orientation Entropy",
+        colorbar_title_location = :right,  
+        #colorbar_width = 0.01,
+        markersize = 5,
+        alpha = 0.6,
+        xlabel = Latex.L"T_\mathrm{max} / T_\mathrm{melt}",
+        ylabel = Latex.L"T_\mathrm{gradient} / T_\mathrm{melt}",
+        label = false,
+        xlims = xlims,
+        ylims = ylims,
+        rightmargin = 10Plots.mm,
+    )
+
+    Plots.savefig(p, plot_path*network_type*"_tmax_tgradient_bond_orientation_entropy_beta_greater_0_less_1.png")
+end
+
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\local_relaxation\t_max_bond_length_beta_network_types\\"
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\\"
+
+filename = "all_order_metrics.h5"
+
+network_types = ["ctn", "dia", "lcs", "srs", "bcu_cn_5_6_7_8", "pcu_cn_4_5_6"]
+
+t_gradient_vec = collect(0.0:0.25:10.0)
+
+for network_type in network_types
+    
+
+    order_metrics_generated_dict = GU.load_h5_dict(analysis_data_path*network_type*"\\"*filename)
+
+    t_gradient_vec = order_metrics_generated_dict["t_gradient_vec"]
+    t_max_vec = order_metrics_generated_dict["t_max_vec"]
+    bond_bending_const_vec = order_metrics_generated_dict["bond_bending_const_vec"]
+
+    t_melt_vec = [NA.get_melting_temperature(network_type, beta) for beta in bond_bending_const_vec]
+
+    bond_length_std_vec = order_metrics_generated_dict["bond_length_std_vec"]
+
+    #normalize temperatures with the melting temperature
+    t_max_normalized_vec = t_max_vec ./ t_melt_vec
+    t_gradient_normalized_vec = t_gradient_vec ./ t_melt_vec
+
+    # create a scatter plot t_gradient against t_max where the color is given by the bond length std
+
+    # first, convert the bond length std to a color scale between 0 and 1
+    bond_length_std_min = minimum(bond_length_std_vec)
+    bond_length_std_max = maximum(bond_length_std_vec)
+    bond_length_std_normalized_vec = (bond_length_std_vec .- bond_length_std_min) ./ (bond_length_std_max - bond_length_std_min)
+    
+    colors = Plots.cgrad(:bluesreds)[bond_length_std_normalized_vec]
+
+    filter_indices = findall(x -> x >= 0.25 && x <= 2.0, t_gradient_normalized_vec)
+    t_max_normalized_vec_filtered = t_max_normalized_vec[filter_indices]
+    bond_bending_const_vec_filtered = bond_bending_const_vec[filter_indices]
+    colors_filtered = colors[filter_indices]
+    bond_length_std_vec_filtered = bond_length_std_vec[filter_indices]
+
+    xlims=(0.5, 2.0)
+    ylims=(minimum(bond_bending_const_vec)-0.1, maximum(bond_bending_const_vec)+0.1)
+
+    p = Plots.scatter(
+        t_max_normalized_vec_filtered,
+        bond_bending_const_vec_filtered,
+        zcolor = bond_length_std_vec_filtered,  # <-- use original (non-normalized) values
+        c = :bluesreds,                         # <-- same gradient you used
+        clims = (bond_length_std_min, bond_length_std_max),  # <-- map correctly
+        colorbar = true,                        # <-- shows on the right by default
+        colorbar_title = "\n Bond length std.",
+        colorbar_title_location = :right,  
+        #colorbar_width = 0.01,
+        markersize = 5,
+        alpha = 0.6,
+        xlabel = Latex.L"T_\mathrm{max} / T_\mathrm{melt}",
+        ylabel = Latex.L"\beta",
+        label = false,
+        xlims = xlims,
+        ylims = ylims,
+        rightmargin = 10Plots.mm,
+    )
+
+    Plots.savefig(p, plot_path*network_type*"_tmax_beta_bond_length_std_beta_greater_0.25_less_2.png")
+
+end
+
+
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\local_relaxation\t_max_bond_angle_beta_network_types\\"
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\\"
+
+filename = "all_order_metrics.h5"
+
+network_types = ["ctn", "dia", "lcs", "srs", "bcu_cn_5_6_7_8", "pcu_cn_4_5_6"]
+
+t_gradient_vec = collect(0.0:0.25:10.0)
+
+for network_type in network_types
+    
+    order_metrics_generated_dict = GU.load_h5_dict(analysis_data_path*network_type*"\\"*filename)
+
+    t_gradient_vec = order_metrics_generated_dict["t_gradient_vec"]
+    t_max_vec = order_metrics_generated_dict["t_max_vec"]
+    bond_bending_const_vec = order_metrics_generated_dict["bond_bending_const_vec"]
+
+    t_melt_vec = [NA.get_melting_temperature(network_type, beta) for beta in bond_bending_const_vec]
+
+    bond_angle_std_vec = order_metrics_generated_dict["bond_angle_std_vec"]
+
+    #normalize temperatures with the melting temperature
+    t_max_normalized_vec = t_max_vec ./ t_melt_vec
+    t_gradient_normalized_vec = t_gradient_vec ./ t_melt_vec
+
+    # create a scatter plot t_gradient against t_max where the color is given by the Bond angle std
+
+    # first, convert the Bond angle std to a color scale between 0 and 1
+    
+
+    filter_indices = findall(x -> x >= 0.25 && x <= 2.0, t_gradient_normalized_vec)
+    # get the filter indices where t_gradient_normalized_vec is between 0.25 and 2.0
+    # and t_max_normalized_vec is between 0.5 and 2.0
+    filter_indices = intersect(filter_indices, findall(x -> x >= 0.5 && x <= 2.0, t_max_normalized_vec))
+
+    t_max_normalized_vec_filtered = t_max_normalized_vec[filter_indices]
+    bond_bending_const_vec_filtered = bond_bending_const_vec[filter_indices]
+    bond_angle_std_vec_filtered = bond_angle_std_vec[filter_indices]
+
+    bond_angle_std_min = minimum(bond_angle_std_vec_filtered)
+    bond_angle_std_max = maximum(bond_angle_std_vec_filtered)
+    bond_angle_std_normalized_vec = (bond_angle_std_vec_filtered .- bond_angle_std_min) ./ (bond_angle_std_max - bond_angle_std_min)
+
+    #colors = Plots.cgrad(:bluesreds)[bond_angle_std_normalized_vec]
+
+    xlims=(0.5, 2.0)
+    ylims=(minimum(bond_bending_const_vec)-0.1, maximum(bond_bending_const_vec)+0.1)
+
+    p = Plots.scatter(
+        t_max_normalized_vec_filtered,
+        bond_bending_const_vec_filtered,
+        zcolor = bond_angle_std_vec_filtered,  # <-- use original (non-normalized) values
+        c = :bluesreds,                         # <-- same gradient you used
+        clims = (bond_angle_std_min, bond_angle_std_max),  # <-- map correctly
+        colorbar = true,                        # <-- shows on the right by default
+        colorbar_title = "\n Bond angle std.",
+        colorbar_title_location = :right,  
+        #colorbar_width = 0.01,
+        markersize = 5,
+        alpha = 0.6,
+        xlabel = Latex.L"T_\mathrm{max} / T_\mathrm{melt}",
+        ylabel = Latex.L"\beta",
+        label = false,
+        xlims = xlims,
+        ylims = ylims,
+        rightmargin = 10Plots.mm,
+    )
+
+    Plots.savefig(p, plot_path*network_type*"_tmax_beta_bond_angle_std_beta_greater_0.25_less_2.png")
+
+end
+
+
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\local_relaxation\t_max_nr_accepted_moves_beta_network_types\\"
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\\"
+network_path = replace(analysis_data_path, "analysis_data" => "structures")
+
+filename = "all_order_metrics_with_nr_accepted_moves.h5"
+
+network_types = ["ctn", "dia", "lcs", "srs", "bcu_cn_5_6_7_8", "pcu_cn_4_5_6"]
+
+t_gradient_vec = collect(0.0:0.25:10.0)
+
+for network_type in network_types
+    
+
+    order_metrics_generated_dict = GU.load_h5_dict(analysis_data_path*network_type*"\\"*filename)
+
+    t_gradient_vec = order_metrics_generated_dict["t_gradient_vec"]
+    t_max_vec = order_metrics_generated_dict["t_max_vec"]
+    bond_bending_const_vec = order_metrics_generated_dict["bond_bending_const_vec"]
+    nr_accepted_moves_vec = order_metrics_generated_dict["nr_accepted_moves_vec"]
+
+    t_melt_vec = [NA.get_melting_temperature(network_type, beta) for beta in bond_bending_const_vec]
+
+    #normalize temperatures with the melting temperature
+    t_max_normalized_vec = t_max_vec ./ t_melt_vec
+    t_gradient_normalized_vec = t_gradient_vec ./ t_melt_vec
+
+    # create a scatter plot t_gradient against t_max where the color is given by the Bond angle std
+
+    # first, convert the Bond angle std to a color scale between 0 and 1
+    
+
+    filter_indices = findall(x -> x >= 0.25 && x <= 2.0, t_gradient_normalized_vec)
+    # get the filter indices where t_gradient_normalized_vec is between 0.25 and 2.0
+    # and t_max_normalized_vec is between 0.5 and 2.0
+    filter_indices = intersect(filter_indices, findall(x -> x >= 0.5 && x <= 2.0, t_max_normalized_vec))
+
+    t_max_normalized_vec_filtered = t_max_normalized_vec[filter_indices]
+    bond_bending_const_vec_filtered = bond_bending_const_vec[filter_indices]
+    nr_accepted_moves_vec_filtered = nr_accepted_moves_vec[filter_indices]
+
+    nr_accepted_moves_min = minimum(nr_accepted_moves_vec_filtered)
+    nr_accepted_moves_max = maximum(nr_accepted_moves_vec_filtered)
+    nr_accepted_moves_normalized_vec = (nr_accepted_moves_vec_filtered .- nr_accepted_moves_min) ./ (nr_accepted_moves_max - nr_accepted_moves_min)
+
+
+    xlims=(0.5, 2.0)
+    ylims=(minimum(bond_bending_const_vec)-0.1, maximum(bond_bending_const_vec)+0.1)
+
+    z = Float64.(copy(nr_accepted_moves_vec_filtered))
+    z[z .< 10.0] .= NaN                      # mark zeros as NaN
+
+    # Positive-only clims for log scale
+    zmin = minimum(skipmissing(z[.!isnan.(z)]))  # smallest positive
+    zmax = maximum(skipmissing(z[.!isnan.(z)]))
+
+    p = Plots.scatter(
+        t_max_normalized_vec_filtered,
+        bond_bending_const_vec_filtered,
+        zcolor = z,
+        c = :bluesreds,
+        clims = (10.0, 1000.0),
+        colorbar = true,
+        colorbar_scale = :log10,         # logarithmic colorbar for positive values
+        nan_color = :black,              # <-- zeros (set to NaN) shown in black
+        colorbar_title = "\n Nr accepted moves",
+        colorbar_title_location = :right,
+        markersize = 5,
+        alpha = 0.6,
+        xlabel = Latex.L"T_\mathrm{max} / T_\mathrm{melt}",
+        ylabel = Latex.L"\beta",
+        label = false,
+        xlims = xlims,
+        ylims = ylims,
+        rightmargin = 10Plots.mm,
+        topmargin = 3Plots.mm,
+    )
+
+    Plots.savefig(p, plot_path*network_type*"_tmax_beta_nr_accepted_moves.png")
+
+end
+
+
+analysis_data_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\analysis_data\local_relaxation\random\\"
+
+plot_path = raw"C:\Users\HemmannF\OneDrive - Université de Fribourg\structure_analysis\plots\local_relaxation\structure_factor_comparison\\"
+
+network_type_vec = ["ctn", "dia",  "bcu_cn_5_6_7_8", "lcs", "pcu_cn_4_5_6", "srs",] #["ctn",  "bcu_cn_5_6_7_8"] #"dia",  "lcs", "srs", "pcu_cn_4_5_6",
+
+filename_ordered_vec = ["run_6/ctn_beta_1.7313_t_max_2.0550_t_gradient_2.1466", "run_3/dia_beta_6.3550_t_max_24.2721_t_gradient_8.6274", "run_2/bcu_cn_5_6_7_8_beta_1.9736_t_max_294.9035_t_gradient_702.9766", "run_2/lcs_beta_0.0127_t_max_0.0057_t_gradient_0.0139", "run_3/pcu_cn_4_5_6_beta_0.2258_t_max_0.2197_t_gradient_0.4606", "run_2/srs_beta_0.0394_t_max_0.0051_t_gradient_0.0020"]
+filename_disordered_vec = ["run_5/ctn_beta_6.5833_t_max_13.7932_t_gradient_13.5214", "run_1/dia_beta_0.7422_t_max_0.7826_t_gradient_0.1969", "run_1/bcu_cn_5_6_7_8_beta_0.5163_t_max_158.6786_t_gradient_20.1955", "run_3/lcs_beta_1.2760_t_max_1.8437_t_gradient_1.8422", "run_3/pcu_cn_4_5_6_beta_0.3229_t_max_5.2818_t_gradient_2.0898", "run_2/srs_beta_1.2625_t_max_0.6123_t_gradient_0.5012"]
+i=1
+structure_factor_angle_averaged_dict_1 = GU.load_h5_dict(analysis_data_path*network_type_vec[i]*raw"\\"*filename_ordered_vec[i]*"_structure_factor_bonds_angle_averaged.h5")
+structure_factor_dict_1 = GU.load_h5_dict(analysis_data_path*network_type_vec[i] *raw"\\"*filename_ordered_vec[i]*"_structure_factor_bonds_array.h5")
+
+i=2
+structure_factor_angle_averaged_dict_2 = GU.load_h5_dict(analysis_data_path*network_type_vec[i]*raw"\\"*filename_ordered_vec[i]*"_structure_factor_bonds_angle_averaged.h5")
+structure_factor_dict_2 = GU.load_h5_dict(analysis_data_path*network_type_vec[i] *raw"\\"*filename_ordered_vec[i]*"_structure_factor_bonds_array.h5")
+
+i=3
+structure_factor_angle_averaged_dict_3 = GU.load_h5_dict(analysis_data_path*network_type_vec[i]*raw"\\"*filename_ordered_vec[i]*"_structure_factor_bonds_angle_averaged.h5")
+structure_factor_dict_3 = GU.load_h5_dict(analysis_data_path*network_type_vec[i] *raw"\\"*filename_ordered_vec[i]*"_structure_factor_bonds_array.h5")
+
+i=4
+structure_factor_angle_averaged_dict_4 = GU.load_h5_dict(analysis_data_path*network_type_vec[i]*raw"\\"*filename_ordered_vec[i]*"_structure_factor_bonds_angle_averaged.h5")
+structure_factor_dict_4 = GU.load_h5_dict(analysis_data_path*network_type_vec[i] *raw"\\"*filename_ordered_vec[i]*"_structure_factor_bonds_array.h5")
+
+i=5
+structure_factor_angle_averaged_dict_5 = GU.load_h5_dict(analysis_data_path*network_type_vec[i]*raw"\\"*filename_ordered_vec[i]*"_structure_factor_bonds_angle_averaged.h5")
+structure_factor_dict_5 = GU.load_h5_dict(analysis_data_path*network_type_vec[i] *raw"\\"*filename_ordered_vec[i]*"_structure_factor_bonds_array.h5")
+
+i=6
+structure_factor_angle_averaged_dict_6 = GU.load_h5_dict(analysis_data_path*network_type_vec[i]*raw"\\"*filename_ordered_vec[i]*"_structure_factor_bonds_angle_averaged.h5")
+structure_factor_dict_6 = GU.load_h5_dict(analysis_data_path*network_type_vec[i] *raw"\\"*filename_ordered_vec[i]*"_structure_factor_bonds_array.h5")
+
+
+wavenumbers_to_check_vec = (2*pi) .* [4/8, 5/8, 6/8, 7/8, 1.0]
+
+
+Plots.plot()
+Plots.plot(structure_factor_angle_averaged_dict_1["unfiltered_wavenumber_vec"], Measurements.value.(structure_factor_angle_averaged_dict_1["unfiltered_structure_factor_vec"]), ribbon=Measurements.uncertainty.(structure_factor_angle_averaged_dict_1["unfiltered_structure_factor_vec"]), label="Ordered $(network_type_vec[1])", xlabel="Wavenumber", ylabel="Structure Factor")
+Plots.plot!(structure_factor_angle_averaged_dict_2["unfiltered_wavenumber_vec"], Measurements.value.(structure_factor_angle_averaged_dict_2["unfiltered_structure_factor_vec"]), ribbon=Measurements.uncertainty.(structure_factor_angle_averaged_dict_2["unfiltered_structure_factor_vec"]), label="Ordered $(network_type_vec[2])")
+Plots.plot!(structure_factor_angle_averaged_dict_3["unfiltered_wavenumber_vec"], Measurements.value.(structure_factor_angle_averaged_dict_3["unfiltered_structure_factor_vec"]), ribbon=Measurements.uncertainty.(structure_factor_angle_averaged_dict_3["unfiltered_structure_factor_vec"]), label="Ordered $(network_type_vec[3])")
+Plots.plot!(structure_factor_angle_averaged_dict_4["unfiltered_wavenumber_vec"], Measurements.value.(structure_factor_angle_averaged_dict_4["unfiltered_structure_factor_vec"]), ribbon=Measurements.uncertainty.(structure_factor_angle_averaged_dict_4["unfiltered_structure_factor_vec"]), label="Ordered $(network_type_vec[4])")
+Plots.plot!(structure_factor_angle_averaged_dict_5["unfiltered_wavenumber_vec"], Measurements.value.(structure_factor_angle_averaged_dict_5["unfiltered_structure_factor_vec"]), ribbon=Measurements.uncertainty.(structure_factor_angle_averaged_dict_5["unfiltered_structure_factor_vec"]), label="Ordered $(network_type_vec[5])")
+Plots.plot!(structure_factor_angle_averaged_dict_6["unfiltered_wavenumber_vec"], Measurements.value.(structure_factor_angle_averaged_dict_6["unfiltered_structure_factor_vec"]), ribbon=Measurements.uncertainty.(structure_factor_angle_averaged_dict_6["unfiltered_structure_factor_vec"]), label="Ordered $(network_type_vec[6])")
+
+# plot vertical lines at the wavenumbers to check
+for k in eachindex(wavenumbers_to_check_vec)
+    Plots.vline!([wavenumbers_to_check_vec[k]], linestyle=:dash, color=:black, alpha=0.3, label="")
+end
+
+Plots.xlims!(0, 10.0)
+
+Plots.savefig(plot_path*"structure_factors_angle_averaged_comparison.png")

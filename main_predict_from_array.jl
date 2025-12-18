@@ -65,6 +65,7 @@ part3 = ["q_l_uncertainty_$(i)" for i in 0:12]
 # Last fixed part
 part4 = [
     "vertex_homogeneity_metric",
+    "uncoordinated_neighbor_distance",
     "ring_size_mean",
     "ring_size_std",
     "ring_radius_mean",
@@ -73,7 +74,6 @@ part4 = [
     "anisotropy_metric_from_structure_factor",
     "anisotropy_metric_from_structure_factor_bonds",
     "hyperuniformity_alpha_value",
-    "hyperuniformity_alpha_uncertainty"
 ]
 
 

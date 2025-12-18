@@ -6957,3 +6957,445 @@ function get_hyperuniformity_alpha(structure_factor_angle_averaged_dict::Dict;
     
     return [slope_measurement_time, hyperuniformity_alpha]
 end
+
+
+"""
+Get a list of all very strong rings in a spatial network as defined in 
+10.1016/0022-3093(91)90145-V and explained in 10.1016/S0927-0256(01)00256-7.
+"""
+function get_very_strong_rings_vec_old(spatial_network::MetaGraphsNext.MetaGraph;
+    max_ring_size_to_check::Int64 = 12,
+    periodic_boundary_conditions::Bool = true,
+    non_pbc_padding::Float64 = 2.0,
+    print_progress::Bool = false,
+    thread_nr::Int64 = 0,
+    print_lock = Threads.ReentrantLock())
+
+    # get the number of simple cycles up to the max_ring_size_to_check
+    simple_cycles = MetaGraphsNext.simplecycles_limited_length(spatial_network,
+        max_ring_size_to_check, 10^6)
+
+    # filter out cycles that contain only two vertices
+    filter!(cycle -> length(cycle) > 2, simple_cycles)
+
+    # avoid double counting of cycles that are the same but have inverse vertex
+    # orderings
+    nr_cycles = Int(ceil(length(simple_cycles)/2))
+    cycle_count = 0
+    for cycle in simple_cycles
+        cycle_inverse = vcat(cycle[1], reverse(cycle[2:end]))
+        if cycle_inverse in simple_cycles
+            filter!(!=(cycle_inverse), simple_cycles)
+        end
+        cycle_count += 1
+        if print_progress && cycle_count % 100 == 0
+            lock(print_lock) do
+                Format.printfmtln("Thread nr {1:d}: processed {2:d} / {3:d} 
+                    cycles for removing inverse duplicates", 
+                    thread_nr, cycle_count, nr_cycles)
+            end
+        end
+    end
+
+    # to each cycle attach the first vertex at the end of the cycle such that
+    # contained bonds are dicrecly represented
+    for cycle in simple_cycles
+        push!(cycle, cycle[1])
+    end
+
+    # check if each bond is contained in at least one cycle
+    if !each_bond_in_at_least_one_cycle(spatial_network, simple_cycles)
+        @warn "Not all bonds are contained in at least one cycle. Consider
+            increasing the max_ring_size_to_check parameter."
+    end
+
+    # in the case of non-periodic boundary conditions, get the minimal and 
+    # maximal vertex positions, to properly determine the padding later
+    if !periodic_boundary_conditions
+        min_vertex_coords, max_vertex_coords = get_min_max_vertex_coords(
+            spatial_network)
+    end
+
+    # loop through all bonds and for each bond, find all very strong rings, 
+    # that are all cycles with minimal length containing the bond
+    very_strong_rings_vec = Vector{Vector{Int64}}()
+    for bond in MetaGraphsNext.edge_labels(spatial_network)
+
+        # skip bonds where one of the vertices has coordination nr 1
+        if spatial_network[bond[1]]["coordination_nr"] == 1 ||
+            spatial_network[bond[2]]["coordination_nr"] == 1
+            continue
+        end
+
+        # in case of non-periodic boundary conditions, skip bonds that are
+        # closer to the boundary than the non_pbc_padding
+        if !periodic_boundary_conditions
+            vertex_1 = spatial_network[bond[1]]["position"]
+            vertex_2 = spatial_network[bond[2]]["position"]
+
+            if any(vertex_1 .< (min_vertex_coords .+ non_pbc_padding)) ||
+                any(vertex_1 .> (max_vertex_coords .- non_pbc_padding)) ||
+                any(vertex_2 .< (min_vertex_coords .+ non_pbc_padding)) ||
+                any(vertex_2 .> (max_vertex_coords .- non_pbc_padding))
+                continue
+            end
+        end
+
+        # get the cycles that contain the bond
+        cycles_containing_bond = filter(cycle -> cycle_contains_bond(
+            cycle, bond), simple_cycles)
+
+        if length(cycles_containing_bond) > 0
+            min_cycle_length = length(cycles_containing_bond[1])
+            for cycle in cycles_containing_bond
+                if length(cycle) < min_cycle_length
+                    min_cycle_length = length(cycle)
+                end
+            end
+
+            # get only rings with minimal length containing the current bond
+            very_strong_rings_vec_current_bond = filter(
+                cycle -> length(cycle) <= min_cycle_length, 
+                cycles_containing_bond)
+
+            # add the cycles to the list of very strong rings if they are not
+            # already in the list
+            for ring in very_strong_rings_vec_current_bond
+                if !(ring in very_strong_rings_vec)
+                    push!(very_strong_rings_vec, ring)
+                end
+            end
+        end
+    end
+
+    # sort the rings by their length
+    sort!(very_strong_rings_vec, by = length)
+
+    return very_strong_rings_vec
+end
+
+
+
+"""
+Get the extent (maximum dimension) of a polygon defined by its vertices.
+"""
+function polygon_extent(polygon::GeometryBasics.Polygon)
+    points = GeometryBasics.coordinates(polygon)
+    xs = [p[1] for p in points]
+    ys = [p[2] for p in points]
+
+    xmin, xmax = minimum(xs), maximum(xs)
+    ymin, ymax = minimum(ys), maximum(ys)
+
+    width = xmax - xmin
+    height = ymax - ymin
+
+    return max(width, height)
+end
+
+
+"""
+Check if a polygon is valid.
+"""
+function is_valid_polygon(polygon::GeometryBasics.Polygon)
+    # Get the coordinates of the polygon
+    points = GeometryBasics.coordinates(polygon)
+
+    # Check if the polygon has at least 3 distinct points
+    if length(points) < 3
+        return false
+    end
+
+    # Check extent
+    extent = polygon_extent(polygon)
+    return !isnan(extent) && extent > 0
+end
+
+
+"""
+Get ring radius distribution from the very strong rings of a network. To this
+end, use Newell's method as described in 10.1016/B978-0-08-050755-2.50052-X
+and on page 493 of the book "Real-Time Collision Detection" by Christer Ericson
+to estimate the normal vector of each ring along which the ring has maximal
+size. Then, determine the maximal radius of a circle that can be placed in the
+projection of the ring onto the plane defined by the normal vector.
+"""
+function get_ring_radius_distribution(
+    spatial_network::MetaGraphsNext.MetaGraph,
+    ring_size_distribution_dict::Dict{String, Any};
+    save_result::Bool = false,
+    save_path = raw"..\analysis_data\sample_name",
+    label = nothing)
+
+    # get the very strong rings of the network
+    very_strong_rings_mat = ring_size_distribution_dict[
+        "very_strong_rings_vec_mat"]
+    # convert the matrix of very strong rings into a vector of vectors
+    very_strong_rings_vec = Vector{Vector{Int64}}()
+    for i in 1:size(very_strong_rings_mat, 1)
+        push!(very_strong_rings_vec, 
+            filter(v -> v != 0, very_strong_rings_mat[i, :]))
+    end
+
+    # for each ring, get the normal vector and the maximal radius of a circle
+    # that can be placed in the projection of the ring onto the plane defined
+    # by the normal vector
+    ring_radius_vec = Vector{Float64}()
+
+    nr_rings = length(very_strong_rings_vec)
+    for ring in very_strong_rings_vec
+
+        println(ring)
+
+        # get the virtural positions of the vertices of the ring with respect
+        # to the first vertex of the ring considering periodic boundary
+        # conditions
+        vertex_positions = [spatial_network[ring[1]]["position"] ]
+        for vertex in ring[2:end]
+            push!(vertex_positions, 
+                NG.get_virtual_position(spatial_network[ring[1]]["position"],
+                spatial_network[vertex]["position"],
+                spatial_network[]["supercell_edge_length"]))
+        end
+
+        # get the normal vector of the ring
+        normal_vector = polygon_normal(vertex_positions[1:end-1])
+
+        # project the ring onto the plane defined by the normal vector
+        projected_ring = project_to_plane(vertex_positions, normal_vector)
+
+        # add some noise to the projected ring points to avoid issues with
+        # the Polylabel package when rings are very symmetric
+        d = Distributions.Normal(0, 1e-6)
+        noise_map = Dict{Tuple{Float64,Float64},Tuple{Float64,Float64}}()
+        function noisy_point(p, d, noise_map)
+            if !haskey(noise_map, p)
+                noise_map[p] = (Random.rand(d), Random.rand(d))  
+            end
+            return (p[1] + noise_map[p][1], p[2] + noise_map[p][2])
+        end
+        projected_ring_noisy = [noisy_point(p, d, noise_map) 
+            for p in projected_ring]
+
+        # create a polygon from the projected ring
+        polygon = GeometryBasics.Polygon(
+            GeometryBasics.Point{2, Float64}[projected_ring_noisy...])
+
+        if is_valid_polygon(polygon)
+            # determine the pole of inaccessibility of the polygon
+            # (the point in the polygon that is farthest away from the edges of the
+            # polygon)
+            pole_of_inaccessibility = Polylabel.polylabel(polygon, atol=0.01)
+
+            # get the distance from the pole of inaccessibility to the edges of
+            # the polygon
+            min_distance = min_distance_to_bonds(pole_of_inaccessibility, 
+                projected_ring)
+            # save the distance as the ring radius of the ring
+            push!(ring_radius_vec, min_distance)
+        end
+    end
+
+    # create histogram of ring radii
+    ring_radius_bin_centers = collect(0.1:0.1:round(
+        maximum(ring_radius_vec), digits = 1))
+
+    histogram = StatsBase.fit(StatsBase.Histogram, ring_radius_vec,
+        ring_radius_bin_centers[1]-0.05:0.1
+        :ring_radius_bin_centers[end]+0.0501, closed=:left)
+    
+    # normalize histogram
+    histogram = LinearAlgebra.normalize(histogram, mode=:probability)
+
+    ring_radius_distribution = histogram.weights
+
+    ring_radius_distribution_dict = Dict{String, Any}(
+        "ring_radius_vec" => ring_radius_bin_centers,
+        "ring_radius_distribution" => ring_radius_distribution)
+
+    # add label to dictionary if label is not nothing
+    if label !== nothing
+        ring_radius_distribution_dict["label"] = label
+    end
+
+    if save_result
+        GU.save_dict_to_h5(copy(ring_radius_distribution_dict),
+            save_path*"_ring_radius_distribution.h5")
+    end
+    
+    return ring_radius_distribution_dict
+end
+
+
+"""
+Measure structure factor as a function of wavevector using the scattering
+intensity estimator as described in equation 24 of 10.1007/s11222-023-10219-1.
+Here, only the vertices of the network are considered.
+"""
+function get_structure_factor(
+    wavevector::Vector{Float64},
+    spatial_network::MetaGraphsNext.MetaGraph;
+    periodic_boundary_conditions::Bool=true,
+    apodization_fct = hann_apodization_fct,
+    apodization_fct_parameter::Float64 = 0.5,
+    min_coords=[spatial_network[]["supercell_edge_length"]/4,
+        spatial_network[]["supercell_edge_length"]/4,
+        spatial_network[]["supercell_edge_length"]/4],
+    max_coords=[3/4*spatial_network[]["supercell_edge_length"],
+        3/4*spatial_network[]["supercell_edge_length"],
+        3/4*spatial_network[]["supercell_edge_length"]])
+
+    # initialize the sum of the scattering field
+    scattering_field_sum = 0.0 + 0.0*im
+    
+    # perform sum over all vertices
+    for vertex in MetaGraphsNext.labels(spatial_network)
+
+        # get vertex position
+        vertex_pos = spatial_network[vertex]["position"]
+
+        # calculate structure factor contribution of current vertex and
+        # wavevector
+        scattering_field = exp(-im*LinearAlgebra.dot(wavevector, 
+                vertex_pos))
+        
+        if !periodic_boundary_conditions
+            # apply apodization window to reduce effects of sharp edges
+            apodization_window_value = apodization_fct(
+                vertex_pos, min_coords, max_coords, apodization_fct_parameter)
+
+            scattering_field *= apodization_window_value
+        end
+
+        scattering_field_sum += scattering_field
+    end
+
+    # calculate structure factor
+    structure_factor = 1/spatial_network[]["nr_vertices"] * abs2(
+        scattering_field_sum)
+
+    return structure_factor
+end
+
+
+"""
+Measure structure factor as a function of wavevector using the scattering
+intensity estimator as described in equation 24 of 10.1007/s11222-023-10219-1
+and considering the bonds of the network.
+"""
+function get_structure_factor_bonds(
+    wavevector::Vector{Float64},
+    spatial_network::MetaGraphsNext.MetaGraph;
+    periodic_boundary_conditions::Bool=true,
+    apodization_fct = hann_apodization_fct,
+    apodization_fct_parameter::Float64 = 0.5,
+    min_coords=[spatial_network[]["supercell_edge_length"]/4,
+        spatial_network[]["supercell_edge_length"]/4,
+        spatial_network[]["supercell_edge_length"]/4],
+    max_coords=[3/4*spatial_network[]["supercell_edge_length"],
+        3/4*spatial_network[]["supercell_edge_length"],
+        3/4*spatial_network[]["supercell_edge_length"]],
+    no_div_by_zero_value = 1e-10)
+
+    # initialize the sum of the scattering field
+    scattering_field_sum = 0.0 + 0.0*im
+    
+    # perform sum over all bonds
+    for bond in MetaGraphsNext.edge_labels(spatial_network)
+
+        # get the mid-point of the bond considering periodic boundary
+        # conditions
+        bond_vector = spatial_network[bond...]["vector"] 
+        bond_mid_point = (((spatial_network[bond[1]]["position"] 
+                .+ bond_vector ./ 2) 
+            .% spatial_network[]["supercell_edge_length"]))
+
+        # get scalar product of the wavevector with the bond mid-point and the 
+        # bond vector
+        scalar_prod_mid_point = LinearAlgebra.dot(wavevector, bond_mid_point)
+        scalar_prod_vector = LinearAlgebra.dot(wavevector, bond_vector)
+    
+        # calculate structure factor contribution of current bond and 
+        # wavevector
+        scattering_field = (
+            2/(scalar_prod_vector + no_div_by_zero_value)
+            * exp(-im*scalar_prod_mid_point)
+            * sin(scalar_prod_vector/2))
+
+        if !periodic_boundary_conditions
+            # apply apodization window to reduce effects of sharp edges
+            apodization_window_value = apodization_fct(
+                bond_mid_point, min_coords, max_coords, 
+                apodization_fct_parameter)
+
+            scattering_field *= apodization_window_value
+        end
+
+        scattering_field_sum += scattering_field
+    end
+
+    nr_bonds = length(MetaGraphsNext.edge_labels(spatial_network))
+
+    # calculate structure factor
+    structure_factor = 1/nr_bonds * abs2(scattering_field_sum)
+
+    return structure_factor
+end
+
+
+"""
+Define an anisotropy metric based on the structure factor or the 
+spectral density that ranges between 0 and 1 (high anisotropy). The metric is
+based on the coefficient of variation (std over mean) of the structure factor
+as a function of direction. In reality, values around 0.45 represent low
+anisotropy and values around 0.55 represent high anisotropy.
+"""
+function get_anisotropy_metric_from_structure_factor(
+    structure_factor_angle_averaged_dict::Dict;
+    maximal_length_to_check = 3.0,
+    nr_closest_wavenumbers = 3,
+    normalization_parameter = 1.0)
+
+    # set the wavenumbers where structure factor will be checked
+    wavenumbers_to_check_vec = (2*pi) ./ collect(
+        0.5:0.5:maximal_length_to_check+0.01)
+
+    # for each wavenumber to check, calculate a normalized coefficient of
+    # variation (std over mean)
+    anisotropy_metric_vec = Vector{Float64}(undef, 
+        length(wavenumbers_to_check_vec))
+
+    for i in eachindex(wavenumbers_to_check_vec)
+        # get the given number of indices of the closest wavenumbers to the 
+        # current wavenumber to check
+        structure_factor_indices_vec = sortperm(abs.(
+            structure_factor_angle_averaged_dict["unfiltered_wavenumber_vec"]
+            .- wavenumbers_to_check_vec[i]))[1:nr_closest_wavenumbers]
+
+        # get the structure factor for the three wavenumbers
+        structure_factor_vec = structure_factor_angle_averaged_dict[
+                "unfiltered_structure_factor_vec"][
+                    structure_factor_indices_vec[1]]
+        for j in 2:nr_closest_wavenumbers
+            structure_factor_vec = vcat(structure_factor_vec, 
+                structure_factor_angle_averaged_dict[
+                    "unfiltered_structure_factor_vec"][
+                        structure_factor_indices_vec[j]])
+        end
+
+        # calculate the coefficient of variation
+        mean_structure_factor = Statistics.mean(structure_factor_vec)
+        coefficient_of_variation = (
+            Measurements.uncertainty(mean_structure_factor)
+            /Measurements.value(mean_structure_factor))
+
+        # calculate the anisotropy metric that ranges between 0 and 1
+        anisotropy_metric_vec[i] = coefficient_of_variation/(
+            normalization_parameter + coefficient_of_variation)
+    end
+
+    # calculate the average of the anisotropy entropy metric
+    anisotropy_metric = Statistics.mean(anisotropy_metric_vec)
+
+    return anisotropy_metric
+end
