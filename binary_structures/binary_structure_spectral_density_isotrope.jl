@@ -98,7 +98,8 @@ function get_autocovariance_fct_isotrope(
 
         # calculate the contribution to the two point prob. fct. 
         # from these coodinates
-        two_point_prob_fct_summand_vec[i] = data_binary[x1...] * data_binary[x2...]
+        two_point_prob_fct_summand_vec[i] = (data_binary[x1...] 
+            * data_binary[x2...])
 
     end
 
@@ -182,7 +183,8 @@ function get_autocovariance_fct_isotrope_by_sampling_distance_vec(
     autocovariance_fct_vec = Vector{Measurements.Measurement}(undef, 
         nr_sampling_distances)
 
-    # for each sampling distance get autocovariance function and its uncertainty
+    # for each sampling distance get autocovariance function and its 
+    # uncertainty
     for i in eachindex(sampling_distance_vec)
 
         # get vector of local volume fractions and the number of 
@@ -253,7 +255,7 @@ function get_spectral_density_isotrope(
         * sum( sampling_distance_vec[1:sampling_distance_cutoff_index]
             .* autocovariance_fct_vec[1:sampling_distance_cutoff_index]
             .* sin.( wavenumber 
-                .* sampling_distance_vec[1:sampling_distance_cutoff_index] ) ) )
+                .* sampling_distance_vec[1:sampling_distance_cutoff_index])))
 
     return spectral_density
 

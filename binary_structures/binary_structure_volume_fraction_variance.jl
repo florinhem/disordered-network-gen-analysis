@@ -69,7 +69,8 @@ function get_coord_inside_window_vec(
                 # differetiate between spherical and cubic windows
                 if cmp(window_shape, "spherical") == 0
 
-                    # calculate squared distance of coordinate from window center
+                    # calculate squared distance of coordinate from window 
+                    # center
                     sq_window_center_distance = ((i-window_center[1])^2 
                                                 + (j-window_center[2])^2
                                                 + (k-window_center[3])^2  )
@@ -174,12 +175,13 @@ function get_nr_measurements(
             window_shape=window_shape)
 
         # calculate unconstrained number of measurements
-        nr_measurements_unconstrained = Int(floor( volume_data/(2*volume_window) ) )
+        nr_measurements_unconstrained = Int(floor( 
+            volume_data/(2*volume_window) ) )
 
         # constrain number measurements by given lower and upper bounds
         nr_measurements = minimum( [ maximum( [ nr_measurements_unconstrained, 
-                                                constraints_nr_measurements[1] ] ), 
-                                    constraints_nr_measurements[2] ] )  
+            constraints_nr_measurements[1] ] ), 
+            constraints_nr_measurements[2] ] )  
 
     elseif cmp(window_positioning, "scanned") == 0
 
@@ -193,7 +195,8 @@ function get_nr_measurements(
         elseif cmp(window_shape, "cubic") == 0
 
             # cubic windows are placed one next to the other
-            nr_measurements = Int( prod( floor.( size_data ./ edge_length_window ) ) )
+            nr_measurements = Int( prod( floor.( 
+                size_data ./ edge_length_window ) ) )
 
         else
             @error "Window shape is neither spherical nor cubic."
@@ -528,8 +531,9 @@ end
 
 
 """
-determine local volume fraction variance as a function of measuring window size.
-This can be done for ordered or spherical windows at random or scanned positions.
+determine local volume fraction variance as a function of measuring window 
+size. This can be done for ordered or spherical windows at random or scanned 
+positions.
 """
 function get_local_volume_fract_variance_by_window_vec(
     structure_dict::Dict

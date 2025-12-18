@@ -89,7 +89,8 @@ end
 
 
 """
-Get the autocovariance function for 3d media without periodic boundary conditions
+Get the autocovariance function for 3d media without periodic boundary
+conditions
 """
 function get_autocovariance_fct(
         sampling_vec::Vector{Int64},
@@ -109,7 +110,8 @@ function get_autocovariance_fct(
         x1, x2 = get_random_coordinates_at_direction(sampling_vec, 
             structure_dict["size_data"])
 
-        # calculate the contribution to the two point prob. fct. from these coodinates
+        # calculate the contribution to the two point prob. fct. from these
+        # coodinates
         two_point_prob_fct_summand_vec[i] = 
             structure_dict["data_binary"][x1...] * 
             structure_dict["data_binary"][x2...]
@@ -145,9 +147,9 @@ The argument structure_dict is a dict with the following keys:
 - size_data
 """
 function get_autocovariance_fct_by_sampling_vec_array(
-    structure_dict::Dict
-    ;
-    sampling_distance_vec_vec = get_sampling_distance_vec_vec(structure_dict["size_data"]),
+    structure_dict::Dict;
+    sampling_distance_vec_vec = get_sampling_distance_vec_vec(
+        structure_dict["size_data"]),
     sampling_vec_array = get_vector_array(sampling_distance_vec_vec),
     nr_measurements_per_direction::Int64 = 1000,
     save_result = false,
@@ -163,7 +165,8 @@ function get_autocovariance_fct_by_sampling_vec_array(
     autocovariance_fct_array = Array{Measurements.Measurement}(undef, 
         autocovariance_fct_array_size...)
 
-    # for each sampling distance get autocovariance function and its uncertainty
+    # for each sampling distance get autocovariance function and its 
+    # uncertainty
     for i in 1:autocovariance_fct_array_size[1]
         for j in 1:autocovariance_fct_array_size[2]
             for k in 1:autocovariance_fct_array_size[3]
@@ -197,7 +200,7 @@ function get_autocovariance_fct_by_sampling_vec_array(
     # save results if desired
     if save_result
 
-        GU.save_dict_to_h5(copy(autocovariance_fct_direction_dict), save_path
+        GU.save_dict_to_h5(autocovariance_fct_direction_dict, save_path
             *"_autocovariance_fct_direction.h5")
 
     end
@@ -378,13 +381,15 @@ function extrapolate_periodic_data_autocovariance_fct_by_sampling_vec_array(
         "sampling_distance_vec_vec" => extrapolated_sampling_distance_vec_vec,
         "autocovariance_fct_array" => extrapolated_autocovariance_fct_array,
         "nr_measurements_per_direction" 
-                => autocovariance_fct_direction_dict["nr_measurements_per_direction"],
-        "voxel_edge_length" => autocovariance_fct_direction_dict["voxel_edge_length"],
+            => autocovariance_fct_direction_dict[
+                "nr_measurements_per_direction"],
+        "voxel_edge_length" 
+            => autocovariance_fct_direction_dict["voxel_edge_length"],
         "label" => autocovariance_fct_direction_dict["label"])
 
     # save results if desired
     if save_result
-        GU.save_dict_to_h5(copy(extrapolated_autocovariance_fct_direction_dict),
+        GU.save_dict_to_h5(extrapolated_autocovariance_fct_direction_dict,
             save_path*"_autocovariance_fct_direction.h5")
 
     end
@@ -420,7 +425,8 @@ function get_autocovariance_fct_along_direction_vec(
 
     # starting at center, walk through autocovariance_fct_array 
     # to get the desired entries
-    while prod( current_position .<= size_autocovariance_fct_array )*prod( current_position .>= [1,1,1] ) == 1
+    while (prod( current_position .<= size_autocovariance_fct_array )
+        *prod( current_position .>= [1,1,1] ) == 1
 
         # add autocovariance function value to vector
         push!(autocovariance_fct_along_direction_vec, 
@@ -445,7 +451,8 @@ function get_wavenumber_vec_vec(autocovariance_fct_array::Array)
     # since a real FFT is performed, the first dimension contains only 
     # positve wavenumbers whereas second and third dimension contain 
     # positive and negative wavenumbers.
-    # In order to bring them into a natural order, the fftshift needs to be done
+    # In order to bring them into a natural order, the fftshift needs to be 
+    # done
     wavenumber_vec_vec = (2*pi) .* [
         FFTW.fftshift( FFTW.fftfreq( size(autocovariance_fct_array)[1] ) ),
         FFTW.fftshift( FFTW.fftfreq( size(autocovariance_fct_array)[2] ) ),
@@ -526,7 +533,7 @@ function get_spectral_density_by_wavevector_array_fft(
 
     # save results if desired
     if save_result
-        GU.save_dict_to_h5(copy(spectral_density_dict), save_path*
+        GU.save_dict_to_h5(spectral_density_dict, save_path*
             "_spectral_density_array.h5")
 
     end

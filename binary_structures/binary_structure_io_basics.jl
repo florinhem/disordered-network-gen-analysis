@@ -1,6 +1,6 @@
 """
-These functions are required to load data, convert and correct it and to extract
-some basic measures.
+These functions are required to load data, convert and correct it and to
+extract some basic measures.
 """
 
 
@@ -389,7 +389,8 @@ function save_statistical_measures(
                     get_autocovariance_fct_isotrope_by_sampling_distance_vec(
                         structure_dict;
                         nr_sampling_distances = nr_sampling_distances,
-                        nr_measurements_per_distance = nr_measurements_per_distance,
+                        nr_measurements_per_distance 
+                            = nr_measurements_per_distance,
                         save_result = false,
                         save_path = save_path,
                         voxel_edge_length = voxel_edge_length,
@@ -402,9 +403,11 @@ function save_statistical_measures(
             get_spectral_density_isotrope_by_wavenumber_vec(
                 structure_dict;
                 nr_sampling_distances = 
-                    length(autocovariance_fct_isotrope_dict["sampling_distance_vec"]),
+                    length(autocovariance_fct_isotrope_dict[
+                        "sampling_distance_vec"]),
                 nr_measurements_per_distance = 
-                    autocovariance_fct_isotrope_dict["nr_measurements_per_distance"],
+                    autocovariance_fct_isotrope_dict[
+                        "nr_measurements_per_distance"],
                 sampling_distance_vec = 
                     autocovariance_fct_isotrope_dict["sampling_distance_vec"],
                 autocovariance_fct_dict = autocovariance_fct_isotrope_dict,
@@ -464,7 +467,8 @@ function save_statistical_measures(
             
                 # load autocovariance function per direction dict
                 autocovariance_fct_direction_dict = 
-                    GU.load_h5_dict(save_path*"_autocovariance_fct_direction.h5")
+                    GU.load_h5_dict(
+                        save_path*"_autocovariance_fct_direction.h5")
             
             else
                 # get autocovariance function array

@@ -161,7 +161,8 @@ function plot_autocovariance_fct(
         Plots.plot!(
             plot_dict["sampling_distance_vec"]*plot_dict["voxel_edge_length"], 
             Measurements.value.(plot_dict["autocovariance_fct_vec"]), 
-            ribbon = Measurements.uncertainty.(plot_dict["autocovariance_fct_vec"]),
+            ribbon = Measurements.uncertainty.(
+                plot_dict["autocovariance_fct_vec"]),
             label = plot_dict["label"])
 
     end
@@ -256,7 +257,8 @@ function convergence_analysis_autocovariance_fct_nr_measurements_per_distance(
     title="Convergence analysis autocovariance function",
     save_plot = false,
     save_path=raw"..\plots\\",
-    save_filename="convergence_analysis_nr_measurements_autocovariance_fct.png")
+    save_filename=
+        "convergence_analysis_nr_measurements_autocovariance_fct.png")
 
     # in this array the autocovariance fct at distance 0 will be stored as a 
     # function of the nr of measurements
@@ -447,7 +449,6 @@ function plot_autocovariance_fct_heatmap(
         aspect_ratio = :equal,
         dpi=250, 
         size = 500 .* (1.2 , 1 )  ) 
-        # 600 .* (1, length(sampling_distance_vec_y)/length(sampling_distance_vec_x) )
 
     # set clims if desired
     if clims !== nothing
@@ -579,7 +580,8 @@ function plot_spectral_density_heatmap(plot_dict::Dict,
     x_axis = wavenumber_vec_x  ./ plot_dict["voxel_edge_length"]
     y_axis = wavenumber_vec_y ./ plot_dict["voxel_edge_length"]
 
-    # permute dimensions of spectral density array, such that they match the axes
+    # permute dimensions of spectral density array, such that they match the 
+    # axes
     spectral_density_2d_permuted_array = permutedims(spectral_density_2d_array)
 
     # normalize spectral density array to its maximum aboslute value
@@ -794,13 +796,14 @@ function plot_statistical_measures(
 
             # if desired adjust label and voxel edge length
             if  label_vec !== nothing
-                local_volume_fraction_variance_plot_dict["label"] = label_vec[i]
+                local_volume_fraction_variance_plot_dict["label"] = (
+                    label_vec[i])
             end
 
             # if desired adjust label and voxel edge length
             if voxel_edge_length_vec !== nothing
-                local_volume_fraction_variance_plot_dict["voxel_edge_length"] = 
-                    voxel_edge_length_vec[i]
+                local_volume_fraction_variance_plot_dict["voxel_edge_length"] = (
+                    voxel_edge_length_vec[i])
             end
                 
             # add current plot dict to vector
