@@ -3,4 +3,3 @@ Julia code to generate and analyze spatial networks with the extended Wooten-Wea
 For a quick tutorial, follow the `networks_walkthrough.ipynb` notebook. 
 
 Details and background are given in the article.
-The datasets in the article were produced with the code analogous to the file `create_dataset.jl`

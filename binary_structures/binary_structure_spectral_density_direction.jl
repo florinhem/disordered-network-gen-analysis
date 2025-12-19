@@ -426,7 +426,7 @@ function get_autocovariance_fct_along_direction_vec(
     # starting at center, walk through autocovariance_fct_array 
     # to get the desired entries
     while (prod( current_position .<= size_autocovariance_fct_array )
-        *prod( current_position .>= [1,1,1] ) == 1
+        *prod( current_position .>= [1,1,1] ) == 1)
 
         # add autocovariance function value to vector
         push!(autocovariance_fct_along_direction_vec, 

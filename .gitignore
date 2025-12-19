@@ -6,6 +6,6 @@
 *.gml
 
 # ignore ALL files in directory
-my_networks/ 
-simulations/
+example_networks/
+datasets/
 .vscode/

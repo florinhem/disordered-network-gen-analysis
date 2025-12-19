@@ -77,6 +77,9 @@ function plot_spatial_network(
     highlight_nodes::Tuple = (),
     highlight_edges::Vector = [])
 
+    # copy spatial network to not overwrite the original one
+    spatial_network = deepcopy(spatial_network)
+
     # get original nr of vertices
     nr_vertices = spatial_network[]["nr_vertices"]
     
