@@ -4,9 +4,9 @@
 *.png
 *.h5
 *.gml
-*.ipynb_checkpoints*
-*___pycache__*
 
 # ignore ALL files in directory
 data/
 .vscode/
+.ipynb_checkpoints/
+python_order_metric_prediction/__pycache__/
