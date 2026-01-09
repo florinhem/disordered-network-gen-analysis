@@ -173,7 +173,7 @@ function get_autocovariance_fct_isotrope_by_sampling_distance_vec(
             structure_dict["mean_edge_length_data"]; 
             nr_sampling_distances = nr_sampling_distances),
     save_result = false,
-    save_path = raw"..\analysis_data\sample_name",
+    save_path = "../../data/analysis_data/sample_name",
     voxel_edge_length = nothing,
     label = nothing
     )
@@ -317,7 +317,7 @@ function get_spectral_density_isotrope_by_wavenumber_vec(
             sampling_distance_vec = sampling_distance_vec),
     sampling_distance_cutoff = 1000,
     save_result = false,
-    save_path = raw"..\analysis_data\sample_name",
+    save_path = "../../data/analysis_data/sample_name",
     voxel_edge_length = nothing,
     label = nothing)
 

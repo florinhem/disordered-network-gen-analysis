@@ -586,10 +586,10 @@ function compare_relaxation_methods(
     original_spatial_network,
     central_cluster_vertices,
     evolution_dict,
-    filename;
+    filename,
+    save_path::String;
     nr_max_relaxation_cycles = 25,
-    shell_nr::Int64 = 4,
-    save_path = raw"..\plots\random_networks\\" )
+    shell_nr::Int64 = 4)
 
     # initialize arrays for vertex positions and cluster energy as a
     # function of relaxation cycle

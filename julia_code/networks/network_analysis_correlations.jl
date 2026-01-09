@@ -385,7 +385,7 @@ function get_structure_factor_by_wavevector_array(
             maximal_wavevector_int=maximal_wavevector_int,
             periodic_boundary_conditions=periodic_boundary_conditions),
     save_result = false,
-    save_path = raw"..\analysis_data\sample_name",
+    save_path = "../../data/analysis_data/sample_name",
     label = nothing,
     print_progress::Bool = false,
     thread_nr::Int64 = 0,
@@ -580,7 +580,7 @@ function get_structure_factor_angle_averaged(
     gaussian_filter_sigma_x::Float64 = 2*pi/25, 
     gaussian_filter_filtered_data_x_step_length::Float64 = 2*pi/25,
     save_result::Bool = false,
-    save_path = raw"..\analysis_data\sample_name",
+    save_path = "../../data/analysis_data/sample_name",
     label = nothing)
 
     if consider_spectral_density
@@ -714,7 +714,7 @@ function get_correlation_functions(
     distance_histogram_bin_width::Float64 = 0.02,
     periodic_boundary_conditions::Bool = true,
     save_result::Bool = false,
-    save_path = raw"..\analysis_data\sample_name",
+    save_path = "../../data/analysis_data/sample_name",
     label = nothing)
 
     # create vector of all vertex positions
@@ -990,7 +990,7 @@ function get_local_nr_variance_by_window_radius_vec(
     structure_factor_angle_averaged_dict::Dict;
     window_radius_step_length::Float64 = 0.1,
     save_result::Bool = false,
-    save_path::String = raw"..\analysis_data\random_networks\sample_name",
+    save_path::String = "../../data/analysis_data/sample_name",
     label = nothing)
 
     # get vector of sphere radii

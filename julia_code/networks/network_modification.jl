@@ -944,8 +944,8 @@ function evolve_network_temperature_sequence!(
     print_every_nr_attempted_bond_switches::Int64 = 100,
     random_evolution_seed::Int64 = -1,
     save_network_after_each_temperature::Bool = false,
-    filename::String = "some_network",
-    save_path::String = raw"..\structures\random_networks\\",
+    filename::String = "sample_name",
+    save_path::String = "../../data/structures/",
     print_lock = Threads.ReentrantLock())
 
     # set seed for random evolution if desired

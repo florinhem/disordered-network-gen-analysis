@@ -11,11 +11,7 @@ import FileIO   # for file loading and saving
 import LinearAlgebra    # to perform linear algebra calculations like the dot product
 
 # set path to files
-if Sys.iswindows()
-    load_path = raw".\general_utilities\\"
-else
-    load_path = raw"./general_utilities/"
-end
+load_path = "./general_utilities/"
 
 # include IO utilities
 include(load_path*"utilities_io.jl")
@@ -39,17 +35,13 @@ import Statistics   # for statistical operations like mean()
 import Measurements    # for handling data with uncertainty and error propagation
 import FFTW     # to calculate the Fast Fourier Transform
 import Plots    # for plotting
-#import GLMakie  # Makie backend for plotting
+import GLMakie  # Makie backend for plotting
 import LaTeXStrings as Latex # to display latex symbols in plot labels
 import Format   # for python-like string formatting 
 import MetaGraphsNext   # to convert spatial network to binary data
 
 # set path to files
-if Sys.iswindows()
-    load_path = raw".\binary_structures\\"
-else
-    load_path = raw"./binary_structures/"
-end
+load_path = "./binary_structures/"
 
 # include functions to load binary 3d data, convert and correct it and to extract
 # some basic measures
@@ -73,7 +65,7 @@ include(load_path*"binary_structure_spectral_density_direction.jl")
 
 # include functions that are used to plot different statistical measures of 
 # 3d binary structures
-#include(load_path*"binary_structure_plotting.jl")
+include(load_path*"binary_structure_plotting.jl")
 
 end
 
@@ -90,24 +82,22 @@ import MetaGraphsNext   # to deal with graphs with labelled vertices and edges
 import Combinatorics    # mainly used to get all possible combinations of bonds
 import LinearAlgebra    # to perform linear algebra calculations like the dot product
 import Optim    # for optimization such as relaxation of individual vertices
-#import GLMakie  # Makie backend for plotting
-#import GraphMakie   # additions to GLMakie for graph plotting
+import GLMakie  # Makie backend for plotting
+import GraphMakie   # additions to GLMakie for graph plotting
+import NetworkLayout  # required to plot networks
 import FileIO   # for file loading and saving
 import XLSX  # to read and write excel files
 import DataFrames  # to handle tabular data
 import Random   # to access more features for random number generation like seeds
 import Statistics   # for statistical operations like mean()
-import GeometryBasics   # to create meshes out of networks
+import GeometryBasics   # to create meshes out of networksdistributions
 import Plots    # for plotting
 import LaTeXStrings as Latex # to display latex symbols in plot labels
 import Format   # for python-like string formatting 
+import Colors
 
 # set path to files
-if Sys.iswindows()
-    load_path = raw".\networks\\"
-else
-    load_path = raw"./networks/"
-end
+load_path = "./networks/"
 
 # these functions are utilities for network generation and modification 
 include(load_path*"network_utilities.jl")
@@ -122,7 +112,7 @@ include(load_path*"network_energy_calculation.jl")
 include(load_path*"network_modification.jl")
 
 # functions to plot networks
-#include(load_path*"network_plotting.jl")
+include(load_path*"network_plotting.jl")
 
 # functions for loading and saving graph data
 include(load_path*"network_io.jl")
@@ -153,22 +143,18 @@ import FFTW     # to calculate the Fast Fourier Transform
 import StatsBase    # to fit histograms and calculate correlations
 import Polylabel # to find the pole of inaccessibility of a polygon
 import GeometryBasics  # to create polygons that can be handled by Polylabel
-import Distributions  # to access statistical distributions
+import Distributions  # to access statistical 
 import Random
 import LsqFit   # to perform curve fitting
 import Plots    # for plotting
-#import GLMakie  # Makie backend for plotting
+import GLMakie  # Makie backend for plotting
 import LaTeXStrings as Latex # to display latex symbols in plot labels
 import Format   # for python-like string formatting 
 import DataFrames  # to handle tabular data
 import CSV  # to read and write tabular data in csv format
 
 # set path to files
-if Sys.iswindows()
-    load_path = raw".\networks\\"
-else
-    load_path = raw"./networks/"
-end
+load_path = "./networks/"
 
 # these functions can be used to characterize networks
 # by means of local order parameters
@@ -187,11 +173,8 @@ include(load_path*"network_analysis_and_evolution.jl")
 # these functions generate and analyze voxelized data from networks
 include(load_path*"network_analysis_voxelized.jl")
 
-# functions to analyze the photonic response of networks
-include(load_path*"network_analysis_photonic.jl")
-
 # functions to plot network analysis results
-#include(load_path*"network_analysis_plotting.jl")
+include(load_path*"network_analysis_plotting.jl")
 
 end
 

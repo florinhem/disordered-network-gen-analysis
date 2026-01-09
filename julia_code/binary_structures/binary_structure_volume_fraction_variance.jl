@@ -543,7 +543,7 @@ function get_local_volume_fract_variance_by_window_vec(
     window_shape::String="spherical",
     constraints_nr_measurements::Tuple{Int64, Int64} = (100,10000),
     save_result = false,
-    save_path = raw"..\analysis_data\sample_name",
+    save_path = "../../data/analysis_data/sample_name",
     voxel_edge_length = nothing,
     label = nothing)
 

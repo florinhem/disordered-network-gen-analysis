@@ -176,7 +176,7 @@ function get_all_dicts_from_network_single_file(
     spatial_network_path::String,
     analysis_data_path::String;
     digital_sphere_mask_path 
-        = raw"..\analysis_data\random_networks\digital_sphere_masks\\",
+        = "../../data/analysis_data/digital_sphere_masks/",
     pore_size_sampling_grid_size = 0.2,
     max_pore_radius = 3.0,
     hyperuniformity_min_wavenumber_to_consider::Float64 = 0.0,
@@ -302,7 +302,7 @@ function get_all_dicts_from_networks_single_thread(run_and_filename_chunk,
     spatial_networks_path::String,
     analysis_data_path::String;
     digital_sphere_mask_path 
-        = raw"..\analysis_data\random_networks\digital_sphere_masks\\",
+        = "../../data/analysis_data/digital_sphere_masks/",
     pore_size_sampling_grid_size = 0.2,
     max_pore_radius = 3.0,
     exclude_layer_thickness::Float64 = 0.0,
@@ -347,7 +347,7 @@ function get_all_dicts_from_networks_multithreading(
     spatial_networks_path::String,
     analysis_data_path::String;
     digital_sphere_mask_path 
-        = raw"..\analysis_data\random_networks\digital_sphere_masks\\",
+        = "../../data/analysis_data/digital_sphere_masks/",
     pore_size_sampling_grid_size = 0.2,
     max_pore_radius = 3.0,
     exclude_layer_thickness::Float64 = 0.0,

@@ -169,14 +169,14 @@ end
 load structure data, bring to binary form, correct asymmetric voxels and
 if desired save to dictionary
 """
-function get_structure_dict_from_colorscale(data_path_raw::String; 
+function get_structure_dict_from_colorscale(data_path_::String; 
     voxel_size::Tuple=(1,1,1), 
     label = "some structure",
     save_result::Bool=false, 
-    save_path::String=raw"..\structures\binary_data")
+    save_path::String="../../data/structures/binary_data")
 
     # load colorscale structure data
-    data_colorscale = FileIO.load(data_path_raw)
+    data_colorscale = FileIO.load(data_path_)
 
     # convert colorscale data to grayscale, then to float 
     # and then to binary data
@@ -220,17 +220,17 @@ end
 """
 load 3d data from a stack of 2d images and bring to binary form
 """
-function get_structure_dict_from_colorscale_stack(data_path_raw_prefix::String,
-    data_path_raw_suffix::String,
+function get_structure_dict_from_colorscale_stack(data_path__prefix::String,
+    data_path__suffix::String,
     nr_images::Int64; 
     voxel_size::Tuple=(1,1,1), 
     label = "some structure",
     save_result::Bool=false, 
-    save_path::String=raw"..\structures\\binary_data")
+    save_path::String="../../data/structures/binary_data")
 
     # load first image to get array dimensions
     image_1_colorscale = FileIO.load(
-        data_path_raw_prefix*string(0)*data_path_raw_suffix)
+        data_path__prefix*string(0)*data_path__suffix)
 
     # initialize empty array where data will be stored in
     data_binary = Array{Bool}(
@@ -241,9 +241,9 @@ function get_structure_dict_from_colorscale_stack(data_path_raw_prefix::String,
 
         # load colorscale structure data
         data_colorscale = FileIO.load(
-            data_path_raw_prefix
+            data_path__prefix
             *string(i-1)
-            *data_path_raw_suffix)
+            *data_path__suffix)
 
         # convert colorscale data to grayscale, then to float 
         # and then to binary data

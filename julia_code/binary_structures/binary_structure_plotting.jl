@@ -252,11 +252,11 @@ supposed to yield (1-volume_fract_tot)*volume_fract_tot.
 The plots suggest to choose nr_measurements_per_distance >~ 10000
 """
 function convergence_analysis_autocovariance_fct_nr_measurements_per_distance(
-    structure_dict::Dict;
+    structure_dict::Dict,
+    save_path::String;
     nr_measurements_per_distance_vec = Int.( round.( 10 .^ collect(1:0.1:4))),
     title="Convergence analysis autocovariance function",
     save_plot = false,
-    save_path=raw"..\plots\\",
     save_filename=
         "convergence_analysis_nr_measurements_autocovariance_fct.png")
 

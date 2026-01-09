@@ -153,7 +153,7 @@ function get_autocovariance_fct_by_sampling_vec_array(
     sampling_vec_array = get_vector_array(sampling_distance_vec_vec),
     nr_measurements_per_direction::Int64 = 1000,
     save_result = false,
-    save_path = raw"..\analysis_data\sample_name",
+    save_path = "../../data/analysis_data/sample_name",
     voxel_edge_length = nothing,
     label = nothing)
 
@@ -231,7 +231,7 @@ function get_complete_autocovariance_fct_by_sampling_vec_array(
             nr_measurements_per_direction = nr_measurements_per_direction,
             save_result = false),
     save_result::Bool = false,
-    save_path::String = raw"..\analysis_data\sample_name")
+    save_path::String = "../../data/analysis_data/sample_name")
 
     # correct the sampling distance vec along the third dimension, 
     # where due to the mirror symmetry of the autocovariance fct 
@@ -306,7 +306,7 @@ function extrapolate_periodic_data_autocovariance_fct_by_sampling_vec_array(
     size_data_single_unit_cell::Tuple = (50,50,50),
     nr_unit_cells=10,
     save_result = false,
-    save_path = raw"..\analysis_data\sample_name")
+    save_path = "../../data/analysis_data/sample_name")
 
     # get vector of sampling distances along the three coordinate axes 
     # for extrapolated data
@@ -481,7 +481,7 @@ function get_spectral_density_by_wavevector_array_fft(
     nr_measurements_per_direction::Int64 = 1000,
     save_complete_autocovariance_fct_direction_dict::Bool = false,
     save_result::Bool = false,
-    save_path::String = raw"..\analysis_data\sample_name",
+    save_path::String = "../../data/analysis_data/sample_name",
     complete_autocovariance_fct_direction_dict::Dict = 
         get_complete_autocovariance_fct_by_sampling_vec_array(
             structure_dict;

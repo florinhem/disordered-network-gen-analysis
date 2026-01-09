@@ -21,7 +21,7 @@ theta_ground_state = 180.0
 shell_nr = 4
 relax_globally_after_threshold_cycle = false
 
-evolution_dicts_path = "./datasets/structures/evolution_dicts/"
+evolution_dicts_path = "../data/structures/evolution_dicts/"
 
 for (nr_vertices, network_type) in zip(nr_vertices_vec, network_type_vec)
 
@@ -74,7 +74,7 @@ end
 
 # generate networks
 
-spatial_network_path = "./datasets/structures/" 
+spatial_network_path = "../data/structures/" 
 
 print_every_nr_attempted_bond_switches = 200
 print_progress = true
@@ -99,7 +99,7 @@ NG.generate_spatial_networks_from_evolution_dicts_in_directory_multiple_runs(
 
 # analyze networks
 
-analysis_data_path = "./datasets/analysis_data/" 
+analysis_data_path = "../data/analysis_data/" 
 
 NA.get_all_dicts_from_networks_multithreading(
     spatial_network_path,
@@ -109,15 +109,44 @@ NA.get_all_dicts_from_networks_multithreading(
     print_lock = print_lock)
 
 
-# create one dictionary with the order metrics of all networks
+# for each network type, create one dictionary with the order metrics of all 
+# networks
 
-analysis_data_path = "./datasets/analysis_data/" 
+for network_type in network_type_vec
+    analysis_data_path_network_type = analysis_data_path *
+        network_type * "/"
 
-order_metrics_dict = NA.get_order_metrics_all_files(
-    analysis_data_path;
-    save_result=true,
-    save_algorithm_parameters_from_filename=true)
+    order_metrics_dict = NA.get_order_metrics_all_files(
+        analysis_data_path_network_type;
+        save_result=true,
+        save_algorithm_parameters_from_filename=true)
+    
+    # create corresponding CSV file
+    NA.save_order_metrics_dict_to_csv(order_metrics_dict, 
+        analysis_data_path_network_type)
+end
 
-# create corresponding CSV file
 
-NA.save_order_metrics_dict_to_csv(order_metrics_dict, analysis_data_path)
+# create arrays of melting temperatures for ctn networks with different bond
+# bending constants. This will be used to access the melting temperature
+# for order metric prediction or data plotting.
+
+bond_bending_const_vec = collect(0.0:0.2:10.0)
+t_melt_vec = [NA.get_melting_temperature("ctn", beta; 
+        relax_globally_after_threshold_cycle=false, shell_nr=4) 
+    for beta in bond_bending_const_vec]
+
+t_gradient_vec = 0.5 .* t_melt_vec
+t_max_over_t_melt_vec = collect(0.5:0.02:2.0)
+t_max_arr = t_max_over_t_melt_vec' .* t_melt_vec
+
+# save the arrays to a h5 file
+save_path = "../data/analysis_data/ctn/" 
+
+GU.save_dict_to_h5(Dict(
+    "bond_bending_const_vec" => bond_bending_const_vec,
+    "t_melt_vec" => t_melt_vec,
+    "t_gradient_vec" => t_gradient_vec,
+    "t_max_over_t_melt_vec" => t_max_over_t_melt_vec,
+    "t_max_arr" => t_max_arr,
+), save_path*"ctn_t_melt_vec.h5")

@@ -150,8 +150,8 @@ function get_binary_data_from_spatial_network(
     bond_radius::Float64 = 0.35,
     voxel_edge_length::Float64 = 0.1,
     save_path::String 
-        = raw"..\structures\random_networks\binary_structures\sample_name",
-    filename::String = "some_structure",
+        = "../../data/structures/binary_structures/sample_name",
+    filename::String = "sample_name",
     save_result::Bool=false)
 
     # get binary data for for only the bonds without a finite bond radius
@@ -401,7 +401,7 @@ medium with periodic boundary conditions
 function get_autocovariance_fct_by_sampling_indices_array(
     structure_dict::Dict;
     save_result = false,
-    save_path = raw"..\analysis_data\sample_name",
+    save_path = "../../data/analysis_data/sample_name",
     print_progress = false,
     thread_nr::Int64 = 0,
     print_lock = Threads.ReentrantLock())
@@ -565,7 +565,7 @@ function of direction using multithreading
 function get_autocovariance_fct_direction_from_filenames_multithreading(
     structure_dicts_path;
     print_progress::Bool = false,
-    save_path::String = "..\analysis_data\random_networks\\",
+    save_path::String = "../../data/analysis_data/",
     nr_runs::Int64 = 5,
     print_lock = Threads.ReentrantLock())
 
@@ -615,7 +615,7 @@ function get_spectral_density_by_wavevector_array_fft(
     structure_dict::Dict;
     save_autocovariance_fct_direction_dict::Bool = false,
     save_result::Bool = false,
-    save_path::String = raw"..\analysis_data\sample_name",
+    save_path::String = "../../data/analysis_data/sample_name",
     autocovariance_fct_direction_dict::Dict = (
         get_autocovariance_fct_by_sampling_indices_array(
             structure_dict;
@@ -691,7 +691,7 @@ equation 73 in 10.1016/j.physrep.2018.03.001
 """
 function get_volume_fract_variance(autocovariance_fct_direction_dict::Dict;
     save_result::Bool = false,
-    save_path = raw"..\analysis_data\sample_name")
+    save_path = "../../data/analysis_data/sample_name")
 
     # get array of distances to the origin
     r_distance_to_origin_array = sqrt.(dropdims(sum(
@@ -765,10 +765,10 @@ function get_pore_size_distribution_voxelized(
     structure_dict::Dict;
     nr_sampled_voxels::Int = 20000,
     save_result::Bool = false,
-    save_path = raw"..\analysis_data\sample_name\\",
+    save_path = "../../data/analysis_data/sample_name/",
     label = nothing,
     digital_sphere_mask_path 
-        = raw"..\analysis_data\random_networks\digital_sphere_masks\\",
+        = "../../data/analysis_data/digital_sphere_masks/",
     print_progress::Bool = false,
     thread_nr::Int64 = 0,
     print_lock = Threads.ReentrantLock())

@@ -785,7 +785,7 @@ For a given data size store all digital sphere masks in a dictionary
 function get_digital_sphere_mask_dict(size_data::Tuple;
     max_pixel_radius::Float64 = minimum([minimum(size_data)/2, 50]),
     save_result::Bool = false,
-    save_path = raw"..\analysis_data\random_networks\digital_sphere_masks\\")
+    save_path = "../../data/analysis_data/digital_sphere_masks/")
 
     # create list of digital spheres with increasing radius
     sphere_pixel_radius_vec = collect(0.5001:0.5:max_pixel_radius)
@@ -828,10 +828,10 @@ function get_pore_size_distribution(
         minimum([spatial_network[]["supercell_edge_length"]/2, 50]),
     periodic_boundary_conditions::Bool = true,
     save_result::Bool = false,
-    save_path = raw"..\analysis_data\sample_name",
+    save_path = "../../data/analysis_data/sample_name",
     label = nothing,
     digital_sphere_mask_path 
-        = raw"..\analysis_data\random_networks\digital_sphere_masks\\",
+        = "../../data/analysis_data/digital_sphere_masks/",
     print_progress::Bool = false,
     thread_nr::Int64 = 0,
     print_lock = Threads.ReentrantLock())
@@ -1302,7 +1302,7 @@ function get_ring_size_distribution(spatial_network::MetaGraphsNext.MetaGraph;
     periodic_boundary_conditions::Bool = true,
     non_pbc_padding::Float64 = 2.0,
     save_result::Bool = false,
-    save_path = raw"..\analysis_data\sample_name",
+    save_path = "../../data/analysis_data/sample_name",
     label = nothing,
     print_progress::Bool = false,
     thread_nr::Int64 = 0,
@@ -1566,7 +1566,7 @@ function get_ring_radius_distribution(
     spatial_network::MetaGraphsNext.MetaGraph,
     ring_size_distribution_dict::Dict{String, Any};
     save_result::Bool = false,
-    save_path = raw"..\analysis_data\sample_name",
+    save_path = "../../data/analysis_data/sample_name",
     label = nothing)
 
     # get the very strong rings of the network

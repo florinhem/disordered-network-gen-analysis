@@ -9,7 +9,7 @@ network to a CSV file
 function save_spatial_network_to_csv(
     spatial_network::MetaGraphsNext.MetaGraph,
     filename::String;
-    save_path::String = raw"..\structures\random_networks\\")
+    save_path::String = "../../data/structures/")
 
     edges = collect(MetaGraphsNext.edge_labels(spatial_network))
 
@@ -44,7 +44,7 @@ function save_spatial_network_to_gml(
     spatial_network::MetaGraphsNext.MetaGraph,
     filename::String;
     evolution_dict = nothing,
-    save_path::String = raw"..\structures\random_networks\\")
+    save_path::String = "../../data/structures/")
 
     # save evolution dict if passed
     if evolution_dict !== nothing
@@ -932,8 +932,8 @@ function get_spatial_network_for_simulation!(
     vector_out_of_supercell_length = 1,
     duplicate_bonds_close_to_supercell_edge::Bool = true,
     save_result::Bool = false,
-    filename::String = "some_network",
-    save_path::String = raw"..\structures\random_networks\\")
+    filename::String = "sample_name",
+    save_path::String = "../../data/structures/")
     
     # cut all bonds that reach out of supercell and replace
     # them by new bonds to duplicated vertices outside of the supercell
@@ -964,7 +964,8 @@ function save_mesh_from_spatial_network(
     filename::String;
     bond_radius::Float64 = 0.3131,
     vector_out_of_supercell_length = 1,
-    save_path::String = raw"..\structures\random_networks\\",
+    spheres_at_vertices::Bool = false,
+    save_path::String = "../../data/structures/",
     duplicate_bonds_close_to_supercell_edge::Bool = true,
     format::String = "obj")
 
@@ -999,11 +1000,35 @@ function save_mesh_from_spatial_network(
         current_cylinder_mesh = GeometryBasics.mesh(current_cylinder)
 
         # save mesh
-        total_path = (save_path*filename*"\\"*string(bond[1])*"_"
+        total_path = (save_path*filename*"/"*string(bond[1])*"_"
             *string(bond[2])*"."*format)
 
         FileIO.save(total_path, current_cylinder_mesh)
 
+    end
+
+    if spheres_at_vertices
+        # loop through vertices
+        for vertex in MetaGraphsNext.labels(spatial_network)
+
+            # get vertex position
+            vertex_pos = spatial_network[vertex]["position"]
+
+            # create sphere object
+            current_sphere = GeometryBasics.Sphere(
+                GeometryBasics.Point( vertex_pos...),
+                bond_radius)
+
+            # mesh sphere object
+            current_sphere_mesh = GeometryBasics.mesh(current_sphere)
+
+            # save mesh
+            total_path = (save_path*filename*"/"*string(vertex)*
+                "_sphere."*format)
+
+            FileIO.save(total_path, current_sphere_mesh)
+
+        end
     end
 
     return
