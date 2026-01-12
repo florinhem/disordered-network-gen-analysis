@@ -965,6 +965,7 @@ function save_mesh_from_spatial_network(
     bond_radius::Float64 = 0.3131,
     vector_out_of_supercell_length = 1,
     spheres_at_vertices::Bool = false,
+    nr_cylinder_segments::Int64 = 32,
     save_path::String = "../../data/structures/",
     duplicate_bonds_close_to_supercell_edge::Bool = true,
     format::String = "obj")
@@ -997,7 +998,8 @@ function save_mesh_from_spatial_network(
             bond_radius)
         
         # mesh cylinder object
-        current_cylinder_mesh = GeometryBasics.mesh(current_cylinder)
+        current_cylinder_mesh = GLMakie.normal_mesh(GLMakie.Tesselation(
+            current_cylinder, nr_cylinder_segments))
 
         # save mesh
         total_path = (save_path*filename*"/"*string(bond[1])*"_"

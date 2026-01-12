@@ -1,0 +1,45 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: Disordered network generation and analysis
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Florin
+    family-names: Hemmann
+    email: florin.hemmann@unifr.ch
+    affiliation: >-
+      Adolphe Merkle Institute, University of Fribourg,
+      Switzerland
+    orcid: 'https://orcid.org/0009-0001-6772-8341'
+  - given-names: Vincent
+    family-names: Glauser
+    email: vincent.glauser@unifr.ch
+    affiliation: >-
+      Department of Physics, University of Fribourg,
+      Switzerland
+  - given-names: Matthias
+    orcid: 'https://orcid.org/0000-0001-5281-4506'
+    family-names: Saba
+    email: matthas.saba@unifr.ch
+    affiliation: >-
+      Adolphe Merkle Institute, University of Fribourg,
+      Switzerland
+  - name: NCCR Bio-Inspired Materials
+    address: Chemin des Verdiers 4
+    city: Fribourg
+    country: CH
+    post-code: '1700'
+    website: 'https://www.bioinspired-materials.ch/'
+repository-code: >-
+  https://github.com/florinhem/disordered-network-gen-analysis
+abstract: >-
+  Code to generate and analyze spatial networks with the
+  extended Wooten-Weaire-Winer algorithm.
+keywords:
+  - spatial networks
+  - disordered networks
+  - Monte Carlo
