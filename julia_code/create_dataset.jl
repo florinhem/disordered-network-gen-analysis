@@ -21,9 +21,10 @@ theta_ground_state = 180.0
 shell_nr = 4
 relax_globally_after_threshold_cycle = false
 
-evolution_dicts_path = "../data/structures/evolution_dicts/"
-
 for (nr_vertices, network_type) in zip(nr_vertices_vec, network_type_vec)
+
+    evolution_dicts_path = (
+        "../data/structures/"*network_type*"/evolution_dicts/")
 
     println("Generating evolution dicts of type $network_type")
 
@@ -72,10 +73,8 @@ for (nr_vertices, network_type) in zip(nr_vertices_vec, network_type_vec)
     end
 end
 
+
 # generate networks
-
-spatial_network_path = "../data/structures/" 
-
 print_every_nr_attempted_bond_switches = 200
 print_progress = true
 save_network_after_each_temperature = false
@@ -84,46 +83,48 @@ runs_vec = [1]
 random_evolution_seed = -1
 print_lock = Threads.ReentrantLock()
 
-NG.generate_spatial_networks_from_evolution_dicts_in_directory_multiple_runs(
-    evolution_dicts_path,
-    spatial_network_path;
-    print_every_nr_attempted_bond_switches
-        =print_every_nr_attempted_bond_switches,
-    print_progress=print_progress,
-    random_evolution_seed=random_evolution_seed,
-    save_network_after_each_temperature=save_network_after_each_temperature,
-    further_evolve_previous_networks=further_evolve_previous_networks,
-    runs_vec=runs_vec,
-    print_lock=print_lock)
+for network_type in network_type_vec
+    spatial_network_path = "../data/structures/"*network_type*"/"
+    NG.generate_spatial_networks_from_evolution_dicts_in_directory_multiple_runs(
+        evolution_dicts_path,
+        spatial_network_path;
+        print_every_nr_attempted_bond_switches
+            =print_every_nr_attempted_bond_switches,
+        print_progress=print_progress,
+        random_evolution_seed=random_evolution_seed,
+        save_network_after_each_temperature=save_network_after_each_temperature,
+        further_evolve_previous_networks=further_evolve_previous_networks,
+        runs_vec=runs_vec,
+        print_lock=print_lock)
+end
 
 
-# analyze networks
+# analyze generated networks
+for network_type in network_type_vec
+    spatial_network_path = "../data/structures/"*network_type*"/"
+    analysis_data_path = "../data/analysis_data/"*network_type*"/"
 
-analysis_data_path = "../data/analysis_data/" 
-
-NA.get_all_dicts_from_networks_multithreading(
-    spatial_network_path,
-    analysis_data_path;
-    print_progress = print_progress,
-    runs_vec = runs_vec,
-    print_lock = print_lock)
+    NA.get_all_dicts_from_networks_multithreading(
+        spatial_network_path,
+        analysis_data_path;
+        print_progress = print_progress,
+        runs_vec = runs_vec,
+        print_lock = print_lock)
+end
 
 
 # for each network type, create one dictionary with the order metrics of all 
 # networks
-
 for network_type in network_type_vec
-    analysis_data_path_network_type = analysis_data_path *
-        network_type * "/"
+    analysis_data_path = "../data/analysis_data/"*network_type*"/"
 
     order_metrics_dict = NA.get_order_metrics_all_files(
-        analysis_data_path_network_type;
+        analysis_data_path;
         save_result=true,
         save_algorithm_parameters_from_filename=true)
     
     # create corresponding CSV file
-    NA.save_order_metrics_dict_to_csv(order_metrics_dict, 
-        analysis_data_path_network_type)
+    NA.save_order_metrics_dict_to_csv(order_metrics_dict, analysis_data_path)
 end
 
 
@@ -150,3 +151,26 @@ GU.save_dict_to_h5(Dict(
     "t_max_over_t_melt_vec" => t_max_over_t_melt_vec,
     "t_max_arr" => t_max_arr,
 ), save_path*"ctn_t_melt_vec.h5")
+
+
+# analyze biological networks. Here, we exclude the outer layer of vertices
+# and bonds to avoid experimental boundary effects
+spatial_network_path = "../data/structures/biological/"
+analysis_data_path = "../data/analysis_data/biological/"
+
+NA.get_all_dicts_from_networks_multithreading(
+    spatial_network_path,
+    analysis_data_path;
+    exclude_layer_thickness = 1.5,
+    periodic_boundary_conditions = false,
+    print_progress = print_progress,
+    runs_vec = runs_vec,
+    print_lock = print_lock)
+
+order_metrics_dict = NA.get_order_metrics_all_files(
+    analysis_data_path;
+    save_result=true,
+    save_algorithm_parameters_from_filename=false)
+
+# create corresponding CSV file
+NA.save_order_metrics_dict_to_csv(order_metrics_dict, analysis_data_path)

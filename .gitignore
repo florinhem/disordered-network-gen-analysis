@@ -10,3 +10,5 @@ data/
 .vscode/
 .ipynb_checkpoints/
 python_order_metric_prediction/__pycache__/
+julia_code/networks/network_photonic.jl
+julia_code/structure_analysis_photonic_modules.jl
