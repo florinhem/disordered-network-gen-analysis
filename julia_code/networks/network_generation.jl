@@ -56,6 +56,33 @@ end
 
 
 """
+rotates all edges n_fold times around a certain axis
+"""
+function rotate(
+    edges,
+    axis::Vector{Float64},
+    n_fold::Int64)
+
+    new_edges=Dict{Int, Tuple{Vector{Float64}, Vector{Float64}, Float64}}()
+    current_edge=1
+    for n in 1:(n_fold-1)
+        angle=360/n_fold*n
+        rot_matrix=rotation_matrix(axis,angle)
+
+        for (edge_nr,(vertex_position_start,vertex_position_end,length)) in edges
+            new_vertex_position_start=(rot_matrix * vertex_position_start)
+            new_vertex_position_end=(rot_matrix * vertex_position_end)
+            new_edges[current_edge]=(
+                new_vertex_position_start,new_vertex_position_end,length)
+            current_edge+=1
+        end
+    end
+
+    return new_edges
+end
+
+
+"""
 makes a copy of edges and applies a glide plane 
 (mirror at a plane and then translate along the mirror)
 """
@@ -958,6 +985,100 @@ end
 
 
 """
+get the original graph from the edges by copying and shifting them into one
+unit cell. Then, we scale the network up from a unitcell lenght of 1 to 
+edge_length_unit_cell. Finally, we create the original spatial network as a 
+dictionary with all these values.
+"""
+function get_original_graph_from_edges(
+    edges::Dict{Int, Tuple{Vector{Float64}, Vector{Float64}, Float64}},
+    edge_length_unit_cell,
+    nr_vertices::Int64,
+    nr_vertices_per_unit_cell::Int64,
+    nr_dimensions::Int64 = 3,
+    delta::Float64 = 0.01,
+    epsilon::Float64 = 0.001,
+    unitcell_min=0,
+    unitcell_max=1)
+
+    # calculate the actual nr vertices, given that we require a 
+    # cubic supercell and using the fact that the unit cell contains a certain
+    # number of vertices 
+    nr_unit_cells_per_dimension = max(
+        1, Int(round( (nr_vertices/nr_vertices_per_unit_cell)^(1/3) )) )
+    nr_vertices = nr_vertices_per_unit_cell * nr_unit_cells_per_dimension^3
+    supercell_edge_length = nr_unit_cells_per_dimension*edge_length_unit_cell
+
+    # we delete the edges that are repeating
+    edges = delete_copys(edges, epsilon)
+
+    # we shift all edges into the unitcell. We look at the center point of 
+    # each vertex
+    edges=shift_edge_middle_into_unitcell(edges, unitcell_min, unitcell_max)
+    edges = delete_copys(edges, epsilon)
+
+    # define the size of the box such that we can connect all edges into one
+    # big network
+    L=5
+    x=[1.0,0.0,0.0]
+    y=[0.0,1.0,0.0]
+    z=[0.0,0.0,1.0]
+
+    # copy all edges L times in x,y,z direction to get all edges that connect
+    # to all the other edges
+    edges = array_3D(edges,x,L,y,L,z,L)
+
+    # look at the cube spanning from (2,2,2) and (3,3,3), only take these edges
+    filter_min=(2.0-delta)
+    filter_max=(3.0+delta)
+    edges = filter_to_unitcell(edges, 
+        filter_min, filter_max, 
+        filter_min, filter_max, 
+        filter_min, filter_max)
+
+    # copy the unitcell in all 3 dimensions to get the actual network
+    edges = array_3D(edges,
+        x,nr_unit_cells_per_dimension,
+        y,nr_unit_cells_per_dimension,
+        z,nr_unit_cells_per_dimension)
+
+    # fold all edges back into the supercell
+    edges = fold_to_block(edges, nr_unit_cells_per_dimension)
+    
+    edges = delete_copys(edges, epsilon)
+    
+    # scale the network up from a unitcell lenght of 1 to edge_length_unit_cell
+    edges=scale(edges,edge_length_unit_cell)
+
+    # get the positions, edges, nr_vertices, original_graph and edges lengths
+    vertex_positions_dict=get_vertex_positions_dict(edges, 
+        epsilon, supercell_edge_length)
+    vertex_position_mat=get_mat_from_dict(vertex_positions_dict)
+    edges_with_vertex=get_edges_with_vertex(edges, vertex_positions_dict, 
+        epsilon, supercell_edge_length)
+    nr_vertices=length(vertex_positions_dict)
+    original_graph=create_graph(edges_with_vertex, nr_vertices)
+
+    # metrics to check that the network is correct
+    edge_length_vec=get_edge_length_vec(original_graph, edges_with_vertex)
+    coordination_nr_vec=get_coordination_nr_vec(original_graph)
+
+    # create original spatial network
+    original_graph = Dict(
+        "original_graph" => original_graph,
+        "edge_length_vec" => edge_length_vec,
+        "coordination_nr_vec" => coordination_nr_vec,
+        "nr_vertices" => nr_vertices,
+        "nr_dimensions" => nr_dimensions,
+        "supercell_edge_length" => supercell_edge_length,
+        "vertex_position_mat" => vertex_position_mat
+        )
+
+    return original_graph
+end
+
+
+"""
 returns the original space graph. It checks which network we want to generate.
 Then it calculates for the unitcell and supercell the edges 
 (number, starting vertex, ending vertex and length) of the network.
@@ -1031,141 +1152,14 @@ function get_network(nr_vertices, network_name)
         @error ("$network_name not implemented.")
     end
 
-    # calculate the actual nr vertices, given that we require a 
-    # cubic supercell and using the fact that the unit cell contains a certain
-    # number of vertices 
-    nr_unit_cells_per_dimension = max(
-        1, Int(round( (nr_vertices/nr_vertices_per_unit_cell)^(1/3) )) )
-    nr_vertices = nr_vertices_per_unit_cell * nr_unit_cells_per_dimension^3
-    supercell_edge_length = nr_unit_cells_per_dimension*edge_length_unit_cell
-
-    # define the fluctuation of the unitcell (delta) and the fluctuation of 
-    # the vertex positions (epsilon) and the initial unitcell position
-    delta=0.01
-    epsilon=0.001
-    unitcell_min=0
-    unitcell_max=1
-
-    # we delete the edges that are repeating
-    edges = delete_copys(edges, epsilon)
-
-    # we shift all edges into the unitcell. We look at the center point of 
-    # each vertex
-    edges=shift_edge_middle_into_unitcell(edges, unitcell_min, unitcell_max)
-    edges = delete_copys(edges, epsilon)
-
-    # define the size of the box such that we can connect all edges into one
-    # big network
-    L=5
-    x=[1.0,0.0,0.0]
-    y=[0.0,1.0,0.0]
-    z=[0.0,0.0,1.0]
-
-    # copy all edges L times in x,y,z direction to get all edges that connect
-    # to all the other edges
-    edges = array_3D(edges,x,L,y,L,z,L)
-
-    # look at the cube spanning from (2,2,2) and (3,3,3), only take these edges
-    filter_min=(2.0-delta)
-    filter_max=(3.0+delta)
-    edges = filter_to_unitcell(edges, 
-        filter_min, filter_max, 
-        filter_min, filter_max, 
-        filter_min, filter_max)
-
-    # copy the unitcell in all 3 dimensions to get the actual network
-    edges = array_3D(edges,
-        x,nr_unit_cells_per_dimension,
-        y,nr_unit_cells_per_dimension,
-        z,nr_unit_cells_per_dimension)
-
-    # fold all edges back into the supercell
-    edges = fold_to_block(edges, nr_unit_cells_per_dimension)
+    original_graph = get_original_graph_from_edges(
+        edges,
+        edge_length_unit_cell,
+        nr_vertices,
+        nr_vertices_per_unit_cell,
+        nr_dimensions)
     
-    edges = delete_copys(edges, epsilon)
-    
-    # scale the network up from a unitcell lenght of 1 to edge_length_unit_cell
-    edges=scale(edges,edge_length_unit_cell)
-
-    # get the positions, edges, nr_vertices, original_graph and edges lengths
-    vertex_positions_dict=get_vertex_positions_dict(edges, 
-        epsilon, supercell_edge_length)
-    #println("vertex_positions_dict, $vertex_positions_dict")
-    vertex_position_mat=get_mat_from_dict(vertex_positions_dict)
-    #println("vertex_position_mat, $(vertex_position_mat)")
-    edges_with_vertex=get_edges_with_vertex(edges, vertex_positions_dict, 
-        epsilon, supercell_edge_length)
-    nr_vertices=length(vertex_positions_dict)
-    original_graph=create_graph(edges_with_vertex, nr_vertices)
-    #println("original_graph: $(original_graph)")
-
-    # metrics to check that the network is correct
-    edge_length_vec=get_edge_length_vec(original_graph, edges_with_vertex)
-    coordination_nr_vec=get_coordination_nr_vec(original_graph)
-    count_2 = count(x -> x == 2, coordination_nr_vec)
-    count_3 = count(x -> x == 3, coordination_nr_vec)
-    count_4 = count(x -> x == 4, coordination_nr_vec)
-    count_5 = count(x -> x == 5, coordination_nr_vec)
-    count_6 = count(x -> x == 6, coordination_nr_vec)
-    count_7 = count(x -> x == 7, coordination_nr_vec)
-    count_8 = count(x -> x == 8, coordination_nr_vec)
-
-    # this if else can be removed, if you are sure that the network is correct
-    if cmp(network_name , "dia") == 0 || cmp(network_name , "diamond") == 0
-        println("nr of edges in unitcell should be $nr_edges_per_unit_cell=?=$(
-        length(edge_length_vec)/(nr_unit_cells_per_dimension^3))")
-        println("CN_all=$(length(coordination_nr_vec))=?=CN4=$(count_4)")
-    elseif cmp(network_name , "srs") == 0
-        println("nr of edges in unitcell should be $nr_edges_per_unit_cell=?=$(
-        length(edge_length_vec)/(nr_unit_cells_per_dimension^3))") 
-        println("CN_all=$(length(coordination_nr_vec))=?=CN3=$(count_3)")
-    elseif cmp(network_name , "srd") == 0
-        println("nr of edges in unitcell should be $nr_edges_per_unit_cell=?=$(
-        length(edge_length_vec)/(nr_unit_cells_per_dimension^3))")  
-        println("CN3/CN4=4/6=0.666=?=$(count_3/count_4)")
-    elseif cmp(network_name , "ctn") == 0
-        println("nr of edges in unitcell should be $nr_edges_per_unit_cell=?=$(
-        length(edge_length_vec)/(nr_unit_cells_per_dimension^3))") 
-        println("CN3/CN4=16/12=1.333=?=$(count_3/count_4)")
-    elseif cmp(network_name , "pto") == 0
-        println("nr of edges in unitcell should be $nr_edges_per_unit_cell=?=$(
-        length(edge_length_vec)/(nr_unit_cells_per_dimension^3))")  
-        println("CN3/CN4=8/6=1.333=?=$(count_3/count_4)")
-    elseif cmp(network_name , "pto_half_fill") == 0
-        println("nr of edges in unitcell should be $nr_edges_per_unit_cell=?=$(
-        length(edge_length_vec)/(nr_unit_cells_per_dimension^3))")  
-        println("CN3/CN4=4/11=0.3636...=?=$(count_3/count_4)")
-    elseif cmp(network_name , "pto_fill") == 0
-        println("nr of edges in unitcell should be $nr_edges_per_unit_cell=?=$(
-        length(edge_length_vec)/(nr_unit_cells_per_dimension^3))")
-        println("CN_all=$(length(coordination_nr_vec))=?=CN4=$(count_4)")
-    elseif cmp(network_name , "lcs") == 0
-        println("nr of edges in unitcell should be $nr_edges_per_unit_cell=?=$(
-        length(edge_length_vec)/(nr_unit_cells_per_dimension^3))")    
-        println("CN_all=$(length(coordination_nr_vec))=?=CN4=$(count_4)")
-    elseif cmp(network_name , "bcu_cn_5_6_7_8") == 0
-        println("nr of edges in unitcell should be $nr_edges_per_unit_cell=?=$(
-        length(edge_length_vec)/(nr_unit_cells_per_dimension^3))")
-        println("CN6/CN5, CN7/CN5 , CN8/CN5 =7, 7, 1=?=$(count_6/count_5), 
-        $(count_7/count_5), $(count_8/count_5)")
-    elseif cmp(network_name , "pcu_cn_4_5_6") == 0
-        println("nr of edges in unitcell should be $nr_edges_per_unit_cell=?=$(
-        length(edge_length_vec)/(nr_unit_cells_per_dimension^3))")
-        println("CN5/CN4, CN6/CN4 = 2, 1=?=$(count_5/count_4), $(count_6/count_4)")
-    end
-
-    # create original spatial network
-    original_spatial_network = Dict(
-        "original_graph" => original_graph,
-        "edge_length_vec" => edge_length_vec,
-        "coordination_nr_vec" => coordination_nr_vec,
-        "nr_vertices" => nr_vertices,
-        "nr_dimensions" => nr_dimensions,
-        "supercell_edge_length" => supercell_edge_length,
-        "vertex_position_mat" => vertex_position_mat
-        )
-    
-    return original_spatial_network
+    return original_graph
 end
 
 
@@ -1173,7 +1167,7 @@ end
 add information about vertex positions and edge vectors to the original graph
 """
 function convert_original_graph_to_spatial_network(
-    original_spatial_network::Dict)
+    original_graph::Dict)
 
     # create an empty network graph where vertex positions and edge vectors
     # will be stored
@@ -1183,19 +1177,19 @@ function convert_original_graph_to_spatial_network(
         vertex_data_type = Dict{String, Any},
         edge_data_type = Dict{String, Union{Float64, Vector{Float64}}},
         graph_data = Dict{String, Any}(
-            "nr_vertices" => original_spatial_network["nr_vertices"],
-            "nr_dimensions" => original_spatial_network["nr_dimensions"],
+            "nr_vertices" => original_graph["nr_vertices"],
+            "nr_dimensions" => original_graph["nr_dimensions"],
             "supercell_edge_length" 
-                => original_spatial_network["supercell_edge_length"])
+                => original_graph["supercell_edge_length"])
         )
 
     # label each vertex by its code integer and assign it its position vector
-    for vertex in Graphs.vertices(original_spatial_network["original_graph"])
+    for vertex in Graphs.vertices(original_graph["original_graph"])
         
         spatial_network[vertex] = Dict{String, Any}( 
-            "position" => original_spatial_network[
+            "position" => original_graph[
                 "vertex_position_mat"][:,vertex],
-            "coordination_nr" => original_spatial_network[
+            "coordination_nr" => original_graph[
                 "coordination_nr_vec"][vertex]
         )
 
@@ -1205,9 +1199,9 @@ function convert_original_graph_to_spatial_network(
     # where it points
 
     # get the nr and vector of original edges
-    nr_edges = Graphs.ne(original_spatial_network["original_graph"])
+    nr_edges = Graphs.ne(original_graph["original_graph"])
     original_edges_vec = collect(
-        Graphs.edges(original_spatial_network["original_graph"]))
+        Graphs.edges(original_graph["original_graph"]))
     
     for edge_nr in 1:nr_edges
 
@@ -1217,13 +1211,13 @@ function convert_original_graph_to_spatial_network(
         # calculate vector from source to target considering periodic boundary
         # conditions
         edge_vector = get_distance_vector_pbc(
-            original_spatial_network["vertex_position_mat"][:,source],
-            original_spatial_network["vertex_position_mat"][:,target],
-            original_spatial_network["supercell_edge_length"] )
+            original_graph["vertex_position_mat"][:,source],
+            original_graph["vertex_position_mat"][:,target],
+            original_graph["supercell_edge_length"] )
 
         spatial_network[source, target] =  Dict("vector" => edge_vector, 
         "distance_squared" => (
-            original_spatial_network["edge_length_vec"][
+            original_graph["edge_length_vec"][
                 original_edges_vec[edge_nr]] )^2 )
 
     end
@@ -1237,7 +1231,7 @@ create a network graph representing the given network structure
 """
 function get_periodic_network(evolution_dict)
 
-    original_spatial_network = get_network( #*#
+    original_graph = get_network( #*#
         evolution_dict["nr_vertices"],
         evolution_dict["network_type"]
     ) 
@@ -1245,7 +1239,7 @@ function get_periodic_network(evolution_dict)
     # convert original graph into a network graph that contains positional
     # information
     spatial_network = convert_original_graph_to_spatial_network(
-        original_spatial_network)
+        original_graph)
 
     spatial_network[]["bond_bending_const"] = evolution_dict[
         "bond_bending_const"]
@@ -1285,7 +1279,7 @@ function get_poisson_random_network(evolution_dict::Dict)
 
         if evolution_dict["nr_dimensions"] == 3
 
-            original_spatial_network = get_diamond_network(
+            original_graph = get_diamond_network(
                 evolution_dict["nr_vertices"] ) 
         else
             @error "The diamond network is only defined in 3d."
@@ -1304,19 +1298,19 @@ function get_poisson_random_network(evolution_dict::Dict)
         vertex_data_type = Dict{String, Any},
         edge_data_type = Dict{String, Any},
         graph_data = Dict{String, Any}(
-            "nr_vertices" => original_spatial_network["nr_vertices"],
-            "nr_dimensions" => original_spatial_network["nr_dimensions"],
+            "nr_vertices" => original_graph["nr_vertices"],
+            "nr_dimensions" => original_graph["nr_dimensions"],
             "supercell_edge_length" 
-                => original_spatial_network["supercell_edge_length"])
+                => original_graph["supercell_edge_length"])
         )
 
     # label each vertex by its code integer and assign it its position vector
-    for vertex in Graphs.vertices(original_spatial_network["original_graph"])
+    for vertex in Graphs.vertices(original_graph["original_graph"])
 
         spatial_network[vertex] = Dict( 
             "position" => rand(Float64, (3)) 
-                .* original_spatial_network["supercell_edge_length"],
-            "coordination_nr" => original_spatial_network[
+                .* original_graph["supercell_edge_length"],
+            "coordination_nr" => original_graph[
                 "coordination_nr_vec"][vertex]
         )
 
@@ -1325,9 +1319,9 @@ function get_poisson_random_network(evolution_dict::Dict)
     # label each edge by the vertices it connects and assign to it the vector
     # where it points
 
-    nr_edges = Graphs.ne(original_spatial_network["original_graph"])
+    nr_edges = Graphs.ne(original_graph["original_graph"])
     original_edges_vec = collect(
-        Graphs.edges(original_spatial_network["original_graph"]))
+        Graphs.edges(original_graph["original_graph"]))
     
     # loop through orinal edges to get edge descriptions
     for edge_nr in 1:nr_edges
@@ -1339,7 +1333,7 @@ function get_poisson_random_network(evolution_dict::Dict)
         edge_vector = get_distance_vector_pbc(
             spatial_network[source]["position"],
             spatial_network[target]["position"],
-            original_spatial_network["supercell_edge_length"] )
+            original_graph["supercell_edge_length"] )
 
         spatial_network[source, target] =  Dict("vector" => edge_vector, 
         "distance_squared" => LinearAlgebra.norm(edge_vector)^2 )

@@ -162,6 +162,9 @@ include(load_path*"network_analysis_local.jl")
 # by means of order parameters measuring correlations
 include(load_path*"network_analysis_correlations.jl")
 
+# these functions can be used to analyze the chirality of spatial networks
+include(load_path*"network_analysis_chirality.jl")
+
 # these functions provide utilities for analyzing networks
 include(load_path*"network_analysis_utilities.jl")
 

@@ -13,29 +13,24 @@ function get_distance_vector_pbc(
     position_b::Vector,
     supercell_edge_length )
 
-    # get vector pointing from position a to b without considering boundary
-    # conditions
-    distance_vector_without_pbc = (position_b .- position_a)
+    inverse_supercell_edge_length = 1.0 / supercell_edge_length 
 
-    # modify the vector according to boundary conditions
-    distance_vector = ( ( abs.(distance_vector_without_pbc) 
-                .<= (supercell_edge_length/2) ) 
-            .* distance_vector_without_pbc
-        .+ ( abs.(distance_vector_without_pbc .+ supercell_edge_length) 
-                .< (supercell_edge_length/2) ) 
-            .* (distance_vector_without_pbc .+ supercell_edge_length)
-        .+ ( abs.(distance_vector_without_pbc .- supercell_edge_length) 
-                .< (supercell_edge_length/2) ) 
-            .* (distance_vector_without_pbc .- supercell_edge_length) )    
+    distance_vector_without_pbc = position_b .- position_a
+
+    # get distance vector with periodic boundary conditions
+    distance_vector = (distance_vector_without_pbc 
+        .- supercell_edge_length 
+        .* round.(distance_vector_without_pbc 
+            .* inverse_supercell_edge_length))
 
     return distance_vector
 end
 
 
 """
-Calculate virtual position of an vertex relative to a central vertex by placing
+Calculate virtual position of a vertex relative to a central vertex by placing
 it outside of the supercell if periodic boundary conditions have to be taken
-    into account
+into account
 """
 function get_virtual_position(
     central_vertex_position::Vector{Float64},
