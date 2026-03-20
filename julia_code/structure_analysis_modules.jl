@@ -144,6 +144,8 @@ import StatsBase    # to fit histograms and calculate correlations
 import Polylabel # to find the pole of inaccessibility of a polygon
 import GeometryBasics  # to create polygons that can be handled by Polylabel
 import Distributions  # to access statistical 
+import Distances # to calculate distances between points
+import Rotations # to perform rotations of points
 import Random
 import LsqFit   # to perform curve fitting
 import Plots    # for plotting

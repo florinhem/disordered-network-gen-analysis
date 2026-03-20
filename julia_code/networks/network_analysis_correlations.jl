@@ -332,6 +332,7 @@ function get_structure_factor_bonds(
     # Use @inbounds to speed up loop
     @inbounds for bond in bonds
         bond_vector = spatial_network[bond...]["vector"]
+        bond_length = sqrt(spatial_network[bond...]["distance_squared"])
         vertex_pos_1 = spatial_network[bond[1]]["position"]
 
         # Compute mid-point with periodic wrapping
@@ -349,6 +350,7 @@ function get_structure_factor_bonds(
 
         # Use cis instead of exp(-im*x)
         scattering_field = (2 / (scalar_prod_vector + no_div_by_zero_value)) *
+                           bond_length *
                            cis(-scalar_prod_mid_point) *
                            sin(scalar_prod_vector / 2)
 

@@ -158,6 +158,7 @@ function get_temperature_sequence_heating_cooling_gradient(
 
     # add long quenching time in the end if desired
     if quench
+        temperature_vec[end] = 0.0
         nr_monte_carlo_steps_per_temperature_vec[end] = 50
     end
 

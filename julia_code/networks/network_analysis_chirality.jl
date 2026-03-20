@@ -372,3 +372,91 @@ function get_all_irrep_projection_self_overlaps(
 
     return irrep_contributions
 end
+
+
+"""
+calculate the Hausdorff chirality measure (HCM) of a spatial network using the
+Hausdorff distance with periodic boundary conditions (PBCs) between the 
+original spatial network and the enantiomer obtained by point inversion of the 
+original spatial network
+"""
+function hausdorff_dist_pbc(
+    set1::AbstractMatrix, set2::AbstractMatrix, supercell_edge_length::Real)
+    
+    metric = Distances.PeriodicEuclidean(
+        [supercell_edge_length, supercell_edge_length, supercell_edge_length])
+    
+    # calculate pairwise distances under Minimum Image Convention
+    distances_mat = Distances.pairwise(metric, set1, set2)
+    
+    # Directed Hausdorff distance
+    h1 = maximum(minimum(distances_mat, dims=2)) 
+    h2 = maximum(minimum(distances_mat, dims=1))
+    
+    return max(h1, h2)
+end
+
+
+"""
+calculate the Hausdorff chirality measure (HCM) of a spatial network using the
+Hausdorff distance with periodic boundary conditions (PBCs) between the
+original spatial network and the enantiomer obtained by point inversion of the
+original spatial network, where the HCM is defined as the minimum Hausdorff
+distance between the original spatial network and the enantiomer obtained by
+point inversion of the original spatial network after applying any possible
+rotation to the enantiomer, normalized by the diameter of the structure
+https://pubs.acs.org/doi/abs/10.1021/ja00041a016
+"""
+function hausdorff_chirality_measure_pbc(
+    spatial_network::MetaGraphsNext.MetaGraph;
+    points_per_bond::Int64 = 3,)
+
+    supercell_edge_length = spatial_network[]["supercell_edge_length"]
+
+    spatial_network_points = get_decorated_spatial_network_points(
+        spatial_network;
+        points_per_bond = points_per_bond,)
+
+    # convert the list of points to a 3xN matrix
+    points = hcat(spatial_network_points...)
+    
+    inversion_matrix = LinearAlgebra.Diagonal([-1.0, -1.0, -1.0])
+    inverted_points = inversion_matrix * points
+    
+    # calculate the diameter of the structure as the maximum distance between
+    # any two points in the original spatial network. This equals half the
+    # diagonal of the cubic supercell 
+    diameter = supercell_edge_length * sqrt(3) / 2
+
+    # find the rotation and translation that minimize the Hausdorff distance 
+    # between the original points and the inverted points under PBCs
+    function objective(params)
+        angles = params[1:3]
+        translation = params[4:6]
+        
+        rotation_matrix = Rotations.RotXYZ(angles[1], angles[2], angles[3])
+        
+        transformed_points = (
+            Array(rotation_matrix) * inverted_points) .+ translation
+        
+        hausdorff_dist = hausdorff_dist_pbc(
+            points, transformed_points, supercell_edge_length)
+        return hausdorff_dist
+    end
+    
+    # Start at zero rotation and zero translation
+    initial_params = zeros(6)
+    
+    # Optimization using Nelder-Mead
+    res = Optim.optimize(objective, initial_params, Optim.NelderMead(), 
+                         Optim.Options(iterations=2000, g_tol=1e-6))
+    
+    min_hausdorff = Optim.minimum(res)
+    
+    # to get the HCM, we normalize the minimum Hausdorff distance by the 
+    # diameter of the structure
+    hcm = min_hausdorff / diameter
+    
+    return hcm
+end
+

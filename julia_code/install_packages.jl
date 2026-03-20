@@ -33,5 +33,7 @@ Pkg.add([
     "DataFrames",
     "Distributions",
     "XLSX",
-    "PaddedViews"
+    "PaddedViews",
+    "Distances",
+    "Rotations",
 ])
