@@ -158,14 +158,43 @@ GU.save_dict_to_h5(Dict(
 spatial_network_path = "../data/structures/biological/"
 analysis_data_path = "../data/analysis_data/biological/"
 
-NA.get_all_dicts_from_networks_multithreading(
-    spatial_network_path,
-    analysis_data_path;
-    exclude_layer_thickness = 1.5,
-    periodic_boundary_conditions = false,
-    print_progress = print_progress,
-    runs_vec = runs_vec,
-    print_lock = print_lock)
+filename_vec = ["pachy_blue",
+    "pachy_red", 
+    "stern_vir_blue", 
+    "stern_vir_green", 
+    "stern_ama_orange"]
+
+# for the system sizes of the biological networks, the following wavenumbers
+# are the smallest wavenumbers that can be considered for the hyperuniformity 
+# analysis. Since the biological networks do not have periodic boundary
+# conditions, apodization is applied which creates a peak in the structure 
+# factor at low wavenumbers. By choosing the following minimal wavenumbers,
+# this peak is excluded from the hyperuniformity analysis
+hyperuniformity_min_wavenumber_to_consider_vec = [
+    0.4578267741033627,
+    0.5466502938179802,
+    0.8569597198833633,
+    0.7888796239694542,
+    0.7537394719674415]
+
+pore_size_sampling_grid_size = 0.2
+max_pore_radius = 3.0
+exclude_layer_thickness = 1.5
+periodic_boundary_conditions = false
+print_progress = true
+
+for (filename, hyperuniformity_min_wavenumber_to_consider) in zip(filename_vec, 
+    hyperuniformity_min_wavenumber_to_consider_vec)
+
+    NA.get_all_dicts_from_network_single_file(
+        filename,
+        spatial_network_path,
+        analysis_data_path;
+        hyperuniformity_min_wavenumber_to_consider = hyperuniformity_min_wavenumber_to_consider,
+        exclude_layer_thickness = exclude_layer_thickness,
+        periodic_boundary_conditions = periodic_boundary_conditions)
+
+end
 
 order_metrics_dict = NA.get_order_metrics_all_files(
     analysis_data_path;
