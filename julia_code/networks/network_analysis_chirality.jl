@@ -407,7 +407,7 @@ point inversion of the original spatial network after applying any possible
 rotation to the enantiomer, normalized by the diameter of the structure
 https://pubs.acs.org/doi/abs/10.1021/ja00041a016
 """
-function hausdorff_chirality_measure_pbc(
+function get_hausdorff_chirality(
     spatial_network::MetaGraphsNext.MetaGraph;
     points_per_bond::Int64 = 3,)
 

@@ -175,7 +175,7 @@ hyperuniformity_min_wavenumber_to_consider_vec = [
     0.5466502938179802,
     0.8569597198833633,
     0.7888796239694542,
-    0.7537394719674415]
+    0.9758762435452061]
 
 pore_size_sampling_grid_size = 0.2
 max_pore_radius = 3.0

@@ -451,6 +451,7 @@ function get_order_metrics(filename::String,
     l_max_steinhardt_q_l::Int64 = 12,
     hyperuniformity_min_wavenumber_to_consider::Float64 = 0.0,
     exclude_layer_thickness::Float64 = 0.0,
+    chirality_points_per_bond::Int64 = 3,
     periodic_boundary_conditions::Bool = true,
     save_result = false)
 
@@ -499,9 +500,6 @@ function get_order_metrics(filename::String,
 
     q_l_vec = convert_q_l_dict_to_vec(q_l_total_network_mean_dict, 
         l_max_steinhardt_q_l)
-
-    # TODO: check if q_l_uncertainties are properly saved, because neural 
-    # networks predicts them to be the same as q_l_values
 
     # load ring size distribution
     ring_size_distribution_dict = GU.load_h5_dict(
@@ -568,6 +566,11 @@ function get_order_metrics(filename::String,
             min_wavenumber_to_consider =
                 hyperuniformity_min_wavenumber_to_consider))
 
+    # get the Haussdorff chirality measure
+    hausdorff_chirality = get_hausdorff_chirality(
+        spatial_network;
+        points_per_bond = chirality_points_per_bond)
+
     # create dict to save
     order_metrics_dict = Dict(
         "bond_length_std" => bond_length_std,
@@ -589,6 +592,7 @@ function get_order_metrics(filename::String,
         "anisotropy_metric_from_structure_factor_bonds" 
             => anisotropy_metric_from_structure_factor_bonds,
         "hyperuniformity_alpha" => hyperuniformity_alpha,
+        "hausdorff_chirality" => hausdorff_chirality
     )
 
     if haskey(spatial_network[], "total_energy")
@@ -675,6 +679,8 @@ function get_order_metrics_all_files(
         length(order_metrics_filenames))
     hyperuniformity_alpha_vec = Vector{Float64}(undef,
         length(order_metrics_filenames))
+    hausdorff_chirality_vec = Vector{Float64}(undef,
+        length(order_metrics_filenames))
 
     # loop through order metric filenames
     for i in eachindex(order_metrics_filenames)
@@ -721,7 +727,8 @@ function get_order_metrics_all_files(
                 "anisotropy_metric_from_structure_factor_bonds"])
         hyperuniformity_alpha_vec[i] = (
             order_metrics_dict["hyperuniformity_alpha"])
-
+        hausdorff_chirality_vec[i] = (
+            order_metrics_dict["hausdorff_chirality"])
     end
 
     # sort all vectors with respect to the keating energy
@@ -763,6 +770,8 @@ function get_order_metrics_all_files(
             sortperm(total_keating_energy_vec)])
     hyperuniformity_alpha_vec = hyperuniformity_alpha_vec[
         sortperm(total_keating_energy_vec)]
+    hausdorff_chirality_vec = hausdorff_chirality_vec[
+        sortperm(total_keating_energy_vec)]
 
     sort!(total_keating_energy_vec)
 
@@ -795,6 +804,7 @@ function get_order_metrics_all_files(
         "anisotropy_metric_from_structure_factor_bonds_vec" 
             => anisotropy_metric_from_structure_factor_bonds_vec,
         "hyperuniformity_alpha_vec" => hyperuniformity_alpha_vec,
+        "hausdorff_chirality_vec" => hausdorff_chirality_vec,
         "filenames_vec" => order_metrics_filenames
     )
 
