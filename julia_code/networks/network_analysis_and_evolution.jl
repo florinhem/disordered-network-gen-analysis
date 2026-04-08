@@ -10,7 +10,7 @@ and evolution of a network
 function get_evolution_dict(;
     nr_vertices::Int64 = 512 , 
     nr_dimensions::Int64 = 3, 
-    network_type::String = "diamond",
+    network_type::String = "dia",
     bond_bending_const::Float64 = 0.285,
     min_ring_size::Int64 = 3,
     nr_max_relaxation_cycles::Int64 = 25,
@@ -20,14 +20,16 @@ function get_evolution_dict(;
     relax_efficiently::Bool = true,
     relaxation_overshoot_factor_r = 1.5,
     relaxation_optimization_parameter_l = 1,
-    inefficient_optimization_method = "newton",
+    inefficient_optimization_method = "lbfgs",
     random_evolution_seed::Int64 = -1,
     thermal_fluctuations::Bool = false,
     temperature_vec::Vector = [2, 1],
     nr_monte_carlo_steps_per_temperature_vec::Vector = [10,10],
     mean_nr_monte_carlo_steps_for_quenching::Float64 = 13.7,
     relax_globally_after_threshold_cycle::Bool = true,
-    theta_ground_state::Float64 = 109.5
+    theta_ground_state::Float64 = 180.0,
+    torsional_const::Float64 = 0.0,
+    delta_phi::Float64 = 0.0
     )
 
     # check if the temperature sequence is given correctly
@@ -71,7 +73,9 @@ function get_evolution_dict(;
     "mean_nr_monte_carlo_steps_for_quenching" => mean_nr_monte_carlo_steps_for_quenching,
     "estimated_nr_bond_switches" => estimated_nr_bond_switches,
     "relax_globally_after_threshold_cycle" => relax_globally_after_threshold_cycle,
-    "theta_ground_state" => theta_ground_state
+    "theta_ground_state" => theta_ground_state,
+    "torsional_const" => torsional_const,
+    "delta_phi" => delta_phi
     )
 
     return evolution_dict

@@ -56,6 +56,74 @@ function local_bond_bending_energy_keating(
 end
 
 
+"""
+Get torsional energy for a given bond
+"""
+function local_torsional_energy_keating(
+        spatial_network::MetaGraphsNext.MetaGraph,
+        bond::Tuple{Int64, Int64})
+
+    # since for a bond (i,j), always i<j, the vector by definition points from 
+    # i to j and the sign is positive
+    bond_vector = spatial_network[bond...]["vector"]
+
+    # get the normalized bond vector
+    bond_vector_normalized = bond_vector / sqrt(
+        spatial_network[bond...]["distance_squared"])
+
+    neighbor_label_vec_1::Vector{Int64} = [x for x in 
+        MetaGraphsNext.neighbor_labels(spatial_network, bond[1]) 
+        if x != bond[2]]
+
+    neighbor_label_vec_2::Vector{Int64} = [x for x in 
+        MetaGraphsNext.neighbor_labels(spatial_network, bond[2]) 
+        if x != bond[1]]
+
+    vertex_1_coordination_nr = spatial_network[bond[1]]["coordination_nr"]
+    vertex_2_coordination_nr = spatial_network[bond[2]]["coordination_nr"]
+
+    # get the number of minima in the torsional potential which is the least 
+    # common multiple of the coordination numbers of the two vertices minus one 
+    # since the bond itself is not included
+    l = lcm(vertex_1_coordination_nr-1, vertex_2_coordination_nr-1)
+
+    # delta phi is the favoured dihedral angle
+    delta_phi = spatial_network[]["delta_phi"]
+
+    torsional_sum::Float64 = 0.0
+
+    @inbounds @simd for j in 1:(vertex_1_coordination_nr-1)
+        sign1::Int64=sign(bond[1] - neighbor_label_vec_1[j])
+        vector_j::Vector{Float64} = (sign1 .*
+            spatial_network[bond[1], neighbor_label_vec_1[j]]["vector"])
+
+        # first normal vector
+        n1 = LinearAlgebra.cross(vector_j, bond_vector)
+
+        @inbounds @simd for k in 1:(vertex_2_coordination_nr-1)
+            sign2::Int64=sign(neighbor_label_vec_2[k] - bond[2])
+            vector_k::Vector{Float64} = (sign2 .*
+                spatial_network[bond[2], neighbor_label_vec_2[k]]["vector"])
+            
+            # second normal vector
+            n2 = LinearAlgebra.cross(bond_vector, vector_k)
+
+            # compute dihedral angle phi robustly
+            x = LinearAlgebra.dot(n1, n2)
+            y = LinearAlgebra.dot(bond_vector_normalized, 
+                LinearAlgebra.cross(n1, n2))
+            phi = atan(y, x)
+
+            # torsional energy
+            torsional_sum += 1 - cos(l * (phi - delta_phi*pi/180))
+        end
+    end
+    
+    torsional_energy::Float64 = (
+        1/2 * spatial_network[]["torsional_const"] * torsional_sum)
+
+    return torsional_energy
+end
 
 
 """
@@ -74,7 +142,6 @@ function get_bending_energy_keating(spatial_network::MetaGraphsNext.MetaGraph)
 end
 
 
-
 """
 Calculate the stretching energy of a spatial network
 """
@@ -91,7 +158,20 @@ function get_stretching_energy_keating(spatial_network::MetaGraphsNext.MetaGraph
 end
 
 
+"""
+Calculate the torsional energy of a spatial network
+"""
+function get_torsional_energy_keating(spatial_network::MetaGraphsNext.MetaGraph)
 
+    torsional_energy = 0.0
+
+    for bond in MetaGraphsNext.edge_labels(spatial_network)
+        torsional_energy += local_torsional_energy_keating(
+            spatial_network, bond)
+    end
+
+    return torsional_energy
+end
 
 
 """
@@ -106,6 +186,12 @@ function get_total_energy_keating(spatial_network::MetaGraphsNext.MetaGraph)
 
     total_energy+=get_stretching_energy_keating(
         spatial_network::MetaGraphsNext.MetaGraph)
+
+    if (haskey(spatial_network[], "torsional_const") 
+        && spatial_network[]["torsional_const"] > 0.0)
+        total_energy+=get_torsional_energy_keating(
+            spatial_network::MetaGraphsNext.MetaGraph)
+    end
 
     return total_energy
 end
@@ -136,102 +222,24 @@ function get_cluster_energy(spatial_network, cluster_dict)
             spatial_network, bond)
     end
 
-    # loop through all bonds on the edge of the cluster which only contributy
+    # loop through all bonds on the edge of the cluster which only contribute
     # half
     for bond in cluster_dict["cluster_bonds_edge_vec"]
         cluster_energy += 1/2 * local_bond_stretching_energy_keating(
             spatial_network, bond)
     end
 
+    # get torsional energy if desired
+    if (haskey(spatial_network[], "torsional_const") 
+        && spatial_network[]["torsional_const"] > 0.0)
+
+        for bond in cluster_dict["cluster_bonds_inside_vec"]
+            cluster_energy += local_torsional_energy_keating(
+                spatial_network, bond)
+        end
+    end
+
     return cluster_energy
-end
-
-
-"""
-Calculate the local Keating energy for a given vertex
-"""
-function local_energy_keating(
-    vertex_label::Int64, 
-    spatial_network::MetaGraphsNext.MetaGraph)
-
-    local_energy = local_bond_bending_energy_keating(
-        spatial_network, vertex_label)
-
-    # sum bond stretching energy contributions by considering that each bond
-    # is shared by two vertices
-    for neighbor in MetaGraphsNext.neighbor_labels(
-        spatial_network, vertex_label)
-
-        local_energy += 1/2 * local_bond_stretching_energy_keating(
-            spatial_network, (vertex_label, neighbor))
-    end
-    
-    return local_energy
-end
-
-
-"""
-Calculate the contibution of a single vertex position x to the total
-Keating energy from the position of its neighbors and next to nearest neighbors
-"""
-function energy_from_position_keating(
-    x::Vector, 
-    spatial_network::MetaGraphsNext.MetaGraph,
-    neighbor_positions_mat::Matrix{Float64},
-    next_neighbor_positions_arr::Array{Float64},
-    vertex_to_relax::Int64)
-
-    local_energy = 0.0
-
-    theta_ground_state=spatial_network[]["theta_ground_state"] 
-
-    bond_bending_const=spatial_network[]["bond_bending_const"] 
-
-    vertex_to_relax_coordination_nr=spatial_network[vertex_to_relax]["coordination_nr"] 
-
-    for j in 1:vertex_to_relax_coordination_nr-1
-
-        # get vector pointing from central vertex to neighbor
-        distance_vector_j = neighbor_positions_mat[:,j] .- x
-
-        # get bond stretching term
-        bond_stretching_term = (
-            3/16 * ( LinearAlgebra.norm(distance_vector_j)^2 - 1 )^2 ) 
-
-        # get bond bending term
-        bond_bending_sum = 0.0
-
-        for k in j+1:vertex_to_relax_coordination_nr
-
-            bond_bending_sum += ( 3/8 * bond_bending_const 
-                * ( LinearAlgebra.dot( distance_vector_j, 
-                    (neighbor_positions_mat[:,k] .- x) ) - 
-                    cosd(theta_ground_state) )^2 )
-            
-        end
-
-        # get bond bending terms due to next to nearest neighbors
-        neighbor_bond_bending_sum = 0.0
-
-        for l in 1:vertex_to_relax_coordination_nr-1
-
-            neighbor_bond_bending_sum += ( 
-                3/8 * bond_bending_const
-                * ( LinearAlgebra.dot( distance_vector_j, 
-                    (neighbor_positions_mat[:,j] 
-                        .- next_neighbor_positions_arr[j,:,l]) ) 
-                    - cosd(theta_ground_state) )^2 )
-            
-        end
-
-        # sum bond stretching and bending terms
-        local_energy += (bond_stretching_term 
-            + bond_bending_sum 
-            + neighbor_bond_bending_sum)
-
-    end
-    
-    return local_energy
 end
 
 
@@ -494,3 +502,173 @@ function get_cluster_fluctuation_weight(
     return cluster_relaxation_weight
 end
 
+
+"""
+Determine the Keating energy from the vertex coordinates with the option of
+including a non-Keating torsional energy
+"""
+function cluster_energy_optim(
+    vertices_to_move_coord_vec::AbstractVector{T},
+    vertices_outer_shell_coord_vec::Vector{Float64},
+    vertices_bonds_edge_coord_vec::Vector{Float64},
+    vertices_bonds_edge_vec::Vector{Int64},
+    bonds_connected_to_vertex_dict::Dict{Int64, Vector{Tuple{Int64, Int64}}},
+    bond_vertex_neighbor_dict::Dict{Tuple{Int64, Int64}, 
+        Tuple{Vector{Int64}, Vector{Int64}}},
+    bond_l_dict::Dict{Tuple{Int64, Int64}, Int64},
+    cluster_dict::Dict,
+    spatial_network::MetaGraphsNext.MetaGraph) where T 
+
+    all_cluster_vertices_vec = vcat(
+        cluster_dict["cluster_vertices_to_move_vec"], 
+        cluster_dict["cluster_vertices_outer_shell_vec"]) 
+    all_cluster_bonds_vec = vcat(
+        cluster_dict["cluster_bonds_inside_vec"], 
+        cluster_dict["cluster_bonds_edge_vec"])
+    
+    # create a dictionary for the vertex coordinates 
+    vertex_coord_dict = Dict{Int64, StaticArrays.SVector{3, T}}()
+    for (index, vertex) in enumerate(
+            cluster_dict["cluster_vertices_to_move_vec"])
+        idx = (index - 1) * 3
+        vertex_coord_dict[vertex] = StaticArrays.SVector{3, T}(
+            vertices_to_move_coord_vec[idx + 1],
+            vertices_to_move_coord_vec[idx + 2],
+            vertices_to_move_coord_vec[idx + 3]
+        )
+    end
+    for (index, vertex) in enumerate(
+            cluster_dict["cluster_vertices_outer_shell_vec"])
+        idx = (index - 1) * 3
+        vertex_coord_dict[vertex] = StaticArrays.SVector{3, T}(
+            vertices_outer_shell_coord_vec[idx + 1],
+            vertices_outer_shell_coord_vec[idx + 2],
+            vertices_outer_shell_coord_vec[idx + 3]
+        )
+    end
+    for (index, vertex) in enumerate(vertices_bonds_edge_vec)
+        idx = (index - 1) * 3
+        vertex_coord_dict[vertex] = StaticArrays.SVector{3, T}(
+            vertices_bonds_edge_coord_vec[idx + 1],
+            vertices_bonds_edge_coord_vec[idx + 2],
+            vertices_bonds_edge_coord_vec[idx + 3]
+        )
+    end
+
+    # create a dictionary for the bond vectors and their squared distances to 
+    # avoid redundant calculations in the bending and torsional energy 
+    # calculations
+    bond_vector_dict = Dict{Tuple{Int64, Int64}, StaticArrays.SVector{3, T}}()
+    bond_distance_squared_dict = Dict{Tuple{Int64, Int64}, T}()
+    
+    for bond in all_cluster_bonds_vec
+        bond_vector = StaticArrays.SVector{3, T}(
+            get_distance_vector_pbc(
+                vertex_coord_dict[bond[1]],
+                vertex_coord_dict[bond[2]],
+                spatial_network[]["supercell_edge_length"]
+            )
+        )
+        bond_vector_dict[bond] = bond_vector
+        bond_distance_squared_dict[bond] = LinearAlgebra.norm(bond_vector)^2
+    end
+
+    # calculate bond bending energy
+    bond_bending_sum = zero(T)
+
+    for vertex in all_cluster_vertices_vec
+        vertex_bonds_vec = bonds_connected_to_vertex_dict[vertex] 
+        
+        for (index1, bond1) in enumerate(vertex_bonds_vec)
+            sign1 = bond1[2] == vertex ? -1 : 1
+            for index2 in index1+1:length(vertex_bonds_vec)
+                bond2 = vertex_bonds_vec[index2]
+                sign2 = (bond2[2] == vertex ? -1 : 1) * sign1
+                
+                bond_bending_sum += (sign2 * LinearAlgebra.dot(
+                        bond_vector_dict[bond1], bond_vector_dict[bond2]) 
+                    - cosd(spatial_network[]["theta_ground_state"]) )^2 
+            end
+        end
+    end
+
+    bond_bending_energy = (
+        3/8 * spatial_network[]["bond_bending_const"] * bond_bending_sum)
+
+    # determine bond stretching energy
+    bond_stretching_energy = 0.0
+    for bond in cluster_dict["cluster_bonds_inside_vec"]
+        bond_stretching_energy += (
+            3/16 * (bond_distance_squared_dict[bond] - 1)^2 )
+    end
+
+    # bonds on the edge of the cluster only contribute half to the energy
+    for bond in cluster_dict["cluster_bonds_edge_vec"]
+        bond_stretching_energy += (
+            3/32 * (bond_distance_squared_dict[bond] - 1)^2 )
+    end
+
+    cluster_energy = bond_bending_energy + bond_stretching_energy
+    
+    # torsional energy if required
+    if (haskey(spatial_network[], "torsional_const") 
+            && spatial_network[]["torsional_const"] > 0.0)
+        torsional_sum = zero(T)
+        delta_phi_rad = spatial_network[]["delta_phi"] * pi / 180
+        
+        for bond in cluster_dict["cluster_bonds_inside_vec"]
+            bond_vector = bond_vector_dict[bond]
+            bond_vector_normalized = (bond_vector 
+                / sqrt(bond_distance_squared_dict[bond]))
+
+            vertex_1_coordination_nr = spatial_network[bond[1]][
+                "coordination_nr"]
+            vertex_2_coordination_nr = spatial_network[bond[2]][
+                "coordination_nr"]
+
+            neighbor_label_vec_1 = bond_vertex_neighbor_dict[bond][1]
+            neighbor_label_vec_2 = bond_vertex_neighbor_dict[bond][2]
+            l = bond_l_dict[bond]
+
+            @inbounds @simd for j in 1:(vertex_1_coordination_nr-1)
+                neighbor_label_j = neighbor_label_vec_1[j]
+                sign1::Int64=sign(bond[1] - neighbor_label_j)
+                bond_j_key = (min(bond[1], neighbor_label_j), 
+                    max(bond[1], neighbor_label_j))
+                vector_j = (
+                    sign1 .* bond_vector_dict[bond_j_key])
+
+                # first normal vector
+                n1 = LinearAlgebra.cross(vector_j, bond_vector)
+
+                @inbounds @simd for k in 1:(vertex_2_coordination_nr-1)
+                    neighbor_label_k = neighbor_label_vec_2[k]
+                    sign2::Int64=sign(neighbor_label_k - bond[2])
+                    bond_k_key = (min(bond[2], neighbor_label_k), 
+                         max(bond[2], neighbor_label_k))
+                    vector_k = (
+                        sign2 .* bond_vector_dict[bond_k_key])
+
+                    # second normal vector
+                    n2 = LinearAlgebra.cross(bond_vector, vector_k)
+
+                    # compute dihedral angle phi robustly
+                    x = LinearAlgebra.dot(n1, n2)
+                    y = LinearAlgebra.dot(bond_vector_normalized, 
+                        LinearAlgebra.cross(n1, n2))
+                    phi = atan(y, x)
+
+                    # torsional energy
+                    torsional_sum += 1 - cos(l * (phi - delta_phi_rad))
+                end
+            end
+        end
+
+        torsional_energy = (
+            1/2 * spatial_network[]["torsional_const"] * torsional_sum)
+
+        cluster_energy += torsional_energy
+    end
+    
+    return cluster_energy
+end

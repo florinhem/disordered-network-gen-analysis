@@ -36,4 +36,6 @@ Pkg.add([
     "PaddedViews",
     "Distances",
     "Rotations",
+    "ForwardDiff",
+    "StaticArrays"
 ])

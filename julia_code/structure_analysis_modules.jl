@@ -94,7 +94,9 @@ import GeometryBasics   # to create meshes out of networksdistributions
 import Plots    # for plotting
 import LaTeXStrings as Latex # to display latex symbols in plot labels
 import Format   # for python-like string formatting 
-import Colors
+import Colors   # to handle colors in plotting
+import ForwardDiff  # for automatic differentiation in optimization
+import StaticArrays  # for small fixed size arrays that can be used in automatic differentiation
 
 # set path to files
 load_path = "./networks/"

@@ -9,9 +9,9 @@ Calculate vector pointing from position a to position b under periodic boundary
 conditions
 """
 function get_distance_vector_pbc(
-    position_a::Vector,
-    position_b::Vector,
-    supercell_edge_length )
+    position_a::V,
+    position_b::V,
+    supercell_edge_length) where {V <: AbstractVector}
 
     inverse_supercell_edge_length = 1.0 / supercell_edge_length 
 
@@ -55,113 +55,6 @@ function get_virtual_position(
 
     return virtual_other_vertex_position
 end
-
-
-"""
-Get matrix with the coordinates of an vertices neighbors by taking periodic 
-boundary conditions into account
-"""
-function get_neighbor_positions_mat(
-    spatial_network::MetaGraphsNext.MetaGraph,
-    central_vertex::Int64;
-    exclude_vertices::Vector = [])
-
-    central_vertex_position = spatial_network[central_vertex]["position"]
-
-    # create matrix to store neighbors coordinates
-    neighbor_positions_mat = Matrix{Float64}(undef, 
-        spatial_network[]["nr_dimensions"],
-        spatial_network[central_vertex]["coordination_nr"] - length(exclude_vertices))
-
-    # save coordinates to matrix and array
-    current_neighbor = 1
-
-    for neighbor in MetaGraphsNext.neighbor_labels(
-        spatial_network, central_vertex)
-
-        if !in(neighbor, exclude_vertices)
-
-            # get neighbor's virtual coordinates which might be outside of the 
-            # supercell if periodic boundary conditions play a role
-            neighbor_positions_mat[:,current_neighbor] = get_virtual_position(
-                central_vertex_position,
-                spatial_network[neighbor]["position"],
-                spatial_network[]["supercell_edge_length"] )
-
-            current_neighbor += 1
-        end
-
-    end
-
-    return neighbor_positions_mat
-end
-
-
-"""
-Get array with the coordinates of an vertices next to nearest neighbors by
-taking periodic boundary conditions into account
-"""
-function get_next_neighbor_positions_arr(
-    spatial_network::MetaGraphsNext.MetaGraph,
-    central_vertex::Int64)
-
-    # constants
-    vertex_coordination_nr=spatial_network[central_vertex]["coordination_nr"]
-    nr_dimensions=spatial_network[]["nr_dimensions"]
-
-    # get central vertex's position
-    central_vertex_position = spatial_network[central_vertex]["position"]
-
-    # get central vertices neighbors 
-    neighbor_vec = collect(
-        MetaGraphsNext.neighbor_labels(spatial_network, central_vertex))
-
-    # get the maximal number of next nearest neighbors
-    max_coordination_nr=0
-    for neighbor in neighbor_vec
-        current_coordination_nr=spatial_network[neighbor]["coordination_nr"]
-        if current_coordination_nr>max_coordination_nr
-            max_coordination_nr=current_coordination_nr
-        end
-    end
-
-    # create array to store next to nearest neighbors coordinates
-    # The first array index labels the number of the direct neighbor
-    next_neighbor_positions_arr = Array{Float64}(undef, 
-        vertex_coordination_nr,
-        nr_dimensions,
-        max_coordination_nr-1)
-
-    # loop through central vertices neighbors
-    for i in 1:vertex_coordination_nr
-
-        current_next_neighbor = 1
-
-        # loop through the current neighbor's neighbors
-        for next_neighbor in MetaGraphsNext.neighbor_labels(
-                                        spatial_network, neighbor_vec[i])
-
-            if next_neighbor !== central_vertex
-
-                # get next neighbor's virtual coordinates which might be 
-                # outside of the supercell if periodic boundary conditions 
-                # play a role
-                next_neighbor_positions_arr[i,: , current_next_neighbor] = (
-                    get_virtual_position(
-                        central_vertex_position,
-                        spatial_network[next_neighbor]["position"],
-                        spatial_network[]["supercell_edge_length"] ))
-
-                current_next_neighbor += 1
-            end
-
-        end
-
-    end
-
-    return next_neighbor_positions_arr
-end
-
 
 
 """
@@ -296,6 +189,51 @@ function get_cluster_in_shells_dict(
 
     return cluster_dict
 end
+
+
+"""
+Get a 1d vector of the vertex coordinates for the vertex labels in the vector 
+in the format [x1, y1, z1, x2, ...]
+"""
+function get_vertex_coord_vec(
+    spatial_network::MetaGraphsNext.MetaGraph,
+    vertex_label_vec::Vector{Int64})
+
+    vertex_coord_vec::Vector{Float64} = []
+
+    for vertex_label in vertex_label_vec
+        append!(vertex_coord_vec, 
+            spatial_network[vertex_label]["position"])
+    end
+
+    return vertex_coord_vec
+end
+
+
+"""
+From a vertex label vector and a 1d vector of its coordinates, move the 
+vertices to the new coordinates
+"""
+function update_vertex_coords!(spatial_network::MetaGraphsNext.MetaGraph,
+    vertex_label_vec::Vector{Int64},
+    vertex_coord_vec::Vector{Float64})
+
+    for (i, vertex_label) in enumerate(vertex_label_vec)
+        new_vertex_position = vertex_coord_vec[3*(i-1)+1:3*i]
+        translation_vector = (new_vertex_position 
+            .- spatial_network[vertex_label]["position"])
+
+        spatial_network = move_vertex!(
+            spatial_network, 
+            vertex_label, 
+            translation_vector;
+            update_total_energy = false,
+            large_translation = false)
+    end
+
+    return spatial_network
+end
+
 
 
 """

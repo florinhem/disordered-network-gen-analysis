@@ -110,99 +110,6 @@ end
 
 
 """
-Relax a single vertex by moving it to the energy minimum  while fixing its
-neighbors' positions
-"""
-function relax_single_vertex_keating!(
-    spatial_network::MetaGraphsNext.MetaGraph,
-    vertex_to_relax::Int64;
-    optimization_method = "newton", 
-    update_total_energy::Bool = false)
-
-    # check if optimization method is Newton
-    optimization_fct = Optim.Newton()
-    if optimization_method != "newton"
-        @error "Inefficient optimization method, specified in evolution dict,
-        is not known."
-    end
-    
-    # get initial position of vertex to relax 
-    initial_position = spatial_network[vertex_to_relax]["position"]
-
-    # get matrix of the vertex's neighbors' positions 
-    neighbor_positions_mat = get_neighbor_positions_mat(
-        spatial_network, vertex_to_relax)
-
-    # get next to nearest neighbors' positions
-    next_neighbor_positions_arr = get_next_neighbor_positions_arr(
-        spatial_network, vertex_to_relax)
-
-    # set energy, gradient and hessian for energy minimization
-    energy(x) = energy_from_position_keating(x, spatial_network,
-        neighbor_positions_mat, next_neighbor_positions_arr, vertex_to_relax )
-                                                
-    gradient!(gradient, x) = gradient_keating!(gradient, x, spatial_network, 
-        neighbor_positions_mat, next_neighbor_positions_arr, vertex_to_relax)
-    
-    hessian!(hessian, x) = hessian_keating!(hessian, x, spatial_network,
-        neighbor_positions_mat, next_neighbor_positions_arr, vertex_to_relax)
-
-    # find energy minimum
-    minimizer_result = Optim.optimize(
-        energy, 
-        gradient!, 
-        hessian!,
-        initial_position, 
-        optimization_fct)
-
-    # if minimization converged update dictionary
-    if Optim.converged(minimizer_result)
-
-        # get relaxed position and local keating energy
-        relaxed_position = Optim.minimizer(minimizer_result)
-
-        # calculate translation vector for relaxed vertex
-        translation_vector = relaxed_position .- initial_position
-
-        # move vertex 
-        spatial_network = move_vertex!(spatial_network, vertex_to_relax, 
-            translation_vector; update_total_energy = update_total_energy)
-
-    else
-        @warn "Using gradient descent for vertex "*string(vertex_to_relax)
-        
-        # find energy minimum
-        minimizer_result = Optim.optimize(
-            energy, 
-            gradient!, 
-            hessian!,
-            initial_position, 
-            Optim.GradientDescent())
-
-        # if minimization converged update dictionary
-        if Optim.converged(minimizer_result)
-
-            # get relaxed position and local keating energy
-            relaxed_position = Optim.minimizer(minimizer_result)
-
-            # calculate translation vector for relaxed vertex
-            translation_vector = relaxed_position .- initial_position
-
-            # move vertex 
-            spatial_network = move_vertex!(spatial_network, 
-                vertex_to_relax, translation_vector;
-                update_total_energy = update_total_energy)
-        else
-            @error "No minimum found for vertex "*string(vertex_to_relax)
-        end
-
-    end
-
-    return spatial_network
-end
-
-
-"""
 calculate translation vector to approximate energy minimum of Keating strain
 energy as explained in 10.1142/S0217984987000065
 """
@@ -284,22 +191,14 @@ function relax_cluster_one_cycle_keating!(
     for vertex in cluster_dict["cluster_vertices_to_move_vec"]
 
         # relax efficiently but approximately or exactly but slowly
-        if evolution_dict["relax_efficiently"]
-            spatial_network, gradient = (
-                relax_single_vertex_keating_efficiently!(spatial_network,
-                    vertex;
-                    relaxation_overshoot_factor_r 
-                        =evolution_dict["relaxation_overshoot_factor_r"],
-                    relaxation_optimization_parameter_l
-                        =evolution_dict["relaxation_optimization_parameter_l"],
-                    update_total_energy = false))
-        else
-            spatial_network, gradient = relax_single_vertex_keating!(
-                spatial_network, vertex;
-                optimization_method
-                    = evolution_dict["inefficient_optimization_method"],
-                update_total_energy = false)
-        end
+        spatial_network, gradient = (
+            relax_single_vertex_keating_efficiently!(spatial_network,
+                vertex;
+                relaxation_overshoot_factor_r 
+                    =evolution_dict["relaxation_overshoot_factor_r"],
+                relaxation_optimization_parameter_l
+                    =evolution_dict["relaxation_optimization_parameter_l"],
+                update_total_energy = false))
 
         # add absolute value of force on current vertex to total cluster force
         cluster_dict["cluster_force"] += LinearAlgebra.norm(gradient)
@@ -336,6 +235,200 @@ end
 
 
 """
+Relax the given cluster using an optimization package as opposed to a manual
+vertex-by-vertex implementation
+"""
+function relax_network_keating_optim!(
+    spatial_network::MetaGraphsNext.MetaGraph,
+    cluster_dict::Dict;
+    optimization_method::String = "lbfgs",
+    update_total_energy::Bool = false)
+
+    # set the optimization method for the optimization package
+    if optimization_method == "lbfgs"
+        optimization_fct = Optim.LBFGS()
+    elseif optimization_method == "newton"
+        optimization_fct = Optim.Newton()
+    else
+        @error "Optimization method, specified in evolution dict,
+        is not known."
+    end
+
+    # get a 1d vector of all vertex coordinates in the cluster in the format
+    # [x1, y1, z1, x2, ...]
+    vertices_to_move_coord_vec = get_vertex_coord_vec(spatial_network, 
+        cluster_dict["cluster_vertices_to_move_vec"])
+    vertices_outer_shell_coord_vec = get_vertex_coord_vec(spatial_network, 
+        cluster_dict["cluster_vertices_outer_shell_vec"])
+
+    # get all vertex labels that are contained in the cluster bonds on the
+    # outer edge but are not in the outer shell cluster vertices
+    vertices_bonds_edge_vec::Vector{Int64} = []
+    for bond in cluster_dict["cluster_bonds_edge_vec"]
+        for vertex in bond
+            if !(vertex in cluster_dict["cluster_vertices_outer_shell_vec"])
+                push!(vertices_bonds_edge_vec, vertex)
+            end
+        end
+    end
+    vertices_bonds_edge_coord_vec = get_vertex_coord_vec(spatial_network, 
+        vertices_bonds_edge_vec)
+
+    # create a dictionary for the bonds connected to each vertex
+    all_cluster_vertices_vec = vcat(
+        cluster_dict["cluster_vertices_to_move_vec"], 
+        cluster_dict["cluster_vertices_outer_shell_vec"]) 
+    all_cluster_bonds_vec = vcat(
+        cluster_dict["cluster_bonds_inside_vec"], 
+        cluster_dict["cluster_bonds_edge_vec"])
+    bonds_connected_to_vertex_dict = Dict{Int64, Vector{Tuple{Int64, Int64}}}()
+
+    for vertex in all_cluster_vertices_vec
+        connected_bonds = filter(x -> (x[1] == vertex) || (x[2] == vertex), 
+            all_cluster_bonds_vec)
+
+        bonds_connected_to_vertex_dict[vertex] = connected_bonds
+    end
+
+    # create another dictionary that, for each bond, stores the vertex labels 
+    # of the neighbors for each of the two vertices in the bond. The values
+    # of the dictionary are tuples of two lists of integers
+    bond_vertex_neighbor_dict = Dict{
+        Tuple{Int64, Int64}, Tuple{Vector{Int64}, Vector{Int64}}}()
+    for bond in cluster_dict["cluster_bonds_inside_vec"]
+        neighbor_label_vec_1::Vector{Int64} = [x for x in 
+            MetaGraphsNext.neighbor_labels(spatial_network, bond[1]) 
+            if x != bond[2]]
+        neighbor_label_vec_2::Vector{Int64} = [x for x in 
+            MetaGraphsNext.neighbor_labels(spatial_network, bond[2]) 
+            if x != bond[1]]
+        bond_vertex_neighbor_dict[bond] = (neighbor_label_vec_1,
+            neighbor_label_vec_2)
+    end
+
+    # create a dictionary with the l values for all bonds, that is the least 
+    # common multiple of the coordination numbers of the two vertices minus one 
+    # since the bond itself is not included
+    bond_l_dict = Dict{Tuple{Int64, Int64}, Int64}()
+    for bond in cluster_dict["cluster_bonds_inside_vec"]
+        vertex_1_coordination_nr = spatial_network[bond[1]]["coordination_nr"]
+        vertex_2_coordination_nr = spatial_network[bond[2]]["coordination_nr"]
+        bond_l_dict[bond] = lcm(
+            vertex_1_coordination_nr-1, vertex_2_coordination_nr-1)
+    end
+
+    # optimize the Keating energy using a closure
+    result = Optim.optimize(
+        coord_vec -> cluster_energy_optim(
+            coord_vec, 
+            vertices_outer_shell_coord_vec, 
+            vertices_bonds_edge_coord_vec,
+            vertices_bonds_edge_vec,
+            bonds_connected_to_vertex_dict,
+            bond_vertex_neighbor_dict,
+            bond_l_dict,
+            cluster_dict,
+            spatial_network),
+        vertices_to_move_coord_vec, 
+        optimization_fct,
+        Optim.Options(g_tol=1e-6);
+        autodiff = :forward
+    )
+
+    relaxed_coord_vec = Optim.minimizer(result)
+    
+    spatial_network = update_vertex_coords!(
+        spatial_network, cluster_dict["cluster_vertices_to_move_vec"], 
+        relaxed_coord_vec)
+
+    # update total energy if desired
+    if update_total_energy
+        spatial_network[]["total_energy"] = get_total_energy_keating(
+            spatial_network)
+        spatial_network[]["total_energy_up_to_date"] = true
+    else
+        spatial_network[]["total_energy_up_to_date"] = false
+    end
+
+    return spatial_network
+end
+
+
+"""
+Relax the given cluster using an optimization package as opposed to a manual
+vertex-by-vertex implementation
+"""
+function relax_network_keating_optim_inefficient!(
+    spatial_network::MetaGraphsNext.MetaGraph,
+    cluster_dict::Dict;
+    optimization_method::String = "lbfgs",
+    update_total_energy::Bool = false)
+
+    # set the optimization method for the optimization package
+    if optimization_method == "lbfgs"
+        optimization_fct = Optim.LBFGS()
+    elseif optimization_method == "newton"
+        optimization_fct = Optim.Newton()
+    else
+        @error "Optimization method, specified in evolution dict,
+        is not known."
+    end
+
+    # get a 1d vector of all vertex coordinates in the cluster in the format
+    # [x1, y1, z1, x2, ...]
+    vertices_to_move_coord_vec = get_vertex_coord_vec(spatial_network, 
+        cluster_dict["cluster_vertices_to_move_vec"])
+    vertices_outer_shell_coord_vec = get_vertex_coord_vec(spatial_network, 
+        cluster_dict["cluster_vertices_outer_shell_vec"])
+
+    # get all vertex labels that are contained in the cluster bonds on the
+    # outer edge but are not in the outer shell cluster vertices
+    vertices_bonds_edge_vec::Vector{Int64} = []
+    for bond in cluster_dict["cluster_bonds_edge_vec"]
+        for vertex in bond
+            if !(vertex in cluster_dict["cluster_vertices_outer_shell_vec"])
+                push!(vertices_bonds_edge_vec, vertex)
+            end
+        end
+    end
+    vertices_bonds_edge_coord_vec = get_vertex_coord_vec(spatial_network, 
+        vertices_bonds_edge_vec)
+
+    # optimize the Keating energy using a closure
+    result = Optim.optimize(
+        coord_vec -> cluster_energy_optim_inefficient(
+            coord_vec, 
+            vertices_outer_shell_coord_vec, 
+            vertices_bonds_edge_coord_vec,
+            vertices_bonds_edge_vec,
+            cluster_dict,
+            spatial_network),
+        vertices_to_move_coord_vec, 
+        optimization_fct,
+        Optim.Options(g_tol=1e-6);
+        autodiff = :forward
+    )
+
+    relaxed_coord_vec = Optim.minimizer(result)
+    
+    spatial_network = update_vertex_coords!(
+        spatial_network, cluster_dict["cluster_vertices_to_move_vec"], 
+        relaxed_coord_vec)
+
+    # update total energy if desired
+    if update_total_energy
+        spatial_network[]["total_energy"] = get_total_energy_keating(
+            spatial_network)
+        spatial_network[]["total_energy_up_to_date"] = true
+    else
+        spatial_network[]["total_energy_up_to_date"] = false
+    end
+
+    return spatial_network
+end
+
+
+"""
 Fully relax a cluster of vertices. The cluster energy will always be updated
 """
 function relax_network_keating!(
@@ -359,127 +452,37 @@ function relax_network_keating!(
     # get threshold cluster energy for initial cluster
     threshold_cluster_energy = (threshold_total_energy
         - spatial_network[]["total_energy"] + cluster_dict["cluster_energy"])
-
-    # if network is supposed to be relaxed globally, store initial shell nr
-    # and set threshold cycle for global relaxation
-    if (haskey(evolution_dict, "relax_globally_after_threshold_cycle")
-            && evolution_dict["relax_globally_after_threshold_cycle"])
-        threshold_cycle_global_relaxation = (
-            evolution_dict["reject_during_relaxation_cycle_threshold"]*2+1)
-    else
-        threshold_cycle_global_relaxation = evolution_dict[
-            "nr_max_relaxation_cycles"] + 1
-    end
-
-    # create bool that determines whether cluster will be relaxed globally
-    # after local relaxation
-    continue_with_global_relaxation = true
-
-    # perform the given number of relaxation cycles
-    for cycle_nr in 1:threshold_cycle_global_relaxation-1
-
-        # only update cluster energy, if this is needed to get cluster energy
-        # change
-        if cycle_nr <= evolution_dict[
-            "reject_during_relaxation_cycle_threshold"]-1
-
-            update_cluster_energy = false
-        else
-            update_cluster_energy = true
-
-            # store previous cluster force and energy
-            previous_cluster_force = cluster_dict["cluster_force"]
-            previous_cluster_energy = cluster_dict["cluster_energy"]
-        end
-
-        # relax cluster for one cycle
-        spatial_network, cluster_dict = relax_cluster_one_cycle_keating!(
-            spatial_network, 
-            cluster_dict,
-            evolution_dict;
-            update_total_energy = false,
-            update_cluster_energy = update_cluster_energy )
-
-        # if cycle nr is above the given threshold, check if the relaxation can 
-        # be breaked when it becomes clear that the total energy will exceed
-        # the threshold or because of small relative energy change
-        if cycle_nr > evolution_dict[
-            "reject_during_relaxation_cycle_threshold"]
-
-            # get vector of last two cluster forces
-            cluster_force_vec = [previous_cluster_force,
-                cluster_dict["cluster_force"]]
-
-            # get vector of last two cluster energies
-            cluster_energy_vec =[previous_cluster_energy,
-                cluster_dict["cluster_energy"]]
-
-            # estimate relaxed cluster energy
-            prefactor_force_squared, relaxed_cluster_energy = (
-                get_energy_relaxation_coefficients(
-                    cluster_force_vec, cluster_energy_vec))
-
-            if print_progress
-                println("Prefactor force squared: "*string(
-                    prefactor_force_squared))
-                println("Relaxed cluster energy: "*string(
-                    relaxed_cluster_energy))
-            end
-
-            # break if estimated energy change exceeds the given threshold
-            if (prefactor_force_squared < 1
-                && relaxed_cluster_energy > 1.05*threshold_cluster_energy) 
-                
-                if print_progress
-                    println("Relaxed energy exceeds threshold: breaking at
-                        cycle nr "*string(cycle_nr))
-                end
-
-                # don't continue with global relaxation
-                continue_with_global_relaxation = false
-
-                break
-            end
-
-            # break if cluster energy changes less than the given threshold
-            relative_cluster_energy_change = (
-                abs((previous_cluster_energy - cluster_dict["cluster_energy"])
-                /cluster_dict["cluster_energy"]))
-
-            if relative_cluster_energy_change < evolution_dict[
-                "break_at_relative_cluster_energy_change"] 
     
-                if print_progress
-                    println("Negligeable energy change: breaking at cycle nr "
-                        *string(cycle_nr))
-                end
-                break
-            end
-        end
-    end
+    # relax efficiently but approximately
+    if evolution_dict["relax_efficiently"]
 
-    # relax network globally, if desired
-    if (haskey(evolution_dict, "relax_globally_after_threshold_cycle") 
-        && evolution_dict["relax_globally_after_threshold_cycle"] 
-        && continue_with_global_relaxation)
-
-        if print_progress
-            println("Relaxing network globally at cycle nr "
-                *string(threshold_cycle_global_relaxation))
+        # if network is supposed to be relaxed globally, store initial shell nr
+        # and set threshold cycle for global relaxation
+        if (haskey(evolution_dict, "relax_globally_after_threshold_cycle")
+                && evolution_dict["relax_globally_after_threshold_cycle"])
+            threshold_cycle_global_relaxation = (
+                evolution_dict["reject_during_relaxation_cycle_threshold"]*2+1)
+        else
+            threshold_cycle_global_relaxation = evolution_dict[
+                "nr_max_relaxation_cycles"] + 1
         end
 
-        # get cluster of entire network by setting shell nr to a high value
-        cluster_dict = get_cluster_in_shells_dict(spatial_network, 
-            switched_chain,
-            shell_nr = Int(ceil(log(spatial_network[]["nr_vertices"])))+4,
-            calculate_cluster_energy = false)
+        # create bool that determines whether cluster will be relaxed globally
+        # after local relaxation
+        continue_with_global_relaxation = true
 
-        for cycle_nr in threshold_cycle_global_relaxation:evolution_dict[
-            "nr_max_relaxation_cycles"]
 
-            # only update cluster energy, if this is needed to get cluster
+        # perform the given number of relaxation cycles
+        for cycle_nr in 1:threshold_cycle_global_relaxation-1
+
+            # only update cluster energy, if this is needed to get cluster 
             # energy change
-            if cycle_nr > threshold_cycle_global_relaxation
+            if cycle_nr <= evolution_dict[
+                "reject_during_relaxation_cycle_threshold"]-1
+
+                update_cluster_energy = false
+            else
+                update_cluster_energy = true
 
                 # store previous cluster force and energy
                 previous_cluster_force = cluster_dict["cluster_force"]
@@ -492,58 +495,174 @@ function relax_network_keating!(
                 cluster_dict,
                 evolution_dict;
                 update_total_energy = false,
-                update_cluster_energy = true )
+                update_cluster_energy = update_cluster_energy )
 
-            if cycle_nr > threshold_cycle_global_relaxation
+            # if cycle nr is above the given threshold, check if the relaxation 
+            # can be breaked when it becomes clear that the total energy will 
+            # exceed the threshold or because of small relative energy change
+            if cycle_nr > evolution_dict[
+                "reject_during_relaxation_cycle_threshold"]
 
                 # get vector of last two cluster forces
                 cluster_force_vec = [previous_cluster_force,
                     cluster_dict["cluster_force"]]
-    
+
                 # get vector of last two cluster energies
                 cluster_energy_vec =[previous_cluster_energy,
                     cluster_dict["cluster_energy"]]
-    
+
                 # estimate relaxed cluster energy
                 prefactor_force_squared, relaxed_cluster_energy = (
                     get_energy_relaxation_coefficients(
                         cluster_force_vec, cluster_energy_vec))
-    
+
                 if print_progress
-                    println("Prefactor force squared: "
-                        *string(prefactor_force_squared))
-                    println("Relaxed cluster energy: "
-                        *string(relaxed_cluster_energy))
+                    println("Prefactor force squared: "*string(
+                        prefactor_force_squared))
+                    println("Relaxed cluster energy: "*string(
+                        relaxed_cluster_energy))
                 end
-    
+
                 # break if estimated energy change exceeds the given threshold
                 if (prefactor_force_squared < 1
-                    && relaxed_cluster_energy > 1.05*threshold_total_energy) 
-                    
+                    && relaxed_cluster_energy > 1.05*threshold_cluster_energy) 
+
                     if print_progress
                         println("Relaxed energy exceeds threshold: breaking at
                             cycle nr "*string(cycle_nr))
                     end
+
+                    # don't continue with global relaxation
+                    continue_with_global_relaxation = false
+
                     break
                 end
-    
+
                 # break if cluster energy changes less than the given threshold
                 relative_cluster_energy_change = (
-                    abs((previous_cluster_energy
+                    abs((previous_cluster_energy 
                         - cluster_dict["cluster_energy"])
-                     /cluster_dict["cluster_energy"]))
-    
+                    /cluster_dict["cluster_energy"]))
+
                 if relative_cluster_energy_change < evolution_dict[
                     "break_at_relative_cluster_energy_change"] 
-        
+                
                     if print_progress
-                        println("Negligeable energy change: breaking at cycle
-                        nr "*string(cycle_nr))
+                        println("Negligeable energy change: breaking at cycle nr "
+                            *string(cycle_nr))
                     end
                     break
                 end
             end
         end
+    
+        # relax network globally, if desired
+        if (haskey(evolution_dict, "relax_globally_after_threshold_cycle") 
+            && evolution_dict["relax_globally_after_threshold_cycle"] 
+            && continue_with_global_relaxation)
+
+            if print_progress
+                println("Relaxing network globally at cycle nr "
+                    *string(threshold_cycle_global_relaxation))
+            end
+
+            # get cluster of entire network by setting shell nr to a high value
+            cluster_dict = get_cluster_in_shells_dict(spatial_network, 
+                switched_chain,
+                shell_nr = Int(ceil(log(spatial_network[]["nr_vertices"])))+4,
+                calculate_cluster_energy = false)
+
+            for cycle_nr in threshold_cycle_global_relaxation:evolution_dict[
+                "nr_max_relaxation_cycles"]
+
+                # only update cluster energy, if this is needed to get cluster
+                # energy change
+                if cycle_nr > threshold_cycle_global_relaxation
+
+                    # store previous cluster force and energy
+                    previous_cluster_force = cluster_dict["cluster_force"]
+                    previous_cluster_energy = cluster_dict["cluster_energy"]
+                end
+
+                # relax cluster for one cycle
+                spatial_network, cluster_dict = (
+                    relax_cluster_one_cycle_keating!(
+                        spatial_network, 
+                        cluster_dict,
+                        evolution_dict;
+                        update_total_energy = false,
+                        update_cluster_energy = true ))
+
+                if cycle_nr > threshold_cycle_global_relaxation
+
+                    # get vector of last two cluster forces
+                    cluster_force_vec = [previous_cluster_force,
+                        cluster_dict["cluster_force"]]
+                
+                    # get vector of last two cluster energies
+                    cluster_energy_vec =[previous_cluster_energy,
+                        cluster_dict["cluster_energy"]]
+                
+                    # estimate relaxed cluster energy
+                    prefactor_force_squared, relaxed_cluster_energy = (
+                        get_energy_relaxation_coefficients(
+                            cluster_force_vec, cluster_energy_vec))
+                
+                    if print_progress
+                        println("Prefactor force squared: "
+                            *string(prefactor_force_squared))
+                        println("Relaxed cluster energy: "
+                            *string(relaxed_cluster_energy))
+                    end
+                
+                    # break if estimated energy change exceeds given threshold
+                    if (prefactor_force_squared < 1 && 
+                        relaxed_cluster_energy > 1.05*threshold_total_energy) 
+
+                        if print_progress
+                            println("Relaxed energy exceeds threshold: breaking
+                                at cycle nr "*string(cycle_nr))
+                        end
+                        break
+                    end
+                
+                    # break if cluster energy changes less than given threshold
+                    relative_cluster_energy_change = (
+                        abs((previous_cluster_energy
+                            - cluster_dict["cluster_energy"])
+                         /cluster_dict["cluster_energy"]))
+                
+                    if relative_cluster_energy_change < evolution_dict[
+                        "break_at_relative_cluster_energy_change"] 
+                    
+                        if print_progress
+                            println("Negligeable energy change: breaking at
+                            cycle nr "*string(cycle_nr))
+                        end
+                        break
+                    end
+                end
+            end
+        end
+
+    # otherwise, relax the entire cluster in one step using a gradient based
+    # method
+    else
+        # if global relaxation is desired, print an error that this is not 
+        # implemented
+        if (haskey(evolution_dict, "relax_globally_after_threshold_cycle") 
+            && evolution_dict["relax_globally_after_threshold_cycle"])
+            @error "Global relaxation is not implemented for Optim based
+            relaxation. Please set relax_globally_after_threshold_cycle to 
+            false."
+        else
+            spatial_network = relax_network_keating_optim!(spatial_network,
+                cluster_dict;
+                optimization_method = 
+                    evolution_dict["inefficient_optimization_method"],
+                update_total_energy = false)
+        end
+        
     end
 
     # update total energy if desired
@@ -936,8 +1055,7 @@ steps (which I define as nr_bonds attempted Monte Carlo moves) per temperature
 """
 function evolve_network_temperature_sequence!(
     spatial_network::MetaGraphsNext.MetaGraph,
-    evolution_dict::Dict
-    ;
+    evolution_dict::Dict;
     total_energy_vec::Vector{Float64} = Vector{Float64}(undef, 0),
     move_accepted_vec::Vector{Bool} = Vector{Bool}(undef, 0),
     print_progress::Bool = false,

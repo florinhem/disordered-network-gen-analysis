@@ -1247,6 +1247,10 @@ function get_periodic_network(evolution_dict)
     spatial_network[]["theta_ground_state"] = evolution_dict[
         "theta_ground_state"]
 
+    spatial_network[]["torsional_const"] = evolution_dict["torsional_const"]
+
+    spatial_network[]["delta_phi"] = evolution_dict["delta_phi"]
+
     # thermally excite network if desired
     if evolution_dict["thermal_fluctuations"]
         spatial_network[]["total_energy_up_to_date"] = false
@@ -1345,6 +1349,10 @@ function get_poisson_random_network(evolution_dict::Dict)
 
     spatial_network[]["theta_ground_state"] = evolution_dict[
         "theta_ground_state"]
+
+    spatial_network[]["torsional_const"] = evolution_dict["torsional_const"]
+
+    spatial_network[]["delta_phi"] = evolution_dict["delta_phi"]
     
     # thermally excite network if desired
     if evolution_dict["thermal_fluctuations"]

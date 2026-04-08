@@ -933,7 +933,7 @@ def hyperparam_tuning(weights=None,
     
     if variable_nr_neurons:
         config = {
-            "nr_neurons_vec": tune.choice(nr_neurons_vec_tune),
+            "nr_neurons_vec": tune.choice(nr_neurons_tune),
             "learning_rate": tune.choice(learning_rate_tune),
             "batch_size": tune.choice(batch_size_tune),
             "weight_decay": tune.choice(weight_decay_tune),

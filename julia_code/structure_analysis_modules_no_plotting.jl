@@ -84,6 +84,7 @@ import LinearAlgebra    # to perform linear algebra calculations like the dot pr
 import Optim    # for optimization such as relaxation of individual vertices
 #import GLMakie  # Makie backend for plotting
 #import GraphMakie   # additions to GLMakie for graph plotting
+#import NetworkLayout  # required to plot networks
 import FileIO   # for file loading and saving
 import XLSX  # to read and write excel files
 import DataFrames  # to handle tabular data
@@ -93,6 +94,9 @@ import GeometryBasics   # to create meshes out of networks
 import Plots    # for plotting
 import LaTeXStrings as Latex # to display latex symbols in plot labels
 import Format   # for python-like string formatting 
+import Colors   # to handle colors in plotting
+import ForwardDiff  # for automatic differentiation in optimization
+import StaticArrays  # for small fixed size arrays that can be used in automatic differentiation
 
 # set path to files
 load_path = "./networks/"
