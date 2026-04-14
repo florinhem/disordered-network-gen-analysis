@@ -569,7 +569,9 @@ function get_order_metrics(filename::String,
     # get the Haussdorff chirality measure
     hausdorff_chirality = get_hausdorff_chirality(
         spatial_network;
-        points_per_bond = chirality_points_per_bond)
+        points_per_bond = chirality_points_per_bond,
+        exclude_layer_thickness = exclude_layer_thickness,
+         periodic_boundary_conditions = periodic_boundary_conditions)
 
     # create dict to save
     order_metrics_dict = Dict(

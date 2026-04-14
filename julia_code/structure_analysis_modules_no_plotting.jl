@@ -156,6 +156,7 @@ import LaTeXStrings as Latex # to display latex symbols in plot labels
 import Format   # for python-like string formatting 
 import DataFrames  # to handle tabular data
 import CSV  # to read and write tabular data in csv format
+import Hungarian  # to perform the Hungarian algorithm for optimal assignment problems
 
 # set path to files
 load_path = "./networks/"

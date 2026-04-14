@@ -28,6 +28,24 @@ end
 
 
 """
+Get the distance squared between two points considering periodic boundary
+conditions
+"""
+function get_distance_sq_pbc(position_a::V,
+    position_b::V,
+    supercell_edge_length) where {V <: AbstractVector}
+
+    dist_sq = 0.0
+    for i in 1:3
+        d = position_a[i] - position_b[i]
+        d = d - supercell_edge_length * round(d / supercell_edge_length)
+        dist_sq += d^2
+    end
+    return dist_sq
+end
+
+
+"""
 Calculate virtual position of a vertex relative to a central vertex by placing
 it outside of the supercell if periodic boundary conditions have to be taken
 into account

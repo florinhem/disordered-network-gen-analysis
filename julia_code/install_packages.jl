@@ -37,5 +37,6 @@ Pkg.add([
     "Distances",
     "Rotations",
     "ForwardDiff",
-    "StaticArrays"
+    "StaticArrays",
+    "Hungarian"
 ])

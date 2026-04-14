@@ -144,17 +144,50 @@ get the positions of points decorating all bonds of a spatial network
 """
 function get_decorated_spatial_network_points(
     spatial_network::MetaGraphsNext.MetaGraph;
-    points_per_bond::Int64 = 3,)
+    points_per_bond::Int64 = 3,
+    periodic_boundary_conditions::Bool = true,
+    exclude_layer_thickness::Float64 = 0.0,)
+
+    # get minimal and maximal vertex coordinates along all three axes in case
+    # of non-periodic boundary conditions
+    if !periodic_boundary_conditions
+        min_vertex_coords, max_vertex_coords = get_min_max_vertex_coords(
+        spatial_network)
+    end
 
     supercell_edge_length = spatial_network[]["supercell_edge_length"]
 
     points = Vector{Vector{Float64}}()
 
     for vertex in MetaGraphsNext.labels(spatial_network)
-        push!(points, spatial_network[vertex]["position"])
+        if periodic_boundary_conditions
+            push!(points, spatial_network[vertex]["position"])
+        else
+            # get the positions of the vertex
+            vertex_pos = spatial_network[vertex]["position"]
+
+            # check if the vertex is within the excluded layer thickness
+            if (all(vertex_pos 
+                    .> (min_vertex_coords .+ exclude_layer_thickness))
+                && all(vertex_pos 
+                    .< (max_vertex_coords .- exclude_layer_thickness)))
+
+                push!(points, spatial_network[vertex]["position"])
+            end
+        end
     end
 
-    for bond in MetaGraphsNext.edge_labels(spatial_network)
+    if periodic_boundary_conditions 
+        considered_bonds = MetaGraphsNext.edge_labels(spatial_network)
+    else
+        # get all considered bonds
+        considered_bonds = get_considered_bonds(
+            spatial_network;
+            periodic_boundary_conditions=periodic_boundary_conditions,
+            exclude_layer_thickness=exclude_layer_thickness)
+    end
+
+    for bond in considered_bonds
         start_position = spatial_network[bond[1]]["position"]
         bond_vector = spatial_network[bond...]["vector"]
 
@@ -247,9 +280,8 @@ function get_overlap_spatial_networks(
     overlap = 0.0
     for point_1 in spatial_network_1_points
         for point_2 in spatial_network_2_points
-            distance_vector = NG.get_distance_vector_pbc(
+            distance_squared = NG.get_distance_sq_pbc(
                 point_1, point_2, supercell_edge_length)
-            distance_squared = LinearAlgebra.norm(distance_vector)^2
             overlap += exp(-distance_squared / (4.0 * sigma^2))
         end
     end
@@ -380,11 +412,20 @@ Hausdorff distance with periodic boundary conditions (PBCs) between the
 original spatial network and the enantiomer obtained by point inversion of the 
 original spatial network
 """
-function hausdorff_dist_pbc(
-    set1::AbstractMatrix, set2::AbstractMatrix, supercell_edge_length::Real)
+function get_hausdorff_dist(
+    set1::AbstractMatrix, set2::AbstractMatrix, supercell_edge_length::Real,
+    periodic_boundary_conditions::Bool)
     
-    metric = Distances.PeriodicEuclidean(
-        [supercell_edge_length, supercell_edge_length, supercell_edge_length])
+    if periodic_boundary_conditions
+        # Define the metric for periodic boundary conditions
+        metric = Distances.PeriodicEuclidean(
+            [supercell_edge_length, supercell_edge_length, 
+            supercell_edge_length])
+    else
+        # Define the standard Euclidean metric for non-periodic boundary 
+        # conditions
+        metric = Distances.Euclidean()
+    end
     
     # calculate pairwise distances under Minimum Image Convention
     distances_mat = Distances.pairwise(metric, set1, set2)
@@ -409,50 +450,93 @@ https://pubs.acs.org/doi/abs/10.1021/ja00041a016
 """
 function get_hausdorff_chirality(
     spatial_network::MetaGraphsNext.MetaGraph;
-    points_per_bond::Int64 = 3,)
+    points_per_bond::Int64 = 3,
+    exclude_layer_thickness::Float64 = 0.0,
+    periodic_boundary_conditions::Bool = true,)
 
     supercell_edge_length = spatial_network[]["supercell_edge_length"]
 
     spatial_network_points = get_decorated_spatial_network_points(
         spatial_network;
-        points_per_bond = points_per_bond,)
+        points_per_bond = points_per_bond,
+        periodic_boundary_conditions=periodic_boundary_conditions,
+        exclude_layer_thickness=exclude_layer_thickness)
+
+    # shift the points to the center of the supercell for easier handling of 
+    # PBCs
+    for point in spatial_network_points
+        for dim in 1:3
+            point[dim] -= supercell_edge_length / 2
+        end
+    end
 
     # convert the list of points to a 3xN matrix
     points = hcat(spatial_network_points...)
     
     inversion_matrix = LinearAlgebra.Diagonal([-1.0, -1.0, -1.0])
     inverted_points = inversion_matrix * points
-    
-    # calculate the diameter of the structure as the maximum distance between
-    # any two points in the original spatial network. This equals half the
-    # diagonal of the cubic supercell 
-    diameter = supercell_edge_length * sqrt(3) / 2
 
     # find the rotation and translation that minimize the Hausdorff distance 
     # between the original points and the inverted points under PBCs
     function objective(params)
         angles = params[1:3]
         translation = params[4:6]
-        
+
         rotation_matrix = Rotations.RotXYZ(angles[1], angles[2], angles[3])
-        
         transformed_points = (
             Array(rotation_matrix) * inverted_points) .+ translation
-        
-        hausdorff_dist = hausdorff_dist_pbc(
-            points, transformed_points, supercell_edge_length)
+
+        hausdorff_dist = get_hausdorff_dist(
+            points, transformed_points, supercell_edge_length, 
+            periodic_boundary_conditions)
         return hausdorff_dist
     end
     
-    # Start at zero rotation and zero translation
-    initial_params = zeros(6)
-    
-    # Optimization using Nelder-Mead
-    res = Optim.optimize(objective, initial_params, Optim.NelderMead(), 
-                         Optim.Options(iterations=2000, g_tol=1e-6))
-    
-    min_hausdorff = Optim.minimum(res)
-    
+    if periodic_boundary_conditions
+
+        # calculate the diameter of the structure as the maximum distance between
+        # any two points in the original spatial network. This equals half the
+        # diagonal of the cubic supercell 
+        diameter = supercell_edge_length * sqrt(3) / 2
+
+        # Start at zero rotation and zero translation
+        initial_params = zeros(6)
+
+        # Optimization using Nelder-Mead
+        res = Optim.optimize(objective, initial_params, Optim.NelderMead(), 
+                             Optim.Options(iterations=2000, g_tol=1e-6))
+        min_hausdorff = Optim.minimum(res)
+        
+    else
+        # get the minimal and maximal vertex coords along the three axes
+        min_vertex_coords, max_vertex_coords = get_min_max_vertex_coords(
+            spatial_network)
+
+        # get the diameter from these extremal vertex coordinates
+        diameter = sqrt(sum((max_vertex_coords .- min_vertex_coords).^2)) / 2
+
+        # Define six different initial guesses that rotate the structure to
+        # orientations +-z, +-y, +-x and do not apply any translation
+        guesses = [
+             [ 0,       0,      0,       0, 0, 0 ],
+             [ π,       0,      0,       0, 0, 0 ],
+             [ 0,  -π/2,      0,       0, 0, 0 ],
+             [ 0,   π/2,      0,       0, 0, 0 ],
+             [ π/2,     0,      0,       0, 0, 0 ],
+             [ -π/2,    0,      0,       0, 0, 0 ]
+            ]
+
+        # map the optimization over the list of guesses
+        results = map(guesses) do initial_params
+            Optim.optimize(objective, initial_params, Optim.NelderMead(), 
+                           Optim.Options(iterations=2000, g_tol=1e-6))
+        end
+
+        # find the best optimization result object
+        best_result_object = argmin(res -> Optim.minimum(res), results)
+        min_hausdorff = Optim.minimum(best_result_object)
+    end
+
     # to get the HCM, we normalize the minimum Hausdorff distance by the 
     # diameter of the structure
     hcm = min_hausdorff / diameter
@@ -460,3 +544,106 @@ function get_hausdorff_chirality(
     return hcm
 end
 
+
+"""
+Finds the optimal inversion center that minimizes the continuous chirality
+measure CCM as defined in 10.1021/ja00106a053. We choose the normalization of
+10.1103/PhysRevB.110.174112 that should yield CCM values in approximately the
+range [0, 1]
+"""
+function get_continuous_chirality_measure(
+    spatial_network::MetaGraphsNext.MetaGraph;
+    points_per_bond::Int64 = 3,
+    exclude_layer_thickness::Float64 = 0.0,
+    periodic_boundary_conditions::Bool = true,)
+
+    supercell_edge_length = spatial_network[]["supercell_edge_length"]
+
+    spatial_network_points = get_decorated_spatial_network_points(
+        spatial_network;
+        points_per_bond = points_per_bond,
+        periodic_boundary_conditions=periodic_boundary_conditions,
+        exclude_layer_thickness=exclude_layer_thickness)
+
+    # shift the points to the center of the supercell for easier handling of 
+    # PBCs
+    for point in spatial_network_points
+        for dim in 1:3
+            point[dim] -= supercell_edge_length / 2
+        end
+    end
+
+    nr_points = length(spatial_network_points)
+    
+    # Convert Vector of Vectors to a 3xN Matrix
+    points_mat = hcat(spatial_network_points...)
+    
+    # calculate the inverted coordinates at the origin
+    inverted_base = -1.0 .* points_mat
+    
+    # We allocate these once to prevent the Garbage Collector from 
+    # freezing the optimization loop.
+    transformed_points = zeros(Float64, 3, nr_points)
+    dist_sq_mat = zeros(Float64, nr_points, nr_points)
+    
+    # Optimization objective
+    function objective(translation_params::Vector{Float64})
+        
+        # Update transformed points in-place
+        @inbounds for j in 1:nr_points
+            for d in 1:3
+                # Apply translation and wrap into [0, L]
+                val = inverted_base[d, j] + translation_params[d]
+                transformed_points[d, j] = mod(val, supercell_edge_length)
+            end
+        end
+        
+        # get the squared distance matrix considering periodic boundary
+        # conditions
+        @inbounds for j in 1:nr_points
+            for i in 1:nr_points
+                dsq = 0.0
+                for d in 1:3
+                    # Absolute distance along dimension d
+                    delta = abs(points_mat[d, i] - transformed_points[d, j])
+                    
+                    if periodic_boundary_conditions
+                        # Apply Minimum Image Convention (PBC)
+                        delta = min(delta, supercell_edge_length - delta)
+                    end
+                    
+                    dsq += delta^2
+                end
+                dist_sq_mat[i, j] = dsq
+            end
+        end
+        
+        # Solve the exact 1-to-1 assignment problem
+        assignment, cost = Hungarian.hungarian(dist_sq_mat)
+        
+        # Calculate the sum of squared distances to the achiral midpoint
+        total_dist_to_achiral_sq = cost / 4.0
+        
+        # Normalize by the number of points
+        return total_dist_to_achiral_sq / nr_points
+    end
+
+    # Set up the optimization
+    initial_guess = zeros(Float64, 3)
+    
+    # We restrict the iterations slightly since Nelder-Mead with a global 
+    # assignment problem can still be heavy for very large nr_points.
+    opt_options = Optim.Options(iterations=200, show_trace=false)
+    
+    res = Optim.optimize(
+        objective, 
+        initial_guess, 
+        Optim.NelderMead(), 
+        opt_options
+    )
+    
+    # Extract continuous chirality measure
+    min_ccm = Optim.minimum(res)
+    
+    return min_ccm
+end

@@ -8,7 +8,7 @@ metrics
 Get considered bonds based on periodic boundary conditions and excluded layer 
 thickness
 """
-function get_excluded_bonds(
+function get_considered_bonds(
     spatial_network::MetaGraphsNext.MetaGraph;
     exclude_layer_thickness::Float64 = 0.0,
     periodic_boundary_conditions::Bool = true)
@@ -49,7 +49,7 @@ function get_bond_length_std(spatial_network::MetaGraphsNext.MetaGraph;
     periodic_boundary_conditions::Bool = true)
 
     # get all considered bonds
-    considered_bonds = get_excluded_bonds(
+    considered_bonds = get_considered_bonds(
         spatial_network;
         periodic_boundary_conditions=periodic_boundary_conditions,
         exclude_layer_thickness=exclude_layer_thickness)
@@ -183,7 +183,7 @@ function get_dihedral_angle_entropy(spatial_network::MetaGraphsNext.MetaGraph;
     periodic_boundary_conditions::Bool = true)
 
     # get all considered bonds
-    considered_bonds = get_excluded_bonds(
+    considered_bonds = get_considered_bonds(
         spatial_network;
         periodic_boundary_conditions=periodic_boundary_conditions,
         exclude_layer_thickness=exclude_layer_thickness)
@@ -376,7 +376,7 @@ function get_bond_orientation_entropy(
     end
 
     # get all considered bonds
-    considered_bonds = get_excluded_bonds(
+    considered_bonds = get_considered_bonds(
         spatial_network;
         periodic_boundary_conditions=periodic_boundary_conditions,
         exclude_layer_thickness=exclude_layer_thickness)
