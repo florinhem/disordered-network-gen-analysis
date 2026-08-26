@@ -174,11 +174,11 @@ function get_bond_angle_std(spatial_network::MetaGraphsNext.MetaGraph;
     return [bond_angle_std, bond_angle_vec]
 end
 
+
 """
-Measure the Shannon entropy of dihedral angles that are binned in bins of 10
-degrees
+Get the list of dihedral angles in a spatial network
 """
-function get_dihedral_angle_entropy(spatial_network::MetaGraphsNext.MetaGraph;
+function get_dihedral_angles(spatial_network::MetaGraphsNext.MetaGraph;
     exclude_layer_thickness::Float64 = 0.0,
     periodic_boundary_conditions::Bool = true)
 
@@ -243,6 +243,23 @@ function get_dihedral_angle_entropy(spatial_network::MetaGraphsNext.MetaGraph;
             end
         end
     end
+
+    return dihedral_angle_vec
+end
+
+
+"""
+Measure the Shannon entropy of dihedral angles that are binned in bins of 10
+degrees
+"""
+function get_dihedral_angle_entropy(spatial_network::MetaGraphsNext.MetaGraph;
+    exclude_layer_thickness::Float64 = 0.0,
+    periodic_boundary_conditions::Bool = true)
+
+    # get the list of dihedral angles
+    dihedral_angle_vec = get_dihedral_angles(spatial_network;
+        exclude_layer_thickness=exclude_layer_thickness,
+        periodic_boundary_conditions=periodic_boundary_conditions)
 
     # consider only dihedral angles in the range [0, pi]
     dihedral_angle_vec = filter( x -> x >= 0 && x <= pi, dihedral_angle_vec)

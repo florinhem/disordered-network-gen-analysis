@@ -937,7 +937,10 @@ function evolve_network!(
 
         # print attempted chain if desired
         if print_progress && (print_every_nr_attempted_bond_switches == 1)
-            println("Attempt chain "*string(switched_chain))
+            lock(print_lock) do
+                Format.printfmtln("Thread {1}: attempt chain {2}", 
+                Threads.threadid(), switched_chain)
+            end
         end
 
         # attempt Monte Carlo move
@@ -956,9 +959,12 @@ function evolve_network!(
             # print progress if desired
             if print_progress
                 if print_every_nr_attempted_bond_switches == 1
-                    println("Chain "*string(switched_chain)
-                        *" accepted. Energy: "
-                        *string(spatial_network[]["total_energy"]))
+                    lock(print_lock) do
+                        Format.printfmtln(
+                                "Thread {1}: chain {2} accepted. Energy: {3}", 
+                                Threads.threadid(), switched_chain, 
+                                spatial_network[]["total_energy"])
+                    end
 
                 elseif i%print_every_nr_attempted_bond_switches == 0
                     lock(print_lock) do
@@ -995,7 +1001,17 @@ function evolve_network!(
             # print progress if desired
             if print_progress
                 if print_every_nr_attempted_bond_switches == 1
-                    println("Chain "*string(switched_chain)*" declined.")
+                    lock(print_lock) do
+                        if remaining_chains == []
+                            Format.printfmtln(
+                                    "Thread {1}: chain {2} declined.", 
+                                    Threads.threadid(), switched_chain)
+                        else
+                            Format.printfmtln(
+                                    "Thread {1}: chain {2} declined. Remaining chains: {3}", 
+                                    Threads.threadid(), switched_chain, length(remaining_chains))
+                        end
+                    end
 
                 elseif i%print_every_nr_attempted_bond_switches == 0
                     lock(print_lock) do

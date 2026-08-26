@@ -46,6 +46,11 @@ function save_spatial_network_to_gml(
     evolution_dict = nothing,
     save_path::String = "../../data/structures/")
 
+    # create the directory if it doesn't exist yet
+    if !isdir(save_path)
+        mkpath(save_path)
+    end
+
     # save evolution dict if passed
     if evolution_dict !== nothing
         GU.save_dict_to_h5(evolution_dict, save_path*filename*"_evolution.h5")
@@ -970,12 +975,17 @@ function save_mesh_from_spatial_network(
     duplicate_bonds_close_to_supercell_edge::Bool = true,
     format::String = "obj")
 
+    # create directory for saving meshes if it does not exist yet
+    if !isdir(save_path)
+        mkpath(save_path)
+    end
+
     # cut all bonds that reach out of the supercell and by duplicate those 
     # bonds that are close to the supercell edge on the other side of the
     # supercell just outside the supercell edge
     spatial_network = cut_bonds_out_of_supercell!(
         spatial_network; 
-        vector_out_of_supercell_length = 1)
+        vector_out_of_supercell_length = vector_out_of_supercell_length)
 
     # duplicate bonds close to supercell edge if desired
     if duplicate_bonds_close_to_supercell_edge
@@ -1031,6 +1041,57 @@ function save_mesh_from_spatial_network(
             FileIO.save(total_path, current_sphere_mesh)
 
         end
+    end
+
+    return
+end
+
+
+"""
+Save a mesh of the glass structure from a spatial network. The mesh consists of
+spheres at the vertices of the network. The radius of the spheres can be
+specified. The mesh is saved in the specified format (default is obj).
+"""
+function save_glass_mesh_from_spatial_network(
+    spatial_network::MetaGraphsNext.MetaGraph, 
+    filename::String;
+    sphere_radius::Float64 = 0.3131,
+    save_path::String = "../../data/structures/",
+    duplicate_bonds_close_to_supercell_edge::Bool = true,
+    format::String = "obj")
+
+    # create directory for saving meshes if it does not exist yet
+    if !isdir(save_path)
+        mkpath(save_path)
+    end
+
+    # cut all bonds that reach out of the supercell and by duplicate those 
+    # bonds that are close to the supercell edge on the other side of the
+    # supercell just outside the supercell edge
+    spatial_network = cut_bonds_out_of_supercell!(
+        spatial_network; 
+        vector_out_of_supercell_length = 1)
+
+    # duplicate bonds close to supercell edge if desired
+    if duplicate_bonds_close_to_supercell_edge
+        spatial_network = duplicate_bonds_close_to_supercell_edge!(
+            spatial_network)
+    end
+
+    # loop through vertices
+    for vertex in MetaGraphsNext.labels(spatial_network)
+        # get vertex position
+        vertex_pos = spatial_network[vertex]["position"]
+        # create sphere object
+        current_sphere = GeometryBasics.Sphere(
+            GeometryBasics.Point( vertex_pos...),
+            sphere_radius)
+        # mesh sphere object
+        current_sphere_mesh = GeometryBasics.mesh(current_sphere)
+        # save mesh
+        total_path = (save_path*filename*"_glass/"*string(vertex)*
+            "_sphere."*format)
+        FileIO.save(total_path, current_sphere_mesh)
     end
 
     return

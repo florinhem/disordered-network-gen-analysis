@@ -828,6 +828,37 @@ end
 
 """
 returns a dictionary with edges (starting position, ending position, length)
+for the pcu simple cubic structure with the symmetry operations
+"""
+function get_edges_pcu()
+    # define the position of vertex V1 and edge center E1
+    V1 = [1/4, 1/4, 1/4]
+    E1 = [1/2, 1/4, 1/4] # Midpoint between V1 and the +x periodic node
+
+    # the difference between V1 and V2 gives us the length
+    D1 = 2 .* (V1 .- E1)
+    V2 = V1 .- D1
+    L1 = LinearAlgebra.norm(D1)
+    
+    edges = Dict(1 => (V1, V2, L1))
+    
+    # 3-fold rotation around the main cell diagonal [1, 1, 1]
+    # This takes the +x edge and creates the +y and +z edges for the first node
+    edges = copy_and_rotate_and_translate(edges,
+        [1.0, 1.0, 1.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], 3)
+
+    # Simple cubic translations by 1/2 to populate the other 7 nodes
+    # This correctly generates all internal and PBC-crossing edges
+    edges = copy_and_translate(edges, [1/2, 0.0, 0.0])
+    edges = copy_and_translate(edges, [0.0, 1/2, 0.0])
+    edges = copy_and_translate(edges, [0.0, 0.0, 1/2])
+
+    return edges
+end
+
+
+"""
+returns a dictionary with edges (starting position, ending position, length)
 for the bcu_cn_5_6_7_8 structure which is the bcu network with bonds removed
 to achieve coordination numbers of 5, 6, 7, and 8 as in the disordered networks
 of 10.1002/adfm.202302720. Here, we place the edges by hand, because the
@@ -1136,6 +1167,12 @@ function get_network(nr_vertices, network_name)
         nr_vertices_per_unit_cell = 24
         nr_edges_per_unit_cell=48
         edges = get_edges_lcs()
+    elseif cmp(network_name , "pcu") == 0
+        nr_dimensions = 3
+        edge_length_unit_cell = 2.0
+        nr_vertices_per_unit_cell = 8
+        nr_edges_per_unit_cell=24
+        edges = get_edges_pcu()
     elseif cmp(network_name , "bcu_cn_5_6_7_8") == 0
         nr_dimensions = 3
         edge_length_unit_cell = 2*sqrt(3/2)
